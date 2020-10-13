@@ -1,4 +1,5 @@
-.heart {
+.image {
+  align-content: center;
   margin-right: 5px;
-  color: $themeRed;
+  vertical-align: -0.125em;
 }
