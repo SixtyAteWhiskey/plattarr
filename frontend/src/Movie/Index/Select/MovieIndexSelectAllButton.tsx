@@ -3,7 +3,14 @@ import { SelectActionType, useSelect } from 'App/SelectContext';
 import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
 import { icons } from 'Helpers/Props';
 
-function MovieIndexSelectAllButton() {
+interface MovieIndexSelectAllButtonProps {
+  label: string;
+  isSelectMode: boolean;
+  overflowComponent: React.FunctionComponent;
+}
+
+function MovieIndexSelectAllButton(props: MovieIndexSelectAllButtonProps) {
+  const { isSelectMode } = props;
   const [selectState, selectDispatch] = useSelect();
   const { allSelected, allUnselected } = selectState;
 
@@ -23,13 +30,13 @@ function MovieIndexSelectAllButton() {
     });
   }, [allSelected, selectDispatch]);
 
-  return (
+  return isSelectMode ? (
     <PageToolbarButton
       label={allSelected ? 'Unselect All' : 'Select All'}
       iconName={icon}
       onPress={onPress}
     />
-  );
+  ) : null;
 }
 
 export default MovieIndexSelectAllButton;
