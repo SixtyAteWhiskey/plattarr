@@ -17,12 +17,12 @@ namespace NzbDrone.Core.Validation.Paths
 
         protected override bool IsValid(PropertyValidatorContext context)
         {
+            context.MessageFormatter.AppendArgument("path", context.PropertyValue?.ToString());
+
             if (context.PropertyValue == null)
             {
                 return true;
             }
-
-            context.MessageFormatter.AppendArgument("path", context.PropertyValue.ToString());
 
             return !_rootFolderService.All().Exists(r => r.Path.PathEquals(context.PropertyValue.ToString()));
         }
