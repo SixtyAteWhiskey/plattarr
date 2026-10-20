@@ -4,14 +4,14 @@ using Newtonsoft.Json;
 using NUnit.Framework;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Indexers.HDBits;
-using NzbDrone.Core.IndexerSearch.Definitions;
+using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.IndexerTests.HDBitsTests
 {
     public class HDBitsRequestGeneratorFixture : CoreTest<HDBitsRequestGenerator>
     {
-        private MovieSearchCriteria _movieSearchCriteria;
+        private MovieSearchRequest _movieSearchCriteria;
 
         [SetUp]
         public void Setup()
@@ -24,7 +24,7 @@ namespace NzbDrone.Core.Test.IndexerTests.HDBitsTests
                 Username = "somename"
             };
 
-            _movieSearchCriteria = new MovieSearchCriteria
+            _movieSearchCriteria = new MovieSearchRequest
             {
                 Movie = new Movies.Movie { ImdbId = "tt0076759", Title = "Star Wars", Year = 1977 }
             };

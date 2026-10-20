@@ -7,8 +7,8 @@ using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
-using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.ThingiProvider;
@@ -69,7 +69,7 @@ namespace NzbDrone.Core.Indexers
         protected TSettings Settings => (TSettings)Definition.Settings;
 
         public abstract Task<IList<ReleaseInfo>> FetchRecent();
-        public abstract Task<IList<ReleaseInfo>> Fetch(MovieSearchCriteria searchCriteria);
+        public abstract Task<IList<ReleaseInfo>> Fetch(MovieSearchRequest searchCriteria);
         public abstract HttpRequest GetDownloadRequest(string link);
 
         protected virtual IList<ReleaseInfo> CleanupReleases(IEnumerable<ReleaseInfo> releases)

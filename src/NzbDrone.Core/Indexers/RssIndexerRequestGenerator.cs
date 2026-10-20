@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.IndexerSearch.Definitions;
+using NzbDrone.Core.Movies.Search;
 
 namespace NzbDrone.Core.Indexers
 {
@@ -23,7 +23,7 @@ namespace NzbDrone.Core.Indexers
             return pageableRequests;
         }
 
-        public virtual IndexerPageableRequestChain GetSearchRequests(MovieSearchCriteria searchCriteria)
+        public virtual IndexerPageableRequestChain GetSearchRequests(MovieSearchRequest searchCriteria)
         {
             return new IndexerPageableRequestChain();
         }

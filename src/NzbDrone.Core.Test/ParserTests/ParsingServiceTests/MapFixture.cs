@@ -4,10 +4,10 @@ using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
-using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.AlternativeTitles;
+using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Movies.Translations;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
@@ -29,7 +29,7 @@ namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests
         private ParsedMovieInfo _umlautAltInfo;
         private ParsedMovieInfo _multiLanguageInfo;
         private ParsedMovieInfo _multiLanguageWithOriginalInfo;
-        private MovieSearchCriteria _movieSearchCriteria;
+        private MovieSearchRequest _movieSearchCriteria;
 
         [SetUp]
         public void Setup()
@@ -111,7 +111,7 @@ namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests
                 Languages = new List<Language> { Language.Original, Language.French, Language.English }
             };
 
-            _movieSearchCriteria = new MovieSearchCriteria
+            _movieSearchCriteria = new MovieSearchRequest
             {
                 Movie = _movie
             };

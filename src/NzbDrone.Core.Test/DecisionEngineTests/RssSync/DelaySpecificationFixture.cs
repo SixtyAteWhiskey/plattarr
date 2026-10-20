@@ -10,9 +10,9 @@ using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.DecisionEngine.Specifications.RssSync;
 using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Delay;
 using NzbDrone.Core.Profiles.Qualities;
@@ -82,7 +82,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
         [Test]
         public void should_be_true_when_user_invoked_search()
         {
-            Subject.IsSatisfiedBy(new RemoteMovie(), new ReleaseDecisionInformation(false, new MovieSearchCriteria { UserInvokedSearch = true })).Accepted.Should().BeTrue();
+            Subject.IsSatisfiedBy(new RemoteMovie(), new ReleaseDecisionInformation(false, new MovieSearchRequest { UserInvokedSearch = true })).Accepted.Should().BeTrue();
         }
 
         [Test]
@@ -93,7 +93,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
 
             _delayProfile.UsenetDelay = 720;
 
-            Subject.IsSatisfiedBy(_remoteMovie, new ReleaseDecisionInformation(false, new MovieSearchCriteria())).Accepted.Should().BeFalse();
+            Subject.IsSatisfiedBy(_remoteMovie, new ReleaseDecisionInformation(false, new MovieSearchRequest())).Accepted.Should().BeFalse();
         }
 
         [Test]

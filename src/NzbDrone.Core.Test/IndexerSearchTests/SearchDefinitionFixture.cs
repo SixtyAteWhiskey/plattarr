@@ -2,12 +2,12 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
-using NzbDrone.Core.IndexerSearch.Definitions;
+using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.IndexerSearchTests
 {
-    public class SearchDefinitionFixture : CoreTest<MovieSearchCriteria>
+    public class SearchDefinitionFixture : CoreTest<MovieSearchRequest>
     {
         [TestCase("Betty White's Off Their Rockers", "Betty+Whites+Off+Their+Rockers")]
         [TestCase("Star Wars: The Clone Wars", "Star+Wars+The+Clone+Wars")]

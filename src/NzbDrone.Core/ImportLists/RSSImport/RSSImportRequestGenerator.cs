@@ -16,7 +16,7 @@ namespace NzbDrone.Core.ImportLists.RSSImport
             return pageableRequests;
         }
 
-        // public ImportListPageableRequestChain GetSearchRequests(MovieSearchCriteria searchCriteria)
+        // public ImportListPageableRequestChain GetSearchRequests(MovieSearchRequest searchCriteria)
         // {
         //    return new ImportListPageableRequestChain();
         // }

@@ -8,8 +8,8 @@ using NUnit.Framework;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.IndexerSearch;
-using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Movies.Translations;
 using NzbDrone.Core.Test.Framework;
 
@@ -32,7 +32,7 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
                   .Returns(new List<IIndexer> { _mockIndexer.Object });
 
             Mocker.GetMock<IMakeDownloadDecision>()
-                .Setup(s => s.GetSearchDecision(It.IsAny<List<Parser.Model.ReleaseInfo>>(), It.IsAny<SearchCriteriaBase>()))
+                .Setup(s => s.GetSearchDecision(It.IsAny<List<Parser.Model.ReleaseInfo>>(), It.IsAny<MovieSearchRequest>()))
                 .Returns(new List<DownloadDecision>());
 
             _movie = Builder<Movie>.CreateNew()
@@ -48,12 +48,12 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
                 .Returns(new List<MovieTranslation>());
         }
 
-        private List<SearchCriteriaBase> WatchForSearchCriteria()
+        private List<MovieSearchRequest> WatchForSearchCriteria()
         {
-            var result = new List<SearchCriteriaBase>();
+            var result = new List<MovieSearchRequest>();
 
-            _mockIndexer.Setup(v => v.Fetch(It.IsAny<MovieSearchCriteria>()))
-                .Callback<MovieSearchCriteria>(s => result.Add(s))
+            _mockIndexer.Setup(v => v.Fetch(It.IsAny<MovieSearchRequest>()))
+                .Callback<MovieSearchRequest>(s => result.Add(s))
                 .Returns(Task.FromResult<IList<Parser.Model.ReleaseInfo>>(new List<Parser.Model.ReleaseInfo>()));
 
             return result;
@@ -72,7 +72,7 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
 
             await Subject.MovieSearch(_movie, true, false);
 
-            var criteria = allCriteria.OfType<MovieSearchCriteria>().ToList();
+            var criteria = allCriteria.OfType<MovieSearchRequest>().ToList();
 
             criteria.Count.Should().Be(0);
         }
@@ -98,7 +98,7 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
 
             await Subject.MovieSearch(_movie, true, false);
 
-            var criteria = allCriteria.OfType<MovieSearchCriteria>().ToList();
+            var criteria = allCriteria.OfType<MovieSearchRequest>().ToList();
 
             criteria.Count.Should().Be(1);
         }
@@ -125,7 +125,7 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
 
             await Subject.MovieSearch(_movie, true, false);
 
-            var criteria = allCriteria.OfType<MovieSearchCriteria>().ToList();
+            var criteria = allCriteria.OfType<MovieSearchRequest>().ToList();
 
             criteria.Count.Should().Be(1);
         }
@@ -152,7 +152,7 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
 
             await Subject.MovieSearch(_movie, true, false);
 
-            var criteria = allCriteria.OfType<MovieSearchCriteria>().ToList();
+            var criteria = allCriteria.OfType<MovieSearchRequest>().ToList();
 
             criteria.Count.Should().Be(0);
         }

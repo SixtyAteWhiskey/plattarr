@@ -4,7 +4,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.IndexerSearch.Definitions;
+using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common.Categories;
@@ -15,14 +15,14 @@ namespace NzbDrone.Core.Test.IndexerTests.IntegrationTests
     [Ignore("Nyaa is down!")]
     public class IndexerIntegrationTests : CoreTest
     {
-        private MovieSearchCriteria _singleSearchCriteria;
+        private MovieSearchRequest _singleSearchCriteria;
 
         [SetUp]
         public void SetUp()
         {
             UseRealHttp();
 
-            _singleSearchCriteria = new MovieSearchCriteria()
+            _singleSearchCriteria = new MovieSearchRequest()
             {
                 SceneTitles = new List<string> { "Person of Interest" },
             };

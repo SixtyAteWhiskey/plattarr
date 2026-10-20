@@ -7,8 +7,8 @@ using NzbDrone.Core.Datastore;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.DecisionEngine.Specifications.RssSync;
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 
@@ -67,7 +67,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
             _fakeIndexerDefinition.Tags = new HashSet<int>();
             _fakeMovie.Tags = new HashSet<int>();
 
-            _specification.IsSatisfiedBy(_parseResultMulti, new ReleaseDecisionInformation(false, new MovieSearchCriteria())).Accepted.Should().BeTrue();
+            _specification.IsSatisfiedBy(_parseResultMulti, new ReleaseDecisionInformation(false, new MovieSearchRequest())).Accepted.Should().BeTrue();
         }
 
         [Test]
@@ -76,7 +76,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
             _fakeIndexerDefinition.Tags = new HashSet<int> { 123 };
             _fakeMovie.Tags = new HashSet<int>();
 
-            _specification.IsSatisfiedBy(_parseResultMulti, new ReleaseDecisionInformation(false, new MovieSearchCriteria())).Accepted.Should().BeFalse();
+            _specification.IsSatisfiedBy(_parseResultMulti, new ReleaseDecisionInformation(false, new MovieSearchRequest())).Accepted.Should().BeFalse();
         }
 
         [Test]
@@ -85,7 +85,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
             _fakeIndexerDefinition.Tags = new HashSet<int>();
             _fakeMovie.Tags = new HashSet<int> { 123 };
 
-            _specification.IsSatisfiedBy(_parseResultMulti, new ReleaseDecisionInformation(false, new MovieSearchCriteria())).Accepted.Should().BeTrue();
+            _specification.IsSatisfiedBy(_parseResultMulti, new ReleaseDecisionInformation(false, new MovieSearchRequest())).Accepted.Should().BeTrue();
         }
 
         [Test]
@@ -94,7 +94,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
             _fakeIndexerDefinition.Tags = new HashSet<int> { 123, 456 };
             _fakeMovie.Tags = new HashSet<int> { 123, 789 };
 
-            _specification.IsSatisfiedBy(_parseResultMulti, new ReleaseDecisionInformation(false, new MovieSearchCriteria())).Accepted.Should().BeTrue();
+            _specification.IsSatisfiedBy(_parseResultMulti, new ReleaseDecisionInformation(false, new MovieSearchRequest())).Accepted.Should().BeTrue();
         }
 
         [Test]
@@ -103,7 +103,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
             _fakeIndexerDefinition.Tags = new HashSet<int> { 456 };
             _fakeMovie.Tags = new HashSet<int> { 123, 789 };
 
-            _specification.IsSatisfiedBy(_parseResultMulti, new ReleaseDecisionInformation(false, new MovieSearchCriteria())).Accepted.Should().BeFalse();
+            _specification.IsSatisfiedBy(_parseResultMulti, new ReleaseDecisionInformation(false, new MovieSearchRequest())).Accepted.Should().BeFalse();
         }
 
         [Test]
@@ -113,7 +113,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
             _fakeMovie.Tags = new HashSet<int> { 123, 789 };
             _fakeRelease.IndexerId = 0;
 
-            _specification.IsSatisfiedBy(_parseResultMulti, new ReleaseDecisionInformation(false, new MovieSearchCriteria { MonitoredEpisodesOnly = true })).Accepted.Should().BeTrue();
+            _specification.IsSatisfiedBy(_parseResultMulti, new ReleaseDecisionInformation(false, new MovieSearchRequest { MonitoredEpisodesOnly = true })).Accepted.Should().BeTrue();
         }
 
         [Test]
@@ -123,7 +123,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
             _fakeMovie.Tags = new HashSet<int> { 123, 789 };
             _fakeRelease.IndexerId = 2;
 
-            _specification.IsSatisfiedBy(_parseResultMulti, new ReleaseDecisionInformation(false, new MovieSearchCriteria { MonitoredEpisodesOnly = true })).Accepted.Should().BeTrue();
+            _specification.IsSatisfiedBy(_parseResultMulti, new ReleaseDecisionInformation(false, new MovieSearchRequest { MonitoredEpisodesOnly = true })).Accepted.Should().BeTrue();
         }
     }
 }

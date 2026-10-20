@@ -10,8 +10,8 @@ using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.DecisionEngine.Specifications.RssSync;
 using NzbDrone.Core.History;
-using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
@@ -87,7 +87,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         [Test]
         public void should_return_true_if_it_is_a_search()
         {
-            _upgradeHistory.IsSatisfiedBy(_parseResultSingle, new ReleaseDecisionInformation(false, new MovieSearchCriteria())).Accepted.Should().BeTrue();
+            _upgradeHistory.IsSatisfiedBy(_parseResultSingle, new ReleaseDecisionInformation(false, new MovieSearchRequest())).Accepted.Should().BeTrue();
         }
 
         [Test]

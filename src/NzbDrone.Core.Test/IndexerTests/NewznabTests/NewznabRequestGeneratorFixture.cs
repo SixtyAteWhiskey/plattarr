@@ -4,14 +4,14 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Indexers.Newznab;
-using NzbDrone.Core.IndexerSearch.Definitions;
+using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
 {
     public class NewznabRequestGeneratorFixture : CoreTest<NewznabRequestGenerator>
     {
-        private MovieSearchCriteria _movieSearchCriteria;
+        private MovieSearchRequest _movieSearchCriteria;
         private NewznabCapabilities _capabilities;
 
         [SetUp]
@@ -24,7 +24,7 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
                 ApiKey = "abcd",
             };
 
-            _movieSearchCriteria = new MovieSearchCriteria
+            _movieSearchCriteria = new MovieSearchRequest
             {
                 Movie = new Movies.Movie { ImdbId = "tt0076759", Title = "Star Wars", Year = 1977, TmdbId = 11 },
                 SceneTitles = new List<string> { "Star Wars" }
@@ -211,7 +211,7 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
             _capabilities.SupportedMovieSearchParameters = new[] { "q" };
             _capabilities.TextSearchEngine = "raw";
 
-            var movieRawSearchCriteria = new MovieSearchCriteria
+            var movieRawSearchCriteria = new MovieSearchRequest
             {
                 Movie = new Movies.Movie { Title = "Some Movie & Title: Words", Year = 2021, TmdbId = 123 },
                 SceneTitles = new List<string> { "Some Movie & Title: Words" }
@@ -232,7 +232,7 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
             _capabilities.SupportedMovieSearchParameters = new[] { "q" };
             _capabilities.TextSearchEngine = "sphinx";
 
-            var movieRawSearchCriteria = new MovieSearchCriteria
+            var movieRawSearchCriteria = new MovieSearchRequest
             {
                 Movie = new Movies.Movie { Title = "Some Movie & Title: Words", Year = 2021, TmdbId = 123 },
                 SceneTitles = new List<string> { "Some Movie & Title: Words" }

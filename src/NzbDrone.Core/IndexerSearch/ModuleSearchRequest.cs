@@ -3,17 +3,17 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using NzbDrone.Common.EnsureThat;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.Movies;
 
-namespace NzbDrone.Core.IndexerSearch.Definitions
+namespace NzbDrone.Core.IndexerSearch
 {
-    public abstract class SearchCriteriaBase
+    // Base for a media module's search request (docs/module-interface.md, contract 3).
+    // Module requests are translated into the indexer layer's SearchCriteriaBase types.
+    public abstract class ModuleSearchRequest
     {
-        private static readonly Regex SpecialCharacter = new Regex(@"['.\u0060\u00B4\u2018\u2019]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex SpecialCharacter = new Regex(@"['.`´‘’]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex NonWord = new Regex(@"[\W]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex BeginningThe = new Regex(@"^the\s", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        public Movie Movie { get; set; }
         public List<string> SceneTitles { get; set; }
         public virtual bool MonitoredEpisodesOnly { get; set; }
         public virtual bool UserInvokedSearch { get; set; }

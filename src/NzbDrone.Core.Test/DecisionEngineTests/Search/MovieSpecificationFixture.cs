@@ -3,8 +3,8 @@ using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.DecisionEngine.Specifications.Search;
-using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Test.Common;
 
@@ -16,7 +16,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.Search
         private Movie _movie1;
         private Movie _movie2;
         private RemoteMovie _remoteMovie = new();
-        private SearchCriteriaBase _searchCriteria = new MovieSearchCriteria();
+        private MovieSearchRequest _searchCriteria = new MovieSearchRequest();
         private ReleaseDecisionInformation _information;
 
         [SetUp]

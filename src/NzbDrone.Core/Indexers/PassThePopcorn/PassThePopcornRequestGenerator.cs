@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.IndexerSearch.Definitions;
+using NzbDrone.Core.Movies.Search;
 
 namespace NzbDrone.Core.Indexers.PassThePopcorn
 {
@@ -24,7 +24,7 @@ namespace NzbDrone.Core.Indexers.PassThePopcorn
             return pageableRequests;
         }
 
-        public IndexerPageableRequestChain GetSearchRequests(MovieSearchCriteria searchCriteria)
+        public IndexerPageableRequestChain GetSearchRequests(MovieSearchRequest searchCriteria)
         {
             var pageableRequests = new IndexerPageableRequestChain();
 

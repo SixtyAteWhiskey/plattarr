@@ -3,8 +3,8 @@ using System.IO;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Parser.RomanNumerals;
 
@@ -13,7 +13,7 @@ namespace NzbDrone.Core.Parser
     public interface IParsingService
     {
         Movie GetMovie(string title);
-        RemoteMovie Map(ParsedMovieInfo parsedMovieInfo, string imdbId, int tmdbId, SearchCriteriaBase searchCriteria = null);
+        RemoteMovie Map(ParsedMovieInfo parsedMovieInfo, string imdbId, int tmdbId, MovieSearchRequest searchCriteria = null);
         RemoteMovie Map(ParsedMovieInfo parsedMovieInfo, int movieId);
         ParsedMovieInfo ParseMinimalPathMovieInfo(string path);
     }
@@ -77,7 +77,7 @@ namespace NzbDrone.Core.Parser
             return null;
         }
 
-        public RemoteMovie Map(ParsedMovieInfo parsedMovieInfo, string imdbId, int tmdbId, SearchCriteriaBase searchCriteria = null)
+        public RemoteMovie Map(ParsedMovieInfo parsedMovieInfo, string imdbId, int tmdbId, MovieSearchRequest searchCriteria = null)
         {
             return Map(parsedMovieInfo, imdbId, tmdbId, null, searchCriteria);
         }
@@ -91,7 +91,7 @@ namespace NzbDrone.Core.Parser
             };
         }
 
-        public RemoteMovie Map(ParsedMovieInfo parsedMovieInfo, string imdbId, int tmdbId, Movie movie, SearchCriteriaBase searchCriteria)
+        public RemoteMovie Map(ParsedMovieInfo parsedMovieInfo, string imdbId, int tmdbId, Movie movie, MovieSearchRequest searchCriteria)
         {
             var remoteMovie = new RemoteMovie
             {
@@ -124,7 +124,7 @@ namespace NzbDrone.Core.Parser
             return remoteMovie;
         }
 
-        private FindMovieResult FindMovie(ParsedMovieInfo parsedMovieInfo, string imdbId, int tmdbId, SearchCriteriaBase searchCriteria)
+        private FindMovieResult FindMovie(ParsedMovieInfo parsedMovieInfo, string imdbId, int tmdbId, MovieSearchRequest searchCriteria)
         {
             FindMovieResult result = null;
 
@@ -209,7 +209,7 @@ namespace NzbDrone.Core.Parser
             return null;
         }
 
-        private FindMovieResult TryGetMovieBySearchCriteria(ParsedMovieInfo parsedMovieInfo, string imdbId, int tmdbId, SearchCriteriaBase searchCriteria)
+        private FindMovieResult TryGetMovieBySearchCriteria(ParsedMovieInfo parsedMovieInfo, string imdbId, int tmdbId, MovieSearchRequest searchCriteria)
         {
             Movie possibleMovie = null;
 
