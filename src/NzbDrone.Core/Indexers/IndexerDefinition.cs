@@ -8,6 +8,8 @@ namespace NzbDrone.Core.Indexers
 {
     public class IndexerDefinition : ProviderDefinition
     {
+        public const int DefaultPriority = 25;
+
         public string[] IndexerUrls { get; set; }
         public string[] LegacyUrls { get; set; }
         public string Description { get; set; }
@@ -20,7 +22,7 @@ namespace NzbDrone.Core.Indexers
         public bool SupportsRedirect { get; set; }
         public bool SupportsPagination { get; set; }
         public IndexerCapabilities Capabilities { get; set; }
-        public int Priority { get; set; } = 25;
+        public int Priority { get; set; } = DefaultPriority;
         public bool Redirect { get; set; }
         public int DownloadClientId { get; set; }
         public DateTime Added { get; set; }

@@ -12,13 +12,13 @@ using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.Housekeeping;
 using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.IndexerHistory;
+using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.IndexerVersions;
 using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.MediaFiles.Commands;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Movies.Commands;
-using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Update.Commands;
 
 namespace NzbDrone.Core.Jobs

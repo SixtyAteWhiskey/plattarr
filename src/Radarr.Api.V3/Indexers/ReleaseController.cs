@@ -15,8 +15,8 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.History;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
@@ -30,7 +30,7 @@ namespace Radarr.Api.V3.Indexers
     [V3ApiController]
     public class ReleaseController : ReleaseControllerBase
     {
-        private readonly IFetchAndParseRss _rssFetcherAndParser;
+        private readonly IIndexerReleaseFetcher _releaseFetcher;
         private readonly ISearchForReleases _releaseSearchService;
         private readonly IMakeDownloadDecision _downloadDecisionMaker;
         private readonly IPrioritizeDownloadDecision _prioritizeDownloadDecision;
@@ -41,7 +41,7 @@ namespace Radarr.Api.V3.Indexers
 
         private readonly ICached<RemoteMovie> _remoteMovieCache;
 
-        public ReleaseController(IFetchAndParseRss rssFetcherAndParser,
+        public ReleaseController(IIndexerReleaseFetcher releaseFetcher,
                              ISearchForReleases releaseSearchService,
                              IMakeDownloadDecision downloadDecisionMaker,
                              IPrioritizeDownloadDecision prioritizeDownloadDecision,
@@ -53,7 +53,7 @@ namespace Radarr.Api.V3.Indexers
                              Logger logger)
             : base(qualityProfileService)
         {
-            _rssFetcherAndParser = rssFetcherAndParser;
+            _releaseFetcher = releaseFetcher;
             _releaseSearchService = releaseSearchService;
             _downloadDecisionMaker = downloadDecisionMaker;
             _prioritizeDownloadDecision = prioritizeDownloadDecision;
@@ -168,7 +168,10 @@ namespace Radarr.Api.V3.Indexers
 
         private async Task<List<ReleaseResource>> GetRss()
         {
-            var reports = await _rssFetcherAndParser.Fetch();
+            var categories = MovieReleaseMatcher.MovieCategories;
+            var reports = (await _releaseFetcher.FetchRss(categories.ToArray()))
+                .Where(r => RssSyncService.BelongsTo(r, categories))
+                .ToList();
             var decisions = _downloadDecisionMaker.GetRssDecision(reports);
             var prioritizedDecisions = _prioritizeDownloadDecision.PrioritizeDecisionsForMovies(decisions);
 
