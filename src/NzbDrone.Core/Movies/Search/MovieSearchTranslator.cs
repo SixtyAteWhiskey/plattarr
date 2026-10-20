@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.Overrides;
 using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Parser;
@@ -15,12 +16,19 @@ namespace NzbDrone.Core.Movies.Search
     {
         public const string Source = "Movies";
 
-        public IEnumerable<IReadOnlyList<SearchCriteriaBase>> Translate(MovieSearchRequest request, IndexerDefinition indexer)
+        private readonly IIndexerOverrideService _indexerOverrideService;
+
+        public MovieSearchTranslator(IIndexerOverrideService indexerOverrideService)
+        {
+            _indexerOverrideService = indexerOverrideService;
+        }
+
+        public IEnumerable<IReadOnlyList<SearchCriteriaBase>> Translate(MovieSearchRequest request, IndexerDefinition indexer, int[] categories)
         {
             var movie = request.Movie;
             var metadata = movie.MovieMetadata.Value;
             var capabilities = indexer.Capabilities;
-            var categories = MovieReleaseMatcher.MovieCategories.ToArray();
+            var removeYear = _indexerOverrideService.Get(indexer.Id, MediaKind.Movies).RemoveYear == true;
 
             if (capabilities != null)
             {
@@ -45,12 +53,11 @@ namespace NzbDrone.Core.Movies.Search
 
             if (movie.Year > 0 && request.SceneTitles != null && (capabilities == null || capabilities.SearchAvailable))
             {
-                // RemoveYear becomes a per-indexer override (IndexerOverrides, step 7c).
                 yield return request.SceneTitles
                     .Where(t => t.IsNotNullOrWhiteSpace())
                     .Select(t => (SearchCriteriaBase)new BasicSearchCriteria
                     {
-                        SearchTerm = $"{t} {movie.Year}",
+                        SearchTerm = removeYear ? t : $"{t} {movie.Year}",
                         Categories = categories,
                         SearchType = "search",
                         Source = Source

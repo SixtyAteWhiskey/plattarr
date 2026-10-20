@@ -7,6 +7,7 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.IndexerProxies;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.Overrides;
 using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Modules;
@@ -27,6 +28,8 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
         private List<SearchCriteriaBase> _searched;
         private Dictionary<string, List<ReleaseInfo>> _resultsByTerm;
         private TestTranslator _translator;
+        private Mock<IReleaseMatcher> _matcher;
+        private IndexerOverride _override;
 
         [SetUp]
         public void SetUp()
@@ -52,6 +55,18 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
 
             Mocker.SetConstant<IIndexerMediaTagService>(Mocker.Resolve<IndexerMediaTagService>());
 
+            _override = new IndexerOverride { IndexerId = 1, MediaKind = MediaKind.Movies };
+
+            Mocker.GetMock<IIndexerOverrideService>()
+                  .Setup(s => s.Get(1, MediaKind.Movies))
+                  .Returns(() => _override);
+
+            Mocker.SetConstant<IIndexerCategoryService>(Mocker.Resolve<IndexerCategoryService>());
+
+            _matcher = new Mock<IReleaseMatcher>();
+            _matcher.SetupGet(m => m.Kind).Returns(MediaKind.Movies);
+            _matcher.SetupGet(m => m.Categories).Returns(MovieCategories);
+
             _searched = new List<SearchCriteriaBase>();
             _resultsByTerm = new Dictionary<string, List<ReleaseInfo>>();
 
@@ -68,7 +83,7 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
         {
             var request = new TestRequest { InteractiveSearch = interactive, SceneTitles = new List<string> { "Title" } };
 
-            return Subject.Search(request, mediaTags, MovieCategories, _translator);
+            return Subject.Search(request, mediaTags, _matcher.Object, _translator);
         }
 
         [Test]
@@ -209,7 +224,7 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
         {
             _definition.EnableRss = false;
 
-            var releases = await Subject.FetchRss(MovieCategories);
+            var releases = await Subject.FetchRss(new[] { _matcher.Object });
 
             releases.Should().BeEmpty();
             _searched.Should().BeEmpty();
@@ -219,7 +234,7 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
         [Test]
         public async Task should_fetch_rss_with_requested_categories_and_no_term()
         {
-            await Subject.FetchRss(MovieCategories);
+            await Subject.FetchRss(new[] { _matcher.Object });
 
             _searched.Should().ContainSingle();
             _searched[0].Should().BeOfType<BasicSearchCriteria>();
@@ -238,7 +253,7 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
                   .Setup(s => s.GetLastRssSyncReleaseInfo(1))
                   .Returns(new ReleaseInfo { DownloadUrl = "previous", PublishDate = DateTime.UtcNow.AddDays(-1) });
 
-            await Subject.FetchRss(MovieCategories);
+            await Subject.FetchRss(new[] { _matcher.Object });
 
             Mocker.GetMock<IIndexerStatusService>()
                   .Verify(s => s.UpdateRssSyncStatus(1, newest), Times.Once());
@@ -256,9 +271,42 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
                   .Setup(s => s.GetLastRssSyncReleaseInfo(1))
                   .Returns(previous);
 
-            await Subject.FetchRss(MovieCategories);
+            await Subject.FetchRss(new[] { _matcher.Object });
 
             ExceptionVerification.ExpectedWarns(0);
+        }
+
+        [Test]
+        public async Task should_use_override_categories_for_rss()
+        {
+            _capabilities.Categories.AddCategoryMapping(8000, NewznabStandardCategory.Other);
+            _override.Categories = new List<int> { 8000 };
+
+            await Subject.FetchRss(new[] { _matcher.Object });
+
+            _searched.Should().ContainSingle();
+            _searched[0].Categories.Should().Equal(8000);
+        }
+
+        [Test]
+        public async Task should_pass_override_categories_to_the_translator()
+        {
+            _capabilities.Categories.AddCategoryMapping(8000, NewznabStandardCategory.Other);
+            _override.Categories = new List<int> { 8000 };
+
+            await Search();
+
+            _translator.Categories.Should().Equal(8000);
+        }
+
+        [Test]
+        public async Task should_skip_indexer_when_override_categories_are_unsupported()
+        {
+            _override.Categories = new List<int> { 7000 };
+
+            await Search();
+
+            _searched.Should().BeEmpty();
         }
 
         public class TestRequest : ModuleSearchRequest
@@ -267,17 +315,21 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
 
         private class TestTranslator : ISearchTranslator<TestRequest>
         {
-            public IEnumerable<IReadOnlyList<SearchCriteriaBase>> Translate(TestRequest request, IndexerDefinition indexer)
+            public int[] Categories { get; private set; }
+
+            public IEnumerable<IReadOnlyList<SearchCriteriaBase>> Translate(TestRequest request, IndexerDefinition indexer, int[] categories)
             {
+                Categories = categories;
+
                 yield return new SearchCriteriaBase[]
                 {
-                    new BasicSearchCriteria { SearchTerm = "tier1", Categories = MovieCategories }
+                    new BasicSearchCriteria { SearchTerm = "tier1", Categories = categories }
                 };
 
                 yield return new SearchCriteriaBase[]
                 {
-                    new BasicSearchCriteria { SearchTerm = "tier2a", Categories = MovieCategories },
-                    new BasicSearchCriteria { SearchTerm = "tier2b", Categories = MovieCategories }
+                    new BasicSearchCriteria { SearchTerm = "tier2a", Categories = categories },
+                    new BasicSearchCriteria { SearchTerm = "tier2b", Categories = categories }
                 };
             }
         }

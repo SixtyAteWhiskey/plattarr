@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.Overrides;
 using NzbDrone.Core.Languages;
-using NzbDrone.Core.Movies.Indexers.Legacy;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 
@@ -13,12 +15,15 @@ namespace NzbDrone.Core.Download.Aggregation.Aggregators
     public class AggregateLanguages : IAggregateRemoteMovie
     {
         private readonly IIndexerFactory _indexerFactory;
+        private readonly IIndexerOverrideService _indexerOverrideService;
         private readonly Logger _logger;
 
         public AggregateLanguages(IIndexerFactory indexerFactory,
+                                  IIndexerOverrideService indexerOverrideService,
                                   Logger logger)
         {
             _indexerFactory = indexerFactory;
+            _indexerOverrideService = indexerOverrideService;
             _logger = logger;
         }
 
@@ -81,21 +86,26 @@ namespace NzbDrone.Core.Download.Aggregation.Aggregators
                     indexer = _indexerFactory.Find(releaseInfo.IndexerId);
                 }
 
+                // Same fallback as Radarr's FindByName: an exact name match.
                 if (indexer == null && releaseInfo.Indexer?.IsNotNullOrWhiteSpace() == true)
                 {
-                    indexer = _indexerFactory.FindByName(releaseInfo.Indexer);
+                    indexer = _indexerFactory.All().FirstOrDefault(i => i.Name == releaseInfo.Indexer);
                 }
 
-                if (indexer?.Settings is IIndexerSettings settings && settings.MultiLanguages.Any() && Parser.Parser.HasMultipleLanguages(releaseInfo.Title))
+                var multiLanguages = indexer != null
+                    ? _indexerOverrideService.Get(indexer.Id, MediaKind.Movies).MultiLanguages
+                    : new List<int>();
+
+                if (multiLanguages.Any() && Parser.Parser.HasMultipleLanguages(releaseInfo.Title))
                 {
                     // Use indexer setting for Multi-languages
                     if (languages.Count == 0 || (languages.Count == 1 && languages.First() == Language.Unknown))
                     {
-                        languages = settings.MultiLanguages.Select(i => (Language)i).ToList();
+                        languages = multiLanguages.Select(i => (Language)i).ToList();
                     }
                     else
                     {
-                        languages.AddRange(settings.MultiLanguages.Select(i => (Language)i).Except(languages).ToList());
+                        languages.AddRange(multiLanguages.Select(i => (Language)i).Except(languages).ToList());
                     }
                 }
             }

@@ -208,6 +208,8 @@ namespace NzbDrone.Core.Datastore
             Mapper.Entity<IndexerHistoryItem>("IndexerHistory").RegisterModel();
 
             Mapper.Entity<IndexerDefinitionVersion>("IndexerDefinitionVersions").RegisterModel();
+
+            Mapper.Entity<Indexers.Overrides.IndexerOverride>("IndexerOverrides").RegisterModel();
         }
 
         private static void RegisterMappers()

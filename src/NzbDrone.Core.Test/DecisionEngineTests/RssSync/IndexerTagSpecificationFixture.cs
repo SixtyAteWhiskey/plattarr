@@ -1,13 +1,12 @@
 using System.Collections.Generic;
 using FizzWare.NBuilder;
 using FluentAssertions;
-using Moq;
 using NUnit.Framework;
-using NzbDrone.Core.Datastore;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.DecisionEngine.Specifications.RssSync;
+using NzbDrone.Core.IndexerProxies;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
@@ -23,6 +22,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
         private IndexerDefinition _fakeIndexerDefinition;
         private Movie _fakeMovie;
         private ReleaseInfo _fakeRelease;
+        private List<IndexerProxyDefinition> _proxies = new();
 
         [SetUp]
         public void Setup()
@@ -34,13 +34,15 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
 
             Mocker
                 .GetMock<IIndexerFactory>()
-                .Setup(m => m.Get(It.IsAny<int>()))
-                .Throws(new ModelNotFoundException(typeof(IndexerDefinition), -1));
+                .Setup(m => m.Find(1))
+                .Returns(_fakeIndexerDefinition);
 
             Mocker
-                .GetMock<IIndexerFactory>()
-                .Setup(m => m.Get(1))
-                .Returns(_fakeIndexerDefinition);
+                .GetMock<IIndexerProxyFactory>()
+                .Setup(m => m.All())
+                .Returns(() => _proxies);
+
+            Mocker.SetConstant<IIndexerMediaTagService>(Mocker.Resolve<IndexerMediaTagService>());
 
             _specification = Mocker.Resolve<IndexerTagSpecification>();
 
@@ -59,6 +61,16 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
                 Movie = _fakeMovie,
                 Release = _fakeRelease
             };
+        }
+
+        [Test]
+        public void indexer_proxy_tag_should_not_restrict_movies()
+        {
+            _fakeIndexerDefinition.Tags = new HashSet<int> { 7 };
+            _proxies = new List<IndexerProxyDefinition> { new() { Id = 1, Tags = new HashSet<int> { 7 } } };
+            _fakeMovie.Tags = new HashSet<int>();
+
+            _specification.IsSatisfiedBy(_parseResultMulti, new()).Accepted.Should().BeTrue();
         }
 
         [Test]

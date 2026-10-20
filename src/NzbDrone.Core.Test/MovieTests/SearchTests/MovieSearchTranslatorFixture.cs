@@ -4,7 +4,9 @@ using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.Overrides;
 using NzbDrone.Core.IndexerSearch.Definitions;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Test.Framework;
@@ -16,6 +18,7 @@ namespace NzbDrone.Core.Test.MovieTests.SearchTests
     {
         private MovieSearchRequest _request;
         private IndexerDefinition _indexer;
+        private IndexerOverride _override;
 
         [SetUp]
         public void SetUp()
@@ -28,12 +31,18 @@ namespace NzbDrone.Core.Test.MovieTests.SearchTests
                 SceneTitles = new List<string> { "The Matrix", "Matrix" }
             };
 
-            _indexer = new IndexerDefinition { Capabilities = new IndexerCapabilities() };
+            _indexer = new IndexerDefinition { Id = 1, Capabilities = new IndexerCapabilities() };
+
+            _override = new IndexerOverride { IndexerId = 1, MediaKind = MediaKind.Movies };
+
+            Mocker.GetMock<IIndexerOverrideService>()
+                  .Setup(s => s.Get(1, MediaKind.Movies))
+                  .Returns(() => _override);
         }
 
-        private List<IReadOnlyList<SearchCriteriaBase>> Translate()
+        private List<IReadOnlyList<SearchCriteriaBase>> Translate(params int[] categories)
         {
-            return Subject.Translate(_request, _indexer).ToList();
+            return Subject.Translate(_request, _indexer, categories.Length > 0 ? categories : new[] { 2000 }).ToList();
         }
 
         [Test]
@@ -73,6 +82,22 @@ namespace NzbDrone.Core.Test.MovieTests.SearchTests
 
             tiers.Should().ContainSingle();
             tiers[0].Should().OnlyContain(c => c is BasicSearchCriteria);
+        }
+
+        [Test]
+        public void should_leave_year_out_when_override_says_so()
+        {
+            _override.RemoveYear = true;
+
+            Translate()[0].Select(c => c.SearchTerm).Should().Equal("The Matrix", "Matrix");
+        }
+
+        [Test]
+        public void should_use_the_categories_it_is_given()
+        {
+            _indexer.Capabilities.MovieSearchParams = new List<MovieSearchParam> { MovieSearchParam.TmdbId };
+
+            Translate(8000, 2040).SelectMany(t => t).Should().OnlyContain(c => c.Categories.SequenceEqual(new[] { 8000, 2040 }));
         }
 
         [Test]

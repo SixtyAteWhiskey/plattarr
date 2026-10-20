@@ -1,5 +1,6 @@
 using System;
 using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 using MonoTorrent;
 using NLog;
@@ -16,8 +17,6 @@ using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.ThingiProvider;
-using IIndexer = NzbDrone.Core.Movies.Indexers.Legacy.IIndexer;
-using ITorrentIndexerSettings = NzbDrone.Core.Movies.Indexers.Legacy.ITorrentIndexerSettings;
 
 namespace NzbDrone.Core.Download
 {
@@ -132,11 +131,26 @@ namespace NzbDrone.Core.Download
 
         private async Task<string> DownloadFromWebUrl(RemoteMovie remoteMovie, IIndexer indexer, string torrentUrl)
         {
+            if (FetchThroughIndexer(indexer))
+            {
+                var data = (await indexer.Download(new Uri(torrentUrl))).Data;
+
+                // The indexer layer follows redirects and returns a magnet link as its text.
+                if (IsMagnetLink(data))
+                {
+                    return DownloadFromMagnetUrl(remoteMovie, indexer, Encoding.UTF8.GetString(data));
+                }
+
+                _logger.Debug("Downloading torrent for movie '{0}' through indexer {1} finished ({2} bytes)", remoteMovie.Release.Title, indexer.Definition.Name, data.Length);
+
+                return AddTorrentFile(remoteMovie, indexer, data);
+            }
+
             byte[] torrentFile = null;
 
             try
             {
-                var request = indexer?.GetDownloadRequest(torrentUrl) ?? new HttpRequest(torrentUrl);
+                var request = new HttpRequest(torrentUrl);
                 request.RateLimitKey = remoteMovie?.Release?.IndexerId.ToString();
                 request.Headers.Accept = "application/x-bittorrent";
                 request.AllowAutoRedirect = false;
@@ -198,6 +212,16 @@ namespace NzbDrone.Core.Download
                 throw new ReleaseDownloadException(remoteMovie.Release, "Downloading torrent failed", ex);
             }
 
+            return AddTorrentFile(remoteMovie, indexer, torrentFile);
+        }
+
+        private static bool IsMagnetLink(byte[] data)
+        {
+            return data.Length > 7 && Encoding.ASCII.GetString(data, 0, 7).Equals("magnet:", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private string AddTorrentFile(RemoteMovie remoteMovie, IIndexer indexer, byte[] torrentFile)
+        {
             var filename = string.Format("{0}.torrent", FileNameBuilder.CleanFileName(remoteMovie.Release.Title));
             var hash = _torrentFileInfoReader.GetHashFromTorrentFile(torrentFile);
 
@@ -250,7 +274,7 @@ namespace NzbDrone.Core.Download
 
         private void EnsureReleaseIsNotBlocklisted(RemoteMovie remoteMovie, IIndexer indexer, string hash)
         {
-            var indexerSettings = indexer?.Definition?.Settings as ITorrentIndexerSettings;
+            var indexerSettings = (indexer?.Definition?.Settings as ITorrentIndexerSettings)?.TorrentBaseSettings;
             var torrentInfo = remoteMovie.Release as TorrentInfo;
             var torrentInfoHash = torrentInfo?.InfoHash;
 

@@ -1,19 +1,18 @@
-using System;
-using System.Linq;
 using NLog;
-using NzbDrone.Core.Movies.Indexers.Legacy;
+using NzbDrone.Core.Indexers.Overrides;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications
 {
     public class RequiredIndexerFlagsSpecification : IDownloadDecisionEngineSpecification
     {
-        private readonly IIndexerFactory _indexerFactory;
+        private readonly IIndexerOverrideService _indexerOverrideService;
         private readonly Logger _logger;
 
-        public RequiredIndexerFlagsSpecification(IIndexerFactory indexerFactory, Logger logger)
+        public RequiredIndexerFlagsSpecification(IIndexerOverrideService indexerOverrideService, Logger logger)
         {
-            _indexerFactory = indexerFactory;
+            _indexerOverrideService = indexerOverrideService;
             _logger = logger;
         }
 
@@ -22,49 +21,34 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
 
         public DownloadSpecDecision IsSatisfiedBy(RemoteMovie subject, ReleaseDecisionInformation information)
         {
-            var torrentInfo = subject.Release;
-
-            IIndexerSettings indexerSettings = null;
-            try
-            {
-                indexerSettings = _indexerFactory.Get(subject.Release.IndexerId)?.Settings as IIndexerSettings;
-            }
-            catch (Exception)
-            {
-                _logger.Debug("Indexer with id {0} does not exist, skipping required indexer flags specs.", subject.Release.IndexerId);
-            }
-
-            if (torrentInfo == null || indexerSettings == null)
+            // Radarr kept RequiredFlags on torrent indexers only; the override keeps that scope.
+            if (subject.Release is not TorrentInfo torrentInfo || torrentInfo.IndexerId == 0)
             {
                 return DownloadSpecDecision.Accept();
             }
 
-            if (indexerSettings is ITorrentIndexerSettings torrentIndexerSettings)
-            {
-                var requiredFlags = torrentIndexerSettings.RequiredFlags;
+            var requiredFlags = _indexerOverrideService.Get(torrentInfo.IndexerId, MediaKind.Movies).RequiredFlags;
 
-                if (requiredFlags == null || !requiredFlags.Any())
+            if (requiredFlags.Count == 0)
+            {
+                return DownloadSpecDecision.Accept();
+            }
+
+            var releaseFlags = torrentInfo.ToIndexerFlags();
+            var requiredFlag = (IndexerFlags)0;
+
+            foreach (var flag in requiredFlags)
+            {
+                if (releaseFlags.HasFlag((IndexerFlags)flag))
                 {
                     return DownloadSpecDecision.Accept();
                 }
 
-                var requiredFlag = (IndexerFlags)0;
-
-                foreach (var flag in requiredFlags)
-                {
-                    if (torrentInfo.ToIndexerFlags().HasFlag((IndexerFlags)flag))
-                    {
-                        return DownloadSpecDecision.Accept();
-                    }
-
-                    requiredFlag |= (IndexerFlags)flag;
-                }
-
-                _logger.Debug("None of the required indexer flags {0} where found. Found flags: {1}", requiredFlag, torrentInfo.IndexerFlags);
-                return DownloadSpecDecision.Reject(DownloadRejectionReason.RequiredFlags, "None of the required indexer flags {0} where found. Found flags: {1}", requiredFlag, torrentInfo.IndexerFlags);
+                requiredFlag |= (IndexerFlags)flag;
             }
 
-            return DownloadSpecDecision.Accept();
+            _logger.Debug("None of the required indexer flags {0} where found. Found flags: {1}", requiredFlag, releaseFlags);
+            return DownloadSpecDecision.Reject(DownloadRejectionReason.RequiredFlags, "None of the required indexer flags {0} where found. Found flags: {1}", requiredFlag, releaseFlags);
         }
     }
 }

@@ -9,8 +9,10 @@ using NzbDrone.Common.TPL;
 using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Exceptions;
+using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.Events;
+using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.Messaging.Events;
-using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Download
@@ -75,7 +77,7 @@ namespace NzbDrone.Core.Download
             }
 
             // Get the seed configuration for this release.
-            remoteMovie.SeedConfiguration = _seedConfigProvider.GetSeedConfiguration(remoteMovie);
+            remoteMovie.SeedConfiguration = _seedConfigProvider.GetSeedConfiguration(remoteMovie.Release);
 
             // Limit grabs to 2 per second.
             if (remoteMovie.Release.DownloadUrl.IsNotNullOrWhiteSpace() && !remoteMovie.Release.DownloadUrl.StartsWith("magnet:"))
@@ -101,6 +103,7 @@ namespace NzbDrone.Core.Download
             catch (ReleaseUnavailableException)
             {
                 _logger.Trace("Release {0} no longer available on indexer.", remoteMovie);
+                PublishIndexerGrab(remoteMovie, indexer, downloadClient, null, false);
                 throw;
             }
             catch (ReleaseBlockedException)
@@ -124,8 +127,11 @@ namespace NzbDrone.Core.Download
                     _indexerStatusService.RecordFailure(remoteMovie.Release.IndexerId);
                 }
 
+                PublishIndexerGrab(remoteMovie, indexer, downloadClient, null, false);
                 throw;
             }
+
+            PublishIndexerGrab(remoteMovie, indexer, downloadClient, downloadClientId, true);
 
             var movieGrabbedEvent = new MovieGrabbedEvent(remoteMovie);
             movieGrabbedEvent.DownloadClient = downloadClient.Name;
@@ -139,6 +145,30 @@ namespace NzbDrone.Core.Download
 
             _logger.ProgressInfo("Report for {0} ({1}) sent to {2} from indexer {3}. {4}", remoteMovie.Movie.Title, remoteMovie.Movie.Year, downloadClient.Definition.Name, remoteMovie.Release.Indexer, downloadTitle);
             _eventAggregator.PublishEvent(movieGrabbedEvent);
+        }
+
+        // Indexer history and stats count grabs per indexer (Prowlarr's grab event). Only
+        // releases from an indexer are recorded; pushed releases without one are not.
+        private void PublishIndexerGrab(RemoteMovie remoteMovie, IIndexer indexer, IDownloadClient downloadClient, string downloadId, bool successful)
+        {
+            if (indexer == null)
+            {
+                return;
+            }
+
+            var release = remoteMovie.Release;
+            var redirect = indexer.SupportsRedirect && indexer.Definition is IndexerDefinition { Redirect: true };
+
+            _eventAggregator.PublishEvent(new IndexerDownloadEvent(release, successful, IndexerReleaseFetcher.SearchSource, null, release.Title, release.DownloadUrl)
+            {
+                Indexer = indexer,
+                Redirect = redirect,
+                DownloadClient = downloadClient.Name,
+                DownloadClientName = downloadClient.Definition.Name,
+                DownloadClientId = downloadClient.Definition.Id,
+                DownloadId = downloadId,
+                GrabTrigger = remoteMovie.ReleaseSource == ReleaseSourceType.InteractiveSearch ? GrabTrigger.Manual : GrabTrigger.Api
+            });
         }
     }
 }

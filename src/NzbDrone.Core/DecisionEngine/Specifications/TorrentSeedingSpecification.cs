@@ -1,18 +1,17 @@
 using NLog;
-using NzbDrone.Core.Datastore;
-using NzbDrone.Core.Movies.Indexers.Legacy;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications
 {
     public class TorrentSeedingSpecification : IDownloadDecisionEngineSpecification
     {
-        private readonly IIndexerFactory _indexerFactory;
+        private readonly ICachedIndexerSettingsProvider _cachedIndexerSettingsProvider;
         private readonly Logger _logger;
 
-        public TorrentSeedingSpecification(IIndexerFactory indexerFactory, Logger logger)
+        public TorrentSeedingSpecification(ICachedIndexerSettingsProvider cachedIndexerSettingsProvider, Logger logger)
         {
-            _indexerFactory = indexerFactory;
+            _cachedIndexerSettingsProvider = cachedIndexerSettingsProvider;
             _logger = logger;
         }
 
@@ -28,22 +27,17 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 return DownloadSpecDecision.Accept();
             }
 
-            IndexerDefinition indexer;
-            try
-            {
-                indexer = _indexerFactory.Get(torrentInfo.IndexerId);
-            }
-            catch (ModelNotFoundException)
+            var settings = _cachedIndexerSettingsProvider.GetSettings(torrentInfo.IndexerId);
+
+            if (settings == null)
             {
                 _logger.Debug("Indexer with id {0} does not exist, skipping seeders check", torrentInfo.IndexerId);
                 return DownloadSpecDecision.Accept();
             }
 
-            var torrentIndexerSettings = indexer.Settings as ITorrentIndexerSettings;
-
-            if (torrentIndexerSettings != null)
+            if (settings.TorrentBaseSettings != null)
             {
-                var minimumSeeders = torrentIndexerSettings.MinimumSeeders;
+                var minimumSeeders = settings.TorrentBaseSettings.MinimumSeeders ?? IndexerDefaults.MINIMUM_SEEDERS;
 
                 if (torrentInfo.Seeders.HasValue && torrentInfo.Seeders.Value < minimumSeeders)
                 {

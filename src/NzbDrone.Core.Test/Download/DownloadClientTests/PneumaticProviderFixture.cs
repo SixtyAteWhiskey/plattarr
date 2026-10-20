@@ -1,20 +1,18 @@
 using System;
 using System.IO;
 using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 using FizzWare.NBuilder;
 using Moq;
-using NLog;
 using NUnit.Framework;
+using NzbDrone.Common.Disk;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients.Pneumatic;
-using NzbDrone.Core.Movies.Indexers.Legacy;
-using NzbDrone.Core.Parser;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
-using NzbDrone.Core.Test.LegacyIndexerTests;
 using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.Download.DownloadClientTests
@@ -46,11 +44,9 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests
 
             _remoteMovie.ParsedMovieInfo = new ParsedMovieInfo();
 
-            _indexer = new TestIndexer(Mocker.Resolve<IHttpClient>(),
-                Mocker.Resolve<IIndexerStatusService>(),
-                Mocker.Resolve<IConfigService>(),
-                Mocker.Resolve<IParsingService>(),
-                Mocker.Resolve<Logger>());
+            // No indexer: Pneumatic downloads the NZB itself. The indexer grab path is
+            // covered by should_download_through_indexer_when_release_has_one.
+            _indexer = null;
 
             _downloadClientItem = Builder<DownloadClientItem>
                                   .CreateNew().With(d => d.DownloadId = "_Droned.S01E01.Pilot.1080p.WEB-DL-DRONE_0")
@@ -75,6 +71,21 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests
             await Subject.Download(_remoteMovie, _indexer);
 
             Mocker.GetMock<IHttpClient>().Verify(c => c.DownloadFileAsync(_nzbUrl, _nzbPath), Times.Once());
+        }
+
+        [Test]
+        public async Task should_download_through_indexer_when_release_has_one()
+        {
+            var data = Encoding.UTF8.GetBytes("<nzb/>");
+            var indexer = new Mock<IIndexer>();
+            indexer.SetupGet(i => i.Definition).Returns(new IndexerDefinition { Id = 1, Name = "Test" });
+            indexer.Setup(i => i.Download(It.IsAny<Uri>())).ReturnsAsync(new IndexerDownloadResponse(data));
+
+            await Subject.Download(_remoteMovie, indexer.Object);
+
+            indexer.Verify(i => i.Download(new Uri(_nzbUrl)), Times.Once());
+            Mocker.GetMock<IDiskProvider>().Verify(c => c.SaveStream(It.IsAny<Stream>(), _nzbPath), Times.Once());
+            Mocker.GetMock<IHttpClient>().Verify(c => c.DownloadFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never());
         }
 
         [Test]

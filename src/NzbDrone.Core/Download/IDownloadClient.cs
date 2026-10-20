@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.ThingiProvider;
-using IIndexer = NzbDrone.Core.Movies.Indexers.Legacy.IIndexer;
 
 namespace NzbDrone.Core.Download
 {

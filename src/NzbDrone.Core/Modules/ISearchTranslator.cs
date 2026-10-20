@@ -12,9 +12,12 @@ namespace NzbDrone.Core.Modules
     // tier runs only when the previous one returned nothing from that indexer. Radarr
     // searches by ID first and by title only as a fallback, and Sonarr does the same
     // with scene titles.
+    //
+    // The core resolves the categories (the media type's defaults, or the indexer's
+    // override) and passes them in; every criteria should use them.
     public interface ISearchTranslator<in TRequest>
         where TRequest : ModuleSearchRequest
     {
-        IEnumerable<IReadOnlyList<SearchCriteriaBase>> Translate(TRequest request, IndexerDefinition indexer);
+        IEnumerable<IReadOnlyList<SearchCriteriaBase>> Translate(TRequest request, IndexerDefinition indexer, int[] categories);
     }
 }
