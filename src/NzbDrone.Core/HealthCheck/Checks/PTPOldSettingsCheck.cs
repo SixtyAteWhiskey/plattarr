@@ -1,8 +1,8 @@
 using System.Linq;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.Indexers;
-using NzbDrone.Core.Indexers.PassThePopcorn;
 using NzbDrone.Core.Localization;
+using NzbDrone.Core.Movies.Indexers.Legacy;
+using NzbDrone.Core.Movies.Indexers.Legacy.PassThePopcorn;
 
 namespace NzbDrone.Core.HealthCheck.Checks
 {

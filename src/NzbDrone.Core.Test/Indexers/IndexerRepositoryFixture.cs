@@ -1,7 +1,7 @@
 ﻿using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
-using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.Indexers

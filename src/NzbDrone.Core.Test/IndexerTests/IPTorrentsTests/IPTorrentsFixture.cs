@@ -7,7 +7,8 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.Indexers.IPTorrents;
+using NzbDrone.Core.Movies.Indexers.Legacy;
+using NzbDrone.Core.Movies.Indexers.Legacy.IPTorrents;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 

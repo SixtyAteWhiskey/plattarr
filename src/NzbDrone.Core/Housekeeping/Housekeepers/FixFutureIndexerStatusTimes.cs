@@ -1,4 +1,4 @@
-﻿using NzbDrone.Core.Indexers;
+﻿using NzbDrone.Core.Movies.Indexers.Legacy;
 
 namespace NzbDrone.Core.Housekeeping.Housekeepers
 {

@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 

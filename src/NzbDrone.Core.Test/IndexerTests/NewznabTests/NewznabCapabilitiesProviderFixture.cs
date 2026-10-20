@@ -4,7 +4,7 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.Indexers.Newznab;
+using NzbDrone.Core.Movies.Indexers.Legacy.Newznab;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.IndexerTests.NewznabTests

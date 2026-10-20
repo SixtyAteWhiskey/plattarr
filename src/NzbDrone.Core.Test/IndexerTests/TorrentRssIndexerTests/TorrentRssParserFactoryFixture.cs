@@ -2,9 +2,9 @@
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Cache;
-using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.Exceptions;
-using NzbDrone.Core.Indexers.TorrentRss;
+using NzbDrone.Core.Movies.Indexers.Legacy;
+using NzbDrone.Core.Movies.Indexers.Legacy.TorrentRss;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.IndexerTests.TorrentRssIndexerTests

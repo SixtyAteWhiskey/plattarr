@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Core.Download;
-using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Localization;
+using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.ThingiProvider.Events;
 
 namespace NzbDrone.Core.HealthCheck.Checks

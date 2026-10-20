@@ -4,9 +4,9 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.DecisionEngine.Specifications;
-using NzbDrone.Core.Indexers;
-using NzbDrone.Core.Indexers.TorrentRss;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Indexers.Legacy;
+using NzbDrone.Core.Movies.Indexers.Legacy.TorrentRss;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Test.Common;
 

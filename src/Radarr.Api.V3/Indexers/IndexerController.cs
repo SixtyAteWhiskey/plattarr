@@ -1,5 +1,5 @@
 using FluentValidation;
-using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Validation;
 using NzbDrone.SignalR;
 using Radarr.Http;

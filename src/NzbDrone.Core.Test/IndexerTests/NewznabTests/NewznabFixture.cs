@@ -7,8 +7,9 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.Indexers.Newznab;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Movies.Indexers.Legacy;
+using NzbDrone.Core.Movies.Indexers.Legacy.Newznab;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 

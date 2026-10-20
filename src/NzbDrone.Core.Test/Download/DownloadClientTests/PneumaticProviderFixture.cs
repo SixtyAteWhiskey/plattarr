@@ -10,7 +10,7 @@ using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients.Pneumatic;
-using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
