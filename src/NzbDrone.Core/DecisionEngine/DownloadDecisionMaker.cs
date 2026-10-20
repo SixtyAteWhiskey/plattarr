@@ -8,7 +8,7 @@ using NzbDrone.Common.Serializer;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Download.Aggregation;
-using NzbDrone.Core.IndexerSearch.Definitions;
+using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 
@@ -17,7 +17,7 @@ namespace NzbDrone.Core.DecisionEngine
     public interface IMakeDownloadDecision
     {
         List<DownloadDecision> GetRssDecision(List<ReleaseInfo> reports, bool pushedRelease = false);
-        List<DownloadDecision> GetSearchDecision(List<ReleaseInfo> reports, SearchCriteriaBase searchCriteriaBase);
+        List<DownloadDecision> GetSearchDecision(List<ReleaseInfo> reports, MovieSearchRequest searchCriteriaBase);
     }
 
     public class DownloadDecisionMaker : IMakeDownloadDecision
@@ -46,12 +46,12 @@ namespace NzbDrone.Core.DecisionEngine
             return GetDecisions(reports, pushedRelease).ToList();
         }
 
-        public List<DownloadDecision> GetSearchDecision(List<ReleaseInfo> reports, SearchCriteriaBase searchCriteriaBase)
+        public List<DownloadDecision> GetSearchDecision(List<ReleaseInfo> reports, MovieSearchRequest searchCriteriaBase)
         {
             return GetDecisions(reports, false, searchCriteriaBase).ToList();
         }
 
-        private IEnumerable<DownloadDecision> GetDecisions(List<ReleaseInfo> reports, bool pushedRelease = false, SearchCriteriaBase searchCriteria = null)
+        private IEnumerable<DownloadDecision> GetDecisions(List<ReleaseInfo> reports, bool pushedRelease = false, MovieSearchRequest searchCriteria = null)
         {
             if (reports.Any())
             {
@@ -194,7 +194,7 @@ namespace NzbDrone.Core.DecisionEngine
             return null;
         }
 
-        private ReleaseSourceType GetReleaseSource(bool pushedRelease, SearchCriteriaBase searchCriteria = null)
+        private ReleaseSourceType GetReleaseSource(bool pushedRelease, MovieSearchRequest searchCriteria = null)
         {
             if (searchCriteria == null)
             {

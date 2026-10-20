@@ -3,14 +3,14 @@ using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Indexers.FileList;
-using NzbDrone.Core.IndexerSearch.Definitions;
+using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.IndexerTests.FileListTests
 {
     public class FileListRequestGeneratorFixture : CoreTest<FileListRequestGenerator>
     {
-        private MovieSearchCriteria _movieSearchCriteria;
+        private MovieSearchRequest _movieSearchCriteria;
 
         [SetUp]
         public void Setup()
@@ -23,7 +23,7 @@ namespace NzbDrone.Core.Test.IndexerTests.FileListTests
                 Username = "somename"
             };
 
-            _movieSearchCriteria = new MovieSearchCriteria
+            _movieSearchCriteria = new MovieSearchRequest
             {
                 Movie = new Movies.Movie { ImdbId = "tt0076759", Title = "Star Wars", Year = 1977 },
                 SceneTitles = new List<string> { "Star Wars" }

@@ -7,8 +7,8 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Movies.Translations;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Qualities;
@@ -57,7 +57,7 @@ namespace NzbDrone.Core.IndexerSearch
         {
             var downloadDecisions = new List<DownloadDecision>();
 
-            var searchSpec = Get<MovieSearchCriteria>(movie, userInvokedSearch, interactiveSearch);
+            var searchSpec = Get<MovieSearchRequest>(movie, userInvokedSearch, interactiveSearch);
 
             var decisions = await Dispatch(indexer => indexer.Fetch(searchSpec), searchSpec);
             downloadDecisions.AddRange(decisions);
@@ -66,7 +66,7 @@ namespace NzbDrone.Core.IndexerSearch
         }
 
         private TSpec Get<TSpec>(Movie movie, bool userInvokedSearch, bool interactiveSearch)
-            where TSpec : SearchCriteriaBase, new()
+            where TSpec : MovieSearchRequest, new()
         {
             var spec = new TSpec
             {
@@ -95,7 +95,7 @@ namespace NzbDrone.Core.IndexerSearch
             return spec;
         }
 
-        private async Task<List<DownloadDecision>> Dispatch(Func<IIndexer, Task<IList<ReleaseInfo>>> searchAction, SearchCriteriaBase criteriaBase)
+        private async Task<List<DownloadDecision>> Dispatch(Func<IIndexer, Task<IList<ReleaseInfo>>> searchAction, MovieSearchRequest criteriaBase)
         {
             var indexers = criteriaBase.InteractiveSearch ?
                 _indexerFactory.InteractiveSearchEnabled() :
@@ -127,7 +127,7 @@ namespace NzbDrone.Core.IndexerSearch
             return _makeDownloadDecision.GetSearchDecision(reports, criteriaBase).ToList();
         }
 
-        private async Task<IList<ReleaseInfo>> DispatchIndexer(Func<IIndexer, Task<IList<ReleaseInfo>>> searchAction, IIndexer indexer, SearchCriteriaBase criteriaBase)
+        private async Task<IList<ReleaseInfo>> DispatchIndexer(Func<IIndexer, Task<IList<ReleaseInfo>>> searchAction, IIndexer indexer, MovieSearchRequest criteriaBase)
         {
             try
             {

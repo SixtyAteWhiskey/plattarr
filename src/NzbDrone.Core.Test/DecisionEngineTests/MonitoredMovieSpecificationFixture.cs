@@ -3,8 +3,8 @@ using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.DecisionEngine.Specifications.RssSync;
-using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 
@@ -70,7 +70,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         public void should_return_true_for_single_episode_search()
         {
             _fakeMovie.Monitored = false;
-            _monitoredEpisodeSpecification.IsSatisfiedBy(_parseResultSingle, new ReleaseDecisionInformation(false, new MovieSearchCriteria { UserInvokedSearch = true })).Accepted.Should().BeTrue();
+            _monitoredEpisodeSpecification.IsSatisfiedBy(_parseResultSingle, new ReleaseDecisionInformation(false, new MovieSearchRequest { UserInvokedSearch = true })).Accepted.Should().BeTrue();
         }
     }
 }

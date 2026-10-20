@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.IndexerSearch.Definitions;
+using NzbDrone.Core.Movies.Search;
 
 namespace NzbDrone.Core.Indexers.FileList
 {
@@ -20,7 +20,7 @@ namespace NzbDrone.Core.Indexers.FileList
             return pageableRequests;
         }
 
-        public virtual IndexerPageableRequestChain GetSearchRequests(MovieSearchCriteria searchCriteria)
+        public virtual IndexerPageableRequestChain GetSearchRequests(MovieSearchRequest searchCriteria)
         {
             var pageableRequests = new IndexerPageableRequestChain();
 

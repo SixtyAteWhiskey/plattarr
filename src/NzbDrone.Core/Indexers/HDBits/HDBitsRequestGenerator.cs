@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Common.Serializer;
-using NzbDrone.Core.IndexerSearch.Definitions;
+using NzbDrone.Core.Movies.Search;
 
 namespace NzbDrone.Core.Indexers.HDBits
 {
@@ -21,7 +21,7 @@ namespace NzbDrone.Core.Indexers.HDBits
             return pageableRequests;
         }
 
-        public virtual IndexerPageableRequestChain GetSearchRequests(MovieSearchCriteria searchCriteria)
+        public virtual IndexerPageableRequestChain GetSearchRequests(MovieSearchRequest searchCriteria)
         {
             var pageableRequests = new IndexerPageableRequestChain();
             var query = new TorrentQuery();
@@ -34,7 +34,7 @@ namespace NzbDrone.Core.Indexers.HDBits
             return pageableRequests;
         }
 
-        private bool TryAddSearchParameters(TorrentQuery query, SearchCriteriaBase searchCriteria)
+        private bool TryAddSearchParameters(TorrentQuery query, MovieSearchRequest searchCriteria)
         {
             if (searchCriteria.Movie.MovieMetadata.Value.ImdbId.IsNullOrWhiteSpace())
             {

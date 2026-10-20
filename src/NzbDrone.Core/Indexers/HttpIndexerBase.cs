@@ -11,7 +11,7 @@ using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Http.CloudFlare;
 using NzbDrone.Core.Indexers.Exceptions;
-using NzbDrone.Core.IndexerSearch.Definitions;
+using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 
@@ -50,7 +50,7 @@ namespace NzbDrone.Core.Indexers
             return FetchReleases(g => g.GetRecentRequests(), true);
         }
 
-        public override Task<IList<ReleaseInfo>> Fetch(MovieSearchCriteria searchCriteria)
+        public override Task<IList<ReleaseInfo>> Fetch(MovieSearchRequest searchCriteria)
         {
             if (!SupportsSearch)
             {
@@ -60,7 +60,7 @@ namespace NzbDrone.Core.Indexers
             return FetchReleases(g => g.GetSearchRequests(searchCriteria));
         }
 
-        protected IndexerPageableRequestChain GetRequestChain(SearchCriteriaBase searchCriteria = null)
+        protected IndexerPageableRequestChain GetRequestChain(MovieSearchRequest searchCriteria = null)
         {
             var generator = GetRequestGenerator();
 
@@ -77,7 +77,7 @@ namespace NzbDrone.Core.Indexers
                 return cookies;
             };
 
-            var requests = searchCriteria == null ? generator.GetRecentRequests() : generator.GetSearchRequests(searchCriteria as MovieSearchCriteria);
+            var requests = searchCriteria == null ? generator.GetRecentRequests() : generator.GetSearchRequests(searchCriteria as MovieSearchRequest);
 
             generator.CookiesUpdater = (cookies, expiration) =>
             {

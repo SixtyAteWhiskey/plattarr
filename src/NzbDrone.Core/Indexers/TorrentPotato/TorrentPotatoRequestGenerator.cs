@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.IndexerSearch.Definitions;
+using NzbDrone.Core.Movies.Search;
 
 namespace NzbDrone.Core.Indexers.TorrentPotato
 {
@@ -39,7 +39,7 @@ namespace NzbDrone.Core.Indexers.TorrentPotato
             yield return new IndexerRequest(requestBuilder.Build());
         }
 
-        private IEnumerable<IndexerRequest> GetMovieRequest(MovieSearchCriteria searchCriteria)
+        private IEnumerable<IndexerRequest> GetMovieRequest(MovieSearchRequest searchCriteria)
         {
             var requestBuilder = new HttpRequestBuilder(Settings.BaseUrl)
                  .Accept(HttpAccept.Json);
@@ -67,7 +67,7 @@ namespace NzbDrone.Core.Indexers.TorrentPotato
             yield return new IndexerRequest(requestBuilder.Build());
         }
 
-        public IndexerPageableRequestChain GetSearchRequests(MovieSearchCriteria searchCriteria)
+        public IndexerPageableRequestChain GetSearchRequests(MovieSearchRequest searchCriteria)
         {
             var pageableRequests = new IndexerPageableRequestChain();
             pageableRequests.Add(GetMovieRequest(searchCriteria));

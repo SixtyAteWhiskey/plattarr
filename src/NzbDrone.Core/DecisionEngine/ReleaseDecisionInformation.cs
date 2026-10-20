@@ -1,11 +1,11 @@
-using NzbDrone.Core.IndexerSearch.Definitions;
+using NzbDrone.Core.Movies.Search;
 
 namespace NzbDrone.Core.DecisionEngine;
 
 public class ReleaseDecisionInformation
 {
     public bool PushedRelease { get; set; }
-    public SearchCriteriaBase SearchCriteria { get; set; }
+    public MovieSearchRequest SearchCriteria { get; set; }
 
     public ReleaseDecisionInformation()
     {
@@ -13,7 +13,7 @@ public class ReleaseDecisionInformation
         SearchCriteria = null;
     }
 
-    public ReleaseDecisionInformation(bool pushedRelease, SearchCriteriaBase searchCriteria)
+    public ReleaseDecisionInformation(bool pushedRelease, MovieSearchRequest searchCriteria)
     {
         PushedRelease = pushedRelease;
         SearchCriteria = searchCriteria;
