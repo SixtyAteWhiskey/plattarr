@@ -1,6 +1,6 @@
 using NzbDrone.Core.Messaging.Commands;
 
-namespace NzbDrone.Core.Movies.Indexers.Legacy
+namespace NzbDrone.Core.IndexerSearch
 {
     public class RssSyncCommand : Command
     {

@@ -2,158 +2,78 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using FizzWare.NBuilder;
-using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.DecisionEngine;
+using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Movies.Translations;
+using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.MovieTests.SearchTests
 {
-        public class ReleaseSearchServiceFixture : CoreTest<ReleaseSearchService>
+    // Indexer selection (tags, enable flags, categories) moved to IndexerReleaseFetcher in
+    // porting step 7; see IndexerSearchTests/IndexerReleaseFetcherFixture.
+    [TestFixture]
+    public class ReleaseSearchServiceFixture : CoreTest<Movies.Search.ReleaseSearchService>
     {
-        private Mock<IIndexer> _mockIndexer;
         private Movie _movie;
+        private int _indexersSearched;
 
         [SetUp]
         public void SetUp()
         {
-            _mockIndexer = Mocker.GetMock<IIndexer>();
-            _mockIndexer.SetupGet(s => s.Definition).Returns(new IndexerDefinition { Id = 1 });
-            _mockIndexer.SetupGet(s => s.SupportsSearch).Returns(true);
-
-            Mocker.GetMock<IIndexerFactory>()
-                  .Setup(s => s.AutomaticSearchEnabled(true))
-                  .Returns(new List<IIndexer> { _mockIndexer.Object });
-
-            Mocker.GetMock<IMakeDownloadDecision>()
-                .Setup(s => s.GetSearchDecision(It.IsAny<List<Parser.Model.ReleaseInfo>>(), It.IsAny<MovieSearchRequest>()))
-                .Returns(new List<DownloadDecision>());
-
-            _movie = Builder<Movie>.CreateNew()
-                .With(v => v.Monitored = true)
-                .Build();
-
-            Mocker.GetMock<IMovieService>()
-                .Setup(v => v.GetMovie(_movie.Id))
-                .Returns(_movie);
-
-            Mocker.GetMock<IMovieTranslationService>()
-                .Setup(s => s.GetAllTranslationsForMovieMetadata(It.IsAny<int>()))
-                .Returns(new List<MovieTranslation>());
-        }
-
-        private List<MovieSearchRequest> WatchForSearchCriteria()
-        {
-            var result = new List<MovieSearchRequest>();
-
-            _mockIndexer.Setup(v => v.Fetch(It.IsAny<MovieSearchRequest>()))
-                .Callback<MovieSearchRequest>(s => result.Add(s))
-                .Returns(Task.FromResult<IList<Parser.Model.ReleaseInfo>>(new List<Parser.Model.ReleaseInfo>()));
-
-            return result;
-        }
-
-        [Test]
-        public async Task Tags_IndexerTags_MovieNoTags_IndexerNotIncluded()
-        {
-            _mockIndexer.SetupGet(s => s.Definition).Returns(new IndexerDefinition
-            {
-                Id = 1,
-                Tags = new HashSet<int> { 3 }
-            });
-
-            var allCriteria = WatchForSearchCriteria();
-
-            await Subject.MovieSearch(_movie, true, false);
-
-            var criteria = allCriteria.OfType<MovieSearchRequest>().ToList();
-
-            criteria.Count.Should().Be(0);
-        }
-
-        [Test]
-        public async Task Tags_IndexerNoTags_MovieTags_IndexerIncluded()
-        {
-            _mockIndexer.SetupGet(s => s.Definition).Returns(new IndexerDefinition
-            {
-                Id = 1
-            });
-
             _movie = Builder<Movie>.CreateNew()
                 .With(v => v.Monitored = true)
                 .With(v => v.Tags = new HashSet<int> { 3 })
                 .Build();
 
-            Mocker.GetMock<IMovieService>()
-                .Setup(v => v.GetMovie(_movie.Id))
-                .Returns(_movie);
+            _indexersSearched = 1;
 
-            var allCriteria = WatchForSearchCriteria();
+            Mocker.GetMock<IIndexerReleaseFetcher>()
+                  .Setup(f => f.Search(It.IsAny<MovieSearchRequest>(), It.IsAny<IEnumerable<int>>(), It.IsAny<int[]>(), It.IsAny<MovieSearchTranslator>()))
+                  .Returns(() => Task.FromResult(new IndexerSearchResult(new List<ReleaseInfo>(), _indexersSearched)));
 
-            await Subject.MovieSearch(_movie, true, false);
+            Mocker.GetMock<IMakeDownloadDecision>()
+                  .Setup(s => s.GetSearchDecision(It.IsAny<List<ReleaseInfo>>(), It.IsAny<MovieSearchRequest>()))
+                  .Returns(new List<DownloadDecision>());
 
-            var criteria = allCriteria.OfType<MovieSearchRequest>().ToList();
-
-            criteria.Count.Should().Be(1);
+            Mocker.GetMock<IMovieTranslationService>()
+                  .Setup(s => s.GetAllTranslationsForMovieMetadata(It.IsAny<int>()))
+                  .Returns(new List<MovieTranslation>());
         }
 
         [Test]
-        public async Task Tags_IndexerAndMovieTagsMatch_IndexerIncluded()
+        public async Task should_pass_movie_tags_and_movie_categories_to_the_indexer_layer()
         {
-            _mockIndexer.SetupGet(s => s.Definition).Returns(new IndexerDefinition
-            {
-                Id = 1,
-                Tags = new HashSet<int> { 1, 2, 3 }
-            });
-
-            _movie = Builder<Movie>.CreateNew()
-                .With(v => v.Monitored = true)
-                .With(v => v.Tags = new HashSet<int> { 3, 4, 5 })
-                .Build();
-
-            Mocker.GetMock<IMovieService>()
-                .Setup(v => v.GetMovie(_movie.Id))
-                .Returns(_movie);
-
-            var allCriteria = WatchForSearchCriteria();
-
             await Subject.MovieSearch(_movie, true, false);
 
-            var criteria = allCriteria.OfType<MovieSearchRequest>().ToList();
-
-            criteria.Count.Should().Be(1);
+            Mocker.GetMock<IIndexerReleaseFetcher>()
+                  .Verify(f => f.Search(It.Is<MovieSearchRequest>(r => r.Movie == _movie && !r.InteractiveSearch),
+                                        It.Is<IEnumerable<int>>(t => t.SequenceEqual(new[] { 3 })),
+                                        It.Is<int[]>(c => c.SequenceEqual(new[] { 2000 })),
+                                        It.IsAny<MovieSearchTranslator>()),
+                          Times.Once());
         }
 
         [Test]
-        public async Task Tags_IndexerAndMovieTagsMismatch_IndexerNotIncluded()
+        public async Task should_update_last_search_time_when_an_indexer_was_searched()
         {
-            _mockIndexer.SetupGet(s => s.Definition).Returns(new IndexerDefinition
-            {
-                Id = 1,
-                Tags = new HashSet<int> { 1, 2, 3 }
-            });
+            await Subject.MovieSearch(_movie, true, false);
 
-            _movie = Builder<Movie>.CreateNew()
-                .With(v => v.Monitored = true)
-                .With(v => v.Tags = new HashSet<int> { 4, 5, 6 })
-                .Build();
+            Mocker.GetMock<IMovieService>().Verify(s => s.UpdateLastSearchTime(_movie), Times.Once());
+        }
 
-            Mocker.GetMock<IMovieService>()
-                .Setup(v => v.GetMovie(_movie.Id))
-                .Returns(_movie);
-
-            var allCriteria = WatchForSearchCriteria();
+        [Test]
+        public async Task should_not_update_last_search_time_when_no_indexer_was_searched()
+        {
+            _indexersSearched = 0;
 
             await Subject.MovieSearch(_movie, true, false);
 
-            var criteria = allCriteria.OfType<MovieSearchRequest>().ToList();
-
-            criteria.Count.Should().Be(0);
+            Mocker.GetMock<IMovieService>().Verify(s => s.UpdateLastSearchTime(It.IsAny<Movie>()), Times.Never());
         }
     }
 }

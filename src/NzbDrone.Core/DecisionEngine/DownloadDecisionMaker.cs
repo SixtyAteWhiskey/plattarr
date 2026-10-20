@@ -23,19 +23,19 @@ namespace NzbDrone.Core.DecisionEngine
     public class DownloadDecisionMaker : IMakeDownloadDecision
     {
         private readonly IEnumerable<IDownloadDecisionEngineSpecification> _specifications;
-        private readonly IParsingService _parsingService;
+        private readonly IMovieReleaseMatcher _releaseMatcher;
         private readonly ICustomFormatCalculationService _formatCalculator;
         private readonly IRemoteMovieAggregationService _aggregationService;
         private readonly Logger _logger;
 
         public DownloadDecisionMaker(IEnumerable<IDownloadDecisionEngineSpecification> specifications,
-                                     IParsingService parsingService,
+                                     IMovieReleaseMatcher releaseMatcher,
                                      ICustomFormatCalculationService formatCalculator,
                                      IRemoteMovieAggregationService aggregationService,
                                      Logger logger)
         {
             _specifications = specifications;
-            _parsingService = parsingService;
+            _releaseMatcher = releaseMatcher;
             _formatCalculator = formatCalculator;
             _aggregationService = aggregationService;
             _logger = logger;
@@ -72,12 +72,10 @@ namespace NzbDrone.Core.DecisionEngine
 
                 try
                 {
-                    var parsedMovieInfo = Parser.Parser.ParseMovieTitle(report.Title);
+                    var remoteMovie = _releaseMatcher.Map(report, searchCriteria);
 
-                    if (parsedMovieInfo != null && !parsedMovieInfo.PrimaryMovieTitle.IsNullOrWhiteSpace())
+                    if (remoteMovie != null)
                     {
-                        var remoteMovie = _parsingService.Map(parsedMovieInfo, report.ImdbId.ToString(), report.TmdbId, searchCriteria);
-                        remoteMovie.Release = report;
                         remoteMovie.ReleaseSource = GetReleaseSource(pushedRelease, searchCriteria);
 
                         if (remoteMovie.Movie == null)
@@ -98,8 +96,12 @@ namespace NzbDrone.Core.DecisionEngine
                         }
                     }
 
-                    if (searchCriteria != null)
+                    if (searchCriteria != null && remoteMovie == null)
                     {
+                        // Same fallback as before the matcher existed: keep whatever the
+                        // parser found so the rejection shows quality and languages.
+                        var parsedMovieInfo = Parser.Parser.ParseMovieTitle(report.Title);
+
                         if (parsedMovieInfo == null)
                         {
                             parsedMovieInfo = new ParsedMovieInfo
@@ -111,7 +113,7 @@ namespace NzbDrone.Core.DecisionEngine
 
                         if (parsedMovieInfo.PrimaryMovieTitle.IsNullOrWhiteSpace())
                         {
-                            var remoteMovie = new RemoteMovie
+                            var unparsedMovie = new RemoteMovie
                             {
                                 Release = report,
                                 ReleaseSource = GetReleaseSource(pushedRelease, searchCriteria),
@@ -119,7 +121,7 @@ namespace NzbDrone.Core.DecisionEngine
                                 Languages = parsedMovieInfo.Languages,
                             };
 
-                            decision = new DownloadDecision(remoteMovie, new DownloadRejection(DownloadRejectionReason.UnableToParse, "Unable to parse release"));
+                            decision = new DownloadDecision(unparsedMovie, new DownloadRejection(DownloadRejectionReason.UnableToParse, "Unable to parse release"));
                         }
                     }
                 }
@@ -127,8 +129,8 @@ namespace NzbDrone.Core.DecisionEngine
                 {
                     _logger.Error(e, "Couldn't process release.");
 
-                    var remoteMovie = new RemoteMovie { Release = report, ReleaseSource = GetReleaseSource(pushedRelease, searchCriteria) };
-                    decision = new DownloadDecision(remoteMovie, new DownloadRejection(DownloadRejectionReason.Error, "Unexpected error processing release"));
+                    var erroredMovie = new RemoteMovie { Release = report, ReleaseSource = GetReleaseSource(pushedRelease, searchCriteria) };
+                    decision = new DownloadDecision(erroredMovie, new DownloadRejection(DownloadRejectionReason.Error, "Unexpected error processing release"));
                 }
 
                 reportNumber++;

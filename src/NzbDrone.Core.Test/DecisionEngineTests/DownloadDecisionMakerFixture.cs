@@ -56,6 +56,10 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
 
             Mocker.GetMock<IParsingService>()
                   .Setup(c => c.Map(It.IsAny<ParsedMovieInfo>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<MovieSearchRequest>())).Returns(_remoteMovie);
+
+            // The decision maker parses through the movie matcher; use the real one so these
+            // tests keep covering Radarr's parse and map path with the mocked parsing service.
+            Mocker.SetConstant<IMovieReleaseMatcher>(Mocker.Resolve<MovieReleaseMatcher>());
         }
 
         private void GivenSpecifications(params Mock<IDownloadDecisionEngineSpecification>[] mocks)

@@ -4,11 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using NLog;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.DecisionEngine;
-using NzbDrone.Core.Movies.Indexers.Legacy;
+using NzbDrone.Core.Indexers;
+using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.Movies.Translations;
-using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Qualities;
 
 namespace NzbDrone.Core.Movies.Search
@@ -21,21 +20,23 @@ namespace NzbDrone.Core.Movies.Search
 
     public class ReleaseSearchService : ISearchForReleases
     {
-        private readonly IIndexerFactory _indexerFactory;
+        private readonly IIndexerReleaseFetcher _releaseFetcher;
+        private readonly MovieSearchTranslator _searchTranslator;
         private readonly IMakeDownloadDecision _makeDownloadDecision;
         private readonly IMovieService _movieService;
         private readonly IMovieTranslationService _movieTranslationService;
         private readonly IQualityProfileService _qualityProfileService;
         private readonly Logger _logger;
 
-        public ReleaseSearchService(IIndexerFactory indexerFactory,
+        public ReleaseSearchService(IIndexerReleaseFetcher releaseFetcher,
                                 IMakeDownloadDecision makeDownloadDecision,
                                 IMovieService movieService,
                                 IMovieTranslationService movieTranslationService,
                                 IQualityProfileService qualityProfileService,
                                 Logger logger)
         {
-            _indexerFactory = indexerFactory;
+            _releaseFetcher = releaseFetcher;
+            _searchTranslator = new MovieSearchTranslator();
             _makeDownloadDecision = makeDownloadDecision;
             _movieService = movieService;
             _movieTranslationService = movieTranslationService;
@@ -57,7 +58,7 @@ namespace NzbDrone.Core.Movies.Search
 
             var searchSpec = Get<MovieSearchRequest>(movie, userInvokedSearch, interactiveSearch);
 
-            var decisions = await Dispatch(indexer => indexer.Fetch(searchSpec), searchSpec);
+            var decisions = await Dispatch(searchSpec);
             downloadDecisions.AddRange(decisions);
 
             return DeDupeDecisions(downloadDecisions);
@@ -93,27 +94,15 @@ namespace NzbDrone.Core.Movies.Search
             return spec;
         }
 
-        private async Task<List<DownloadDecision>> Dispatch(Func<IIndexer, Task<IList<ReleaseInfo>>> searchAction, MovieSearchRequest criteriaBase)
+        private async Task<List<DownloadDecision>> Dispatch(MovieSearchRequest criteriaBase)
         {
-            var indexers = criteriaBase.InteractiveSearch ?
-                _indexerFactory.InteractiveSearchEnabled() :
-                _indexerFactory.AutomaticSearchEnabled();
-
-            // Filter indexers to untagged indexers and indexers with intersecting tags
-            indexers = indexers.Where(i => i.Definition.Tags.Empty() || i.Definition.Tags.Intersect(criteriaBase.Movie.Tags).Any()).ToList();
-
-            _logger.ProgressInfo("Searching indexers for {0}. {1} active indexers", criteriaBase, indexers.Count);
-
-            var tasks = indexers.Select(indexer => DispatchIndexer(searchAction, indexer, criteriaBase));
-
-            var batch = await Task.WhenAll(tasks);
-
-            var reports = batch.SelectMany(x => x).ToList();
-
-            _logger.ProgressDebug("Total of {0} reports were found for {1} from {2} indexers", reports.Count, criteriaBase, indexers.Count);
+            var result = await _releaseFetcher.Search(criteriaBase,
+                                                      criteriaBase.Movie.Tags,
+                                                      MovieReleaseMatcher.MovieCategories.ToArray(),
+                                                      _searchTranslator);
 
             // Update the last search time for movie if at least 1 indexer was searched.
-            if (indexers.Any())
+            if (result.IndexersSearched > 0)
             {
                 var lastSearchTime = DateTime.UtcNow;
                 _logger.Debug("Setting last search time to: {0}", lastSearchTime);
@@ -122,21 +111,7 @@ namespace NzbDrone.Core.Movies.Search
                 _movieService.UpdateLastSearchTime(criteriaBase.Movie);
             }
 
-            return _makeDownloadDecision.GetSearchDecision(reports, criteriaBase).ToList();
-        }
-
-        private async Task<IList<ReleaseInfo>> DispatchIndexer(Func<IIndexer, Task<IList<ReleaseInfo>>> searchAction, IIndexer indexer, MovieSearchRequest criteriaBase)
-        {
-            try
-            {
-                return await searchAction(indexer);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error(ex, "Error while searching for {0}", criteriaBase);
-            }
-
-            return Array.Empty<ReleaseInfo>();
+            return _makeDownloadDecision.GetSearchDecision(result.Releases, criteriaBase).ToList();
         }
 
         private List<DownloadDecision> DeDupeDecisions(List<DownloadDecision> decisions)

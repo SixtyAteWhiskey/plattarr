@@ -1,7 +1,7 @@
 ﻿using NzbDrone.Common.Messaging;
 using NzbDrone.Core.Download;
 
-namespace NzbDrone.Core.Movies.Indexers.Legacy
+namespace NzbDrone.Core.Movies.Search
 {
     public class RssSyncCompleteEvent : IEvent
     {

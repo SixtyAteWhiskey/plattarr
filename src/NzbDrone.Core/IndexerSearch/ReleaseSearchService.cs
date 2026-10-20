@@ -17,6 +17,11 @@ namespace NzbDrone.Core.IndexerSearch
     public interface IReleaseSearchService
     {
         Task<NewznabResults> Search(NewznabRequest request, List<int> indexerIds, bool interactiveSearch);
+
+        // Plattarr: one indexer, one criteria. Applies query limits, category and size filters,
+        // and publishes the query events that feed indexer history and stats. Used by the
+        // media modules' search and RSS adapter (IndexerReleaseFetcher).
+        Task<IList<ReleaseInfo>> Search(IIndexer indexer, SearchCriteriaBase criteria);
     }
 
     public class ReleaseSearchService : IReleaseSearchService
@@ -46,6 +51,19 @@ namespace NzbDrone.Core.IndexerSearch
                 "tvsearch" => TvSearch(request, indexerIds, interactiveSearch),
                 "book" => BookSearch(request, indexerIds, interactiveSearch),
                 _ => BasicSearch(request, indexerIds, interactiveSearch)
+            };
+        }
+
+        public Task<IList<ReleaseInfo>> Search(IIndexer indexer, SearchCriteriaBase criteria)
+        {
+            return criteria switch
+            {
+                MovieSearchCriteria movie => DispatchIndexer(i => i.Fetch(movie), indexer, criteria),
+                TvSearchCriteria tv => DispatchIndexer(i => i.Fetch(tv), indexer, criteria),
+                MusicSearchCriteria music => DispatchIndexer(i => i.Fetch(music), indexer, criteria),
+                BookSearchCriteria book => DispatchIndexer(i => i.Fetch(book), indexer, criteria),
+                BasicSearchCriteria basic => DispatchIndexer(i => i.Fetch(basic), indexer, criteria),
+                _ => throw new ArgumentException($"Unsupported search criteria type {criteria.GetType().Name}", nameof(criteria))
             };
         }
 
