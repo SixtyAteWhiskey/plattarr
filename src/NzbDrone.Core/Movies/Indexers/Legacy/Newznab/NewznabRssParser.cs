@@ -95,7 +95,7 @@ namespace NzbDrone.Core.Movies.Indexers.Legacy.Newznab
 
             releaseInfo.TmdbId = GetTmdbId(item);
             releaseInfo.ImdbId = GetImdbId(item);
-            releaseInfo.IndexerFlags = GetFlags(item);
+            releaseInfo.AddIndexerFlags(GetFlags(item));
 
             return releaseInfo;
         }

@@ -41,9 +41,10 @@ public class IndexerBaseFixture : CoreTest<IndexerBase<TestIndexerSettings>>
     [TestCase("The.Movie.Name.2016.Multi.DTS.720p.BluRay.x264-RlsGrp")]
     public void should_parse_multi_language(string postTitle)
     {
-        var result = _indexer.CleanupReleases(new ReleaseInfo[] { new() { Title = postTitle, Languages = new List<Language>() } });
-        result.Single().Languages.Count.Should().Be(2);
-        result.Single().Languages.Should().Contain(Language.German);
-        result.Single().Languages.Should().Contain(Language.English);
+        var result = _indexer.CleanupReleases(new ReleaseInfo[] { new() { Title = postTitle, Languages = new List<string>() } });
+        var languages = IndexerLanguageMapper.Map(result.Single().Languages);
+        languages.Count.Should().Be(2);
+        languages.Should().Contain(Language.German);
+        languages.Should().Contain(Language.English);
     }
 }

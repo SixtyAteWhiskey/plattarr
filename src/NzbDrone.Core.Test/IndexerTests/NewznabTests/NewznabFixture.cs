@@ -105,9 +105,9 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
 
             releases.Should().HaveCount(100);
 
-            releases[0].Languages.Should().BeEquivalentTo(new[] { Language.English, Language.Japanese });
-            releases[1].Languages.Should().BeEquivalentTo(new[] { Language.English, Language.Spanish });
-            releases[2].Languages.Should().BeEquivalentTo(new[] { Language.French });
+            IndexerLanguageMapper.Map(releases[0].Languages).Should().BeEquivalentTo(new[] { Language.English, Language.Japanese });
+            IndexerLanguageMapper.Map(releases[1].Languages).Should().BeEquivalentTo(new[] { Language.English, Language.Spanish });
+            IndexerLanguageMapper.Map(releases[2].Languages).Should().BeEquivalentTo(new[] { Language.French });
         }
 
         [TestCase("no custom attributes")]
@@ -131,7 +131,7 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
 
             var release = releases.Should().ContainSingle(r => r.Guid == releaseGuid).Subject;
 
-            indexerFlags.ToList().ForEach(f => release.IndexerFlags.Should().HaveFlag(f));
+            indexerFlags.ToList().ForEach(f => release.ToIndexerFlags().Should().HaveFlag(f));
         }
     }
 }

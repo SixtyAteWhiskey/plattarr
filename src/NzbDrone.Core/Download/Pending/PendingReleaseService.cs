@@ -291,7 +291,7 @@ namespace NzbDrone.Core.Download.Pending
                 };
 
                 _aggregationService.Augment(release.RemoteMovie);
-                release.RemoteMovie.CustomFormats = _formatCalculator.ParseCustomFormat(release.RemoteMovie, release.Release.Size);
+                release.RemoteMovie.CustomFormats = _formatCalculator.ParseCustomFormat(release.RemoteMovie, release.Release.Size.GetValueOrDefault());
 
                 result.Add(release);
             }
@@ -336,8 +336,8 @@ namespace NzbDrone.Core.Download.Pending
                 Quality = pendingRelease.RemoteMovie.ParsedMovieInfo?.Quality ?? new QualityModel(),
                 Languages = pendingRelease.RemoteMovie.Languages,
                 Title = pendingRelease.Title,
-                Size = pendingRelease.RemoteMovie.Release.Size,
-                SizeLeft = pendingRelease.RemoteMovie.Release.Size,
+                Size = pendingRelease.RemoteMovie.Release.Size.GetValueOrDefault(),
+                SizeLeft = pendingRelease.RemoteMovie.Release.Size.GetValueOrDefault(),
                 RemoteMovie = pendingRelease.RemoteMovie,
                 TimeLeft = timeLeft,
                 EstimatedCompletionTime = ect,

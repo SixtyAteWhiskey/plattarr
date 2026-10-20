@@ -52,7 +52,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
 
                 foreach (var flag in requiredFlags)
                 {
-                    if (torrentInfo.IndexerFlags.HasFlag((IndexerFlags)flag))
+                    if (torrentInfo.ToIndexerFlags().HasFlag((IndexerFlags)flag))
                     {
                         return DownloadSpecDecision.Accept();
                     }

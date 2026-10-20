@@ -3,6 +3,8 @@ using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Download.Pending;
+using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
@@ -64,6 +66,34 @@ namespace NzbDrone.Core.Test.MediaFiles
 
             remainingFiles.Should().HaveCount(3);
             remainingFiles.Should().OnlyContain(c => c.MovieId == _movie1.Id);
+        }
+
+        [Test]
+        public void should_round_trip_shared_release_model()
+        {
+            var release = new ReleaseInfo
+            {
+                Title = "Movie.2024.1080p.BluRay.x264-GROUP",
+                Size = null,
+                Languages = new List<string> { "German", "English" },
+                IndexerFlags = new HashSet<IndexerFlag> { IndexerFlag.Internal }
+            };
+
+            release.AddIndexerFlags(IndexerFlags.PTP_Golden);
+
+            var pending = Builder<PendingRelease>.CreateNew()
+                .With(c => c.Id = 0)
+                .With(c => c.MovieId = _movie1.Id)
+                .With(c => c.Release = release)
+                .BuildNew();
+
+            Db.Insert(pending);
+
+            var stored = Subject.AllByMovieId(_movie1.Id).Should().ContainSingle().Subject.Release;
+
+            stored.Size.Should().BeNull();
+            IndexerLanguageMapper.Map(stored.Languages).Should().Equal(Language.German, Language.English);
+            stored.ToIndexerFlags().Should().Be(IndexerFlags.G_Internal | IndexerFlags.PTP_Golden);
         }
     }
 }

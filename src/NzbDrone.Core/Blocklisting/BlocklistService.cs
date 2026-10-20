@@ -88,7 +88,7 @@ namespace NzbDrone.Core.Blocklisting
                                 Quality = remoteMovie.ParsedMovieInfo.Quality,
                                 Date = DateTime.UtcNow,
                                 PublishedDate = remoteMovie.Release.PublishDate,
-                                Size = remoteMovie.Release.Size,
+                                Size = remoteMovie.Release.Size.GetValueOrDefault(),
                                 Indexer = remoteMovie.Release.Indexer,
                                 Protocol = remoteMovie.Release.DownloadProtocol,
                                 Message = message,

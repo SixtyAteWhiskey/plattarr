@@ -83,7 +83,7 @@ namespace NzbDrone.Core.Movies.Indexers.Legacy
                 // Use multi languages from setting if ReleaseInfo languages is empty
                 if (c.Languages.Empty() && settings.MultiLanguages.Any() && Parser.Parser.HasMultipleLanguages(c.Title))
                 {
-                    c.Languages = settings.MultiLanguages.Select(i => (Language)i).ToList();
+                    c.Languages = IndexerLanguageMapper.ToNames(settings.MultiLanguages.Select(i => (Language)i));
                 }
 
                 c.IndexerId = Definition.Id;

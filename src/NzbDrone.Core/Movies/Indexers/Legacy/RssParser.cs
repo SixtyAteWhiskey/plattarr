@@ -164,7 +164,7 @@ namespace NzbDrone.Core.Movies.Indexers.Legacy
             releaseInfo.DownloadUrl = GetDownloadUrl(item);
             releaseInfo.InfoUrl = GetInfoUrl(item);
             releaseInfo.CommentUrl = GetCommentUrl(item);
-            releaseInfo.Languages = GetLanguages(item);
+            releaseInfo.Languages = IndexerLanguageMapper.ToNames(GetLanguages(item));
 
             try
             {

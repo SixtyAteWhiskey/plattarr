@@ -26,6 +26,7 @@ namespace NzbDrone.Core.Download.Aggregation.Aggregators
         {
             var parsedMovieInfo = remoteMovie.ParsedMovieInfo;
             var releaseInfo = remoteMovie.Release;
+            var releaseLanguages = IndexerLanguageMapper.Map(releaseInfo?.Languages);
             var languages = parsedMovieInfo.Languages;
             var movie = remoteMovie.Movie;
             var releaseTokens = parsedMovieInfo.SimpleReleaseTitle ?? parsedMovieInfo.ReleaseTitle;
@@ -36,17 +37,17 @@ namespace NzbDrone.Core.Download.Aggregation.Aggregators
             {
                 _logger.Debug("Unable to aggregate languages, using parsed values: {0}", string.Join(", ", languages.ToList()));
 
-                remoteMovie.Languages = releaseInfo != null && releaseInfo.Languages.Any() ? releaseInfo.Languages : languages;
+                remoteMovie.Languages = releaseLanguages.Any() ? releaseLanguages : languages;
 
                 return remoteMovie;
             }
 
-            if (releaseInfo != null && releaseInfo.Languages.Any())
+            if (releaseLanguages.Any())
             {
-                _logger.Debug("Languages provided by indexer, using release values: {0}", string.Join(", ", releaseInfo.Languages));
+                _logger.Debug("Languages provided by indexer, using release values: {0}", string.Join(", ", releaseLanguages));
 
                 // Use languages from release (given by indexer or user) if available
-                languages = releaseInfo.Languages;
+                languages = releaseLanguages;
             }
             else
             {

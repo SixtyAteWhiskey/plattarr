@@ -79,7 +79,7 @@ namespace Radarr.Api.V3.Indexers
             var parsedMovieInfo = model.RemoteMovie.ParsedMovieInfo;
             var remoteMovie = model.RemoteMovie;
             var torrentInfo = (model.RemoteMovie.Release as TorrentInfo) ?? new TorrentInfo();
-            var indexerFlags = torrentInfo.IndexerFlags.ToString().Split(new[] { ", " }, StringSplitOptions.None).Where(x => x != "0");
+            var indexerFlags = torrentInfo.ToIndexerFlags().ToString().Split(new[] { ", " }, StringSplitOptions.None).Where(x => x != "0");
 
             // TODO: Clean this mess up. don't mix data from multiple classes, use sub-resources instead? (Got a huge Deja Vu, didn't we talk about this already once?)
             return new ReleaseResource
@@ -93,7 +93,7 @@ namespace Radarr.Api.V3.Indexers
                 Age = releaseInfo.Age,
                 AgeHours = releaseInfo.AgeHours,
                 AgeMinutes = releaseInfo.AgeMinutes,
-                Size = releaseInfo.Size,
+                Size = releaseInfo.Size.GetValueOrDefault(),
                 IndexerId = releaseInfo.IndexerId,
                 Indexer = releaseInfo.Indexer,
                 ReleaseGroup = parsedMovieInfo.ReleaseGroup,
@@ -142,7 +142,7 @@ namespace Radarr.Api.V3.Indexers
 
                 if (resource.IndexerFlags is JsonElement { ValueKind: JsonValueKind.Number } indexerFlags)
                 {
-                    model.IndexerFlags = (IndexerFlags)indexerFlags.GetInt32();
+                    model.AddIndexerFlags((IndexerFlags)indexerFlags.GetInt32());
                 }
             }
             else

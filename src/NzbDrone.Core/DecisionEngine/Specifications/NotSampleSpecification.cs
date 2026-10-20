@@ -18,7 +18,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
 
         public DownloadSpecDecision IsSatisfiedBy(RemoteMovie subject, ReleaseDecisionInformation information)
         {
-            if (subject.Release.Title.ToLower().Contains("sample") && subject.Release.Size < 70.Megabytes())
+            if (subject.Release.Title.ToLower().Contains("sample") && subject.Release.Size.GetValueOrDefault() < 70.Megabytes())
             {
                 _logger.Debug("Sample release, rejecting.");
                 return DownloadSpecDecision.Reject(DownloadRejectionReason.Sample, "Sample");

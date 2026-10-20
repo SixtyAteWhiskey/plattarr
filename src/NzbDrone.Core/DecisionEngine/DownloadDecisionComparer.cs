@@ -91,7 +91,7 @@ namespace NzbDrone.Core.DecisionEngine
                 return 0;
             }
 
-            return CompareBy(x.RemoteMovie.Release, y.RemoteMovie.Release, release => ScoreFlags(release.IndexerFlags));
+            return CompareBy(x.RemoteMovie.Release, y.RemoteMovie.Release, release => ScoreFlags(release.ToIndexerFlags()));
         }
 
         private int CompareProtocol(DownloadDecision x, DownloadDecision y)
@@ -175,11 +175,11 @@ namespace NzbDrone.Core.DecisionEngine
                     var preferredMovieSize = remoteMovie.Movie.MovieMetadata.Value.Runtime * preferredSize.Value.Megabytes();
 
                     // Calculate closest to the preferred size
-                    return Math.Abs((remoteMovie.Release.Size - preferredMovieSize).Round(200.Megabytes())) * (-1);
+                    return Math.Abs((remoteMovie.Release.Size.GetValueOrDefault() - preferredMovieSize).Round(200.Megabytes())) * (-1);
                 }
                 else
                 {
-                    return remoteMovie.Release.Size.Round(200.Megabytes());
+                    return remoteMovie.Release.Size.GetValueOrDefault().Round(200.Megabytes());
                 }
             });
 

@@ -97,7 +97,7 @@ namespace NzbDrone.Core.Notifications.Discord
                         break;
                     case DiscordGrabFieldType.Size:
                         discordField.Name = "Size";
-                        discordField.Value = BytesToString(message.RemoteMovie.Release.Size);
+                        discordField.Value = BytesToString(message.RemoteMovie.Release.Size.GetValueOrDefault());
                         discordField.Inline = true;
                         break;
                     case DiscordGrabFieldType.Release:
