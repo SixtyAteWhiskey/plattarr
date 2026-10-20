@@ -4,12 +4,14 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="AngleSharp" Version="1.5.2" />
+    <PackageReference Include="AngleSharp.Xml" Version="1.0.0" />
     <PackageReference Include="Dapper" Version="2.1.89" />
     <PackageReference Include="Diacritical.Net" Version="1.0.5" />
     <PackageReference Include="Equ" Version="2.3.0" />
     <PackageReference Include="MailKit" Version="4.18.1" />
     <PackageReference Include="Microsoft.AspNetCore.Cryptography.KeyDerivation" Version="10.0.13" />
     <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="10.0.13" />
+    <PackageReference Include="YamlDotNet" Version="16.3.0" />
     <PackageReference Include="Npgsql" Version="10.0.3" />
     <PackageReference Include="Openur.FFMpegCore" Version="5.5.0.45" />
     <PackageReference Include="Openur.FFprobeStatic" Version="9.0.2.508" />

@@ -12,9 +12,11 @@ using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
+using IIndexer = NzbDrone.Core.Movies.Indexers.Legacy.IIndexer;
+using IIndexerStatusService = NzbDrone.Core.Movies.Indexers.Legacy.IIndexerStatusService;
+using IndexerDefinition = NzbDrone.Core.Movies.Indexers.Legacy.IndexerDefinition;
 
 namespace NzbDrone.Core.Test.Download
 {

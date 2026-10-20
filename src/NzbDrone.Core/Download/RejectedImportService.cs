@@ -1,6 +1,7 @@
 using System.Linq;
 using NLog;
 using NzbDrone.Core.Download.TrackedDownloads;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.MediaFiles.MovieImport;
 using NzbDrone.Core.Movies.Indexers.Legacy;
 

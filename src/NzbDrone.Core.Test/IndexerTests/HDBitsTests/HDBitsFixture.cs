@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,8 +10,8 @@ using NUnit.Framework;
 using NzbDrone.Common.Http;
 using NzbDrone.Common.Serializer;
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.Movies.Indexers.Legacy;
-using NzbDrone.Core.Movies.Indexers.Legacy.HDBits;
+using NzbDrone.Core.Indexers.Definitions.HDBits;
+using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
@@ -20,13 +21,21 @@ namespace NzbDrone.Core.Test.IndexerTests.HDBitsTests
     [TestFixture]
     public class HDBitsFixture : CoreTest<HDBits>
     {
+        private MovieSearchCriteria _movieSearchCriteria;
+
         [SetUp]
         public void Setup()
         {
-            Subject.Definition = new IndexerDefinition()
+            Subject.Definition = new IndexerDefinition
             {
                 Name = "HdBits",
-                Settings = new HDBitsSettings() { ApiKey = "fakekey" }
+                Settings = new HDBitsSettings { ApiKey = "fakekey" }
+            };
+
+            _movieSearchCriteria = new MovieSearchCriteria
+            {
+                Categories = new[] { 2000, 2010 },
+                ImdbId = "0076759"
             };
         }
 
@@ -36,19 +45,19 @@ namespace NzbDrone.Core.Test.IndexerTests.HDBitsTests
         {
             var responseJson = ReadAllText(fileName);
 
-            Mocker.GetMock<IHttpClient>()
-                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Post)))
-                .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), responseJson)));
+            Mocker.GetMock<IIndexerHttpClient>()
+                .Setup(o => o.ExecuteProxiedAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Post), Subject.Definition))
+                .ReturnsAsync((HttpRequest r, IndexerDefinition _) => new HttpResponse(r, new HttpHeader(), new CookieCollection(), responseJson));
 
-            var torrents = await Subject.FetchRecent();
+            var torrents = (await Subject.Fetch(_movieSearchCriteria)).Releases;
 
             torrents.Should().HaveCount(2);
-            torrents.First().Should().BeOfType<HDBitsInfo>();
+            torrents.First().Should().BeOfType<TorrentInfo>();
 
             var first = torrents.First() as TorrentInfo;
 
             first.Guid.Should().Be("HDBits-257142");
-            first.Title.Should().Be("Supernatural S10E17 1080p WEB-DL DD5.1 H.264-ECI");
+            first.Title.Should().Be("Supernatural.S10E17.1080p.WEB-DL.DD5.1.H.264-ECI");
             first.DownloadProtocol.Should().Be(DownloadProtocol.Torrent);
             first.DownloadUrl.Should().Be("https://hdbits.org/download.php?id=257142&passkey=fakekey");
             first.InfoUrl.Should().Be("https://hdbits.org/details.php?id=257142");
@@ -65,11 +74,11 @@ namespace NzbDrone.Core.Test.IndexerTests.HDBitsTests
         {
             var responseJson = new { status = 5, message = "Invalid authentication credentials" }.ToJson();
 
-            Mocker.GetMock<IHttpClient>()
-                .Setup(v => v.ExecuteAsync(It.IsAny<HttpRequest>()))
-                .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), Encoding.UTF8.GetBytes(responseJson))));
+            Mocker.GetMock<IIndexerHttpClient>()
+                .Setup(o => o.ExecuteProxiedAsync(It.IsAny<HttpRequest>(), Subject.Definition))
+                .ReturnsAsync((HttpRequest r, IndexerDefinition _) => new HttpResponse(r, new HttpHeader(), new CookieCollection(), Encoding.UTF8.GetBytes(responseJson)));
 
-            var torrents = await Subject.FetchRecent();
+            var torrents = (await Subject.Fetch(_movieSearchCriteria)).Releases;
 
             torrents.Should().BeEmpty();
 

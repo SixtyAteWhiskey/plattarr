@@ -2,10 +2,9 @@ using System.Collections.Generic;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
+using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.Newznab;
 using NzbDrone.Core.Lifecycle;
-using NzbDrone.Core.Movies.Indexers.Legacy;
-using NzbDrone.Core.Movies.Indexers.Legacy.FileList;
-using NzbDrone.Core.Movies.Indexers.Legacy.Newznab;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
 
@@ -21,7 +20,6 @@ namespace NzbDrone.Core.Test.IndexerTests
             _indexers = new List<IIndexer>();
 
             _indexers.Add(Mocker.Resolve<Newznab>());
-            _indexers.Add(Mocker.Resolve<FileList>());
 
             Mocker.SetConstant<IEnumerable<IIndexer>>(_indexers);
         }

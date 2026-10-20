@@ -1,5 +1,5 @@
 ﻿using NzbDrone.Core.Indexers;
-using NzbDrone.Core.Movies.Indexers.Legacy.Exceptions;
+using NzbDrone.Core.Indexers.Exceptions;
 
 namespace NzbDrone.Core.Movies.Indexers.Legacy.Newznab
 {

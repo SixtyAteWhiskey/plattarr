@@ -14,7 +14,7 @@ using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
-using NzbDrone.Core.Test.IndexerTests;
+using NzbDrone.Core.Test.LegacyIndexerTests;
 using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.Download.DownloadClientTests

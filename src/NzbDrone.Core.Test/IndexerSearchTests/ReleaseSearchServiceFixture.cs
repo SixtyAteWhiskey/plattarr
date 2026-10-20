@@ -1,23 +1,18 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
-using NzbDrone.Core.DecisionEngine;
-using NzbDrone.Core.Movies;
-using NzbDrone.Core.Movies.Indexers.Legacy;
-using NzbDrone.Core.Movies.Search;
-using NzbDrone.Core.Movies.Translations;
+using NzbDrone.Core.Indexers;
+using NzbDrone.Core.IndexerSearch;
+using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.IndexerSearchTests
 {
-        public class ReleaseSearchServiceFixture : CoreTest<ReleaseSearchService>
+    public class ReleaseSearchServiceFixture : CoreTest<ReleaseSearchService>
     {
         private Mock<IIndexer> _mockIndexer;
-        private Movie _movie;
 
         [SetUp]
         public void SetUp()
@@ -27,133 +22,69 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
             _mockIndexer.SetupGet(s => s.SupportsSearch).Returns(true);
 
             Mocker.GetMock<IIndexerFactory>()
-                  .Setup(s => s.AutomaticSearchEnabled(true))
-                  .Returns(new List<IIndexer> { _mockIndexer.Object });
-
-            Mocker.GetMock<IMakeDownloadDecision>()
-                .Setup(s => s.GetSearchDecision(It.IsAny<List<Parser.Model.ReleaseInfo>>(), It.IsAny<MovieSearchRequest>()))
-                .Returns(new List<DownloadDecision>());
-
-            _movie = Builder<Movie>.CreateNew()
-                .With(v => v.Monitored = true)
-                .Build();
-
-            Mocker.GetMock<IMovieService>()
-                .Setup(v => v.GetMovie(_movie.Id))
-                .Returns(_movie);
-
-            Mocker.GetMock<IMovieTranslationService>()
-                .Setup(s => s.GetAllTranslationsForMovieMetadata(It.IsAny<int>()))
-                .Returns(new List<MovieTranslation>());
+                .Setup(s => s.Enabled(It.IsAny<bool>()))
+                .Returns(new List<IIndexer> { _mockIndexer.Object });
         }
 
-        private List<MovieSearchRequest> WatchForSearchCriteria()
+        private List<SearchCriteriaBase> WatchForSearchCriteria()
         {
-            var result = new List<MovieSearchRequest>();
+            var result = new List<SearchCriteriaBase>();
 
-            _mockIndexer.Setup(v => v.Fetch(It.IsAny<MovieSearchRequest>()))
-                .Callback<MovieSearchRequest>(s => result.Add(s))
-                .Returns(Task.FromResult<IList<Parser.Model.ReleaseInfo>>(new List<Parser.Model.ReleaseInfo>()));
+            _mockIndexer.Setup(v => v.Fetch(It.IsAny<MovieSearchCriteria>()))
+                .Callback<MovieSearchCriteria>(s => result.Add(s))
+                .ReturnsAsync(new IndexerPageableQueryResult());
+
+            _mockIndexer.Setup(v => v.Fetch(It.IsAny<TvSearchCriteria>()))
+                .Callback<TvSearchCriteria>(s => result.Add(s))
+                .ReturnsAsync(new IndexerPageableQueryResult());
 
             return result;
         }
 
-        [Test]
-        public async Task Tags_IndexerTags_MovieNoTags_IndexerNotIncluded()
+        [TestCase("tt0183790", "0183790")]
+        [TestCase("0183790", "0183790")]
+        [TestCase("183790", "0183790")]
+        [TestCase("tt10001870", "10001870")]
+        [TestCase("10001870", "10001870")]
+        public void should_normalize_imdbid_movie_search_criteria(string input, string expected)
         {
-            _mockIndexer.SetupGet(s => s.Definition).Returns(new IndexerDefinition
-            {
-                Id = 1,
-                Tags = new HashSet<int> { 3 }
-            });
-
             var allCriteria = WatchForSearchCriteria();
 
-            await Subject.MovieSearch(_movie, true, false);
-
-            var criteria = allCriteria.OfType<MovieSearchRequest>().ToList();
-
-            criteria.Count.Should().Be(0);
-        }
-
-        [Test]
-        public async Task Tags_IndexerNoTags_MovieTags_IndexerIncluded()
-        {
-            _mockIndexer.SetupGet(s => s.Definition).Returns(new IndexerDefinition
+            var request = new NewznabRequest
             {
-                Id = 1
-            });
+                t = "movie",
+                imdbid = input
+            };
 
-            _movie = Builder<Movie>.CreateNew()
-                .With(v => v.Monitored = true)
-                .With(v => v.Tags = new HashSet<int> { 3 })
-                .Build();
+            Subject.Search(request, new List<int> { 1 }, false);
 
-            Mocker.GetMock<IMovieService>()
-                .Setup(v => v.GetMovie(_movie.Id))
-                .Returns(_movie);
-
-            var allCriteria = WatchForSearchCriteria();
-
-            await Subject.MovieSearch(_movie, true, false);
-
-            var criteria = allCriteria.OfType<MovieSearchRequest>().ToList();
+            var criteria = allCriteria.OfType<MovieSearchCriteria>().ToList();
 
             criteria.Count.Should().Be(1);
+            criteria[0].ImdbId.Should().Be(expected);
         }
 
-        [Test]
-        public async Task Tags_IndexerAndMovieTagsMatch_IndexerIncluded()
+        [TestCase("tt0183790", "0183790")]
+        [TestCase("0183790", "0183790")]
+        [TestCase("183790", "0183790")]
+        [TestCase("tt10001870", "10001870")]
+        [TestCase("10001870", "10001870")]
+        public void should_normalize_imdbid_tv_search_criteria(string input, string expected)
         {
-            _mockIndexer.SetupGet(s => s.Definition).Returns(new IndexerDefinition
-            {
-                Id = 1,
-                Tags = new HashSet<int> { 1, 2, 3 }
-            });
-
-            _movie = Builder<Movie>.CreateNew()
-                .With(v => v.Monitored = true)
-                .With(v => v.Tags = new HashSet<int> { 3, 4, 5 })
-                .Build();
-
-            Mocker.GetMock<IMovieService>()
-                .Setup(v => v.GetMovie(_movie.Id))
-                .Returns(_movie);
-
             var allCriteria = WatchForSearchCriteria();
 
-            await Subject.MovieSearch(_movie, true, false);
+            var request = new NewznabRequest
+            {
+                t = "tvsearch",
+                imdbid = input
+            };
 
-            var criteria = allCriteria.OfType<MovieSearchRequest>().ToList();
+            Subject.Search(request, new List<int> { 1 }, false);
+
+            var criteria = allCriteria.OfType<TvSearchCriteria>().ToList();
 
             criteria.Count.Should().Be(1);
-        }
-
-        [Test]
-        public async Task Tags_IndexerAndMovieTagsMismatch_IndexerNotIncluded()
-        {
-            _mockIndexer.SetupGet(s => s.Definition).Returns(new IndexerDefinition
-            {
-                Id = 1,
-                Tags = new HashSet<int> { 1, 2, 3 }
-            });
-
-            _movie = Builder<Movie>.CreateNew()
-                .With(v => v.Monitored = true)
-                .With(v => v.Tags = new HashSet<int> { 4, 5, 6 })
-                .Build();
-
-            Mocker.GetMock<IMovieService>()
-                .Setup(v => v.GetMovie(_movie.Id))
-                .Returns(_movie);
-
-            var allCriteria = WatchForSearchCriteria();
-
-            await Subject.MovieSearch(_movie, true, false);
-
-            var criteria = allCriteria.OfType<MovieSearchRequest>().ToList();
-
-            criteria.Count.Should().Be(0);
+            criteria[0].ImdbId.Should().Be(expected);
         }
     }
 }

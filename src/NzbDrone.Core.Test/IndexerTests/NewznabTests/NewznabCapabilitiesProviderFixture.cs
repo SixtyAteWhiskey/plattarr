@@ -1,10 +1,13 @@
 using System;
+using System.Linq;
+using System.Net;
 using System.Xml;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.Movies.Indexers.Legacy.Newznab;
+using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.Newznab;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
@@ -13,6 +16,7 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
     public class NewznabCapabilitiesProviderFixture : CoreTest<NewznabCapabilitiesProvider>
     {
         private NewznabSettings _settings;
+        private IndexerDefinition _definition;
         private string _caps;
 
         [SetUp]
@@ -23,14 +27,24 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
                 BaseUrl = "http://indxer.local"
             };
 
+            _definition = new IndexerDefinition()
+            {
+                Id = 5,
+                Name = "Newznab",
+                Settings = new NewznabSettings()
+                {
+                    BaseUrl = "http://indexer.local/"
+                }
+            };
+
             _caps = ReadAllText("Files/Indexers/Newznab/newznab_caps.xml");
         }
 
         private void GivenCapsResponse(string caps)
         {
-            Mocker.GetMock<IHttpClient>()
-                .Setup(o => o.Get(It.IsAny<HttpRequest>()))
-                .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), caps));
+            Mocker.GetMock<IIndexerHttpClient>()
+                .Setup(o => o.ExecuteProxied(It.IsAny<HttpRequest>(), It.IsAny<IndexerDefinition>()))
+                .Returns<HttpRequest, IndexerDefinition>((r, d) => new HttpResponse(r, new HttpHeader(), new CookieCollection(), caps));
         }
 
         [Test]
@@ -38,11 +52,11 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
         {
             GivenCapsResponse(_caps);
 
-            Subject.GetCapabilities(_settings);
-            Subject.GetCapabilities(_settings);
+            Subject.GetCapabilities(_settings, _definition);
+            Subject.GetCapabilities(_settings, _definition);
 
-            Mocker.GetMock<IHttpClient>()
-                .Verify(o => o.Get(It.IsAny<HttpRequest>()), Times.Once());
+            Mocker.GetMock<IIndexerHttpClient>()
+                .Verify(o => o.ExecuteProxied(It.IsAny<HttpRequest>(), It.IsAny<IndexerDefinition>()), Times.Once());
         }
 
         [Test]
@@ -50,10 +64,50 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
         {
             GivenCapsResponse(_caps);
 
-            var caps = Subject.GetCapabilities(_settings);
+            var caps = Subject.GetCapabilities(_settings, _definition);
 
-            caps.DefaultPageSize.Should().Be(25);
-            caps.MaxPageSize.Should().Be(60);
+            caps.LimitsDefault.Value.Should().Be(25);
+            caps.LimitsMax.Value.Should().Be(60);
+        }
+
+        [Test]
+        public void should_map_different_categories()
+        {
+            GivenCapsResponse(_caps);
+
+            var caps = Subject.GetCapabilities(_settings, _definition);
+
+            var bookCats = caps.Categories.MapTorznabCapsToTrackers(new int[] { NewznabStandardCategory.Books.Id });
+
+            bookCats.Count.Should().Be(2);
+            bookCats.Should().Contain("8000");
+        }
+
+        [TestCase(5070)]
+        [TestCase(2020)]
+        public void should_find_sub_categories_as_main_categories(int category)
+        {
+            GivenCapsResponse(ReadAllText("Files/Indexers/Torznab/torznab_animetosho_caps.xml"));
+
+            var caps = Subject.GetCapabilities(_settings, _definition);
+
+            var indexerCategories = caps.Categories.MapTrackerCatToNewznab(category.ToString());
+
+            indexerCategories.Count.Should().Be(2);
+            indexerCategories.First().Id.Should().Be(category);
+        }
+
+        [Test]
+        public void should_map_by_name_when_available()
+        {
+            GivenCapsResponse(_caps);
+
+            var caps = Subject.GetCapabilities(_settings, _definition);
+
+            var bookCats = caps.Categories.MapTrackerCatToNewznab("5999");
+
+            bookCats.Count.Should().Be(2);
+            bookCats.First().Id.Should().Be(5050);
         }
 
         [Test]
@@ -61,20 +115,20 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
         {
             GivenCapsResponse(_caps.Replace("<limits", "<abclimits"));
 
-            var caps = Subject.GetCapabilities(_settings);
+            var caps = Subject.GetCapabilities(_settings, _definition);
 
-            caps.DefaultPageSize.Should().Be(100);
-            caps.MaxPageSize.Should().Be(100);
+            caps.LimitsDefault.Value.Should().Be(100);
+            caps.LimitsMax.Value.Should().Be(100);
         }
 
         [Test]
         public void should_throw_if_failed_to_get()
         {
-            Mocker.GetMock<IHttpClient>()
-                .Setup(o => o.Get(It.IsAny<HttpRequest>()))
+            Mocker.GetMock<IIndexerHttpClient>()
+                .Setup(o => o.ExecuteProxied(It.IsAny<HttpRequest>(), It.IsAny<IndexerDefinition>()))
                 .Throws<Exception>();
 
-            Assert.Throws<Exception>(() => Subject.GetCapabilities(_settings));
+            Assert.Throws<Exception>(() => Subject.GetCapabilities(_settings, _definition));
         }
 
         [Test]
@@ -82,7 +136,7 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
         {
             GivenCapsResponse(_caps.Replace("<limits", "<>"));
 
-            Assert.Throws<XmlException>(() => Subject.GetCapabilities(_settings));
+            Assert.Throws<XmlException>(() => Subject.GetCapabilities(_settings, _definition));
         }
 
         [Test]
@@ -90,32 +144,9 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
         {
             GivenCapsResponse(_caps.Replace("5030", "asdf"));
 
-            var result = Subject.GetCapabilities(_settings);
+            var result = Subject.GetCapabilities(_settings, _definition);
 
             result.Should().NotBeNull();
-        }
-
-        [Test]
-        public void should_use_default_searchengine_if_missing()
-        {
-            GivenCapsResponse(_caps);
-
-            var caps = Subject.GetCapabilities(_settings);
-
-            caps.TextSearchEngine.Should().Be("sphinx");
-            caps.MovieTextSearchEngine.Should().Be("sphinx");
-        }
-
-        [Test]
-        public void should_use_specified_searchengine()
-        {
-            GivenCapsResponse(_caps.Replace("<search ", "<search searchEngine=\"raw\" ")
-                                   .Replace("<movie-search ", "<movie-search searchEngine=\"raw2\" "));
-
-            var caps = Subject.GetCapabilities(_settings);
-
-            caps.TextSearchEngine.Should().Be("raw");
-            caps.MovieTextSearchEngine.Should().Be("raw2");
         }
     }
 }

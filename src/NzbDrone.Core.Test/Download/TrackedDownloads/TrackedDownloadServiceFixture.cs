@@ -11,11 +11,12 @@ using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Events;
-using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Movies.Indexers.Legacy.TorrentRss;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
+using IIndexerFactory = NzbDrone.Core.Movies.Indexers.Legacy.IIndexerFactory;
+using IndexerDefinition = NzbDrone.Core.Movies.Indexers.Legacy.IndexerDefinition;
 
 namespace NzbDrone.Core.Test.Download.TrackedDownloads
 {

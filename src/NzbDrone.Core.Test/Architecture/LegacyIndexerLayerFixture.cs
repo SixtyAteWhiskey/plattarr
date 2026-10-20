@@ -16,7 +16,7 @@ namespace NzbDrone.Core.Test.Architecture
     public class LegacyIndexerLayerFixture : TestBase
     {
         private const string LegacyNamespace = "NzbDrone.Core.Movies.Indexers.Legacy";
-        private const int Ceiling = 108;
+        private const int Ceiling = 105;
 
         [Test]
         public void legacy_indexer_layer_should_only_shrink()

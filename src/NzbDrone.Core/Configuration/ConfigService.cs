@@ -103,6 +103,20 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("RecycleBinCleanupDays", value); }
         }
 
+        public int IndexerHistoryCleanupDays
+        {
+            get { return GetValueInt("IndexerHistoryCleanupDays", 30); }
+
+            set { SetValue("IndexerHistoryCleanupDays", value); }
+        }
+
+        public bool LogIndexerResponse
+        {
+            get { return GetValueBoolean("LogIndexerResponse", false); }
+
+            set { SetValue("LogIndexerResponse", value); }
+        }
+
         public int RssSyncInterval
         {
             get { return GetValueInt("RssSyncInterval", 30); }

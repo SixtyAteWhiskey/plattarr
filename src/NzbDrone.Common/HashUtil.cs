@@ -1,4 +1,5 @@
 using System;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace NzbDrone.Common
@@ -32,6 +33,21 @@ namespace NzbDrone.Common
         {
             var seed = $"{Environment.ProcessorCount}_{Environment.OSVersion.Platform}_{Environment.MachineName}_{Environment.UserName}";
             return HashUtil.CalculateCrc(seed);
+        }
+
+        public static string ComputeSha256Hash(string rawData)
+        {
+            var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(rawData));
+
+            return Convert.ToHexString(hashBytes);
+        }
+
+        // Not a security use: indexer APIs (AnimeBytes) expect an MD5 of a string.
+        public static string CalculateMd5(string s)
+        {
+            var hashBytes = MD5.HashData(Encoding.ASCII.GetBytes(s));
+
+            return Convert.ToHexString(hashBytes);
         }
     }
 }
