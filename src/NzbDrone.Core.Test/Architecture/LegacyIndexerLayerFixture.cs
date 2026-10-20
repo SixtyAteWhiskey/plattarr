@@ -9,7 +9,7 @@ namespace NzbDrone.Core.Test.Architecture
 {
     // Radarr's original indexer layer was moved to NzbDrone.Core.Movies.Indexers.Legacy so
     // Prowlarr's indexer layer can be ported under its own names (Phase 1, porting step 2).
-    // The legacy layer is deleted once the in-process adapter (step 4) routes movie RSS and
+    // The legacy layer is deleted once the in-process adapter (step 7) routes movie RSS and
     // search through Prowlarr's layer. Until then it may only shrink: lower the ceiling when
     // types are removed, and never raise it.
     [TestFixture]
@@ -27,7 +27,7 @@ namespace NzbDrone.Core.Test.Architecture
                 .Where(t => !t.IsNested && !t.IsDefined(typeof(CompilerGeneratedAttribute), false))
                 .Count();
 
-            count.Should().BeLessOrEqualTo(Ceiling, "the legacy indexer layer may only shrink; delete it after porting step 4");
+            count.Should().BeLessOrEqualTo(Ceiling, "the legacy indexer layer may only shrink; delete it after porting step 7");
         }
     }
 }
