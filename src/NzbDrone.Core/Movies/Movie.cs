@@ -4,17 +4,20 @@ using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Profiles.Qualities;
 
 namespace NzbDrone.Core.Movies
 {
-    public class Movie : ModelBase
+    public class Movie : ModelBase, IMediaParent
     {
         public Movie()
         {
             Tags = new HashSet<int>();
             MovieMetadata = new MovieMetadata();
         }
+
+        MediaKind IMediaParent.Kind => MediaKind.Movies;
 
         public int MovieMetadataId { get; set; }
 
