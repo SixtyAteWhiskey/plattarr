@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Text;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Common.Http.Proxy;
 
 namespace NzbDrone.Common.Http
 {
@@ -39,6 +40,12 @@ namespace NzbDrone.Common.Http
         public HttpHeader Headers { get; set; }
         public byte[] ContentData { get; set; }
         public string ContentSummary { get; set; }
+
+        // When set, used for form data and for decoding the response instead of the Content-Type charset
+        public Encoding Encoding { get; set; }
+
+        // When set, overrides the global proxy for this request (indexer proxies)
+        public HttpProxySettings ProxySettings { get; set; }
         public ICredentials Credentials { get; set; }
         public bool SuppressHttpError { get; set; }
         public IEnumerable<HttpStatusCode> SuppressHttpErrorStatusCodes { get; set; }
@@ -88,8 +95,14 @@ namespace NzbDrone.Common.Http
 
         public void SetContent(string data)
         {
-            var encoding = HttpHeader.GetEncodingFromContentType(Headers.ContentType);
+            var encoding = Encoding ?? HttpHeader.GetEncodingFromContentType(Headers.ContentType);
             ContentData = encoding.GetBytes(data);
+        }
+
+        public string GetContent()
+        {
+            var encoding = Encoding ?? HttpHeader.GetEncodingFromContentType(Headers.ContentType);
+            return encoding.GetString(ContentData);
         }
     }
 }

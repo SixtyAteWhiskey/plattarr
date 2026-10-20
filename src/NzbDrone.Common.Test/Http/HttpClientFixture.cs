@@ -531,6 +531,56 @@ namespace NzbDrone.Common.Test.Http
         }
 
         [Test]
+        public async Task should_send_request_cookie_on_each_redirect_hop()
+        {
+            var request = new HttpRequest($"https://{_httpBinHost}/redirect-to?url=%2Fcookies");
+            request.AllowAutoRedirect = true;
+            request.Cookies.Add("my", "cookie");
+            request.StoreRequestCookie = false;
+
+            var response = await Subject.GetAsync<HttpCookieResource>(request);
+
+            response.Resource.Cookies.Should().ContainKey("my").WhoseValue.Should().Be("cookie");
+        }
+
+        [Test]
+        public async Task should_report_cookies_set_during_redirect_chain()
+        {
+            var request = new HttpRequest($"https://{_httpBinHost}/cookies/set?session=abc");
+            request.AllowAutoRedirect = true;
+            request.Cookies.Add("landing", "xyz");
+            request.StoreRequestCookie = false;
+            request.StoreResponseCookie = false;
+
+            var response = await Subject.GetAsync<HttpCookieResource>(request);
+
+            response.HasHttpRedirect.Should().BeFalse();
+
+            var cookies = response.GetCookies();
+            cookies.Should().ContainKey("session").WhoseValue.Should().Be("abc");
+            cookies.Should().ContainKey("landing").WhoseValue.Should().Be("xyz");
+        }
+
+        [Test]
+        public async Task should_not_send_request_cookie_to_other_host_on_redirect()
+        {
+            if (_httpBinHost == _httpBinHost2)
+            {
+                Assert.Inconclusive("Needs two distinct test hosts");
+            }
+
+            var target = Uri.EscapeDataString($"https://{_httpBinHost2}/cookies");
+            var request = new HttpRequest($"https://{_httpBinHost}/redirect-to?url={target}");
+            request.AllowAutoRedirect = true;
+            request.Cookies.Add("my", "cookie");
+            request.StoreRequestCookie = false;
+
+            var response = await Subject.GetAsync<HttpCookieResource>(request);
+
+            response.Resource.Cookies.Should().NotContainKey("my");
+        }
+
+        [Test]
         public async Task should_not_store_request_cookie()
         {
             var requestGet = new HttpRequest($"https://{_httpBinHost}/get");

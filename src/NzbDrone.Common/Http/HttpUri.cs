@@ -169,12 +169,68 @@ namespace NzbDrone.Common.Http
 
             var baseSlashIndex = basePath.LastIndexOf('/');
 
-            if (baseSlashIndex >= 0)
+            var merged = baseSlashIndex >= 0 ? $"{basePath.AsSpan(0, baseSlashIndex)}/{relativePath}" : relativePath;
+
+            return HasDotSegment(merged) ? RemoveDotSegments(merged) : merged;
+        }
+
+        private static bool HasDotSegment(string path)
+        {
+            return path == "." || path == ".." ||
+                   path.StartsWith("./") || path.StartsWith("../") ||
+                   path.Contains("/./") || path.Contains("/../") ||
+                   path.EndsWith("/.") || path.EndsWith("/..");
+        }
+
+        // RFC 3986 section 5.2.4
+        private static string RemoveDotSegments(string path)
+        {
+            var input = path;
+            var output = new StringBuilder(path.Length);
+
+            while (input.Length > 0)
             {
-                return $"{basePath.AsSpan(0, baseSlashIndex)}/{relativePath}";
+                if (input.StartsWith("../"))
+                {
+                    input = input.Substring(3);
+                }
+                else if (input.StartsWith("./"))
+                {
+                    input = input.Substring(2);
+                }
+                else if (input.StartsWith("/./"))
+                {
+                    input = input.Substring(2);
+                }
+                else if (input == "/.")
+                {
+                    input = "/";
+                }
+                else if (input.StartsWith("/../") || input == "/..")
+                {
+                    input = input == "/.." ? "/" : input.Substring(3);
+
+                    var lastSlash = output.ToString().LastIndexOf('/');
+                    output.Length = lastSlash >= 0 ? lastSlash : 0;
+                }
+                else if (input == "." || input == "..")
+                {
+                    input = string.Empty;
+                }
+                else
+                {
+                    var nextSlash = input.IndexOf('/', input.StartsWith("/") ? 1 : 0);
+                    var segment = nextSlash >= 0 ? input.Substring(0, nextSlash) : input;
+
+                    output.Append(segment);
+                    input = input.Substring(segment.Length);
+                }
             }
 
-            return relativePath;
+            var result = output.ToString();
+
+            // A relative base path stays relative
+            return path.StartsWith("/") ? result : result.TrimStart('/');
         }
 
         public HttpUri SetQuery(string query)
