@@ -34,9 +34,33 @@ namespace NzbDrone.Common.Extensions
             return dateTime >= afterDateTime;
         }
 
+        public static bool IsValidDate(this string dateTime)
+        {
+            DateTime.TryParse(dateTime, out var result);
+
+            return !result.Equals(default(DateTime));
+        }
+
+        public static bool IsFutureDate(this string dateTime)
+        {
+            DateTime.TryParse(dateTime, out var result);
+
+            return !result.Equals(default(DateTime)) && result.After(DateTime.Now);
+        }
+
         public static bool Between(this DateTime dateTime, DateTime afterDateTime, DateTime beforeDateTime)
         {
             return dateTime >= afterDateTime && dateTime <= beforeDateTime;
+        }
+
+        public static DateTime EndOfDay(this DateTime date)
+        {
+            return new DateTime(date.Year, date.Month, date.Day, 23, 59, 59, 999);
+        }
+
+        public static DateTime StartOfDay(this DateTime date)
+        {
+            return new DateTime(date.Year, date.Month, date.Day, 0, 0, 0, 0);
         }
 
         public static DateTime Epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);

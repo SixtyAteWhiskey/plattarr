@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
 using System.Net.Security;
@@ -99,7 +100,9 @@ namespace NzbDrone.Common.Http.Dispatchers
                 AddRequestHeaders(requestMessage, request.Headers);
             }
 
-            var httpClient = GetClient(request.Url);
+            var httpClient = GetClient(request.Url, request.ProxySettings);
+
+            var stopwatch = Stopwatch.StartNew();
 
             try
             {
@@ -127,7 +130,27 @@ namespace NzbDrone.Common.Http.Dispatchers
 
                 headers.Add(responseMessage.Content.Headers.ToNameValueCollection());
 
-                return new HttpResponse(request, new HttpHeader(headers), data, responseMessage.StatusCode, responseMessage.Version);
+                // Apply Set-Cookie to the request's jar so the response reports the full jar
+                var responseUri = responseMessage.RequestMessage?.RequestUri ?? (Uri)request.Url;
+
+                if (responseMessage.Headers.TryGetValues("Set-Cookie", out var setCookieHeaders))
+                {
+                    foreach (var setCookieHeader in setCookieHeaders)
+                    {
+                        try
+                        {
+                            cookies.SetCookies(responseUri, setCookieHeader);
+                        }
+                        catch (CookieException)
+                        {
+                            // Ignore invalid cookies; HttpClient logs them when storing
+                        }
+                    }
+                }
+
+                stopwatch.Stop();
+
+                return new HttpResponse(request, new HttpHeader(headers), cookies.GetCookies(responseUri), data, stopwatch.ElapsedMilliseconds, responseMessage.StatusCode, responseMessage.Version);
             }
             catch (OperationCanceledException ex) when (cts.IsCancellationRequested)
             {
@@ -135,9 +158,10 @@ namespace NzbDrone.Common.Http.Dispatchers
             }
         }
 
-        protected virtual System.Net.Http.HttpClient GetClient(HttpUri uri)
+        protected virtual System.Net.Http.HttpClient GetClient(HttpUri uri, HttpProxySettings requestProxy = null)
         {
-            var proxySettings = _proxySettingsProvider.GetProxySettings(uri);
+            // A request-level proxy (indexer proxies) takes precedence over the global setting
+            var proxySettings = requestProxy ?? _proxySettingsProvider.GetProxySettings(uri);
 
             var key = proxySettings?.Key ?? NO_PROXY_KEY;
 

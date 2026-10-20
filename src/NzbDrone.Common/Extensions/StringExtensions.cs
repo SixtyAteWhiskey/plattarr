@@ -132,6 +132,28 @@ namespace NzbDrone.Common.Extensions
             return text.IndexOf(contains, StringComparison.InvariantCultureIgnoreCase) > -1;
         }
 
+        public static string UrlEncode(this string searchString, Encoding encoding)
+        {
+            if (string.IsNullOrEmpty(searchString))
+            {
+                return string.Empty;
+            }
+
+            var bytes = encoding.GetBytes(searchString);
+            return encoding.GetString(WebUtility.UrlEncodeToBytes(bytes, 0, bytes.Length));
+        }
+
+        public static string UrlDecode(this string searchString, Encoding encoding)
+        {
+            if (string.IsNullOrEmpty(searchString))
+            {
+                return string.Empty;
+            }
+
+            var inputBytes = encoding.GetBytes(searchString);
+            return encoding.GetString(WebUtility.UrlDecodeToBytes(inputBytes, 0, inputBytes.Length));
+        }
+
         public static string WrapInQuotes(this string text)
         {
             if (!text.Contains(' '))
@@ -221,6 +243,19 @@ namespace NzbDrone.Common.Extensions
         public static string ToUrlHost(this string input)
         {
             return input.Contains(':') ? $"[{input}]" : input;
+        }
+
+        public static bool IsAllDigits(this string input)
+        {
+            foreach (var c in input)
+            {
+                if (c < '0' || c > '9')
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         public static string Reverse(this string text)

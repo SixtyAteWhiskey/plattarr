@@ -68,13 +68,15 @@ namespace NzbDrone.Common.Http
 
             var response = await ExecuteRequestAsync(request, cookieContainer);
 
-            if (request.AllowAutoRedirect && response.HasHttpRedirect)
+            if (request.AllowAutoRedirect && response.HasHttpRedirect && response.RedirectUrl.IsNotNullOrWhiteSpace())
             {
                 var autoRedirectChain = new List<string> { request.Url.ToString() };
 
                 do
                 {
-                    request.Url += new HttpUri(response.Headers.GetSingleValue("Location"));
+                    var previousUrl = request.Url;
+
+                    request.Url = new HttpUri(response.RedirectUrl);
                     autoRedirectChain.Add(request.Url.ToString());
 
                     _logger.Trace("Redirected to {0}", request.Url);
@@ -92,14 +94,20 @@ namespace NzbDrone.Common.Http
                         request.ContentSummary = null;
                     }
 
-                    response = await ExecuteRequestAsync(request, cookieContainer);
+                    // Carry the cookie jar to the next hop, scoped to the host that set it, and
+                    // report cookies from every hop on the final response.
+                    var earlierCookies = response.Cookies;
+                    var redirectContainer = HandleRedirectCookies(previousUrl, response);
+
+                    response = await ExecuteRequestAsync(request, redirectContainer);
+                    response.AddEarlierCookies(earlierCookies);
                 }
-                while (response.HasHttpRedirect);
+                while (response.HasHttpRedirect && response.RedirectUrl.IsNotNullOrWhiteSpace());
             }
 
             if (response.HasHttpRedirect && !RuntimeInfo.IsProduction)
             {
-                _logger.Error("Server requested a redirect to [{0}] while in developer mode. Update the request URL to avoid this redirect.", response.Headers["Location"]);
+                _logger.Error("Server requested a redirect to [{0}] while in developer mode. Update the request URL to avoid this redirect.", response.RedirectUrl);
             }
 
             if (!request.SuppressHttpError && response.HasHttpError && (request.SuppressHttpErrorStatusCodes == null || !request.SuppressHttpErrorStatusCodes.Contains(response.StatusCode)))
@@ -206,17 +214,51 @@ namespace NzbDrone.Common.Http
                             };
                         }
 
-                        sourceContainer.Add((Uri)request.Url, cookie);
-
-                        if (request.StoreRequestCookie)
+                        try
                         {
-                            presistentContainer.Add((Uri)request.Url, cookie);
+                            sourceContainer.Add((Uri)request.Url, cookie);
+
+                            if (request.StoreRequestCookie)
+                            {
+                                presistentContainer.Add((Uri)request.Url, cookie);
+                            }
+                        }
+                        catch (CookieException ex)
+                        {
+                            _logger.Debug(ex, "Invalid cookie in {0}", (Uri)request.Url);
                         }
                     }
                 }
 
                 return sourceContainer;
             }
+        }
+
+        private CookieContainer HandleRedirectCookies(HttpUri previousUrl, HttpResponse response)
+        {
+            var container = new CookieContainer();
+
+            foreach (var pair in response.GetCookies())
+            {
+                var cookie = new Cookie(pair.Key, pair.Value ?? "", "/")
+                {
+                    // Use Now rather than UtcNow to work around Mono cookie expiry bug.
+                    // See https://gist.github.com/ta264/7822b1424f72e5b4c961
+                    Expires = DateTime.Now.AddHours(1)
+                };
+
+                try
+                {
+                    // Scoped to the previous hop's host, so a redirect to another domain doesn't receive them
+                    container.Add((Uri)previousUrl, cookie);
+                }
+                catch (CookieException ex)
+                {
+                    _logger.Debug(ex, "Invalid cookie in {0}", previousUrl);
+                }
+            }
+
+            return container;
         }
 
         private void HandleResponseCookies(HttpResponse response, CookieContainer container)

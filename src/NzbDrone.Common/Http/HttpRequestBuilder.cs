@@ -29,6 +29,11 @@ namespace NzbDrone.Common.Http
         public bool LogResponseContent { get; set; }
         public ICredentials NetworkCredential { get; set; }
         public bool StoreRequestCookie { get; set; }
+        public bool StoreResponseCookie { get; set; }
+
+        // Encoding for form data, and for decoding the response when set. Null means UTF-8 for
+        // form data and the response's Content-Type charset for the response.
+        public Encoding Encoding { get; set; }
         public Dictionary<string, string> Cookies { get; private set; }
         public List<HttpFormData> FormData { get; private set; }
         public Action<HttpRequest> PostProcess { get; set; }
@@ -114,6 +119,8 @@ namespace NzbDrone.Common.Http
             request.LogResponseContent = LogResponseContent;
             request.Credentials = NetworkCredential;
             request.StoreRequestCookie = StoreRequestCookie;
+            request.StoreResponseCookie = StoreResponseCookie;
+            request.Encoding = Encoding;
 
             foreach (var header in Headers)
             {
@@ -206,7 +213,7 @@ namespace NzbDrone.Common.Http
                         }
                         else
                         {
-                            summary.AppendFormat("\r\n{0}={1}", formData.Name, Encoding.UTF8.GetString(formData.ContentData));
+                            summary.AppendFormat("\r\n{0}={1}", formData.Name, FormEncoding.GetString(formData.ContentData));
                         }
                     }
 
@@ -226,9 +233,9 @@ namespace NzbDrone.Common.Http
             }
             else
             {
-                var parameters = FormData.Select(v => string.Format("{0}={1}", v.Name, Uri.EscapeDataString(Encoding.UTF8.GetString(v.ContentData))));
+                var parameters = FormData.Select(v => string.Format("{0}={1}", v.Name, EscapeFormValue(v.ContentData)));
                 var urlencoded = string.Join("&", parameters);
-                var body = Encoding.UTF8.GetBytes(urlencoded);
+                var body = FormEncoding.GetBytes(urlencoded);
 
                 request.Headers.ContentType = "application/x-www-form-urlencoded";
                 request.SetContent(body);
@@ -285,6 +292,23 @@ namespace NzbDrone.Common.Http
         public virtual HttpRequestBuilder SetHeader(string name, string value)
         {
             Headers.Set(name, value);
+
+            return this;
+        }
+
+        public virtual HttpRequestBuilder SetHeaders(Dictionary<string, string> headers)
+        {
+            foreach (var header in headers)
+            {
+                Headers.Set(header.Key, header.Value);
+            }
+
+            return this;
+        }
+
+        public virtual HttpRequestBuilder SetEncoding(Encoding encoding)
+        {
+            Encoding = encoding;
 
             return this;
         }
@@ -359,6 +383,20 @@ namespace NzbDrone.Common.Http
             return this;
         }
 
+        public virtual HttpRequestBuilder StoreRequestCookies(bool val = true)
+        {
+            StoreRequestCookie = val;
+
+            return this;
+        }
+
+        public virtual HttpRequestBuilder StoreResponseCookies(bool val = true)
+        {
+            StoreResponseCookie = val;
+
+            return this;
+        }
+
         public virtual HttpRequestBuilder AddFormParameter(string key, object value)
         {
             if (Method != HttpMethod.Post)
@@ -369,7 +407,7 @@ namespace NzbDrone.Common.Http
             FormData.Add(new HttpFormData
             {
                 Name = key,
-                ContentData = Encoding.UTF8.GetBytes(Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture))
+                ContentData = FormEncoding.GetBytes(Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture))
             });
 
             return this;
@@ -391,6 +429,28 @@ namespace NzbDrone.Common.Http
             });
 
             return this;
+        }
+
+        private Encoding FormEncoding => Encoding ?? Encoding.UTF8;
+
+        // Percent-encodes form bytes in FormEncoding. Identical to Uri.EscapeDataString for UTF-8.
+        private static string EscapeFormValue(byte[] data)
+        {
+            var builder = new StringBuilder(data.Length * 3);
+
+            foreach (var b in data)
+            {
+                if ((b >= 'A' && b <= 'Z') || (b >= 'a' && b <= 'z') || (b >= '0' && b <= '9') || b == '-' || b == '.' || b == '_' || b == '~')
+                {
+                    builder.Append((char)b);
+                }
+                else
+                {
+                    builder.Append('%').Append(b.ToString("X2"));
+                }
+            }
+
+            return builder.ToString();
         }
     }
 }
