@@ -4,7 +4,7 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.EnvironmentInfo;
-using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.IndexerTests

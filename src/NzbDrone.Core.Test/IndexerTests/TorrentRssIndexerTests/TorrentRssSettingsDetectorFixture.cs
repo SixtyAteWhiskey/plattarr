@@ -3,7 +3,7 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Indexers.Exceptions;
-using NzbDrone.Core.Indexers.TorrentRss;
+using NzbDrone.Core.Movies.Indexers.Legacy.TorrentRss;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.IndexerTests.TorrentRssIndexerTests

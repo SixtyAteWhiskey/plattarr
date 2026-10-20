@@ -3,7 +3,7 @@ using FluentAssertions;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.Indexers.HDBits;
+using NzbDrone.Core.Movies.Indexers.Legacy.HDBits;
 using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Test.Framework;
 

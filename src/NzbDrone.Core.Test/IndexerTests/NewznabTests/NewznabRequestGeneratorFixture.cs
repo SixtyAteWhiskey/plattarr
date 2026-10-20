@@ -3,7 +3,7 @@ using System.Linq;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
-using NzbDrone.Core.Indexers.Newznab;
+using NzbDrone.Core.Movies.Indexers.Legacy.Newznab;
 using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Test.Framework;
 

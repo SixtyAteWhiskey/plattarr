@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Test.IndexerTests

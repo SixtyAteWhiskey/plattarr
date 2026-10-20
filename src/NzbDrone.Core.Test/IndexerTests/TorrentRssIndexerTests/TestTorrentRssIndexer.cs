@@ -5,8 +5,8 @@ using NLog.Config;
 using NLog.Targets;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
-using NzbDrone.Core.Indexers;
-using NzbDrone.Core.Indexers.TorrentRss;
+using NzbDrone.Core.Movies.Indexers.Legacy;
+using NzbDrone.Core.Movies.Indexers.Legacy.TorrentRss;
 using NzbDrone.Core.Parser;
 
 namespace NzbDrone.Core.Test.IndexerTests.TorrentRssIndexerTests

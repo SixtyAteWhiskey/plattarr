@@ -4,7 +4,8 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.Indexers.Torznab;
+using NzbDrone.Core.Movies.Indexers.Legacy;
+using NzbDrone.Core.Movies.Indexers.Legacy.Torznab;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 

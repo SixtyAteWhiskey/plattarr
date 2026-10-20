@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
-using NzbDrone.Core.Indexers.FileList;
+using NzbDrone.Core.Movies.Indexers.Legacy.FileList;
 using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Test.Framework;
 

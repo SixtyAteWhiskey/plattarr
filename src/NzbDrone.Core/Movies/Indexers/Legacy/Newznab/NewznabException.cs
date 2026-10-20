@@ -1,0 +1,18 @@
+﻿using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Movies.Indexers.Legacy.Exceptions;
+
+namespace NzbDrone.Core.Movies.Indexers.Legacy.Newznab
+{
+    public class NewznabException : IndexerException
+    {
+        public NewznabException(IndexerResponse response, string message, params object[] args)
+            : base(response, message, args)
+        {
+        }
+
+        public NewznabException(IndexerResponse response, string message)
+            : base(response, message)
+        {
+        }
+    }
+}

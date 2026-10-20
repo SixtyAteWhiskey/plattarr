@@ -9,8 +9,8 @@ using NzbDrone.Common.TPL;
 using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Exceptions;
-using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Download

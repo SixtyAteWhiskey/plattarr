@@ -4,10 +4,10 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Download.Aggregation.Aggregators;
-using NzbDrone.Core.Indexers;
-using NzbDrone.Core.Indexers.TorrentRss;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Indexers.Legacy;
+using NzbDrone.Core.Movies.Indexers.Legacy.TorrentRss;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 

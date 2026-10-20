@@ -1,8 +1,8 @@
 ﻿using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
-using NzbDrone.Core.Indexers;
-using NzbDrone.Core.Indexers.Newznab;
+using NzbDrone.Core.Movies.Indexers.Legacy;
+using NzbDrone.Core.Movies.Indexers.Legacy.Newznab;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.ThingiProviderTests

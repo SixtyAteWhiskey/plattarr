@@ -12,6 +12,7 @@ using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 
