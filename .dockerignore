@@ -1,0 +1,13 @@
+.git
+.github
+.vscode
+.devcontainer
+**/node_modules
+_output
+_artifacts
+_tests
+**/bin/Debug
+**/obj
+deploy
+*.md
+!README.md
