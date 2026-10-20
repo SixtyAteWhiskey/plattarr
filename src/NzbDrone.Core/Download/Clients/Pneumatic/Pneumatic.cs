@@ -13,7 +13,6 @@ using NzbDrone.Core.Localization;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RemotePathMappings;
-using IIndexer = NzbDrone.Core.Movies.Indexers.Legacy.IIndexer;
 
 namespace NzbDrone.Core.Download.Clients.Pneumatic
 {
@@ -52,7 +51,18 @@ namespace NzbDrone.Core.Download.Clients.Pneumatic
             var nzbFile = Path.Combine(Settings.NzbFolder, title + ".nzb");
 
             _logger.Debug("Downloading NZB from: {0} to: {1}", url, nzbFile);
-            await _httpClient.DownloadFileAsync(url, nzbFile);
+
+            if (FetchThroughIndexer(indexer))
+            {
+                var data = (await indexer.Download(new Uri(url))).Data;
+
+                using var stream = new MemoryStream(data);
+                _diskProvider.SaveStream(stream, nzbFile);
+            }
+            else
+            {
+                await _httpClient.DownloadFileAsync(url, nzbFile);
+            }
 
             _logger.Debug("NZB Download succeeded, saved to: {0}", nzbFile);
 

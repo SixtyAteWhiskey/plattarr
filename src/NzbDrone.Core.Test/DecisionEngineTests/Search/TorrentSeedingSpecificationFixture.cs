@@ -2,11 +2,9 @@ using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
-using NzbDrone.Core.Datastore;
 using NzbDrone.Core.DecisionEngine.Specifications;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Movies.Indexers.Legacy;
-using NzbDrone.Core.Movies.Indexers.Legacy.TorrentRss;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Test.Common;
 
@@ -17,7 +15,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.Search
     {
         private Movie _movie;
         private RemoteMovie _remoteMovie;
-        private IndexerDefinition _indexerDefinition;
+        private IndexerTorrentBaseSettings _torrentSettings;
 
         [SetUp]
         public void Setup()
@@ -37,14 +35,11 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.Search
                 }
             };
 
-            _indexerDefinition = new IndexerDefinition
-            {
-                Settings = new TorrentRssIndexerSettings { MinimumSeeders = 5 }
-            };
+            _torrentSettings = new IndexerTorrentBaseSettings { MinimumSeeders = 5 };
 
-            Mocker.GetMock<IIndexerFactory>()
-                .Setup(v => v.Get(1))
-                .Returns(_indexerDefinition);
+            Mocker.GetMock<ICachedIndexerSettingsProvider>()
+                .Setup(v => v.GetSettings(1))
+                .Returns(() => new CachedIndexerSettings { TorrentBaseSettings = _torrentSettings });
         }
 
         private void GivenReleaseSeeders(int? seeders)
@@ -76,10 +71,22 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.Search
         [Test]
         public void should_return_true_if_indexer_no_longer_exists()
         {
-            Mocker.GetMock<IIndexerFactory>()
-                  .Setup(v => v.Get(It.IsAny<int>()))
-                  .Callback<int>(i => { throw new ModelNotFoundException(typeof(IndexerDefinition), i); });
+            Mocker.GetMock<ICachedIndexerSettingsProvider>()
+                  .Setup(v => v.GetSettings(It.IsAny<int>()))
+                  .Returns((CachedIndexerSettings)null);
 
+            Subject.IsSatisfiedBy(_remoteMovie, new()).Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_use_one_seeder_when_minimum_is_not_set()
+        {
+            _torrentSettings.MinimumSeeders = null;
+
+            GivenReleaseSeeders(0);
+            Subject.IsSatisfiedBy(_remoteMovie, new()).Accepted.Should().BeFalse();
+
+            GivenReleaseSeeders(1);
             Subject.IsSatisfiedBy(_remoteMovie, new()).Accepted.Should().BeTrue();
         }
 

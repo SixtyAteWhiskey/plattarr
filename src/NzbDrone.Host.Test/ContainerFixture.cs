@@ -23,6 +23,7 @@ using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Movies.Search;
 using NzbDrone.Host;
 using NzbDrone.SignalR;
 using NzbDrone.Test.Common;
@@ -71,6 +72,9 @@ namespace NzbDrone.App.Test
             _container.GetRequiredService<IEnumerable<IReleaseMatcher>>().Should().ContainSingle(m => m.Kind == MediaKind.Movies);
             _container.GetRequiredService<IEnumerable<IRssReleaseHandler>>().Should().ContainSingle(h => h.Kind == MediaKind.Movies);
             _container.GetRequiredService<IIndexerReleaseFetcher>().Should().NotBeNull();
+            _container.GetRequiredService<ISearchTranslator<MovieSearchRequest>>().Should().BeOfType<MovieSearchTranslator>();
+            _container.GetRequiredService<IMovieReleaseMatcher>().Should().BeOfType<MovieReleaseMatcher>();
+            _container.GetRequiredService<ISearchForReleases>().Should().NotBeNull();
         }
 
         [Test]

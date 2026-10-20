@@ -4,10 +4,11 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Download.Aggregation.Aggregators;
+using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.Overrides;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Movies.Indexers.Legacy;
-using NzbDrone.Core.Movies.Indexers.Legacy.TorrentRss;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 
@@ -36,6 +37,11 @@ namespace NzbDrone.Core.Test.Download.Aggregation.Aggregators
                                                  .With(l => l.Movie = _movie)
                                                  .With(l => l.Release = new ReleaseInfo())
                                                  .Build();
+
+            // The real service returns an empty override for indexers without one.
+            Mocker.GetMock<IIndexerOverrideService>()
+                .Setup(v => v.Get(It.IsAny<int>(), It.IsAny<MediaKind>()))
+                .Returns<int, MediaKind>((id, kind) => new IndexerOverride { IndexerId = id, MediaKind = kind });
         }
 
         private ParsedMovieInfo GetParsedMovieInfo(List<Language> languages, string releaseTitle, string releaseTokens = "")
@@ -46,6 +52,13 @@ namespace NzbDrone.Core.Test.Download.Aggregation.Aggregators
                        ReleaseTitle = releaseTitle,
                        SimpleReleaseTitle = releaseTokens
                    };
+        }
+
+        private void GivenMultiLanguages(int indexerId, params int[] languageIds)
+        {
+            Mocker.GetMock<IIndexerOverrideService>()
+                .Setup(v => v.Get(indexerId, MediaKind.Movies))
+                .Returns(new IndexerOverride { IndexerId = indexerId, MediaKind = MediaKind.Movies, MultiLanguages = new List<int>(languageIds) });
         }
 
         [Test]
@@ -71,8 +84,8 @@ namespace NzbDrone.Core.Test.Download.Aggregation.Aggregators
             var indexerDefinition = new IndexerDefinition
             {
                 Id = 1,
-                Settings = new TorrentRssIndexerSettings { MultiLanguages = new List<int> { Language.Original.Id, Language.French.Id } }
             };
+            GivenMultiLanguages(1, Language.Original.Id, Language.French.Id);
             Mocker.GetMock<IIndexerFactory>()
                 .Setup(v => v.Find(1))
                 .Returns(indexerDefinition);
@@ -94,14 +107,14 @@ namespace NzbDrone.Core.Test.Download.Aggregation.Aggregators
             {
                 Id = 1,
                 Name = "MyIndexer1",
-                Settings = new TorrentRssIndexerSettings { MultiLanguages = new List<int> { Language.Original.Id, Language.French.Id } }
             };
+            GivenMultiLanguages(1, Language.Original.Id, Language.French.Id);
             var indexerDefinition2 = new IndexerDefinition
             {
                 Id = 2,
                 Name = "MyIndexer2",
-                Settings = new TorrentRssIndexerSettings { MultiLanguages = new List<int> { Language.Original.Id, Language.German.Id } }
             };
+            GivenMultiLanguages(2, Language.Original.Id, Language.German.Id);
 
             Mocker.GetMock<IIndexerFactory>()
                 .Setup(v => v.Find(1))
@@ -129,19 +142,19 @@ namespace NzbDrone.Core.Test.Download.Aggregation.Aggregators
             {
                 Id = 1,
                 Name = "MyIndexer (Prowlarr)",
-                Settings = new TorrentRssIndexerSettings { MultiLanguages = new List<int> { Language.Original.Id, Language.French.Id } }
             };
+            GivenMultiLanguages(1, Language.Original.Id, Language.French.Id);
 
             Mocker.GetMock<IIndexerFactory>()
-                .Setup(v => v.FindByName("MyIndexer (Prowlarr)"))
-                .Returns(indexerDefinition);
+                .Setup(v => v.All())
+                .Returns(new List<IndexerDefinition> { indexerDefinition });
 
             _remoteMovie.ParsedMovieInfo = GetParsedMovieInfo(new List<Language> { }, releaseTitle);
             _remoteMovie.Release.Indexer = "MyIndexer (Prowlarr)";
             _remoteMovie.Release.Title = releaseTitle;
 
             Subject.Aggregate(_remoteMovie).Languages.Should().BeEquivalentTo(new List<Language> {  _movie.MovieMetadata.Value.OriginalLanguage, Language.French });
-            Mocker.GetMock<IIndexerFactory>().Verify(c => c.FindByName("MyIndexer (Prowlarr)"), Times.Once());
+            Mocker.GetMock<IIndexerFactory>().Verify(c => c.All(), Times.Once());
             Mocker.GetMock<IIndexerFactory>().VerifyNoOtherCalls();
         }
 
@@ -152,8 +165,8 @@ namespace NzbDrone.Core.Test.Download.Aggregation.Aggregators
             var indexerDefinition = new IndexerDefinition
             {
                 Id = 1,
-                Settings = new TorrentRssIndexerSettings { MultiLanguages = new List<int> { Language.Original.Id, Language.French.Id } }
             };
+            GivenMultiLanguages(1, Language.Original.Id, Language.French.Id);
             Mocker.GetMock<IIndexerFactory>()
                 .Setup(v => v.Find(1))
                 .Returns(indexerDefinition);
@@ -174,8 +187,8 @@ namespace NzbDrone.Core.Test.Download.Aggregation.Aggregators
             var indexerDefinition = new IndexerDefinition
             {
                 Id = 1,
-                Settings = new TorrentRssIndexerSettings { MultiLanguages = new List<int> { Language.Original.Id, Language.French.Id } }
             };
+            GivenMultiLanguages(1, Language.Original.Id, Language.French.Id);
             Mocker.GetMock<IIndexerFactory>()
                 .Setup(v => v.Find(1))
                 .Returns(indexerDefinition);
@@ -196,8 +209,8 @@ namespace NzbDrone.Core.Test.Download.Aggregation.Aggregators
             var indexerDefinition = new IndexerDefinition
             {
                 Id = 1,
-                Settings = new TorrentRssIndexerSettings { MultiLanguages = new List<int> { Language.Original.Id, Language.French.Id } }
             };
+            GivenMultiLanguages(1, Language.Original.Id, Language.French.Id);
             Mocker.GetMock<IIndexerFactory>()
                 .Setup(v => v.Find(1))
                 .Returns(indexerDefinition);
@@ -218,7 +231,6 @@ namespace NzbDrone.Core.Test.Download.Aggregation.Aggregators
             var indexerDefinition = new IndexerDefinition
             {
                 Id = 1,
-                Settings = new TorrentRssIndexerSettings { }
             };
             Mocker.GetMock<IIndexerFactory>()
                 .Setup(v => v.Find(1))
@@ -301,22 +313,22 @@ namespace NzbDrone.Core.Test.Download.Aggregation.Aggregators
             {
                 Id = 1,
                 Name = "MyIndexer1",
-                Settings = new TorrentRssIndexerSettings { MultiLanguages = new List<int> { Language.Original.Id, Language.French.Id } }
             };
+            GivenMultiLanguages(1, Language.Original.Id, Language.French.Id);
             var indexerDefinition2 = new IndexerDefinition
             {
                 Id = 2,
                 Name = "MyIndexer2",
-                Settings = new TorrentRssIndexerSettings { MultiLanguages = new List<int> { Language.Original.Id, Language.German.Id } }
             };
+            GivenMultiLanguages(2, Language.Original.Id, Language.German.Id);
 
             Mocker.GetMock<IIndexerFactory>()
                 .Setup(v => v.Find(1))
                 .Returns(null as IndexerDefinition);
 
             Mocker.GetMock<IIndexerFactory>()
-                .Setup(v => v.FindByName("MyIndexer1"))
-                .Returns(indexerDefinition1);
+                .Setup(v => v.All())
+                .Returns(new List<IndexerDefinition> { indexerDefinition1 });
 
             Mocker.GetMock<IIndexerFactory>()
                 .Setup(v => v.All())
@@ -329,7 +341,7 @@ namespace NzbDrone.Core.Test.Download.Aggregation.Aggregators
 
             Subject.Aggregate(_remoteMovie).Languages.Should().BeEquivalentTo(new List<Language> { _movie.MovieMetadata.Value.OriginalLanguage, Language.French });
             Mocker.GetMock<IIndexerFactory>().Verify(c => c.Find(10), Times.Once());
-            Mocker.GetMock<IIndexerFactory>().Verify(c => c.FindByName("MyIndexer1"), Times.Once());
+            Mocker.GetMock<IIndexerFactory>().Verify(c => c.All(), Times.Once());
             Mocker.GetMock<IIndexerFactory>().VerifyNoOtherCalls();
         }
 
@@ -341,22 +353,22 @@ namespace NzbDrone.Core.Test.Download.Aggregation.Aggregators
             {
                 Id = 1,
                 Name = "MyIndexer1",
-                Settings = new TorrentRssIndexerSettings { MultiLanguages = new List<int> { Language.Original.Id, Language.French.Id } }
             };
+            GivenMultiLanguages(1, Language.Original.Id, Language.French.Id);
             var indexerDefinition2 = new IndexerDefinition
             {
                 Id = 2,
                 Name = "MyIndexer2",
-                Settings = new TorrentRssIndexerSettings { MultiLanguages = new List<int> { Language.Original.Id, Language.German.Id } }
             };
+            GivenMultiLanguages(2, Language.Original.Id, Language.German.Id);
 
             Mocker.GetMock<IIndexerFactory>()
                 .Setup(v => v.Find(1))
                 .Returns(null as IndexerDefinition);
 
             Mocker.GetMock<IIndexerFactory>()
-                .Setup(v => v.FindByName("MyIndexer1"))
-                .Returns(indexerDefinition1);
+                .Setup(v => v.All())
+                .Returns(new List<IndexerDefinition> { indexerDefinition1 });
 
             Mocker.GetMock<IIndexerFactory>()
                 .Setup(v => v.All())
@@ -369,7 +381,7 @@ namespace NzbDrone.Core.Test.Download.Aggregation.Aggregators
 
             Subject.Aggregate(_remoteMovie).Languages.Should().BeEquivalentTo(new List<Language> { _movie.MovieMetadata.Value.OriginalLanguage, Language.French });
             Mocker.GetMock<IIndexerFactory>().Verify(c => c.Find(10), Times.Never());
-            Mocker.GetMock<IIndexerFactory>().Verify(c => c.FindByName("MyIndexer1"), Times.Once());
+            Mocker.GetMock<IIndexerFactory>().Verify(c => c.All(), Times.Once());
             Mocker.GetMock<IIndexerFactory>().VerifyNoOtherCalls();
         }
     }

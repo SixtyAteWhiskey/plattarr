@@ -1,21 +1,22 @@
 using System;
+using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
-using NLog;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.Exceptions;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.Test.Framework;
-using NzbDrone.Core.Test.LegacyIndexerTests;
 
 namespace NzbDrone.Core.Test.Download.DownloadClientTests
 {
@@ -60,13 +61,59 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests
             return remoteMovie;
         }
 
+        // A Prowlarr-layer indexer whose Download() behaves like HttpIndexerBase.Download
+        // over the fixture's mocked IHttpClient: it follows redirects, returns a magnet link
+        // as text, and maps 404 and 410 to ReleaseUnavailableException. Client fixtures keep
+        // their HTTP setups and exercise the client's add logic on the indexer grab path.
         protected virtual IIndexer CreateIndexer()
         {
-            return new TestIndexer(Mocker.Resolve<IHttpClient>(),
-                Mocker.Resolve<IIndexerStatusService>(),
-                Mocker.Resolve<IConfigService>(),
-                Mocker.Resolve<IParsingService>(),
-                Mocker.Resolve<Logger>());
+            var indexer = new Mock<IIndexer>();
+            indexer.SetupGet(i => i.Definition).Returns(new IndexerDefinition { Id = 1, Name = "Test Indexer" });
+            indexer.Setup(i => i.Download(It.IsAny<Uri>())).Returns<Uri>(DownloadThroughMockedHttp);
+
+            return indexer.Object;
+        }
+
+        private async Task<IndexerDownloadResponse> DownloadThroughMockedHttp(Uri link)
+        {
+            var httpClient = Mocker.Resolve<IHttpClient>();
+            var url = link.AbsoluteUri;
+
+            try
+            {
+                for (var redirects = 0; redirects < 5; redirects++)
+                {
+                    var response = await httpClient.GetAsync(new HttpRequest(url) { AllowAutoRedirect = false });
+                    var location = response.Headers.GetSingleValue("Location");
+
+                    if ((int)response.StatusCode is >= 300 and < 400 && location != null)
+                    {
+                        if (location.StartsWith("magnet:"))
+                        {
+                            return new IndexerDownloadResponse(Encoding.UTF8.GetBytes(location));
+                        }
+
+                        url = location;
+                        continue;
+                    }
+
+                    return new IndexerDownloadResponse(response.ResponseData);
+                }
+
+                throw new WebException("Too many download redirections");
+            }
+            catch (HttpException ex) when (ex.Response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Gone)
+            {
+                throw new ReleaseUnavailableException("Download failed", ex);
+            }
+            catch (HttpException ex)
+            {
+                throw new ReleaseDownloadException("Download failed", ex);
+            }
+            catch (WebException ex)
+            {
+                throw new ReleaseDownloadException("Download failed", ex);
+            }
         }
 
         protected void VerifyIdentifiable(DownloadClientItem downloadClientItem)

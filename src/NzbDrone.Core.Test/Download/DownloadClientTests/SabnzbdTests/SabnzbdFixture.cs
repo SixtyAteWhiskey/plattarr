@@ -7,9 +7,11 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
+using NzbDrone.Common.Http;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients.Sabnzbd;
 using NzbDrone.Core.Download.Clients.Sabnzbd.Responses;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.Validation;
 using NzbDrone.Test.Common;
@@ -311,6 +313,24 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
 
             Mocker.GetMock<ISabnzbdProxy>()
                 .Verify(v => v.DownloadNzb(It.IsAny<byte[]>(), filename, It.IsAny<string>(), It.IsAny<int>(), It.IsAny<SabnzbdSettings>()), Times.Once());
+        }
+
+        [Test]
+        public async Task Download_should_fetch_nzb_through_indexer()
+        {
+            GivenSuccessfulDownload();
+
+            var data = new byte[] { 4, 5, 6 };
+            var indexer = new Mock<IIndexer>();
+            indexer.SetupGet(i => i.Definition).Returns(new IndexerDefinition { Id = 1, Name = "Usenet" });
+            indexer.Setup(i => i.Download(It.IsAny<Uri>())).ReturnsAsync(new IndexerDownloadResponse(data));
+
+            await Subject.Download(CreateRemoteMovie(), indexer.Object);
+
+            indexer.Verify(i => i.Download(new Uri(_downloadUrl)), Times.Once());
+            Mocker.GetMock<IHttpClient>().Verify(c => c.GetAsync(It.IsAny<HttpRequest>()), Times.Never());
+            Mocker.GetMock<ISabnzbdProxy>()
+                  .Verify(v => v.DownloadNzb(data, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<SabnzbdSettings>()), Times.Once());
         }
 
         [Test]

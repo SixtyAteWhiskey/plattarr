@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
@@ -12,6 +13,7 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Download.Clients.QBittorrent;
 using NzbDrone.Core.Exceptions;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.MediaFiles.TorrentInfo;
 using NzbDrone.Test.Common;
 
@@ -451,6 +453,56 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
             var result = Subject.GetImportItem(item, null);
 
             result.OutputPath.FullPath.Should().Be(torrent.ContentPath);
+        }
+
+        private Mock<IIndexer> GivenIndexerReturning(byte[] data, bool redirect = false)
+        {
+            var indexer = new Mock<IIndexer>();
+            indexer.SetupGet(i => i.Definition).Returns(new IndexerDefinition { Id = 1, Name = "Tracker", Redirect = redirect });
+            indexer.SetupGet(i => i.SupportsRedirect).Returns(true);
+            indexer.Setup(i => i.Download(It.IsAny<Uri>())).ReturnsAsync(new IndexerDownloadResponse(data));
+
+            return indexer;
+        }
+
+        [Test]
+        public async Task Download_should_fetch_torrent_file_through_indexer()
+        {
+            GivenSuccessfulDownload();
+            var indexer = GivenIndexerReturning(new byte[] { 1, 2, 3 });
+
+            await Subject.Download(CreateRemoteMovie(), indexer.Object);
+
+            indexer.Verify(i => i.Download(new Uri(_downloadUrl)), Times.Once());
+            Mocker.GetMock<IHttpClient>().Verify(c => c.GetAsync(It.IsAny<HttpRequest>()), Times.Never());
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(p => p.AddTorrentFromFile(It.IsAny<string>(), new byte[] { 1, 2, 3 }, It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>()), Times.Once());
+        }
+
+        [Test]
+        public async Task Download_should_add_magnet_returned_by_indexer()
+        {
+            GivenSuccessfulDownload();
+            const string magnet = "magnet:?xt=urn:btih:ZPBPA2P6ROZPKRHK44D5OW6NHXU5Z6KR&tr=udp";
+            var indexer = GivenIndexerReturning(Encoding.UTF8.GetBytes(magnet));
+
+            var id = await Subject.Download(CreateRemoteMovie(), indexer.Object);
+
+            id.Should().Be("CBC2F069FE8BB2F544EAE707D75BCD3DE9DCF951");
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(p => p.AddTorrentFromUrl(magnet, It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>()), Times.Once());
+        }
+
+        [Test]
+        public async Task Download_should_fetch_directly_when_indexer_is_set_to_redirect()
+        {
+            GivenSuccessfulDownload();
+            var indexer = GivenIndexerReturning(new byte[] { 1, 2, 3 }, redirect: true);
+
+            await Subject.Download(CreateRemoteMovie(), indexer.Object);
+
+            indexer.Verify(i => i.Download(It.IsAny<Uri>()), Times.Never());
+            Mocker.GetMock<IHttpClient>().Verify(c => c.GetAsync(It.Is<HttpRequest>(r => r.Url.FullUri == _downloadUrl)), Times.Once());
         }
 
         [Test]

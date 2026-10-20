@@ -1,8 +1,5 @@
-using System.Linq;
 using NLog;
-using NzbDrone.Common.Extensions;
-using NzbDrone.Core.Datastore;
-using NzbDrone.Core.Movies.Indexers.Legacy;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications.RssSync
@@ -11,11 +8,13 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.RssSync
     {
         private readonly Logger _logger;
         private readonly IIndexerFactory _indexerFactory;
+        private readonly IIndexerMediaTagService _indexerMediaTagService;
 
-        public IndexerTagSpecification(Logger logger, IIndexerFactory indexerFactory)
+        public IndexerTagSpecification(Logger logger, IIndexerFactory indexerFactory, IIndexerMediaTagService indexerMediaTagService)
         {
             _logger = logger;
             _indexerFactory = indexerFactory;
+            _indexerMediaTagService = indexerMediaTagService;
         }
 
         public SpecificationPriority Priority => SpecificationPriority.Default;
@@ -28,21 +27,17 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.RssSync
                 return DownloadSpecDecision.Accept();
             }
 
-            IndexerDefinition indexer;
-            try
-            {
-                indexer = _indexerFactory.Get(subject.Release.IndexerId);
-            }
-            catch (ModelNotFoundException)
+            var indexer = _indexerFactory.Find(subject.Release.IndexerId);
+
+            if (indexer == null)
             {
                 _logger.Debug("Indexer with id {0} does not exist, skipping indexer tags check", subject.Release.IndexerId);
                 return DownloadSpecDecision.Accept();
             }
 
-            // If indexer has tags, check that at least one of them is present on the series
-            var indexerTags = indexer.Tags;
-
-            if (indexerTags.Any() && indexerTags.Intersect(subject.Movie.Tags).Empty())
+            // If the indexer has media tags, at least one must be on the movie. Tags that select
+            // an indexer proxy don't count (IndexerMediaTagService).
+            if (!_indexerMediaTagService.Allows(indexer, subject.Movie.Tags))
             {
                 _logger.Debug("Indexer {0} has tags. None of these are present on movie {1}. Rejecting", subject.Release.Indexer, subject.Movie);
 

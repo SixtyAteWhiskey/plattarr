@@ -31,6 +31,8 @@ namespace Radarr.Api.V3.Indexers
     public class ReleaseController : ReleaseControllerBase
     {
         private readonly IIndexerReleaseFetcher _releaseFetcher;
+        private readonly IIndexerCategoryService _indexerCategoryService;
+        private readonly IMovieReleaseMatcher _releaseMatcher;
         private readonly ISearchForReleases _releaseSearchService;
         private readonly IMakeDownloadDecision _downloadDecisionMaker;
         private readonly IPrioritizeDownloadDecision _prioritizeDownloadDecision;
@@ -42,6 +44,8 @@ namespace Radarr.Api.V3.Indexers
         private readonly ICached<RemoteMovie> _remoteMovieCache;
 
         public ReleaseController(IIndexerReleaseFetcher releaseFetcher,
+                             IIndexerCategoryService indexerCategoryService,
+                             IMovieReleaseMatcher releaseMatcher,
                              ISearchForReleases releaseSearchService,
                              IMakeDownloadDecision downloadDecisionMaker,
                              IPrioritizeDownloadDecision prioritizeDownloadDecision,
@@ -54,6 +58,8 @@ namespace Radarr.Api.V3.Indexers
             : base(qualityProfileService)
         {
             _releaseFetcher = releaseFetcher;
+            _indexerCategoryService = indexerCategoryService;
+            _releaseMatcher = releaseMatcher;
             _releaseSearchService = releaseSearchService;
             _downloadDecisionMaker = downloadDecisionMaker;
             _prioritizeDownloadDecision = prioritizeDownloadDecision;
@@ -168,9 +174,8 @@ namespace Radarr.Api.V3.Indexers
 
         private async Task<List<ReleaseResource>> GetRss()
         {
-            var categories = MovieReleaseMatcher.MovieCategories;
-            var reports = (await _releaseFetcher.FetchRss(categories.ToArray()))
-                .Where(r => RssSyncService.BelongsTo(r, categories))
+            var reports = (await _releaseFetcher.FetchRss(new[] { _releaseMatcher }))
+                .Where(r => _indexerCategoryService.BelongsTo(r, _releaseMatcher))
                 .ToList();
             var decisions = _downloadDecisionMaker.GetRssDecision(reports);
             var prioritizedDecisions = _prioritizeDownloadDecision.PrioritizeDecisionsForMovies(decisions);

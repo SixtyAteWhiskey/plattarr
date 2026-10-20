@@ -15,7 +15,6 @@ using NzbDrone.Core.ThingiProvider;
 using NzbDrone.Core.Validation;
 using Polly;
 using Polly.Retry;
-using IIndexer = NzbDrone.Core.Movies.Indexers.Legacy.IIndexer;
 
 namespace NzbDrone.Core.Download
 {
@@ -98,6 +97,15 @@ namespace NzbDrone.Core.Download
         public abstract DownloadProtocol Protocol { get; }
 
         public abstract Task<string> Download(RemoteMovie remoteMovie, IIndexer indexer);
+
+        // Plattarr: when a release came from an indexer, the indexer layer fetches the file so
+        // its proxy, login, and cookies apply (Prowlarr's grab path). The client fetches the URL
+        // itself only when there is no indexer, or when the indexer is set to redirect.
+        protected static bool FetchThroughIndexer(IIndexer indexer)
+        {
+            return indexer != null && !(indexer.SupportsRedirect && indexer.Definition is IndexerDefinition { Redirect: true });
+        }
+
         public abstract IEnumerable<DownloadClientItem> GetItems();
 
         public virtual DownloadClientItem GetImportItem(DownloadClientItem item, DownloadClientItem previousImportAttempt)

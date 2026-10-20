@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 using System.Threading.Tasks;
 using NLog;
@@ -11,7 +12,6 @@ using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.ThingiProvider;
-using IIndexer = NzbDrone.Core.Movies.Indexers.Legacy.IIndexer;
 
 namespace NzbDrone.Core.Download
 {
@@ -45,9 +45,21 @@ namespace NzbDrone.Core.Download
 
             byte[] nzbData;
 
+            if (FetchThroughIndexer(indexer))
+            {
+                nzbData = (await indexer.Download(new Uri(url))).Data;
+
+                _logger.Debug("Downloaded nzb for movie '{0}' through indexer {1} ({2} bytes)", remoteMovie.Release.Title, indexer.Definition.Name, nzbData.Length);
+
+                _nzbValidationService.Validate(filename, nzbData);
+
+                _logger.Info("Adding report [{0}] to the queue.", remoteMovie.Release.Title);
+                return AddFromNzbFile(remoteMovie, filename, nzbData);
+            }
+
             try
             {
-                var request = indexer?.GetDownloadRequest(url) ?? new HttpRequest(url);
+                var request = new HttpRequest(url);
                 request.RateLimitKey = remoteMovie?.Release?.IndexerId.ToString();
                 request.AllowAutoRedirect = true;
 

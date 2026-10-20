@@ -25,13 +25,13 @@ namespace NzbDrone.Core.IndexerSearch
 
     public interface IIndexerReleaseFetcher
     {
-        // One RSS request per RSS-enabled indexer, limited to the given top-level categories.
-        Task<List<ReleaseInfo>> FetchRss(int[] categories);
+        // One RSS request per RSS-enabled indexer, for the categories of every given media type.
+        Task<List<ReleaseInfo>> FetchRss(IReadOnlyCollection<IReleaseMatcher> matchers);
 
         // A module search. The translator turns the request into tiers of criteria per indexer.
         Task<IndexerSearchResult> Search<TRequest>(TRequest request,
                                                    IEnumerable<int> mediaTags,
-                                                   int[] categories,
+                                                   IReleaseMatcher matcher,
                                                    ISearchTranslator<TRequest> translator)
             where TRequest : ModuleSearchRequest;
     }
@@ -47,22 +47,25 @@ namespace NzbDrone.Core.IndexerSearch
         private readonly IReleaseSearchService _releaseSearchService;
         private readonly IIndexerStatusService _indexerStatusService;
         private readonly IIndexerMediaTagService _indexerMediaTagService;
+        private readonly IIndexerCategoryService _indexerCategoryService;
         private readonly Logger _logger;
 
         public IndexerReleaseFetcher(IIndexerFactory indexerFactory,
                                      IReleaseSearchService releaseSearchService,
                                      IIndexerStatusService indexerStatusService,
                                      IIndexerMediaTagService indexerMediaTagService,
+                                     IIndexerCategoryService indexerCategoryService,
                                      Logger logger)
         {
             _indexerFactory = indexerFactory;
             _releaseSearchService = releaseSearchService;
             _indexerStatusService = indexerStatusService;
             _indexerMediaTagService = indexerMediaTagService;
+            _indexerCategoryService = indexerCategoryService;
             _logger = logger;
         }
 
-        public async Task<List<ReleaseInfo>> FetchRss(int[] categories)
+        public async Task<List<ReleaseInfo>> FetchRss(IReadOnlyCollection<IReleaseMatcher> matchers)
         {
             var indexers = _indexerFactory.Enabled()
                 .Where(i => i.SupportsRss && ((IndexerDefinition)i.Definition).EnableRss)
@@ -75,11 +78,14 @@ namespace NzbDrone.Core.IndexerSearch
                 return new List<ReleaseInfo>();
             }
 
-            indexers = SupportingCategories(indexers, categories);
+            var targets = indexers
+                .Select(i => (Indexer: i, Categories: matchers.SelectMany(m => _indexerCategoryService.GetCategories(i.Definition.Id, m)).Distinct().ToArray()))
+                .Where(t => SupportsCategories(t.Indexer, t.Categories))
+                .ToList();
 
-            _logger.Debug("Available indexers {0}", indexers.Count);
+            _logger.Debug("Available indexers {0}", targets.Count);
 
-            var batch = await Task.WhenAll(indexers.Select(i => FetchRssIndexer(i, categories)));
+            var batch = await Task.WhenAll(targets.Select(t => FetchRssIndexer(t.Indexer, t.Categories)));
 
             var result = batch.SelectMany(x => x).ToList();
 
@@ -90,7 +96,7 @@ namespace NzbDrone.Core.IndexerSearch
 
         public async Task<IndexerSearchResult> Search<TRequest>(TRequest request,
                                                                 IEnumerable<int> mediaTags,
-                                                                int[] categories,
+                                                                IReleaseMatcher matcher,
                                                                 ISearchTranslator<TRequest> translator)
             where TRequest : ModuleSearchRequest
         {
@@ -105,13 +111,13 @@ namespace NzbDrone.Core.IndexerSearch
                     return request.InteractiveSearch ? definition.EnableInteractiveSearch : definition.EnableAutomaticSearch;
                 })
                 .Where(i => _indexerMediaTagService.Allows((IndexerDefinition)i.Definition, tags))
+                .Select(i => (Indexer: i, Categories: _indexerCategoryService.GetCategories(i.Definition.Id, matcher)))
+                .Where(t => SupportsCategories(t.Indexer, t.Categories))
                 .ToList();
-
-            indexers = SupportingCategories(indexers, categories);
 
             _logger.ProgressInfo("Searching indexers for {0}. {1} active indexers", request, indexers.Count);
 
-            var batch = await Task.WhenAll(indexers.Select(i => SearchIndexer(i, request, translator)));
+            var batch = await Task.WhenAll(indexers.Select(t => SearchIndexer(t.Indexer, t.Categories, request, translator)));
 
             var releases = batch.SelectMany(x => x).ToList();
 
@@ -120,19 +126,16 @@ namespace NzbDrone.Core.IndexerSearch
             return new IndexerSearchResult(releases, indexers.Count);
         }
 
-        private List<IIndexer> SupportingCategories(List<IIndexer> indexers, int[] categories)
+        private bool SupportsCategories(IIndexer indexer, int[] categories)
         {
-            return indexers.Where(i =>
+            if (indexer.GetCapabilities().Categories.SupportedCategories(categories).Any())
             {
-                if (i.GetCapabilities().Categories.SupportedCategories(categories).Any())
-                {
-                    return true;
-                }
+                return true;
+            }
 
-                _logger.Debug("Indexer {0} has no categories in [{1}], skipping", i.Definition.Name, string.Join(", ", categories));
+            _logger.Debug("Indexer {0} has no categories in [{1}], skipping", indexer.Definition.Name, string.Join(", ", categories));
 
-                return false;
-            }).ToList();
+            return false;
         }
 
         private async Task<IList<ReleaseInfo>> FetchRssIndexer(IIndexer indexer, int[] categories)
@@ -178,12 +181,12 @@ namespace NzbDrone.Core.IndexerSearch
             }
         }
 
-        private async Task<IList<ReleaseInfo>> SearchIndexer<TRequest>(IIndexer indexer, TRequest request, ISearchTranslator<TRequest> translator)
+        private async Task<IList<ReleaseInfo>> SearchIndexer<TRequest>(IIndexer indexer, int[] categories, TRequest request, ISearchTranslator<TRequest> translator)
             where TRequest : ModuleSearchRequest
         {
             try
             {
-                foreach (var tier in translator.Translate(request, (IndexerDefinition)indexer.Definition))
+                foreach (var tier in translator.Translate(request, (IndexerDefinition)indexer.Definition, categories))
                 {
                     var releases = new List<ReleaseInfo>();
 

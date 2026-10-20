@@ -11,12 +11,11 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.Events;
+using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
-using IIndexer = NzbDrone.Core.Movies.Indexers.Legacy.IIndexer;
-using IIndexerStatusService = NzbDrone.Core.Movies.Indexers.Legacy.IIndexerStatusService;
-using IndexerDefinition = NzbDrone.Core.Movies.Indexers.Legacy.IndexerDefinition;
 
 namespace NzbDrone.Core.Test.Download
 {
@@ -82,6 +81,60 @@ namespace NzbDrone.Core.Test.Download
             await Subject.DownloadReport(_parseResult, null);
 
             VerifyEventPublished<MovieGrabbedEvent>();
+        }
+
+        private Mock<IIndexer> GivenReleaseFromIndexer()
+        {
+            _parseResult.Release.IndexerId = 7;
+
+            var definition = new IndexerDefinition { Id = 7, Name = "Indexer" };
+            var indexer = new Mock<IIndexer>();
+            indexer.SetupGet(i => i.Definition).Returns(definition);
+
+            Mocker.GetMock<IIndexerFactory>().Setup(f => f.Get(7)).Returns(definition);
+            Mocker.GetMock<IIndexerFactory>().Setup(f => f.GetInstance(definition)).Returns(indexer.Object);
+
+            return indexer;
+        }
+
+        [Test]
+        public async Task Download_report_should_record_successful_grab_in_indexer_history()
+        {
+            var indexer = GivenReleaseFromIndexer();
+            var client = WithUsenetClient();
+            client.Setup(s => s.Download(It.IsAny<RemoteMovie>(), It.IsAny<IIndexer>())).ReturnsAsync("download-id");
+
+            await Subject.DownloadReport(_parseResult, null);
+
+            client.Verify(s => s.Download(_parseResult, indexer.Object), Times.Once());
+            Mocker.GetMock<IEventAggregator>()
+                  .Verify(e => e.PublishEvent(It.Is<IndexerDownloadEvent>(d => d.Successful && d.Release == _parseResult.Release && d.DownloadId == "download-id" && d.Indexer == indexer.Object)), Times.Once());
+        }
+
+        [Test]
+        public void Download_report_should_record_failed_grab_in_indexer_history()
+        {
+            GivenReleaseFromIndexer();
+            var client = WithUsenetClient();
+            client.Setup(s => s.Download(It.IsAny<RemoteMovie>(), It.IsAny<IIndexer>()))
+                  .ThrowsAsync(new ReleaseDownloadException("Error", new WebException()));
+
+            Assert.ThrowsAsync<ReleaseDownloadException>(async () => await Subject.DownloadReport(_parseResult, null));
+
+            Mocker.GetMock<IEventAggregator>()
+                  .Verify(e => e.PublishEvent(It.Is<IndexerDownloadEvent>(d => !d.Successful)), Times.Once());
+        }
+
+        [Test]
+        public async Task Download_report_should_not_record_indexer_grab_without_indexer()
+        {
+            _parseResult.Release.IndexerId = 0;
+            WithUsenetClient();
+
+            await Subject.DownloadReport(_parseResult, null);
+
+            Mocker.GetMock<IEventAggregator>()
+                  .Verify(e => e.PublishEvent(It.IsAny<IndexerDownloadEvent>()), Times.Never());
         }
 
         [Test]

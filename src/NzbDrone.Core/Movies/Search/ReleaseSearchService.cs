@@ -7,6 +7,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.IndexerSearch;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies.Translations;
 using NzbDrone.Core.Profiles.Qualities;
 
@@ -21,7 +22,8 @@ namespace NzbDrone.Core.Movies.Search
     public class ReleaseSearchService : ISearchForReleases
     {
         private readonly IIndexerReleaseFetcher _releaseFetcher;
-        private readonly MovieSearchTranslator _searchTranslator;
+        private readonly ISearchTranslator<MovieSearchRequest> _searchTranslator;
+        private readonly IMovieReleaseMatcher _releaseMatcher;
         private readonly IMakeDownloadDecision _makeDownloadDecision;
         private readonly IMovieService _movieService;
         private readonly IMovieTranslationService _movieTranslationService;
@@ -29,6 +31,8 @@ namespace NzbDrone.Core.Movies.Search
         private readonly Logger _logger;
 
         public ReleaseSearchService(IIndexerReleaseFetcher releaseFetcher,
+                                ISearchTranslator<MovieSearchRequest> searchTranslator,
+                                IMovieReleaseMatcher releaseMatcher,
                                 IMakeDownloadDecision makeDownloadDecision,
                                 IMovieService movieService,
                                 IMovieTranslationService movieTranslationService,
@@ -36,7 +40,8 @@ namespace NzbDrone.Core.Movies.Search
                                 Logger logger)
         {
             _releaseFetcher = releaseFetcher;
-            _searchTranslator = new MovieSearchTranslator();
+            _searchTranslator = searchTranslator;
+            _releaseMatcher = releaseMatcher;
             _makeDownloadDecision = makeDownloadDecision;
             _movieService = movieService;
             _movieTranslationService = movieTranslationService;
@@ -98,7 +103,7 @@ namespace NzbDrone.Core.Movies.Search
         {
             var result = await _releaseFetcher.Search(criteriaBase,
                                                       criteriaBase.Movie.Tags,
-                                                      MovieReleaseMatcher.MovieCategories.ToArray(),
+                                                      _releaseMatcher,
                                                       _searchTranslator);
 
             // Update the last search time for movie if at least 1 indexer was searched.
