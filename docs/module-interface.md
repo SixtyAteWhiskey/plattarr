@@ -612,6 +612,15 @@ configuration in the default UI.
   `RejectBlocklistedTorrentHashesWhileGrabbing` move onto the shared indexer
   definition.
 
+As built in porting step 6 (`ec0d294`): the three enable flags are columns
+on `IndexerDefinition` (default true) beside Prowlarr's `Enable`, which stays
+the master switch. `FailDownloads` is in `IndexerBaseSettings`.
+`MinimumSeeders` (Prowlarr's `AppMinimumSeeders`, default 1) and
+`RejectBlocklistedTorrentHashesWhileGrabbing` are in
+`IndexerTorrentBaseSettings`, next to the seed ratio and times. Settings
+blocks render as indexer form fields, so they need no API or UI work of their
+own. `IndexerOverrides` waits for step 7, its first reader.
+
 Some upstream per-app fields have no global equivalent: `MultiLanguages`,
 `RequiredFlags`, `RemoveYear` (Radarr), `AnimeStandardFormatSearch` (Sonarr),
 `EarlyReleaseLimit` (Lidarr), and a manual category override for indexers
