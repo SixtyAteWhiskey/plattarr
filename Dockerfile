@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 #
-# Plattarr Phase 0 image: an unchanged Radarr `develop` build, packaged so the
-# CI and image pipeline can be proven before any porting starts.
+# Plattarr image. Phase 0: Radarr `develop` with Plattarr branding, port 7880,
+# and upstream error reporting and analytics turned off.
 #
 # The .NET and Node stages run on the build host's architecture and
 # cross-compile for the target, so only the small runtime stage runs under QEMU.
@@ -79,9 +79,9 @@ ENV PUID=1000 \
     TZ=Etc/UTC
 
 VOLUME ["/config"]
-EXPOSE 7878
+EXPOSE 7880
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:7878/ping || exit 1
+  CMD wget -qO- http://127.0.0.1:7880/ping || exit 1
 
 ENTRYPOINT ["/entrypoint.sh"]

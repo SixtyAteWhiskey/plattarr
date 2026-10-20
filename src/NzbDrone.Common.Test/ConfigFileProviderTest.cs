@@ -111,7 +111,7 @@ namespace NzbDrone.Common.Test
         [Test]
         public void GetPort_Success()
         {
-            const int value = 7878;
+            const int value = 7880;
 
             var result = Subject.Port;
 

@@ -103,8 +103,8 @@ namespace NzbDrone.Host
                 c.SwaggerDoc("v3", new OpenApiInfo
                 {
                     Version = "3.0.0",
-                    Title = "Radarr",
-                    Description = "Radarr API docs",
+                    Title = "Plattarr",
+                    Description = "Plattarr API docs (Radarr v3 compatible)",
                     License = new OpenApiLicense
                     {
                         Name = "GPL-3.0",
@@ -143,7 +143,7 @@ namespace NzbDrone.Host
                     Variables = new Dictionary<string, OpenApiServerVariable>
                     {
                         { "protocol", new OpenApiServerVariable { Default = "http", Enum = new List<string> { "http", "https" } } },
-                        { "hostpath", new OpenApiServerVariable { Default = "localhost:7878" } }
+                        { "hostpath", new OpenApiServerVariable { Default = "localhost:7880" } }
                     }
                 });
 
