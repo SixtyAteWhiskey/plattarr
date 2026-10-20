@@ -15,7 +15,7 @@ public static class ReleaseComparer
 
         if (!HasSameIndexer(item, release.Indexer) &&
             HasSamePublishedDate(item, release.PublishDate) &&
-            HasSameSize(item, release.Size))
+            HasSameSize(item, release.Size.GetValueOrDefault()))
         {
             return true;
         }

@@ -31,7 +31,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 return DownloadSpecDecision.Accept();
             }
 
-            var size = subject.Release.Size;
+            var size = subject.Release.Size.GetValueOrDefault();
             var path = subject.Movie.Path;
             long? freeSpace = null;
 

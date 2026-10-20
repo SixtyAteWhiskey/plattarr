@@ -42,7 +42,7 @@ namespace NzbDrone.Core.CustomFormats
                 Movie = remoteMovie.Movie,
                 Size = size,
                 Languages = remoteMovie.Languages,
-                IndexerFlags = remoteMovie.Release?.IndexerFlags ?? 0
+                IndexerFlags = remoteMovie.Release.ToIndexerFlags()
             };
 
             return ParseCustomFormat(input);

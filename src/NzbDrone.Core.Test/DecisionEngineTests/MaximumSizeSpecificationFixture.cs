@@ -37,6 +37,15 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         }
 
         [Test]
+        public void should_return_true_when_size_is_unknown()
+        {
+            WithMaximumSize(2000);
+            _remoteMovie.Release.Size = null;
+
+            Subject.IsSatisfiedBy(_remoteMovie, new()).Accepted.Should().BeTrue();
+        }
+
+        [Test]
         public void should_return_true_when_size_is_smaller_than_maximum_size()
         {
             WithMaximumSize(2000);

@@ -165,7 +165,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
 
                         if (Enum.TryParse(grabbedEvent?.Data?.GetValueOrDefault("indexerFlags"), true, out IndexerFlags flags))
                         {
-                            trackedDownload.RemoteMovie.Release.IndexerFlags = flags;
+                            trackedDownload.RemoteMovie.Release.AddIndexerFlags(flags);
                         }
 
                         if (downloadHistory != null)

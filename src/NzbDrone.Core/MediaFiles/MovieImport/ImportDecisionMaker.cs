@@ -137,7 +137,7 @@ namespace NzbDrone.Core.MediaFiles.MovieImport
 
                         if (trackedDownload?.RemoteMovie?.Release?.IndexerFlags != null)
                         {
-                            localMovie.IndexerFlags = trackedDownload.RemoteMovie.Release.IndexerFlags;
+                            localMovie.IndexerFlags = trackedDownload.RemoteMovie.Release.ToIndexerFlags();
                         }
                     }
 

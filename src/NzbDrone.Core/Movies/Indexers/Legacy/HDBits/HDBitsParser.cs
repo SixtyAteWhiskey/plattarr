@@ -64,7 +64,7 @@ namespace NzbDrone.Core.Movies.Indexers.Legacy.HDBits
                     Peers = result.Leechers + result.Seeders,
                     PublishDate = result.Added.ToUniversalTime(),
                     ImdbId = result.ImdbInfo?.Id ?? 0,
-                    IndexerFlags = GetIndexerFlags(result)
+                    IndexerFlags = GetIndexerFlags(result).ToIndexerFlagSet()
                 });
             }
 

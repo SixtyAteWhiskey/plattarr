@@ -74,6 +74,18 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         }
 
         [Test]
+        public void should_treat_unknown_size_like_zero()
+        {
+            _movie.MovieMetadata.Value.Runtime = 120;
+            _remoteMovie.Movie = _movie;
+            _remoteMovie.Release.Size = null;
+            _qualityType.MinSize = 10;
+            _qualityType.MaxSize = 20;
+
+            Subject.IsSatisfiedBy(_remoteMovie, new()).Accepted.Should().BeTrue();
+        }
+
+        [Test]
         public void should_return_true_if_unlimited_30_minute()
         {
             _movie.MovieMetadata.Value.Runtime = 30;

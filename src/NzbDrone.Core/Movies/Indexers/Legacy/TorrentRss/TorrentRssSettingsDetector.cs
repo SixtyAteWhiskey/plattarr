@@ -141,7 +141,7 @@ namespace NzbDrone.Core.Movies.Indexers.Legacy.TorrentRss
                 parser.ParseSeedersInDescription = settings.ParseSeedersInDescription = false;
             }
 
-            if (!releases.Any(r => r.Size < ValidSizeThreshold))
+            if (!releases.Any(r => r.Size.GetValueOrDefault() < ValidSizeThreshold))
             {
                 _logger.Trace("Feed has valid size in enclosure.");
                 return settings;
@@ -156,7 +156,7 @@ namespace NzbDrone.Core.Movies.Indexers.Legacy.TorrentRss
                 releases = ParseResponse(parser, response);
                 ValidateReleases(releases, indexerSettings);
 
-                if (!releases.Any(r => r.Size < ValidSizeThreshold))
+                if (!releases.Any(r => r.Size.GetValueOrDefault() < ValidSizeThreshold))
                 {
                     _logger.Trace("Feed has valid size in Size element.");
                     return settings;
@@ -169,9 +169,9 @@ namespace NzbDrone.Core.Movies.Indexers.Legacy.TorrentRss
             releases = ParseResponse(parser, response);
             ValidateReleases(releases, indexerSettings);
 
-            if (releases.Count(r => r.Size >= ValidSizeThreshold) > releases.Length / 2)
+            if (releases.Count(r => r.Size.GetValueOrDefault() >= ValidSizeThreshold) > releases.Length / 2)
             {
-                if (releases.Any(r => r.Size < ValidSizeThreshold))
+                if (releases.Any(r => r.Size.GetValueOrDefault() < ValidSizeThreshold))
                 {
                     _logger.Debug("Feed {0} contains very small releases.", response.Request.Url);
                 }
@@ -277,12 +277,12 @@ namespace NzbDrone.Core.Movies.Indexers.Legacy.TorrentRss
 
         private void ValidateReleaseSize(TorrentInfo[] releases, TorrentRssIndexerSettings indexerSettings)
         {
-            if (!indexerSettings.AllowZeroSize && releases.Any(r => r.Size == 0))
+            if (!indexerSettings.AllowZeroSize && releases.Any(r => r.Size.GetValueOrDefault() == 0))
             {
                 throw new UnsupportedFeedException("Feed doesn't contain the release content size.");
             }
 
-            if (releases.Any(r => r.Size != 0 && r.Size < ValidSizeThreshold))
+            if (releases.Any(r => r.Size.GetValueOrDefault() != 0 && r.Size.GetValueOrDefault() < ValidSizeThreshold))
             {
                 throw new UnsupportedFeedException("Size of one more releases lower than {0}, feed must contain release content size.", ValidSizeThreshold.SizeSuffix());
             }

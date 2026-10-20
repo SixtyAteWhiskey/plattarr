@@ -20,11 +20,11 @@ namespace NzbDrone.Core.Notifications.Webhook
             ReleaseGroup = remoteMovie.ParsedMovieInfo.ReleaseGroup;
             ReleaseTitle = remoteMovie.Release.Title;
             Indexer = remoteMovie.Release.Indexer;
-            Size = remoteMovie.Release.Size;
+            Size = remoteMovie.Release.Size.GetValueOrDefault();
             CustomFormats = remoteMovie.CustomFormats?.Select(x => x.Name).ToList();
             CustomFormatScore = remoteMovie.CustomFormatScore;
             Languages = remoteMovie.Languages;
-            IndexerFlags = Enum.GetValues(typeof(IndexerFlags)).Cast<IndexerFlags>().Where(f => (remoteMovie.Release.IndexerFlags & f) == f).Select(f => f.ToString()).ToList();
+            IndexerFlags = Enum.GetValues(typeof(IndexerFlags)).Cast<IndexerFlags>().Where(f => (remoteMovie.Release.ToIndexerFlags() & f) == f).Select(f => f.ToString()).ToList();
         }
 
         public string Quality { get; set; }

@@ -21,7 +21,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
 
         public DownloadSpecDecision IsSatisfiedBy(RemoteMovie subject, ReleaseDecisionInformation information)
         {
-            var size = subject.Release.Size;
+            var size = subject.Release.Size.GetValueOrDefault();
             var maximumSize = _configService.MaximumSize.Megabytes();
 
             if (maximumSize == 0)

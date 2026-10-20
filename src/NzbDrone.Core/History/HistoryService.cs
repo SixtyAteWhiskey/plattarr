@@ -152,7 +152,7 @@ namespace NzbDrone.Core.History
             history.Data.Add("PublishedDate", message.Movie.Release.PublishDate.ToUniversalTime().ToString("s") + "Z");
             history.Data.Add("DownloadClient", message.DownloadClient);
             history.Data.Add("DownloadClientName", message.DownloadClientName);
-            history.Data.Add("Size", message.Movie.Release.Size.ToString());
+            history.Data.Add("Size", message.Movie.Release.Size.GetValueOrDefault().ToString());
             history.Data.Add("DownloadUrl", message.Movie.Release.DownloadUrl);
             history.Data.Add("Guid", message.Movie.Release.Guid);
             history.Data.Add("TmdbId", message.Movie.Release.TmdbId.ToString());
@@ -161,7 +161,7 @@ namespace NzbDrone.Core.History
             history.Data.Add("CustomFormatScore", message.Movie.CustomFormatScore.ToString());
             history.Data.Add("MovieMatchType", message.Movie.MovieMatchType.ToString());
             history.Data.Add("ReleaseSource", message.Movie.ReleaseSource.ToString());
-            history.Data.Add("IndexerFlags", message.Movie.Release.IndexerFlags.ToString());
+            history.Data.Add("IndexerFlags", message.Movie.Release.ToIndexerFlags().ToString());
             history.Data.Add("IndexerId", message.Movie.Release.IndexerId.ToString());
 
             if (!message.Movie.ParsedMovieInfo.ReleaseHash.IsNullOrWhiteSpace())
