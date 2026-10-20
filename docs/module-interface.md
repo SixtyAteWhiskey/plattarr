@@ -751,14 +751,26 @@ Not emulated: Prowlarr's own management API (`/api/v1/indexer` and so on).
 Tools that read it are dashboards (Homepage, Homarr) and mobile apps.
 Revisit if one the owner uses needs it.
 
-Tools this targets, all of which talk to the APIs above: Jellyseerr and
-Overseerr, Ombi, Bazarr, Recyclarr, Notifiarr, Unpackerr, autobrr,
-cross-seed (Torznab feeds), Maintainerr, Kometa, Homepage and Homarr
-widgets, and mobile clients such as LunaSea, nzb360, and Ruddarr. The list
-guides testing; compatibility is verified per tool, starting with
-Jellyseerr.
+Delivery is on demand. The design keeps every tool reachable, but testing
+and fixes happen in this order:
 
-Open item for Phase 2: confirm each target tool accepts a URL base. Most
+1. **Required for cutover (Phase 2):** Jellyseerr, the only tool in use
+   today. Plattarr can't replace the live apps until a Jellyseerr request
+   works end to end.
+2. **Owner's next tool:** Homarr. Its Radarr, Sonarr, and Lidarr widgets
+   read the URL bases above. Its indexer widget reads Prowlarr's management
+   API, which is not emulated; that widget is deferred until requested.
+3. **Everything else, when a user asks:** Overseerr, Ombi, Bazarr,
+   Recyclarr, Notifiarr, Unpackerr, autobrr, cross-seed (Torznab feeds),
+   Maintainerr, Kometa, Homepage, and mobile clients such as LunaSea, nzb360,
+   and Ruddarr. Each is a test-and-fix task, not new API work, because the
+   endpoints are already the upstream ones.
+
+What must be right from Phase 1 so on-demand integrations stay cheap: the
+URL base routing, and quality and language ID translation at the API
+boundary. Both are needed anyway, for Jellyseerr and for the importers.
+
+Open item, per tool as it is tested: confirm it accepts a URL base. Most
 expose one as a field or accept it in the host URL. A tool that hardcodes
 `/api/v3` at the server root gets the Radarr API at `/api/v3` by default;
 which app answers at the bare root is a setting.
