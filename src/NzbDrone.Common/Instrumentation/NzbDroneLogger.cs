@@ -6,7 +6,6 @@ using NLog.Config;
 using NLog.Targets;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Common.Instrumentation.Sentry;
 
 namespace NzbDrone.Common.Instrumentation
 {
@@ -45,7 +44,7 @@ namespace NzbDrone.Common.Instrumentation
                 RegisterDebugger();
             }
 
-            RegisterSentry(updateApp, appFolderInfo);
+            // Plattarr: no Sentry target. Upstream reports to Radarr's Sentry project.
 
             if (updateApp)
             {
@@ -64,36 +63,6 @@ namespace NzbDrone.Common.Instrumentation
             RegisterAuthLogger();
 
             LogManager.ReconfigExistingLoggers();
-        }
-
-        private static void RegisterSentry(bool updateClient, IAppFolderInfo appFolderInfo)
-        {
-            string dsn;
-
-            if (updateClient)
-            {
-                dsn = "https://fdefcf5a6a4a4a0db914b5712b5480e0@sentry.servarr.com/11";
-            }
-            else
-            {
-                dsn = RuntimeInfo.IsProduction
-                    ? "https://40f1288c1b4d495cbafdb5c89f7f01be@sentry.servarr.com/9"
-                    : "https://998b4673d4c849ccb5277b5966ed5bc2@sentry.servarr.com/10";
-            }
-
-            var target = new SentryTarget(dsn, appFolderInfo)
-            {
-                Name = "sentryTarget",
-                Layout = "${message}"
-            };
-
-            var loggingRule = new LoggingRule("*", updateClient ? LogLevel.Trace : LogLevel.Debug, target);
-            LogManager.Configuration.AddTarget("sentryTarget", target);
-            LogManager.Configuration.LoggingRules.Add(loggingRule);
-
-            // Events logged to Sentry go only to Sentry.
-            var loggingRuleSentry = new LoggingRule("Sentry", LogLevel.Debug, target) { Final = true };
-            LogManager.Configuration.LoggingRules.Insert(0, loggingRuleSentry);
         }
 
         private static void RegisterDebugger()

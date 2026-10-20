@@ -26,7 +26,11 @@ namespace NzbDrone.Common.EnvironmentInfo
             Release = $"{Version}-{Branch}";
         }
 
+        // Wire identity: User-Agent to the metadata proxy and appName in /api/v3/system/status (read by Jellyseerr).
         public static string AppName { get; } = "Radarr";
+
+        // Product name shown to users.
+        public static string DisplayName { get; } = "Plattarr";
 
         public static Version Version { get; }
         public static string Branch { get; }
