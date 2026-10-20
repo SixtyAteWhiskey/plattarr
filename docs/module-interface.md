@@ -1,6 +1,7 @@
 # Plattarr module interface specification
 
-Status: Draft for owner review, 2026-10-20.
+Status: Approved by the owner 2026-10-20, revision 2. See
+[Decision record](#decision-record).
 Applies to: Phase 1 onward. Supersedes the draft list in
 `claude/arr-combo-plan.md` section 3.
 
@@ -8,6 +9,9 @@ This document defines the seams between the Plattarr shared core and the
 media modules (Movies, TV, Music). It is derived from how Radarr's movie code
 plugs into its core today, checked against the same seams in Sonarr and
 Lidarr.
+
+"Module" is an internal code term. Users never see it. See
+[Single pane of glass](#single-pane-of-glass).
 
 ## Sources
 
@@ -31,17 +35,53 @@ All paths below are relative to `src/NzbDrone.Core/` unless stated.
   import, activity rendering, and notification payloads. Metadata providers,
   monitoring rules, naming, and quality profiles stay inside the module. The
   core never calls them.
-- Quality and language IDs collide between apps. Quality and language
-  parsing stay in the modules. This revises the plan, which listed them as
-  shared-core candidates.
-- 52 of Sonarr's 62 `/api/v3` routes collide with Radarr's. The Radarr and
-  Sonarr compatibility APIs cannot share `/api/v3` on one port. Each gets its
-  own URL base: `/radarr` and `/sonarr`.
-- Phase 1 enforces the boundary with a namespace rule and an architecture
-  test, not a separate assembly. 177 core files reference movie types today.
-  The test starts with that list as an allowlist that may only shrink. The
-  Movies module moves into its own assembly when the list is empty, before
-  Phase 3.
+- Qualities, languages, quality profiles, and custom formats are global.
+  Upstream quality and language IDs collide between apps, so Plattarr has its
+  own ID catalog and the importers remap. Each item can apply to all media
+  types (the default) or be scoped to some.
+- Indexers have one global setting each. Search categories are derived from
+  the media type being searched; the user doesn't configure them.
+- 52 of Sonarr's 62 `/api/v3` routes collide with Radarr's. The compatibility
+  APIs get their own URL bases: `/radarr`, `/sonarr`, `/lidarr`. They are
+  full-fidelity copies of the upstream APIs, not a captured subset, so
+  third-party tools work unchanged.
+- One schema, one migration chain, one version table.
+- The module boundary is a namespace rule enforced by an architecture test.
+  177 core files reference movie types today; the test starts with that list
+  as an allowlist that may only shrink. No separate module assemblies.
+
+## Single pane of glass
+
+Owner's goal: the user picks what they want to download, and Plattarr does
+the rest. The user never chooses or configures a "module".
+
+Rules for every user-facing surface:
+
+- **One library, one search.** The search bar takes a title and an optional
+  media type filter: All (default), Movies, TV, Anime, Music. Results from
+  every media type appear together, labeled by type. Adding an item asks only
+  for what that item needs (monitoring, profile, folder) with global defaults
+  pre-filled.
+- **Anime is a filter, not a module.** Anime series are TV series with
+  Sonarr's `Anime` series type, which changes episode numbering and search.
+  Anime movies are movies. The Anime filter shows both. The series type is
+  set automatically from metadata and can be changed per series.
+- **Shared pages are shared.** Activity, queue, history, blocklist,
+  calendar, wanted, indexers, download clients, notifications, and system
+  are one page each, with a media type filter.
+- **Settings are global first.** Quality profiles, custom formats, delay and
+  release profiles, and media management settings apply to all media types
+  unless the user scopes them. Per-type settings appear only where values
+  can't be shared: root folders and naming formats.
+- **Defaults remove decisions.** Download client categories, indexer
+  categories, and the media type of a release are set automatically.
+  Manual control sits behind "Advanced".
+- **"Module" stays in the code.** UI text says "media type", or names the
+  type.
+
+Phase 1 ships with Radarr's UI, which already fits these rules for one
+media type. The unified frontend (plan section 3, layer 4) is built against
+these rules once TV exists, in Phase 3.
 
 ## Evidence
 
@@ -134,8 +174,13 @@ Quality IDs are persisted in profiles, history, and file records.
 - `ReleaseGroupParser.cs` differs by 20 of 87 lines between Radarr and
   Sonarr and carries no IDs.
 
-A shared quality or language parser would need one global ID catalog and a
-remap of every imported row. That is not worth doing in v1.
+Shared qualities and languages therefore need one Plattarr ID catalog and a
+remap of every imported row. The catalogs are small: by name, Radarr and
+Sonarr together define 33 video qualities, two of which are aliases
+(Sonarr's "Bluray-1080p Remux" and "Bluray-2160p Remux" are Radarr's
+"Remux-1080p" and "Remux-2160p"), so 31 distinct video qualities plus
+Lidarr's 38 audio qualities. Radarr's 60 and Sonarr's 55 languages make 64
+distinct names.
 
 ### Indexer settings carry consumer-side fields
 
@@ -158,8 +203,8 @@ the app that consumes the indexer (they are pushed through `Applications`):
 | `EnableRss`, `EnableAutomaticSearch`, `EnableInteractiveSearch` | definition | definition | definition | no (`Enable` plus `AppProfile`) |
 
 Deleting Prowlarr's `Applications` subsystem removes the place these settings
-lived. They have to come back as per-module indexer settings (see
-[Indexer settings per module](#indexer-settings-per-module)).
+lived. They have to come back as global indexer settings plus optional overrides
+(see [Indexer settings](#indexer-settings)).
 
 ### Search criteria names collide
 
@@ -293,9 +338,8 @@ namespace NzbDrone.Core.Modules
 decided (plan section 3a, finding 5).
 
 `CustomFormat` and `Language` appear on the base class because every
-specification and the queue read them. Their IDs are module-scoped (see
-[Quality and language](#quality-and-language)). The core treats them as
-opaque values and never compares IDs across modules.
+specification and the queue read them. Both are global types with Plattarr
+IDs (see [Qualities, languages, profiles, and custom formats](#qualities-languages-profiles-and-custom-formats)).
 
 ### Contract 1: Module registration
 
@@ -317,8 +361,10 @@ public interface IMediaModule
   `ScheduledTasks`. Movies contributes `RefreshMovieCommand`,
   `RefreshCollectionsCommand`, and `ImportListSyncCommand`.
 - `TableMapping` calls `MapTables` on each module after mapping core tables.
-- `PLATTARR__MODULES__ENABLED` filters which modules load. A disabled
-  module's tables stay in the database untouched.
+- `PLATTARR__MODULES__ENABLED` hides media types the user doesn't want (for
+  example, no music). A hidden media type has no UI, runs no scheduled tasks,
+  and receives no releases. Its tables still exist, empty, because the schema
+  is one migration chain.
 
 ### Contract 2: Release matching
 
@@ -511,7 +557,7 @@ existing receivers keep working. The Jellyfin library refresh only needs
 
 Per-module events (`OnMovieAdded`, `OnSeriesAdd`, `OnArtistAdd`) become one
 `OnMediaAdded` and similar, each with a `MediaKind`. Notification settings
-gain a per-module toggle so a user can, for example, notify on movie grabs
+gain a per-media-type toggle so a user can, for example, notify on movie grabs
 only.
 
 ### Download client settings
@@ -530,9 +576,12 @@ public class ModuleCategorySettings
 }
 ```
 
-Validation: within one client, each module's category must be unique and
-non-empty when more than one module is enabled. Routing step 2 depends on
-it.
+Defaults: `plattarr-movies`, `plattarr-tv`, and `plattarr-music`, filled in
+when a client is added, so the user doesn't have to think about categories.
+The client settings page shows them under an "Advanced" toggle.
+
+Validation: within one client, each media type's category must be unique
+and non-empty. Routing step 2 depends on it.
 
 The migration importer maps Radarr's `MovieCategory` to the Movies entry.
 When `sonarr.db` is imported in Phase 3 and a client with the same host and
@@ -543,38 +592,50 @@ Owner's setup: qBittorrent behind gluetun with one save path
 (`/mnt/share/Media/Importing`). Separate categories per module are required
 before TV is enabled, or routing falls to title parsing.
 
-### Indexer settings per module
+### Indexer settings
 
-New core table `IndexerModuleSettings`, one row per indexer and module:
+Each indexer has one global setting. There is no per-media-type indexer
+configuration in the default UI.
 
-| Column | Notes |
-|---|---|
-| `IndexerId`, `MediaKind` | Key |
-| `EnableRss`, `EnableAutomaticSearch`, `EnableInteractiveSearch` | From Radarr's `IndexerDefinition` |
-| `Categories` | Defaults to `IMediaModule.DefaultCategories` filtered by the indexer's capabilities |
-| `MinimumSeeders`, `SeedRatio`, `SeedTime` | Override Prowlarr's indexer values when set |
-| `Settings` (JSON) | Module-only fields: `MultiLanguages`, `RequiredFlags`, `RemoveYear` (Movies); `AnimeCategories`, `SeasonPack*` (TV); `DiscographySeedTime`, `EarlyReleaseLimit` (Music) |
+- **Enable flags.** `EnableRss`, `EnableAutomaticSearch`, and
+  `EnableInteractiveSearch` move onto the shared indexer definition and apply
+  to every media type.
+- **Seeding.** `SeedRatio`, `SeedTime`, `PackSeedTime`, and
+  `MinimumSeeders` are global per indexer. `PackSeedTime` covers Sonarr's
+  season packs and Lidarr's discographies.
+- **Categories.** Derived, not configured. Prowlarr already maps every
+  indexer's native categories to the standard Newznab tree in its
+  capabilities. A search for movies uses the indexer's 2000-range
+  categories, TV uses 5000, anime uses 5070, music uses 3000. RSS results are
+  routed by the same tree (Contract 2).
+- **Indexer-wide flags.** `FailDownloads` and
+  `RejectBlocklistedTorrentHashesWhileGrabbing` move onto the shared indexer
+  definition.
 
-`FailDownloads` and `RejectBlocklistedTorrentHashesWhileGrabbing` apply to
-the indexer as a whole and move to the shared indexer definition.
+Some upstream per-app fields have no global equivalent: `MultiLanguages`,
+`RequiredFlags`, `RemoveYear` (Radarr), `AnimeStandardFormatSearch` (Sonarr),
+`EarlyReleaseLimit` (Lidarr), and a manual category override for indexers
+that miscategorize. These live in an optional `IndexerOverrides` table, one
+row per indexer and media type, edited from an "Advanced" section on the
+indexer page. Rows exist only when a user sets one. Defaults are empty, and
+most users never see the section.
 
-This replaces what Prowlarr's `Applications` and `AppSyncProfile` did.
+The migration importer fills global values from `prowlarr.db` first. Values
+from `radarr.db` or `sonarr.db` that differ from the global value become
+override rows, so nothing the user configured is lost.
 
 ### Configuration
 
-The `Config` table is shared. Keys that are global keep their names. Keys
-that each app has its own copy of get a module prefix (`Movies.RecycleBin`).
+Settings are global by default. A setting that can reasonably differ between
+media types can be overridden for one media type.
 
-Of the 50 Radarr and 49 Sonarr `ConfigService` keys, 38 have the same name.
-Proposed split for those 38:
-
-- **Core:** `CalendarWeekColumnHeader`, `DownloadClientHistoryLimit`,
+- **Global only:** `CalendarWeekColumnHeader`, `DownloadClientHistoryLimit`,
   `DownloadClientWorkingFolders`, `EnableColorImpairedMode`,
   `EnableCompletedDownloadHandling`, `FirstDayOfWeek`, `LongDateFormat`,
   `MaximumSize`, `MinimumAge`, `Retention`, `RssSyncInterval`,
   `ShortDateFormat`, `ShowRelativeDates`, `TimeFormat`,
   `TrustCgnatIpAddresses`, `UILanguage`.
-- **Per module:** `AutoRedownloadFailed`,
+- **Global with per-media-type override:** `AutoRedownloadFailed`,
   `AutoRedownloadFailedFromInteractiveSearch`, `ChmodFolder`, `ChownGroup`,
   `CleanupMetadataImages`, `CopyUsingHardlinks`, `DeleteEmptyFolders`,
   `DownloadPropersAndRepacks`, `EnableMediaInfo`, `ExtraFileExtensions`,
@@ -583,58 +644,124 @@ Proposed split for those 38:
   `RescanAfterRefresh`, `ScriptImportPath`, `SetPermissionsLinux`,
   `SkipFreeSpaceCheckWhenImporting`, `UseScriptImport`.
 
-`ConfigKey` is a helper, not a setting.
+Storage: the global value uses the plain key (`RecycleBin`). An override uses
+a prefixed key (`Movies.RecycleBin`). `ConfigService` reads the override
+first, then the global value. Radarr has 50 `ConfigService` keys and Sonarr
+49; the 38 they share are all in the two lists above. `ConfigKey` is a
+helper, not a setting.
 
-### Quality and language
+Media-type-only settings (for example, Sonarr's episode naming tokens) are
+not overrides; they belong to that media type's settings page.
 
-- Each module owns its quality definitions, quality profiles, languages,
-  custom formats, quality parser, and language parser, with upstream IDs
-  unchanged. Imported rows keep their IDs; no remapping.
-- Shared tables never store a quality or language ID without `MediaKind`
-  next to it. `History.Quality` and `Blocklist.Quality` are JSON; readers
-  resolve them through the owning module.
+### Qualities, languages, profiles, and custom formats
+
+- **One global quality catalog** with Plattarr IDs: about 31 video qualities
+  (the union of Radarr's and Sonarr's, aliases merged) and Lidarr's 38 audio
+  qualities. Each quality records which media types it applies to (video
+  qualities: movies and TV; audio: music).
+- **One global language catalog** with Plattarr IDs: the 64 distinct names
+  from Radarr and Sonarr. Lidarr has no release-language model to merge.
+- **Parsers stay per media type, output is global.** Video and audio quality
+  detection are different programs (Lidarr's `QualityParser.cs` shares almost
+  nothing with Radarr's), so each module keeps its parser, and every parser
+  returns catalog qualities and languages. The Radarr and Sonarr video
+  parsers are 80% the same; merging them is optional later work, not
+  required.
+- **Quality profiles and custom formats are global.** Each has an
+  `AppliesTo` set of media types, defaulting to every type its qualities
+  support. A "1080p" profile created once serves movies and TV; a "Lossless"
+  profile serves music. A user who wants a different profile for TV picks one
+  per series, the same as today, or creates a TV-only profile.
+- **Import remap.** The importers translate each upstream quality and
+  language ID to a catalog ID with a static name table, including the two
+  alias pairs. Profiles and custom formats imported from Radarr and Sonarr
+  that are identical after remap are merged into one; others are kept and
+  scoped to their source media type.
+- **API remap.** The compatibility APIs translate catalog IDs back to the
+  upstream app's IDs, so tools that send Radarr or Sonarr quality IDs
+  (Recyclarr, Jellyseerr) keep working (see
+  [Compatibility APIs](#compatibility-apis)).
 - Release group parsing moves to the core.
 
-### Other module-owned tables
+Trade-off: upstream quality parser fixes that add a new quality need a new
+catalog entry and a remap row. That happens a few times a year at most.
 
-Module-owned and prefixed: root folders, delay profiles, release profiles,
-quality definitions, quality profiles, custom formats, naming config, import
-lists and exclusions, metadata consumers, auto-tagging, and all media and
-file tables.
+### Other tables
 
-Shared: tags, remote path mappings, indexers and their status, download
-clients and their status, notifications and their status, users, config,
-commands, logs, scheduled tasks, custom filters (with a `MediaKind` column
-added).
+Global, optionally scoped to media types with `AppliesTo`: delay profiles,
+release profiles, tags, auto-tagging, import list exclusions.
+
+Per media type, because the values can't be shared: root folders (a movie
+folder and a TV folder are different places), naming formats, import lists
+(each list type returns one media type), metadata consumers, and all media
+and file tables (module-prefixed).
+
+Shared with no scoping: remote path mappings, indexers and their status,
+download clients and their status, notifications and their status, users,
+config, commands, logs, scheduled tasks, custom filters.
 
 ### Database migrations
 
-Each module has its own FluentMigrator chain and version table:
-`VersionInfo` for the core, `Movies_VersionInfo`, `Tv_VersionInfo`,
-`Music_VersionInfo`. The core chain runs first. Module chains may reference
-core tables, never another module's. Each chain starts at `001_initial`.
+One FluentMigrator chain and one `VersionInfo` table for the whole schema,
+starting at `001_initial`. All migrations live in the core project's
+`Datastore/Migration` folder; module code adds tables through ordinary
+numbered migrations.
 
-Reason: one numbered chain shared by four authors' worth of history forces
-every new migration in one module to take a number after all others. Separate
-chains avoid ordering conflicts and let a disabled module skip its
-migrations.
-
-Verify in Phase 1 step 5 that `MigrationController` can run several runners
-with custom `IVersionTableMetaData` against one SQLite file and one Postgres
-database. If it can't, fall back to one chain with reserved version ranges.
+- Phase 1's `001_initial` creates the core tables, the global catalogs, and
+  the `Movies_` tables.
+- Phase 3 adds the `Tv_` tables in a later migration; Phase 4 adds `Music_`.
+- Hidden media types still have their tables. An empty table costs nothing.
 
 ### Compatibility APIs
 
-- The Movies module serves Radarr v3 at `/radarr/api/v3`, the TV module serves
-  Sonarr v3 at `/sonarr/api/v3`, on port 7880.
-- Jellyseerr is configured with URL base `/radarr` or `/sonarr`.
+Goal: tools built for Radarr, Sonarr, and Lidarr work against Plattarr
+unchanged, with only the URL base changed in their settings.
+
+| URL base | Emulates | Source of the controllers |
+|---|---|---|
+| `/radarr/api/v3` | Radarr v3 | Radarr's `Radarr.Api.V3`, which Plattarr already contains |
+| `/sonarr/api/v3` | Sonarr v3 | Sonarr's `Sonarr.Api.V3`, ported with the TV module |
+| `/lidarr/api/v1` | Lidarr v1 | Lidarr's `Lidarr.Api.V1`, ported with the Music module |
+| `/{indexerId}/api` | Prowlarr's per-indexer Newznab and Torznab feeds | Prowlarr's `NewznabController`, ported with the indexer layer |
+
+Design:
+
+- **Full fidelity, not a subset.** Each URL base serves the upstream app's
+  complete API surface, because the controllers are the upstream
+  controllers. This reverses the 2026-10-20 "captured subset only" scope.
+  Phase 2 still records Jellyseerr's real calls through a logging proxy, now
+  as a test fixture rather than a scope limit.
+- **Shared data, upstream shapes.** Resources that are global in Plattarr
+  (`tag`, `qualityprofile`, `customformat`, `qualitydefinition`,
+  `downloadclient`, `indexer`, `notification`, `system/status`) are read from
+  the global tables and shaped as the upstream app would return them.
+  `qualityprofile` under `/radarr` returns profiles whose `AppliesTo`
+  includes movies, with Radarr quality IDs.
+- **ID translation.** Quality and language IDs are translated in both
+  directions at the shim boundary. Entity IDs (movie, series, artist) need no
+  translation because each media type owns its own table.
+- **One API key.** All URL bases accept Plattarr's API key.
+- **Identity.** `system/status` reports `appName` `Radarr`, `Sonarr`, or
+  `Lidarr` under the matching base. Tools use it to detect the app type.
 - The existing Radarr UI keeps calling `/api/v3` until the unified frontend
   replaces it. During Phase 1, `/api/v3` and `/radarr/api/v3` serve the same
   controllers.
-- Shared resources reached through a shim (`tag`, `system/status`,
-  `downloadclient`) answer from the core, shaped as that app would.
-- Each shim exposes only the routes Jellyseerr is recorded calling in
-  Phase 2. Unknown routes return 404.
+
+Not emulated: Prowlarr's own management API (`/api/v1/indexer` and so on).
+Tools that read it are dashboards (Homepage, Homarr) and mobile apps.
+Revisit if one the owner uses needs it.
+
+Tools this targets, all of which talk to the APIs above: Jellyseerr and
+Overseerr, Ombi, Bazarr, Recyclarr, Notifiarr, Unpackerr, autobrr,
+cross-seed (Torznab feeds), Maintainerr, Kometa, Homepage and Homarr
+widgets, and mobile clients such as LunaSea, nzb360, and Ruddarr. The list
+guides testing; compatibility is verified per tool, starting with
+Jellyseerr.
+
+Open item for Phase 2: confirm each target tool accepts a URL base. Most
+expose one as a field or accept it in the host URL. A tool that hardcodes
+`/api/v3` at the server root gets the Radarr API at `/api/v3` by default;
+which app answers at the bare root is a setting.
 
 ### What stays inside a module
 
@@ -646,7 +773,8 @@ module keeps its upstream code:
 - Entity model, monitoring rules, and wanted (missing and cutoff unmet).
 - Naming and folder templates.
 - Import lists, extras, and media covers.
-- The module's own API controllers.
+- The quality and language parsers (output is global, see above).
+- The module's compatibility API controllers.
 
 ## Phase 1 work this implies
 
@@ -654,31 +782,27 @@ In porting order (plan section 3a):
 
 | Step | Spec work |
 |---|---|
-| 2. Port Prowlarr indexers | Keep Prowlarr's `IndexerSearch.Definitions` names. Rename Radarr's `MovieSearchCriteria` to `Movies.Search.MovieSearchRequest` first so the port doesn't collide. Add `IndexerModuleSettings`. |
+| 2. Port Prowlarr indexers | Keep Prowlarr's `IndexerSearch.Definitions` names. Rename Radarr's `MovieSearchCriteria` to `Movies.Search.MovieSearchRequest` first so the port doesn't collide. Move enable and seed settings onto the shared indexer definition; add `IndexerOverrides`. Keep Prowlarr's Newznab and Torznab feed controller. |
 | 3. Swap `ReleaseInfo` | Add `RemoteRelease`, `IMediaParent`, `MediaKind`. Make `RemoteMovie` derive from `RemoteRelease`. |
-| 4. Indexer adapter | `IReleaseMatcher` and `ISearchTranslator` for Movies. RSS routing by category. |
-| 5. Collapse migrations | Core and `Movies_` chains, separate version tables. Activity tables with `MediaKind`. |
-| 6. Module boundary | Move movie code to `NzbDrone.Core.Movies.*`. Add the architecture test and allowlist. Split core specifications, `IDownloadImporter`, `IMediaModule`, client category settings. |
+| 4. Indexer adapter | `IReleaseMatcher` and `ISearchTranslator` for Movies. Category derivation from capabilities. RSS routing by category. |
+| 5. Collapse migrations | One chain from `001_initial`: core tables, global quality and language catalogs, `Movies_` tables, activity tables with `MediaKind`. Move Radarr's quality and language parser output to catalog IDs. |
+| 6. Module boundary | Move movie code to `NzbDrone.Core.Movies.*`. Add the architecture test and allowlist. Split core specifications, `IDownloadImporter`, `IMediaModule`, client category settings. Serve `/radarr/api/v3` alongside `/api/v3`. |
 
 Exit check for the boundary: the allowlist has only `Notifications` entries
 left. Notifications move off it before Phase 3.
 
-## Decisions needed
+## Decision record
 
-These go beyond what the plan approved. Each needs the owner's sign-off
-before Phase 1 work depends on it.
+Owner answers, 2026-10-20, to the six questions in revision 1:
 
-1. **Activity tables are shared**, not module-prefixed: `History`,
-   `Blocklist`, `PendingReleases`, `DownloadHistory`, with `MediaKind`.
-   Alternative: prefixed per module, joined with `UNION` in the activity API.
-2. **Quality and language parsing stay per module.** Revises plan section 3
-   and the Architecture row of the handoff.
-3. **Compatibility APIs move to `/radarr` and `/sonarr` URL bases.** No
-   longer optional (52 route collisions). Jellyseerr's URL base field still
-   needs confirming in Phase 2.
-4. **Per-module indexer settings table** replaces Prowlarr's app sync.
-5. **One migration chain and version table per module.** Revises the
-   approved "fresh Plattarr migration chain starting at `001_initial`"
-   from one chain to four.
-6. **Boundary enforced by test and allowlist in Phase 1**, separate module
-   assembly before Phase 3.
+| # | Question | Answer | Effect on the spec |
+|---|---|---|---|
+| 1 | Shared or prefixed activity tables | Shared | As proposed: `History`, `Blocklist`, `PendingReleases`, `DownloadHistory` with `MediaKind`. |
+| 2 | Quality and language parsing per module | Global by default, granular when wanted | Revised: global quality and language catalogs with Plattarr IDs, global profiles and custom formats with `AppliesTo`, importer and API remaps. Parsers stay per media type. |
+| 3 | Compatibility URL bases | Compatible with most popular tools | Revised: full-fidelity Radarr v3, Sonarr v3, and Lidarr v1 APIs plus Prowlarr's per-indexer feeds. Reverses the Jellyseerr-only, captured-subset scope. |
+| 4 | Per-module indexer settings | One global setting per indexer | Revised: global enable and seed settings, derived categories, optional advanced overrides only. |
+| 5 | Migration chains | All in one | Revised: one chain, one `VersionInfo`. |
+| 6 | Boundary enforcement | Claude's call | Architecture test with a shrinking allowlist. No separate module assemblies: with one schema, one UI, and no plugin loading, an assembly split adds build work and no user benefit. The test catches the same violations in CI. Revisit only for Phase 6 third-party modules. |
+
+Guiding principle from the owner: Plattarr is a single pane of glass. See
+[Single pane of glass](#single-pane-of-glass).
