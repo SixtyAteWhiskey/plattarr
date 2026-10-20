@@ -1,5 +1,5 @@
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.Movies.Indexers.Legacy;
+using IndexerDefinition = NzbDrone.Core.Movies.Indexers.Legacy.IndexerDefinition;
 
 namespace Radarr.Api.V3.Indexers
 {

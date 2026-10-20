@@ -1,26 +1,25 @@
 using System;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
-using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.Movies.Indexers.Legacy;
-using NzbDrone.Core.Movies.Indexers.Legacy.Newznab;
-using NzbDrone.Core.Movies.Indexers.Legacy.Torznab;
+using NzbDrone.Core.Indexers.Newznab;
+using NzbDrone.Core.Indexers.Torznab;
+using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
-using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Test.IndexerTests.TorznabTests
 {
     [TestFixture]
     public class TorznabFixture : CoreTest<Torznab>
     {
-        private NewznabCapabilities _caps;
+        private IndexerCapabilities _caps;
 
         [SetUp]
         public void Setup()
@@ -30,18 +29,20 @@ namespace NzbDrone.Core.Test.IndexerTests.TorznabTests
                 Name = "Torznab",
                 Settings = new TorznabSettings()
                 {
-                    BaseUrl = "http://indexer.local/",
-                    Categories = new int[] { 1 }
+                    BaseUrl = "http://indexer.local/"
                 }
             };
 
-            _caps = new NewznabCapabilities
-            {
-                Categories = Builder<NewznabCategory>.CreateListOfSize(1).All().With(t => t.Id = 1).Build().ToList()
-            };
+            _caps = new IndexerCapabilities();
+
+            _caps.Categories.AddCategoryMapping(2000, NewznabStandardCategory.Movies, "Movies");
+            _caps.Categories.AddCategoryMapping(2040, NewznabStandardCategory.MoviesHD, "Movies/HD");
+            _caps.Categories.AddCategoryMapping(5000, NewznabStandardCategory.TV, "TV");
+            _caps.Categories.AddCategoryMapping(5040, NewznabStandardCategory.TVHD, "TV/HD");
+            _caps.Categories.AddCategoryMapping(5070, NewznabStandardCategory.TVAnime, "TV/Anime");
 
             Mocker.GetMock<INewznabCapabilitiesProvider>()
-                .Setup(v => v.GetCapabilities(It.IsAny<NewznabSettings>()))
+                .Setup(v => v.GetCapabilities(It.IsAny<NewznabSettings>(), It.IsAny<IndexerDefinition>()))
                 .Returns(_caps);
         }
 
@@ -50,11 +51,11 @@ namespace NzbDrone.Core.Test.IndexerTests.TorznabTests
         {
             var recentFeed = ReadAllText(@"Files/Indexers/Torznab/torznab_hdaccess_net.xml");
 
-            Mocker.GetMock<IHttpClient>()
-                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
-                .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), recentFeed)));
+            Mocker.GetMock<IIndexerHttpClient>()
+                .Setup(o => o.ExecuteProxiedAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get), Subject.Definition))
+                .ReturnsAsync((HttpRequest r, IndexerDefinition _) => new HttpResponse(r, new HttpHeader(), new CookieCollection(), recentFeed));
 
-            var releases = await Subject.FetchRecent();
+            var releases = (await Subject.Fetch(new MovieSearchCriteria())).Releases;
 
             releases.Should().HaveCount(5);
 
@@ -79,29 +80,13 @@ namespace NzbDrone.Core.Test.IndexerTests.TorznabTests
         {
             var recentFeed = ReadAllText(@"Files/Indexers/Torznab/torznab_tpb.xml");
 
-            Mocker.GetMock<IHttpClient>()
-                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
-                .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), recentFeed)));
+            Mocker.GetMock<IIndexerHttpClient>()
+                .Setup(o => o.ExecuteProxiedAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get), Subject.Definition))
+                .ReturnsAsync((HttpRequest r, IndexerDefinition _) => new HttpResponse(r, new HttpHeader(), new CookieCollection(), recentFeed));
 
-            var releases = await Subject.FetchRecent();
+            var releases = (await Subject.Fetch(new MovieSearchCriteria())).Releases;
 
-            releases.Should().HaveCount(5);
-
-            releases.First().Should().BeOfType<TorrentInfo>();
-            var releaseInfo = releases.First() as TorrentInfo;
-
-            releaseInfo.Title.Should().Be("Series Title S05E02 HDTV x264-Xclusive [eztv]");
-            releaseInfo.DownloadProtocol.Should().Be(DownloadProtocol.Torrent);
-            releaseInfo.MagnetUrl.Should().Be("magnet:?xt=urn:btih:9fb267cff5ae5603f07a347676ec3bf3e35f75e1&dn=Game+of+Thrones+S05E02+HDTV+x264-Xclusive+%5Beztv%5D&tr=udp:%2F%2Fopen.demonii.com:1337&tr=udp:%2F%2Ftracker.coppersurfer.tk:6969&tr=udp:%2F%2Ftracker.leechers-paradise.org:6969&tr=udp:%2F%2Fexodus.desync.com:6969");
-            releaseInfo.DownloadUrl.Should().Be("magnet:?xt=urn:btih:9fb267cff5ae5603f07a347676ec3bf3e35f75e1&dn=Game+of+Thrones+S05E02+HDTV+x264-Xclusive+%5Beztv%5D&tr=udp:%2F%2Fopen.demonii.com:1337&tr=udp:%2F%2Ftracker.coppersurfer.tk:6969&tr=udp:%2F%2Ftracker.leechers-paradise.org:6969&tr=udp:%2F%2Fexodus.desync.com:6969");
-            releaseInfo.InfoUrl.Should().Be("https://thepiratebay.se/torrent/11811366/Series_Title_S05E02_HDTV_x264-Xclusive_%5Beztv%5D");
-            releaseInfo.CommentUrl.Should().Be("https://thepiratebay.se/torrent/11811366/Series_Title_S05E02_HDTV_x264-Xclusive_%5Beztv%5D");
-            releaseInfo.Indexer.Should().Be(Subject.Definition.Name);
-            releaseInfo.PublishDate.Should().Be(DateTime.Parse("Sat, 11 Apr 2015 21:34:00 -0600").ToUniversalTime());
-            releaseInfo.Size.Should().Be(388895872);
-            releaseInfo.InfoHash.Should().Be("9fb267cff5ae5603f07a347676ec3bf3e35f75e1");
-            releaseInfo.Seeders.Should().Be(34128);
-            releaseInfo.Peers.Should().Be(36724);
+            releases.Should().HaveCount(0);
         }
 
         [Test]
@@ -109,11 +94,11 @@ namespace NzbDrone.Core.Test.IndexerTests.TorznabTests
         {
             var recentFeed = ReadAllText(@"Files/Indexers/Torznab/torznab_animetosho.xml");
 
-            Mocker.GetMock<IHttpClient>()
-                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
-                .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), recentFeed)));
+            Mocker.GetMock<IIndexerHttpClient>()
+                .Setup(o => o.ExecuteProxiedAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get), Subject.Definition))
+                .ReturnsAsync((HttpRequest r, IndexerDefinition _) => new HttpResponse(r, new HttpHeader(), new CookieCollection(), recentFeed));
 
-            var releases = await Subject.FetchRecent();
+            var releases = (await Subject.Fetch(new MovieSearchCriteria())).Releases;
 
             releases.Should().HaveCount(2);
 
@@ -128,17 +113,50 @@ namespace NzbDrone.Core.Test.IndexerTests.TorznabTests
             releaseInfo.Indexer.Should().Be(Subject.Definition.Name);
             releaseInfo.PublishDate.Should().Be(DateTime.Parse("Wed, 17 May 2017 20:36:06 +0000").ToUniversalTime());
             releaseInfo.Size.Should().Be(316477946);
-            releaseInfo.TmdbId.Should().Be(0);
+            releaseInfo.TvdbId.Should().Be(0);
+            releaseInfo.TvRageId.Should().Be(0);
             releaseInfo.InfoHash.Should().Be("2d69a861bef5a9f2cdf791b7328e37b7953205e1");
             releaseInfo.Seeders.Should().BeNull();
             releaseInfo.Peers.Should().BeNull();
         }
 
         [Test]
+        public async Task should_parse_recent_feed_from_torznab_morethantv()
+        {
+            var recentFeed = ReadAllText(@"Files/Indexers/Torznab/torznab_morethantv.xml");
+
+            Mocker.GetMock<IIndexerHttpClient>()
+                .Setup(o => o.ExecuteProxiedAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get), Subject.Definition))
+                .ReturnsAsync((HttpRequest r, IndexerDefinition _) => new HttpResponse(r, new HttpHeader(), new CookieCollection(), recentFeed));
+
+            var releases = (await Subject.Fetch(new MovieSearchCriteria())).Releases;
+
+            releases.Should().HaveCount(2);
+
+            releases.First().Should().BeOfType<TorrentInfo>();
+            var releaseInfo = releases.First() as TorrentInfo;
+
+            releaseInfo.Title.Should().Be("Out of the Past 1947 720p BluRay FLAC2.0 x264-CtrlHD.mkv");
+            releaseInfo.DownloadProtocol.Should().Be(DownloadProtocol.Torrent);
+            releaseInfo.DownloadUrl.Should().Be("https://www.morethantv.me/torrents.php?action=download&id=(removed)&authkey=(removed)&torrent_pass=(removed)");
+            releaseInfo.InfoUrl.Should().Be("https://www.morethantv.me/torrents.php?id=(removed)&torrentid=836164");
+            releaseInfo.CommentUrl.Should().Be("https://www.morethantv.me/torrents.php?id=(removed)&torrentid=836164");
+            releaseInfo.Indexer.Should().Be(Subject.Definition.Name);
+            releaseInfo.PublishDate.Should().Be(DateTime.Parse("Tue, 20 Dec 2022 21:32:17 +0000").ToUniversalTime());
+            releaseInfo.Size.Should().Be(5412993028);
+            releaseInfo.TvdbId.Should().Be(0);
+            releaseInfo.TvRageId.Should().Be(0);
+            releaseInfo.InfoHash.Should().Be("(removed)");
+            releaseInfo.Seeders.Should().Be(3);
+            releaseInfo.Peers.Should().Be(3);
+            releaseInfo.Categories.Count.Should().Be(4);
+        }
+
+        [Test]
         public void should_use_best_pagesize_reported_by_caps()
         {
-            _caps.MaxPageSize = 30;
-            _caps.DefaultPageSize = 25;
+            _caps.LimitsMax = 30;
+            _caps.LimitsDefault = 25;
 
             Subject.PageSize.Should().Be(30);
         }
@@ -146,8 +164,8 @@ namespace NzbDrone.Core.Test.IndexerTests.TorznabTests
         [Test]
         public void should_not_use_pagesize_over_100_even_if_reported_in_caps()
         {
-            _caps.MaxPageSize = 250;
-            _caps.DefaultPageSize = 25;
+            _caps.LimitsMax = 250;
+            _caps.LimitsDefault = 25;
 
             Subject.PageSize.Should().Be(100);
         }
@@ -155,55 +173,10 @@ namespace NzbDrone.Core.Test.IndexerTests.TorznabTests
         [Test]
         public void should_use_pagesize_over_100_if_reported_in_caps()
         {
-            _caps.MaxPageSize = 250;
-            _caps.DefaultPageSize = 200;
+            _caps.LimitsMax = 250;
+            _caps.LimitsDefault = 200;
 
             Subject.PageSize.Should().Be(200);
-        }
-
-        [TestCase("http://localhost:9117/", "/api")]
-        public void url_and_api_not_jackett_all(string baseUrl, string apiPath)
-        {
-            var setting = new TorznabSettings()
-            {
-                BaseUrl = baseUrl,
-                ApiPath = apiPath
-            };
-
-            setting.Validate().IsValid.Should().BeTrue();
-        }
-
-        [TestCase("http://localhost:9117/torznab/all/api")]
-        [TestCase("http://localhost:9117/api/v2.0/indexers/all/results/torznab")]
-        public void jackett_all_url_should_not_validate(string baseUrl)
-        {
-            var recentFeed = ReadAllText(@"Files/Indexers/Torznab/torznab_tpb.xml");
-            (Subject.Definition.Settings as TorznabSettings).BaseUrl = baseUrl;
-
-            Mocker.GetMock<IHttpClient>()
-                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
-                .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), recentFeed)));
-
-            var result = new NzbDroneValidationResult(Subject.Test());
-            result.IsValid.Should().BeTrue();
-            result.HasWarnings.Should().BeTrue();
-        }
-
-        [TestCase("/torznab/all/api")]
-        [TestCase("/api/v2.0/indexers/all/results/torznab")]
-        public void jackett_all_api_should_not_validate(string apiPath)
-        {
-            var recentFeed = ReadAllText(@"Files/Indexers/Torznab/torznab_tpb.xml");
-
-            Mocker.GetMock<IHttpClient>()
-                  .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
-                  .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), recentFeed)));
-
-            (Subject.Definition.Settings as TorznabSettings).ApiPath = apiPath;
-
-            var result = new NzbDroneValidationResult(Subject.Test());
-            result.IsValid.Should().BeTrue();
-            result.HasWarnings.Should().BeTrue();
         }
     }
 }

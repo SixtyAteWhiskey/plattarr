@@ -3,7 +3,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Dapper;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Common.Reflection;
 using NzbDrone.Common.Serializer;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Messaging.Events;
@@ -52,7 +51,7 @@ namespace NzbDrone.Core.ThingiProvider
                 {
                     var body = reader.IsDBNull(settingsIndex) ? null : reader.GetString(settingsIndex);
                     var item = parser(reader);
-                    var impType = typeof(IProviderConfig).Assembly.FindTypeByName(item.ConfigContract);
+                    var impType = ProviderConfigTypes.Find(item.ConfigContract, typeof(TProviderDefinition));
 
                     if (body.IsNullOrWhiteSpace() || impType == null)
                     {

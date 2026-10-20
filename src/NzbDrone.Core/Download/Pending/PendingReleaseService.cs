@@ -19,6 +19,8 @@ using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Delay;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Queue;
+using IIndexerFactory = NzbDrone.Core.Movies.Indexers.Legacy.IIndexerFactory;
+using IIndexerStatusService = NzbDrone.Core.Movies.Indexers.Legacy.IIndexerStatusService;
 
 namespace NzbDrone.Core.Download.Pending
 {

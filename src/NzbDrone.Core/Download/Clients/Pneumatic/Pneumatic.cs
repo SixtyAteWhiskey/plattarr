@@ -10,10 +10,10 @@ using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RemotePathMappings;
+using IIndexer = NzbDrone.Core.Movies.Indexers.Legacy.IIndexer;
 
 namespace NzbDrone.Core.Download.Clients.Pneumatic
 {

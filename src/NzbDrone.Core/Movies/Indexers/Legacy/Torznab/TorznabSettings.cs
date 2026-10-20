@@ -6,6 +6,7 @@ using Equ;
 using FluentValidation;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Annotations;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Movies.Indexers.Legacy.Newznab;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Validation;

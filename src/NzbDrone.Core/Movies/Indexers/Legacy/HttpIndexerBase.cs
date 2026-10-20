@@ -16,6 +16,7 @@ using NzbDrone.Core.Movies.Indexers.Legacy.Exceptions;
 using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
+using RequestLimitReachedException = NzbDrone.Core.Movies.Indexers.Legacy.Exceptions.RequestLimitReachedException;
 
 namespace NzbDrone.Core.Movies.Indexers.Legacy
 {

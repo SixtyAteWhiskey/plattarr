@@ -4,7 +4,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.Movies.Indexers.Legacy.Exceptions;
+using NzbDrone.Core.Indexers.Exceptions;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Movies.Indexers.Legacy.TorrentPotato

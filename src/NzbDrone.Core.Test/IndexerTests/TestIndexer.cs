@@ -1,25 +1,26 @@
-﻿using System.Collections.Generic;
 using NLog;
-using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Download;
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.Movies.Indexers.Legacy;
-using NzbDrone.Core.Parser;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Messaging.Events;
 
 namespace NzbDrone.Core.Test.IndexerTests
 {
-    public class TestIndexer : HttpIndexerBase<TestIndexerSettings>
+    public class TestIndexer : UsenetIndexerBase<TestIndexerSettings>
     {
         public override string Name => "Test Indexer";
+        public override string[] IndexerUrls => new string[] { "http://testindexer.com" };
+        public override string Description => "";
 
         public override DownloadProtocol Protocol => DownloadProtocol.Usenet;
+
+        public override IndexerPrivacy Privacy => IndexerPrivacy.Private;
 
         public int _supportedPageSize;
         public override int PageSize => _supportedPageSize;
 
-        public TestIndexer(IHttpClient httpClient, IIndexerStatusService indexerStatusService, IConfigService configService, IParsingService parsingService, Logger logger)
-            : base(httpClient, indexerStatusService, configService, parsingService, logger)
+        public TestIndexer(IIndexerHttpClient httpClient, IEventAggregator eventAggregator, IIndexerStatusService indexerStatusService, IConfigService configService, IValidateNzbs nzbValidationService, Logger logger)
+            : base(httpClient, eventAggregator, indexerStatusService, configService, nzbValidationService, logger)
         {
         }
 
@@ -33,11 +34,6 @@ namespace NzbDrone.Core.Test.IndexerTests
         public override IParseIndexerResponse GetParser()
         {
             return _parser;
-        }
-
-        public new IList<ReleaseInfo> CleanupReleases(IEnumerable<ReleaseInfo> releases)
-        {
-            return base.CleanupReleases(releases);
         }
     }
 }

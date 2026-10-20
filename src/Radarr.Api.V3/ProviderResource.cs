@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using NzbDrone.Common.Reflection;
 using NzbDrone.Core.ThingiProvider;
 using Radarr.Http.ClientSchema;
 using Radarr.Http.REST;
@@ -63,7 +62,7 @@ namespace Radarr.Api.V3
                 Tags = resource.Tags
             };
 
-            var configContract = ReflectionExtensions.CoreAssembly.FindTypeByName(definition.ConfigContract);
+            var configContract = ProviderConfigTypes.Find(definition.ConfigContract, typeof(TProviderDefinition));
             definition.Settings = (IProviderConfig)SchemaBuilder.ReadFromSchema(resource.Fields, configContract, existingDefinition?.Settings);
 
             return definition;

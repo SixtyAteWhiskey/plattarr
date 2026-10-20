@@ -61,6 +61,9 @@ namespace NzbDrone.Core.Configuration
         bool AllowHardcodedSubs { get; set; }
         string WhitelistedHardcodedSubs { get; set; }
 
+        int IndexerHistoryCleanupDays { get; set; }
+        bool LogIndexerResponse { get; set; }
+
         string ListSyncLevel { get; set; }
 
         // Metadata Provider

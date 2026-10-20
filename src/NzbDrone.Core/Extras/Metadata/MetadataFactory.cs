@@ -14,12 +14,9 @@ namespace NzbDrone.Core.Extras.Metadata
 
     public class MetadataFactory : ProviderFactory<IMetadata, MetadataDefinition>, IMetadataFactory
     {
-        private readonly IMetadataRepository _providerRepository;
-
         public MetadataFactory(IMetadataRepository providerRepository, IEnumerable<IMetadata> providers, IServiceProvider container, IEventAggregator eventAggregator, Logger logger)
             : base(providerRepository, providers, container, eventAggregator, logger)
         {
-            _providerRepository = providerRepository;
         }
 
         protected override void InitializeProviders()

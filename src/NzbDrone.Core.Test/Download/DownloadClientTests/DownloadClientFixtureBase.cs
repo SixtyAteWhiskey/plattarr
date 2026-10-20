@@ -15,7 +15,7 @@ using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.Test.Framework;
-using NzbDrone.Core.Test.IndexerTests;
+using NzbDrone.Core.Test.LegacyIndexerTests;
 
 namespace NzbDrone.Core.Test.Download.DownloadClientTests
 {

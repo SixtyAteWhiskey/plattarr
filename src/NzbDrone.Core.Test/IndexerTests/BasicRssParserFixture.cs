@@ -1,10 +1,10 @@
-﻿using System.Linq;
+using System.Linq;
+using System.Net;
 using System.Text;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.IndexerTests
@@ -41,7 +41,7 @@ namespace NzbDrone.Core.Test.IndexerTests
         private IndexerResponse CreateResponse(string url, string content)
         {
             var httpRequest = new HttpRequest(url);
-            var httpResponse = new HttpResponse(httpRequest, new HttpHeader(), Encoding.UTF8.GetBytes(content));
+            var httpResponse = new HttpResponse(httpRequest, new HttpHeader(), new CookieCollection(), Encoding.UTF8.GetBytes(content));
 
             return new IndexerResponse(new IndexerRequest(httpRequest), httpResponse);
         }

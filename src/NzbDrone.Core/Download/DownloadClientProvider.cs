@@ -5,7 +5,7 @@ using NzbDrone.Common.Cache;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.Movies.Indexers.Legacy;
+using IIndexerFactory = NzbDrone.Core.Movies.Indexers.Legacy.IIndexerFactory;
 
 namespace NzbDrone.Core.Download
 {

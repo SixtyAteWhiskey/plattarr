@@ -21,6 +21,9 @@ using NzbDrone.Core.History;
 using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.ImportLists.ImportExclusions;
 using NzbDrone.Core.ImportLists.ImportListMovies;
+using NzbDrone.Core.IndexerHistory;
+using NzbDrone.Core.IndexerProxies;
+using NzbDrone.Core.IndexerVersions;
 using NzbDrone.Core.Instrumentation;
 using NzbDrone.Core.Jobs;
 using NzbDrone.Core.Languages;
@@ -179,6 +182,32 @@ namespace NzbDrone.Core.Datastore
             Mapper.Entity<MovieCollection>("Collections").RegisterModel();
 
             Mapper.Entity<AutoTagging.AutoTag>("AutoTagging").RegisterModel();
+
+            // Prowlarr's indexer layer. Its indexer and status tables keep temporary names
+            // until porting step 8 collapses the migrations; the legacy layer owns the plain names.
+            Mapper.Entity<Indexers.IndexerDefinition>("PlattarrIndexers").RegisterModel()
+                  .Ignore(x => x.ImplementationName)
+                  .Ignore(i => i.Description)
+                  .Ignore(i => i.Language)
+                  .Ignore(i => i.Encoding)
+                  .Ignore(i => i.IndexerUrls)
+                  .Ignore(i => i.LegacyUrls)
+                  .Ignore(i => i.Protocol)
+                  .Ignore(i => i.Privacy)
+                  .Ignore(i => i.SupportsRss)
+                  .Ignore(i => i.SupportsSearch)
+                  .Ignore(i => i.SupportsRedirect)
+                  .Ignore(i => i.SupportsPagination)
+                  .Ignore(i => i.Capabilities);
+
+            Mapper.Entity<Indexers.IndexerStatus>("PlattarrIndexerStatus").RegisterModel();
+
+            Mapper.Entity<IndexerProxyDefinition>("IndexerProxies").RegisterModel()
+                  .Ignore(x => x.ImplementationName);
+
+            Mapper.Entity<IndexerHistoryItem>("IndexerHistory").RegisterModel();
+
+            Mapper.Entity<IndexerDefinitionVersion>("IndexerDefinitionVersions").RegisterModel();
         }
 
         private static void RegisterMappers()

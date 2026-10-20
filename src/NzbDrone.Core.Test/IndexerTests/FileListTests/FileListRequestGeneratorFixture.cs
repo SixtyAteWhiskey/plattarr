@@ -2,54 +2,83 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
-using NzbDrone.Core.Movies.Indexers.Legacy.FileList;
-using NzbDrone.Core.Movies.Search;
+using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.Definitions.FileList;
+using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.IndexerTests.FileListTests
 {
     public class FileListRequestGeneratorFixture : CoreTest<FileListRequestGenerator>
     {
-        private MovieSearchRequest _movieSearchCriteria;
+        private MovieSearchCriteria _movieSearchCriteria;
 
         [SetUp]
         public void Setup()
         {
-            Subject.Settings = new FileListSettings()
+            Subject.Settings = new FileListSettings
             {
-                BaseUrl = "http://127.0.0.1:1234/",
-                Categories = new[] { 1, 2 },
+                BaseUrl = "https://filelist.io/",
                 Passkey = "abcd",
                 Username = "somename"
             };
 
-            _movieSearchCriteria = new MovieSearchRequest
+            Subject.Capabilities = new IndexerCapabilities
             {
-                Movie = new Movies.Movie { ImdbId = "tt0076759", Title = "Star Wars", Year = 1977 },
-                SceneTitles = new List<string> { "Star Wars" }
+                TvSearchParams = new List<TvSearchParam>
+                {
+                    TvSearchParam.Q, TvSearchParam.ImdbId, TvSearchParam.Season, TvSearchParam.Ep
+                },
+                MovieSearchParams = new List<MovieSearchParam>
+                {
+                    MovieSearchParam.Q, MovieSearchParam.ImdbId
+                },
+                MusicSearchParams = new List<MusicSearchParam>
+                {
+                    MusicSearchParam.Q
+                },
+                BookSearchParams = new List<BookSearchParam>
+                {
+                    BookSearchParam.Q
+                },
+                Flags = new List<IndexerFlag>
+                {
+                    IndexerFlag.FreeLeech,
+                    IndexerFlag.Internal,
+                }
+            };
+
+            Subject.Capabilities.Categories.AddCategoryMapping(1, NewznabStandardCategory.MoviesSD, "Filme SD");
+            Subject.Capabilities.Categories.AddCategoryMapping(2, NewznabStandardCategory.MoviesDVD, "Filme DVD");
+
+            _movieSearchCriteria = new MovieSearchCriteria
+            {
+                SearchTerm = "Star Wars",
+                Categories = new[] { 2000 }
             };
         }
 
         private void MovieWithoutIMDB()
         {
-            _movieSearchCriteria.Movie.ImdbId = null;
+            _movieSearchCriteria.ImdbId = null;
         }
 
         [Test]
         public void should_use_categories_for_feed()
         {
-            var results = Subject.GetRecentRequests();
+            var results = Subject.GetSearchRequests(new MovieSearchCriteria { Categories = new[] { NewznabStandardCategory.MoviesSD.Id, NewznabStandardCategory.MoviesDVD.Id } });
 
             results.GetAllTiers().Should().HaveCount(1);
 
             var page = results.GetAllTiers().First().First();
 
-            page.Url.Query.Should().Contain("&category=1,2");
+            page.Url.Query.Should().Contain("&category=1%2C2");
         }
 
         [Test]
         public void should_not_search_by_imdbid_if_not_supported()
         {
+            _movieSearchCriteria.ImdbId = "0076759";
             var results = Subject.GetSearchRequests(_movieSearchCriteria);
 
             results.GetAllTiers().Should().HaveCount(1);
@@ -72,7 +101,7 @@ namespace NzbDrone.Core.Test.IndexerTests.FileListTests
             var page = results.GetAllTiers().First().First();
 
             page.Url.Query.Should().Contain("type=name");
-            page.Url.Query.Should().Contain("query=Star+Wars+1977");
+            page.Url.Query.Should().Contain("query=Star+Wars");
         }
     }
 }

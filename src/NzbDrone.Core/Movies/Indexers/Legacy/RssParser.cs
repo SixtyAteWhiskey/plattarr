@@ -14,7 +14,6 @@ using NzbDrone.Common.Instrumentation;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.Exceptions;
 using NzbDrone.Core.Languages;
-using NzbDrone.Core.Movies.Indexers.Legacy.Exceptions;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Movies.Indexers.Legacy

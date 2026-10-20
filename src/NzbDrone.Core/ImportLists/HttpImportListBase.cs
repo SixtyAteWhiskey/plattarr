@@ -11,10 +11,10 @@ using NzbDrone.Core.Http.CloudFlare;
 using NzbDrone.Core.ImportLists.Exceptions;
 using NzbDrone.Core.ImportLists.ImportListMovies;
 using NzbDrone.Core.Indexers.Exceptions;
-using NzbDrone.Core.Movies.Indexers.Legacy.Exceptions;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.ThingiProvider;
 using NzbDrone.Core.Validation;
+using RequestLimitReachedException = NzbDrone.Core.Movies.Indexers.Legacy.Exceptions.RequestLimitReachedException;
 
 namespace NzbDrone.Core.ImportLists
 {
