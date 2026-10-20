@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -350,6 +351,41 @@ namespace NzbDrone.Common.Test.Http
             var userAgent = response.Resource.Headers["User-Agent"].ToString();
 
             userAgent.Should().Contain("Radarr");
+        }
+
+        [Test]
+        public async Task should_replace_default_user_agent_when_request_sets_one()
+        {
+            var request = new HttpRequest($"https://{_httpBinHost}/get");
+            request.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Test/1.0");
+
+            var response = await Subject.GetAsync<HttpBinResource>(request);
+
+            var userAgent = response.Resource.Headers["User-Agent"].ToString();
+
+            userAgent.Should().Be("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Test/1.0");
+        }
+
+        [Test]
+        public async Task should_send_basic_auth_header_as_utf8()
+        {
+            var username = "tèst";
+            var password = "pâsswörd_ș";
+
+            var request = new HttpRequest($"https://{_httpBinHost}/get")
+            {
+                Credentials = new BasicNetworkCredential(username, password)
+            };
+
+            var response = await Subject.GetAsync<HttpBinResource>(request);
+
+            response.Resource.Headers.Should().ContainKey("Authorization");
+
+            var authHeader = response.Resource.Headers["Authorization"].ToString();
+            var encodedPart = authHeader!.Split(' ', 2).Last();
+            var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(encodedPart));
+
+            decoded.Should().Be($"{username}:{password}");
         }
 
         [TestCase("Accept", "text/xml, text/rss+xml, application/rss+xml")]
