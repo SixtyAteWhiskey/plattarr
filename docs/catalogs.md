@@ -37,7 +37,7 @@ IDs everywhere, with no per-table work.
 
 Qualities:
 
-- Radarr has 30 video qualities plus `Unknown`; Sonarr has 21 plus `Unknown`, all of which exist in
+- Radarr has 29 video qualities plus `Unknown`; Sonarr has 21 plus `Unknown`, all of which exist in
   Radarr under the same name except the two remuxes (Sonarr
   `Bluray-1080p Remux` is Radarr `Remux-1080p`).
 - The same quality has different IDs. Radarr `Bluray-480p` is 20, Sonarr's
@@ -88,7 +88,7 @@ video and audio qualities never mix in one profile, one parser, or one API
 resource. Quality profiles follow the catalogs: `QualityProfiles` holds video
 profiles; Music brings its own profile table with Lidarr's shape.
 
-- Video: the union of Radarr's and Sonarr's qualities, 30 entries, keeping
+- Video: the union of Radarr's and Sonarr's qualities, 29 entries, keeping
   Radarr's source, resolution, and modifier attributes. The two remuxes keep
   Radarr's names in the UI.
 - Audio (Phase 4): Lidarr's 37 audio qualities.
@@ -102,7 +102,7 @@ quality. IDs are numbered in default weight order at birth and never reused.
 
 - 0: `Unknown`
 - 1 to 199: video, in Radarr's default weight order (`WORKPRINT` 1 ...
-  `Raw-HD` 30)
+  `Raw-HD` 29)
 - 201 to 399: audio (Phase 4), in Lidarr's default weight order
 - 1000 and up: quality groups inside profiles, as today
 
@@ -115,6 +115,10 @@ Keep the three sentinels unchanged (0 `Unknown`, -1 `Any`,
 -2 `Original`) because they mean the same in every app and the frontend and
 custom format code test for them. Number the 61 real languages (Radarr's 57 plus Sonarr's 4) from 1 in
 alphabetical order of their English names; later additions append.
+
+As built (8d1): Azerbaijani, Irish, Malay, and Uzbek, which only Sonarr had,
+are in the catalog and in `IsoLanguages`. Radarr's title parser doesn't
+detect them; the TV module brings Sonarr's rules for them.
 
 ### Translation tables
 
