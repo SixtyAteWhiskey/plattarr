@@ -19,9 +19,9 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
             mapper.Execute(@"DELETE FROM ""IndexerOverrides""
                              WHERE ""Id"" IN (
                              SELECT ""IndexerOverrides"".""Id"" FROM ""IndexerOverrides""
-                             LEFT OUTER JOIN ""PlattarrIndexers""
-                             ON ""IndexerOverrides"".""IndexerId"" = ""PlattarrIndexers"".""Id""
-                             WHERE ""PlattarrIndexers"".""Id"" IS NULL)");
+                             LEFT OUTER JOIN ""Indexers""
+                             ON ""IndexerOverrides"".""IndexerId"" = ""Indexers"".""Id""
+                             WHERE ""Indexers"".""Id"" IS NULL)");
         }
     }
 }

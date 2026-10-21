@@ -13,11 +13,10 @@ using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.IndexerTests
 {
-    // Porting step 6: Prowlarr's indexer layer stores its rows in the tables from migration 243
-    // (PlattarrIndexers, PlattarrIndexerStatus, IndexerProxies, IndexerHistory,
-    // IndexerDefinitionVersions). Step 8 gives the first two their plain names.
+    // Prowlarr's indexer layer stores its rows in Indexers, IndexerStatus, IndexerProxies,
+    // IndexerHistory, and IndexerDefinitionVersions (001_initial).
     [TestFixture]
-    public class PlattarrIndexerTablesFixture : DbTest<IndexerRepository, IndexerDefinition>
+    public class IndexerTablesFixture : DbTest<IndexerRepository, IndexerDefinition>
     {
         private static IndexerDefinition NewznabDefinition(string name)
         {

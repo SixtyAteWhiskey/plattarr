@@ -10,6 +10,7 @@ using NzbDrone.Core.IndexerProxies;
 using NzbDrone.Core.IndexerProxies.Http;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.Newznab;
+using NzbDrone.Core.Movies.Collections;
 using NzbDrone.Core.Profiles.Releases;
 using NzbDrone.Core.Tags;
 using NzbDrone.Core.Test.Framework;
@@ -84,6 +85,31 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
 
             AllStoredModels.Should().HaveCount(2);
             AllStoredModels.Should().NotContain(t => t.Id == tags[2].Id);
+        }
+
+        [Test]
+        public void should_not_delete_tags_used_by_collections()
+        {
+            var tags = Builder<Tag>.CreateListOfSize(2)
+                .All()
+                .With(x => x.Id = 0)
+                .BuildList();
+            Db.InsertMany(tags);
+
+            Db.Insert(new MovieCollection
+            {
+                Title = "Collection",
+                CleanTitle = "collection",
+                TmdbId = 10,
+                RootFolderPath = "/movies",
+                Images = new List<NzbDrone.Core.MediaCover.MediaCover>(),
+                Added = DateTime.UtcNow,
+                Tags = new HashSet<int> { tags[0].Id }
+            });
+
+            Subject.Clean();
+
+            AllStoredModels.Should().ContainSingle(t => t.Id == tags[0].Id);
         }
 
         [Test]
