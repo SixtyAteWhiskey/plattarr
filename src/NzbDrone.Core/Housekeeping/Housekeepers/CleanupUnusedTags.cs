@@ -26,7 +26,10 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
             var usedTags = new[]
                 {
                     "Movies", "Notifications", "DelayProfiles", "ReleaseProfiles", "ImportLists", "Indexers",
-                    "AutoTagging", "DownloadClients"
+                    "AutoTagging", "DownloadClients",
+
+                    // Prowlarr's indexer layer (porting step 6). PlattarrIndexers becomes Indexers in step 8.
+                    "PlattarrIndexers", "IndexerProxies"
                 }
                 .SelectMany(v => GetUsedTags(v, mapper))
                 .Concat(GetAutoTaggingTagSpecificationTags(mapper))

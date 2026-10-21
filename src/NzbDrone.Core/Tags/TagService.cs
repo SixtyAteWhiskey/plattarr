@@ -5,9 +5,10 @@ using NzbDrone.Core.AutoTagging.Specifications;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.ImportLists;
+using NzbDrone.Core.IndexerProxies;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Notifications;
 using NzbDrone.Core.Profiles.Delay;
 using NzbDrone.Core.Profiles.Releases;
@@ -37,6 +38,7 @@ namespace NzbDrone.Core.Tags
         private readonly IReleaseProfileService _releaseProfileService;
         private readonly IMovieService _movieService;
         private readonly IIndexerFactory _indexerService;
+        private readonly IIndexerProxyFactory _indexerProxyFactory;
         private readonly IAutoTaggingService _autoTaggingService;
         private readonly IDownloadClientFactory _downloadClientFactory;
 
@@ -48,6 +50,7 @@ namespace NzbDrone.Core.Tags
                           IReleaseProfileService releaseProfileService,
                           IMovieService movieService,
                           IIndexerFactory indexerService,
+                          IIndexerProxyFactory indexerProxyFactory,
                           IAutoTaggingService autoTaggingService,
                           IDownloadClientFactory downloadClientFactory)
         {
@@ -59,6 +62,7 @@ namespace NzbDrone.Core.Tags
             _releaseProfileService = releaseProfileService;
             _movieService = movieService;
             _indexerService = indexerService;
+            _indexerProxyFactory = indexerProxyFactory;
             _autoTaggingService = autoTaggingService;
             _downloadClientFactory = downloadClientFactory;
         }
@@ -94,6 +98,7 @@ namespace NzbDrone.Core.Tags
             var releaseProfiles = _releaseProfileService.AllForTag(tagId);
             var movies = _movieService.AllMovieTags().Where(x => x.Value.Contains(tagId)).Select(x => x.Key).ToList();
             var indexers = _indexerService.AllForTag(tagId);
+            var indexerProxies = _indexerProxyFactory.AllForTag(tagId);
             var autoTags = _autoTaggingService.AllForTag(tagId);
             var downloadClients = _downloadClientFactory.AllForTag(tagId);
 
@@ -107,6 +112,7 @@ namespace NzbDrone.Core.Tags
                 ReleaseProfileIds = releaseProfiles.Select(c => c.Id).ToList(),
                 MovieIds = movies,
                 IndexerIds = indexers.Select(c => c.Id).ToList(),
+                IndexerProxyIds = indexerProxies.Select(c => c.Id).ToList(),
                 AutoTagIds = autoTags.Select(c => c.Id).ToList(),
                 DownloadClientIds = downloadClients.Select(c => c.Id).ToList()
             };
@@ -121,6 +127,7 @@ namespace NzbDrone.Core.Tags
             var releaseProfiles = _releaseProfileService.All();
             var movies = _movieService.AllMovieTags();
             var indexers = _indexerService.All();
+            var indexerProxies = _indexerProxyFactory.All();
             var autoTags = _autoTaggingService.All();
             var downloadClients = _downloadClientFactory.All();
 
@@ -138,6 +145,7 @@ namespace NzbDrone.Core.Tags
                     ReleaseProfileIds = releaseProfiles.Where(c => c.Tags.Contains(tag.Id)).Select(c => c.Id).ToList(),
                     MovieIds = movies.Where(c => c.Value.Contains(tag.Id)).Select(c => c.Key).ToList(),
                     IndexerIds = indexers.Where(c => c.Tags.Contains(tag.Id)).Select(c => c.Id).ToList(),
+                    IndexerProxyIds = indexerProxies.Where(c => c.Tags.Contains(tag.Id)).Select(c => c.Id).ToList(),
                     AutoTagIds = GetAutoTagIds(tag, autoTags),
                     DownloadClientIds = downloadClients.Where(c => c.Tags.Contains(tag.Id)).Select(c => c.Id).ToList(),
                 });

@@ -12,6 +12,7 @@ namespace NzbDrone.Core.Indexers.Overrides
     {
         // Never null. An indexer without a row gets an empty override (nothing set).
         IndexerOverride Get(int indexerId, MediaKind mediaKind);
+        IndexerOverride GetById(int id);
         List<IndexerOverride> All();
         IndexerOverride Upsert(IndexerOverride indexerOverride);
         void Delete(int id);
@@ -32,6 +33,11 @@ namespace NzbDrone.Core.Indexers.Overrides
         {
             return All().FirstOrDefault(o => o.IndexerId == indexerId && o.MediaKind == mediaKind)
                 ?? new IndexerOverride { IndexerId = indexerId, MediaKind = mediaKind };
+        }
+
+        public IndexerOverride GetById(int id)
+        {
+            return _repository.Get(id);
         }
 
         public List<IndexerOverride> All()

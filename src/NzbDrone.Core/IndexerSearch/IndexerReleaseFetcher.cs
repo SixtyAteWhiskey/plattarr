@@ -67,9 +67,7 @@ namespace NzbDrone.Core.IndexerSearch
 
         public async Task<List<ReleaseInfo>> FetchRss(IReadOnlyCollection<IReleaseMatcher> matchers)
         {
-            var indexers = _indexerFactory.Enabled()
-                .Where(i => i.SupportsRss && ((IndexerDefinition)i.Definition).EnableRss)
-                .ToList();
+            var indexers = _indexerFactory.RssEnabled();
 
             if (!indexers.Any())
             {
@@ -102,14 +100,7 @@ namespace NzbDrone.Core.IndexerSearch
         {
             var tags = mediaTags.ToList();
 
-            var indexers = _indexerFactory.Enabled()
-                .Where(i => i.SupportsSearch)
-                .Where(i =>
-                {
-                    var definition = (IndexerDefinition)i.Definition;
-
-                    return request.InteractiveSearch ? definition.EnableInteractiveSearch : definition.EnableAutomaticSearch;
-                })
+            var indexers = (request.InteractiveSearch ? _indexerFactory.InteractiveSearchEnabled() : _indexerFactory.AutomaticSearchEnabled())
                 .Where(i => _indexerMediaTagService.Allows((IndexerDefinition)i.Definition, tags))
                 .Select(i => (Indexer: i, Categories: _indexerCategoryService.GetCategories(i.Definition.Id, matcher)))
                 .Where(t => SupportsCategories(t.Indexer, t.Categories))

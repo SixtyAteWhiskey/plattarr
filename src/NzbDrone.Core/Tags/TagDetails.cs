@@ -13,6 +13,7 @@ namespace NzbDrone.Core.Tags
         public List<int> DelayProfileIds { get; set; }
         public List<int> ImportListIds { get; set; }
         public List<int> IndexerIds { get; set; }
+        public List<int> IndexerProxyIds { get; set; } = new();
         public List<int> AutoTagIds { get; set; }
         public List<int> DownloadClientIds { get; set; }
 
@@ -22,6 +23,7 @@ namespace NzbDrone.Core.Tags
                              DelayProfileIds.Any() ||
                              ImportListIds.Any() ||
                              IndexerIds.Any() ||
+                             IndexerProxyIds.Any() ||
                              AutoTagIds.Any() ||
                              DownloadClientIds.Any();
     }

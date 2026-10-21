@@ -2,7 +2,7 @@ using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Housekeeping.Housekeepers;
-using NzbDrone.Core.Movies.Indexers.Legacy;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
