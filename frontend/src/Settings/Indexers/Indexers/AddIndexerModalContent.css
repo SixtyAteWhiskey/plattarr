@@ -3,3 +3,9 @@
   justify-content: center;
   flex-wrap: wrap;
 }
+
+.filterInput {
+  composes: input from '~Components/Form/TextInput.css';
+
+  margin-bottom: 10px;
+}

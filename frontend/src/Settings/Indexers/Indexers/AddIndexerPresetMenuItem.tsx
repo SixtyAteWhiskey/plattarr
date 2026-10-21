@@ -8,6 +8,7 @@ interface AddIndexerPresetMenuItemProps
   name: string;
   implementation: string;
   implementationName: string;
+  schemaName?: string;
   onPress: () => void;
 }
 
@@ -15,6 +16,7 @@ function AddIndexerPresetMenuItem({
   name,
   implementation,
   implementationName,
+  schemaName,
   onPress,
   ...otherProps
 }: AddIndexerPresetMenuItemProps) {
@@ -25,12 +27,13 @@ function AddIndexerPresetMenuItem({
       selectIndexerSchema({
         implementation,
         implementationName,
+        schemaName,
         presetName: name,
       })
     );
 
     onPress();
-  }, [name, implementation, implementationName, dispatch, onPress]);
+  }, [name, implementation, implementationName, schemaName, dispatch, onPress]);
 
   return (
     <MenuItem {...otherProps} onPress={handlePress}>
