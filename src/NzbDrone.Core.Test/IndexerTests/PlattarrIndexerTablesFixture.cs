@@ -10,15 +10,12 @@ using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.Newznab;
 using NzbDrone.Core.Indexers.Torznab;
 using NzbDrone.Core.Test.Framework;
-using LegacyIndexerDefinition = NzbDrone.Core.Movies.Indexers.Legacy.IndexerDefinition;
-using LegacyIndexerRepository = NzbDrone.Core.Movies.Indexers.Legacy.IndexerRepository;
-using LegacyNewznabSettings = NzbDrone.Core.Movies.Indexers.Legacy.Newznab.NewznabSettings;
 
 namespace NzbDrone.Core.Test.IndexerTests
 {
     // Porting step 6: Prowlarr's indexer layer stores its rows in the tables from migration 243
     // (PlattarrIndexers, PlattarrIndexerStatus, IndexerProxies, IndexerHistory,
-    // IndexerDefinitionVersions) beside the legacy movie indexer tables.
+    // IndexerDefinitionVersions). Step 8 gives the first two their plain names.
     [TestFixture]
     public class PlattarrIndexerTablesFixture : DbTest<IndexerRepository, IndexerDefinition>
     {
@@ -95,25 +92,6 @@ namespace NzbDrone.Core.Test.IndexerTests
         public void minimum_seeders_should_default_to_one()
         {
             new IndexerTorrentBaseSettings().MinimumSeeders.Should().Be(IndexerDefaults.MINIMUM_SEEDERS);
-        }
-
-        [Test]
-        public void should_keep_legacy_and_prowlarr_indexers_apart()
-        {
-            var legacyRepository = Mocker.Resolve<LegacyIndexerRepository>();
-            legacyRepository.Insert(new LegacyIndexerDefinition
-            {
-                Name = "Legacy",
-                Implementation = "Newznab",
-                ConfigContract = nameof(LegacyNewznabSettings),
-                EnableRss = true,
-                Settings = new LegacyNewznabSettings { BaseUrl = "https://legacy.example", ApiPath = "/api" }
-            });
-
-            Subject.Insert(NewznabDefinition("Example"));
-
-            legacyRepository.All().Single().Settings.Should().BeOfType<LegacyNewznabSettings>();
-            Subject.All().Single().Settings.Should().BeOfType<NewznabSettings>();
         }
 
         [Test]

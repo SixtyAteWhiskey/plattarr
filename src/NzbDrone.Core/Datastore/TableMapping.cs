@@ -33,7 +33,6 @@ using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.AlternativeTitles;
 using NzbDrone.Core.Movies.Collections;
 using NzbDrone.Core.Movies.Credits;
-using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Movies.Translations;
 using NzbDrone.Core.Notifications;
 using NzbDrone.Core.Organizer;
@@ -74,13 +73,6 @@ namespace NzbDrone.Core.Datastore
 
             Mapper.Entity<ScheduledTask>("ScheduledTasks").RegisterModel()
                   .Ignore(i => i.Priority);
-
-            Mapper.Entity<IndexerDefinition>("Indexers").RegisterModel()
-                  .Ignore(x => x.ImplementationName)
-                  .Ignore(i => i.Enable)
-                  .Ignore(i => i.Protocol)
-                  .Ignore(i => i.SupportsRss)
-                  .Ignore(i => i.SupportsSearch);
 
             Mapper.Entity<ImportListDefinition>("ImportLists").RegisterModel()
                   .Ignore(x => x.ImplementationName)
@@ -165,7 +157,6 @@ namespace NzbDrone.Core.Datastore
             Mapper.Entity<CommandModel>("Commands").RegisterModel()
                   .Ignore(c => c.Message);
 
-            Mapper.Entity<IndexerStatus>("IndexerStatus").RegisterModel();
             Mapper.Entity<DownloadClientStatus>("DownloadClientStatus").RegisterModel();
             Mapper.Entity<ImportListStatus>("ImportListStatus").RegisterModel();
             Mapper.Entity<NotificationStatus>("NotificationStatus").RegisterModel();
@@ -183,8 +174,9 @@ namespace NzbDrone.Core.Datastore
 
             Mapper.Entity<AutoTagging.AutoTag>("AutoTagging").RegisterModel();
 
-            // Prowlarr's indexer layer. Its indexer and status tables keep temporary names
-            // until porting step 8 collapses the migrations; the legacy layer owns the plain names.
+            // Prowlarr's indexer layer. Its indexer and status tables keep temporary names until
+            // porting step 8 collapses the migrations; Radarr's old Indexers and IndexerStatus
+            // tables are unmapped since step 7 and dropped in step 8.
             Mapper.Entity<Indexers.IndexerDefinition>("PlattarrIndexers").RegisterModel()
                   .Ignore(x => x.ImplementationName)
                   .Ignore(i => i.Description)

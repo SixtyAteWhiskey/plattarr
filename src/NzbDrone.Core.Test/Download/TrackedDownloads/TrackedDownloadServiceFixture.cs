@@ -8,15 +8,14 @@ using NzbDrone.Core.Download.History;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.History;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.Overrides;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Events;
-using NzbDrone.Core.Movies.Indexers.Legacy.TorrentRss;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
-using IIndexerFactory = NzbDrone.Core.Movies.Indexers.Legacy.IIndexerFactory;
-using IndexerDefinition = NzbDrone.Core.Movies.Indexers.Legacy.IndexerDefinition;
 
 namespace NzbDrone.Core.Test.Download.TrackedDownloads
 {
@@ -110,9 +109,11 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
             var indexerDefinition = new IndexerDefinition
             {
                 Id = 1,
-                Name = "MyIndexer (Prowlarr)",
-                Settings = new TorrentRssIndexerSettings { MultiLanguages = new List<int> { Language.Original.Id, Language.French.Id } }
+                Name = "MyIndexer (Prowlarr)"
             };
+            Mocker.GetMock<IIndexerOverrideService>()
+                .Setup(v => v.Get(indexerDefinition.Id, MediaKind.Movies))
+                .Returns(new IndexerOverride { IndexerId = indexerDefinition.Id, MediaKind = MediaKind.Movies, MultiLanguages = new List<int> { Language.Original.Id, Language.French.Id } });
             Mocker.GetMock<IIndexerFactory>()
                 .Setup(v => v.Get(indexerDefinition.Id))
                 .Returns(indexerDefinition);
