@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
 using NzbDrone.Core.CustomFormats;
+using NzbDrone.Core.Modules;
 using Radarr.Http.ClientSchema;
 using Radarr.Http.REST;
 
@@ -15,6 +16,10 @@ namespace Radarr.Api.V3.CustomFormats
         public string Name { get; set; }
         public bool? IncludeCustomFormatWhenRenaming { get; set; }
         public List<CustomFormatSpecificationSchema> Specifications { get; set; }
+
+        // Plattarr: media types the format scores; empty means all. Omitted by
+        // upstream Radarr clients, so null keeps the stored value on update.
+        public List<MediaKind> AppliesTo { get; set; }
     }
 
     public static class CustomFormatResourceMapper
@@ -31,6 +36,7 @@ namespace Radarr.Api.V3.CustomFormats
             {
                 resource.IncludeCustomFormatWhenRenaming = model.IncludeCustomFormatWhenRenaming;
                 resource.Specifications = model.Specifications.Select(x => x.ToSchema()).ToList();
+                resource.AppliesTo = model.AppliesTo;
             }
 
             return resource;
@@ -48,7 +54,8 @@ namespace Radarr.Api.V3.CustomFormats
                 Id = resource.Id,
                 Name = resource.Name,
                 IncludeCustomFormatWhenRenaming = resource.IncludeCustomFormatWhenRenaming ?? false,
-                Specifications = resource.Specifications?.Select(x => MapSpecification(x, specifications)).ToList() ?? new List<ICustomFormatSpecification>()
+                Specifications = resource.Specifications?.Select(x => MapSpecification(x, specifications)).ToList() ?? new List<ICustomFormatSpecification>(),
+                AppliesTo = resource.AppliesTo ?? new List<MediaKind>()
             };
         }
 

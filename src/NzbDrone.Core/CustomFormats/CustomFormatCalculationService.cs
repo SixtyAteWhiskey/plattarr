@@ -7,6 +7,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.History;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
@@ -50,12 +51,12 @@ namespace NzbDrone.Core.CustomFormats
 
         public List<CustomFormat> ParseCustomFormat(MovieFile movieFile, Movie movie)
         {
-            return ParseCustomFormat(movieFile, movie, _formatService.All());
+            return ParseCustomFormat(movieFile, movie, MovieFormats());
         }
 
         public List<CustomFormat> ParseCustomFormat(MovieFile movieFile)
         {
-            return ParseCustomFormat(movieFile, movieFile.Movie, _formatService.All());
+            return ParseCustomFormat(movieFile, movieFile.Movie, MovieFormats());
         }
 
         public List<CustomFormat> ParseCustomFormat(Blocklist blocklist, Movie movie)
@@ -146,7 +147,13 @@ namespace NzbDrone.Core.CustomFormats
 
         private List<CustomFormat> ParseCustomFormat(CustomFormatInput input)
         {
-            return ParseCustomFormat(input, _formatService.All());
+            return ParseCustomFormat(input, MovieFormats());
+        }
+
+        // Formats scoped to other media types never score a movie release or file.
+        private List<CustomFormat> MovieFormats()
+        {
+            return _formatService.All().Where(f => f.AppliesToKind(MediaKind.Movies)).ToList();
         }
 
         private static List<CustomFormat> ParseCustomFormat(CustomFormatInput input, List<CustomFormat> allCustomFormats)

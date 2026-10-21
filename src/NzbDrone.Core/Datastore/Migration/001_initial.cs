@@ -22,6 +22,8 @@ namespace NzbDrone.Core.Datastore.Migration
     // - History, DownloadHistory, Blocklist, and PendingReleases carry MediaKind
     //   (step 8c, docs/module-interface.md contract 6); their MovieId indexes
     //   lead with it.
+    // - QualityProfiles and CustomFormats carry AppliesTo, a JSON list of media
+    //   types; empty means all (step 8d2, docs/catalogs.md).
     // - SQLite gets the column defaults and unique constraints Postgres had;
     //   upstream table rebuilds on SQLite had dropped some defaults, and SQLite
     //   kept unique constraints Postgres had dropped.
@@ -202,12 +204,14 @@ namespace NzbDrone.Core.Datastore.Migration
                 .WithColumn("UpgradeAllowed").AsBoolean().Nullable()
                 .WithColumn("MinFormatScore").AsInt32().WithDefaultValue(0)
                 .WithColumn("CutoffFormatScore").AsInt32().WithDefaultValue(0)
-                .WithColumn("MinUpgradeFormatScore").AsInt32().WithDefaultValue(1);
+                .WithColumn("MinUpgradeFormatScore").AsInt32().WithDefaultValue(1)
+                .WithColumn("AppliesTo").AsString().WithDefaultValue("[]");
 
             Create.TableForModel("CustomFormats")
                 .WithColumn("Name").AsString().Unique()
                 .WithColumn("Specifications").AsString().WithDefaultValue("[]")
-                .WithColumn("IncludeCustomFormatWhenRenaming").AsBoolean().WithDefaultValue(false);
+                .WithColumn("IncludeCustomFormatWhenRenaming").AsBoolean().WithDefaultValue(false)
+                .WithColumn("AppliesTo").AsString().WithDefaultValue("[]");
 
             Create.TableForModel("DelayProfiles")
                 .WithColumn("EnableUsenet").AsBoolean()

@@ -1,4 +1,5 @@
 ﻿using FluentValidation.Validators;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Profiles.Qualities;
 
 namespace NzbDrone.Core.Validation
@@ -12,7 +13,9 @@ namespace NzbDrone.Core.Validation
             _qualityProfileService = qualityProfileService;
         }
 
-        protected override string GetDefaultMessageTemplate() => "Quality Profile does not exist";
+        // Every user of this validator assigns a profile to movies, so a profile
+        // scoped to other media types counts as missing.
+        protected override string GetDefaultMessageTemplate() => "Quality Profile does not exist or does not apply to movies";
 
         protected override bool IsValid(PropertyValidatorContext context)
         {
@@ -21,7 +24,9 @@ namespace NzbDrone.Core.Validation
                 return true;
             }
 
-            return _qualityProfileService.Exists((int)context.PropertyValue);
+            var id = (int)context.PropertyValue;
+
+            return _qualityProfileService.Exists(id) && _qualityProfileService.Get(id).AppliesToKind(MediaKind.Movies);
         }
     }
 }
