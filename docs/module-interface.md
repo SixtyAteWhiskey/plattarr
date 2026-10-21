@@ -787,10 +787,16 @@ As built in step 8a: `001_initial` reproduces the schema Radarr's migrations 1
 to 242 plus Plattarr's 243 and 244 produced on Postgres, with Radarr's legacy
 indexer tables dropped and Prowlarr's under the plain names `Indexers` and
 `IndexerStatus`. The maintenance check `PreviousSchemaCheck` refuses a
-database whose version 1 is upstream's `initial_setup`. `Movies_` prefixes,
-`MediaKind` on activity tables, and the global catalogs follow in later step 8
-commits, each edited into `001_initial` while no Plattarr database outside dev
-exists.
+database whose version 1 is upstream's `initial_setup`. `MediaKind` on
+activity tables and the global catalogs follow in later step 8 commits, each
+edited into `001_initial` while no Plattarr database outside dev exists.
+
+Step 8b: the 16 movie-owned tables carry the `Movies_` prefix in full
+(`Movies_Movies`, `Movies_MovieFiles`, `Movies_RootFolders`, ...), so an
+upstream raw SQL fix ports by adding the prefix. Shared: activity tables,
+import list exclusions, delay and release profiles, and every core table.
+API sort keys keep upstream's table names (`movieMetadata.sortTitle`);
+`TableMapper` resolves them through `ModuleTablePrefixes`.
 
 ### Compatibility APIs
 

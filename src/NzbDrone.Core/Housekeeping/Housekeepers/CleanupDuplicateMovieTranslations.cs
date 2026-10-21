@@ -16,9 +16,9 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
         {
             using var mapper = _database.OpenConnection();
 
-            mapper.Execute(@"DELETE FROM ""MovieTranslations""
+            mapper.Execute(@"DELETE FROM ""Movies_MovieTranslations""
             WHERE ""Id"" IN (
-                SELECT MAX(""Id"") FROM ""MovieTranslations""
+                SELECT MAX(""Id"") FROM ""Movies_MovieTranslations""
                 GROUP BY ""MovieMetadataId"", ""Language""
                 HAVING COUNT(""Id"") > 1
             )");

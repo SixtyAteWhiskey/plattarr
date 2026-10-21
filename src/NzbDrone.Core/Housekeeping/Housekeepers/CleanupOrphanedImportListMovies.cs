@@ -22,24 +22,24 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
         {
             using var mapper = _database.OpenConnection();
 
-            mapper.Execute(@"DELETE FROM ""ImportListMovies""
+            mapper.Execute(@"DELETE FROM ""Movies_ImportListMovies""
                                  WHERE ""Id"" IN (
-                                 SELECT ""ImportListMovies"".""Id""
-                                 FROM ""ImportListMovies""
-                                 LEFT OUTER JOIN ""ImportLists"" ON ""ImportListMovies"".""ListId"" = ""ImportLists"".""Id""
-                                 WHERE ""ImportLists"".""Id"" IS NULL)");
+                                 SELECT ""Movies_ImportListMovies"".""Id""
+                                 FROM ""Movies_ImportListMovies""
+                                 LEFT OUTER JOIN ""Movies_ImportLists"" ON ""Movies_ImportListMovies"".""ListId"" = ""Movies_ImportLists"".""Id""
+                                 WHERE ""Movies_ImportLists"".""Id"" IS NULL)");
         }
 
         private void CleanupOrphanedByMovieMetadata()
         {
             using var mapper = _database.OpenConnection();
 
-            mapper.Execute(@"DELETE FROM ""ImportListMovies""
+            mapper.Execute(@"DELETE FROM ""Movies_ImportListMovies""
                                  WHERE ""Id"" IN (
-                                 SELECT ""ImportListMovies"".""Id""
-                                 FROM ""ImportListMovies""
-                                 LEFT OUTER JOIN ""MovieMetadata"" ON ""ImportListMovies"".""MovieMetadataId"" = ""MovieMetadata"".""Id""
-                                 WHERE ""MovieMetadata"".""Id"" IS NULL)");
+                                 SELECT ""Movies_ImportListMovies"".""Id""
+                                 FROM ""Movies_ImportListMovies""
+                                 LEFT OUTER JOIN ""Movies_MovieMetadata"" ON ""Movies_ImportListMovies"".""MovieMetadataId"" = ""Movies_MovieMetadata"".""Id""
+                                 WHERE ""Movies_MovieMetadata"".""Id"" IS NULL)");
         }
     }
 }

@@ -37,7 +37,7 @@ namespace NzbDrone.Core.Test.Datastore
         {
             _subject = Where(x => x.Id == 10);
 
-            _subject.ToString().Should().Be($"(\"Movies\".\"Id\" = @Clause1_P1)");
+            _subject.ToString().Should().Be($"(\"Movies_Movies\".\"Id\" = @Clause1_P1)");
             _subject.Parameters.Get<int>("Clause1_P1").Should().Be(10);
         }
 
@@ -47,7 +47,7 @@ namespace NzbDrone.Core.Test.Datastore
             var id = 10;
             _subject = Where(x => x.Id == id);
 
-            _subject.ToString().Should().Be($"(\"Movies\".\"Id\" = @Clause1_P1)");
+            _subject.ToString().Should().Be($"(\"Movies_Movies\".\"Id\" = @Clause1_P1)");
             _subject.Parameters.Get<int>("Clause1_P1").Should().Be(id);
         }
 
@@ -58,7 +58,7 @@ namespace NzbDrone.Core.Test.Datastore
             _subject = Where(x => x.Id == movie.Id);
 
             _subject.Parameters.ParameterNames.Should().HaveCount(1);
-            _subject.ToString().Should().Be($"(\"Movies\".\"Id\" = @Clause1_P1)");
+            _subject.ToString().Should().Be($"(\"Movies_Movies\".\"Id\" = @Clause1_P1)");
             _subject.Parameters.Get<int>("Clause1_P1").Should().Be(movie.Id);
         }
 
@@ -85,7 +85,7 @@ namespace NzbDrone.Core.Test.Datastore
         {
             Expression<Func<Movie, Movie, bool>> filter = (x, y) => x.Id == y.Id;
             _subject = new WhereBuilderPostgres(filter, false, 0);
-            _subject.ToString().Should().Be($"(\"Movies\".\"Id\" = \"Movies\".\"Id\")");
+            _subject.ToString().Should().Be($"(\"Movies_Movies\".\"Id\" = \"Movies_Movies\".\"Id\")");
         }
 
         [Test]
@@ -93,7 +93,7 @@ namespace NzbDrone.Core.Test.Datastore
         {
             _subject = WhereMeta(x => x.CleanTitle == null);
 
-            _subject.ToString().Should().Be($"(\"MovieMetadata\".\"CleanTitle\" IS NULL)");
+            _subject.ToString().Should().Be($"(\"Movies_MovieMetadata\".\"CleanTitle\" IS NULL)");
         }
 
         [Test]
@@ -102,7 +102,7 @@ namespace NzbDrone.Core.Test.Datastore
             string cleanTitle = null;
             _subject = WhereMeta(x => x.CleanTitle == cleanTitle);
 
-            _subject.ToString().Should().Be($"(\"MovieMetadata\".\"CleanTitle\" IS NULL)");
+            _subject.ToString().Should().Be($"(\"Movies_MovieMetadata\".\"CleanTitle\" IS NULL)");
         }
 
         [Test]
@@ -111,7 +111,7 @@ namespace NzbDrone.Core.Test.Datastore
             var movie = new MovieMetadata { CleanTitle = null };
             _subject = WhereMeta(x => x.CleanTitle == movie.CleanTitle);
 
-            _subject.ToString().Should().Be($"(\"MovieMetadata\".\"CleanTitle\" IS NULL)");
+            _subject.ToString().Should().Be($"(\"Movies_MovieMetadata\".\"CleanTitle\" IS NULL)");
         }
 
         [Test]
@@ -120,7 +120,7 @@ namespace NzbDrone.Core.Test.Datastore
             var test = "small";
             _subject = WhereMeta(x => x.CleanTitle.Contains(test));
 
-            _subject.ToString().Should().Be($"(\"MovieMetadata\".\"CleanTitle\" ILIKE '%' || @Clause1_P1 || '%')");
+            _subject.ToString().Should().Be($"(\"Movies_MovieMetadata\".\"CleanTitle\" ILIKE '%' || @Clause1_P1 || '%')");
             _subject.Parameters.Get<string>("Clause1_P1").Should().Be(test);
         }
 
@@ -130,7 +130,7 @@ namespace NzbDrone.Core.Test.Datastore
             var test = "small";
             _subject = WhereMeta(x => test.Contains(x.CleanTitle));
 
-            _subject.ToString().Should().Be($"(@Clause1_P1 ILIKE '%' || \"MovieMetadata\".\"CleanTitle\" || '%')");
+            _subject.ToString().Should().Be($"(@Clause1_P1 ILIKE '%' || \"Movies_MovieMetadata\".\"CleanTitle\" || '%')");
             _subject.Parameters.Get<string>("Clause1_P1").Should().Be(test);
         }
 
@@ -140,7 +140,7 @@ namespace NzbDrone.Core.Test.Datastore
             var test = "small";
             _subject = WhereMeta(x => x.CleanTitle.StartsWith(test));
 
-            _subject.ToString().Should().Be($"(\"MovieMetadata\".\"CleanTitle\" ILIKE @Clause1_P1 || '%')");
+            _subject.ToString().Should().Be($"(\"Movies_MovieMetadata\".\"CleanTitle\" ILIKE @Clause1_P1 || '%')");
             _subject.Parameters.Get<string>("Clause1_P1").Should().Be(test);
         }
 
@@ -150,7 +150,7 @@ namespace NzbDrone.Core.Test.Datastore
             var test = "small";
             _subject = WhereMeta(x => x.CleanTitle.EndsWith(test));
 
-            _subject.ToString().Should().Be($"(\"MovieMetadata\".\"CleanTitle\" ILIKE '%' || @Clause1_P1)");
+            _subject.ToString().Should().Be($"(\"Movies_MovieMetadata\".\"CleanTitle\" ILIKE '%' || @Clause1_P1)");
             _subject.Parameters.Get<string>("Clause1_P1").Should().Be(test);
         }
 
@@ -160,7 +160,7 @@ namespace NzbDrone.Core.Test.Datastore
             var list = new List<int> { 1, 2, 3 };
             _subject = Where(x => list.Contains(x.Id));
 
-            _subject.ToString().Should().Be($"(\"Movies\".\"Id\" = ANY (('{{1, 2, 3}}')))");
+            _subject.ToString().Should().Be($"(\"Movies_Movies\".\"Id\" = ANY (('{{1, 2, 3}}')))");
         }
 
         [Test]
@@ -169,7 +169,7 @@ namespace NzbDrone.Core.Test.Datastore
             var list = new List<int> { 1, 2, 3 };
             _subject = WhereMeta(x => x.CleanTitle == "test" && list.Contains(x.Id));
 
-            _subject.ToString().Should().Be($"((\"MovieMetadata\".\"CleanTitle\" = @Clause1_P1) AND (\"MovieMetadata\".\"Id\" = ANY (('{{1, 2, 3}}'))))");
+            _subject.ToString().Should().Be($"((\"Movies_MovieMetadata\".\"CleanTitle\" = @Clause1_P1) AND (\"Movies_MovieMetadata\".\"Id\" = ANY (('{{1, 2, 3}}'))))");
         }
 
         [Test]
@@ -179,7 +179,7 @@ namespace NzbDrone.Core.Test.Datastore
 
             _subject = WhereMeta(x => list.Contains(x.CleanTitle));
 
-            _subject.ToString().Should().Be($"(\"MovieMetadata\".\"CleanTitle\" = ANY (@Clause1_P1))");
+            _subject.ToString().Should().Be($"(\"Movies_MovieMetadata\".\"CleanTitle\" = ANY (@Clause1_P1))");
         }
 
         [Test]
@@ -187,7 +187,7 @@ namespace NzbDrone.Core.Test.Datastore
         {
             _subject = WhereMeta(x => x.Status == MovieStatusType.Announced);
 
-            _subject.ToString().Should().Be($"(\"MovieMetadata\".\"Status\" = @Clause1_P1)");
+            _subject.ToString().Should().Be($"(\"Movies_MovieMetadata\".\"Status\" = @Clause1_P1)");
         }
 
         [Test]
@@ -196,7 +196,7 @@ namespace NzbDrone.Core.Test.Datastore
             var allowed = new List<MovieStatusType> { MovieStatusType.Announced, MovieStatusType.InCinemas };
             _subject = WhereMeta(x => allowed.Contains(x.Status));
 
-            _subject.ToString().Should().Be($"(\"MovieMetadata\".\"Status\" = ANY (@Clause1_P1))");
+            _subject.ToString().Should().Be($"(\"Movies_MovieMetadata\".\"Status\" = ANY (@Clause1_P1))");
         }
 
         [Test]
@@ -205,7 +205,7 @@ namespace NzbDrone.Core.Test.Datastore
             var allowed = new MovieStatusType[] { MovieStatusType.Announced, MovieStatusType.InCinemas };
             _subject = WhereMeta(x => allowed.Contains(x.Status));
 
-            _subject.ToString().Should().Be($"(\"MovieMetadata\".\"Status\" = ANY (@Clause1_P1))");
+            _subject.ToString().Should().Be($"(\"Movies_MovieMetadata\".\"Status\" = ANY (@Clause1_P1))");
         }
     }
 }

@@ -15,13 +15,13 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
         public void Clean()
         {
             using var mapper = _database.OpenConnection();
-            mapper.Execute(@"DELETE FROM ""MovieMetadata""
+            mapper.Execute(@"DELETE FROM ""Movies_MovieMetadata""
                              WHERE ""Id"" IN (
-                             SELECT ""MovieMetadata"".""Id"" FROM ""MovieMetadata""
-                             LEFT OUTER JOIN ""Movies"" ON ""Movies"".""MovieMetadataId"" = ""MovieMetadata"".""Id""
-                             LEFT OUTER JOIN ""Collections"" ON ""Collections"".""TmdbId"" = ""MovieMetadata"".""CollectionTmdbId""
-                             LEFT OUTER JOIN ""ImportListMovies"" ON ""ImportListMovies"".""MovieMetadataId"" = ""MovieMetadata"".""Id""
-                             WHERE ""Movies"".""Id"" IS NULL AND ""ImportListMovies"".""Id"" IS NULL AND ""Collections"".""Id"" IS NULL)");
+                             SELECT ""Movies_MovieMetadata"".""Id"" FROM ""Movies_MovieMetadata""
+                             LEFT OUTER JOIN ""Movies_Movies"" ON ""Movies_Movies"".""MovieMetadataId"" = ""Movies_MovieMetadata"".""Id""
+                             LEFT OUTER JOIN ""Movies_Collections"" ON ""Movies_Collections"".""TmdbId"" = ""Movies_MovieMetadata"".""CollectionTmdbId""
+                             LEFT OUTER JOIN ""Movies_ImportListMovies"" ON ""Movies_ImportListMovies"".""MovieMetadataId"" = ""Movies_MovieMetadata"".""Id""
+                             WHERE ""Movies_Movies"".""Id"" IS NULL AND ""Movies_ImportListMovies"".""Id"" IS NULL AND ""Movies_Collections"".""Id"" IS NULL)");
         }
     }
 }

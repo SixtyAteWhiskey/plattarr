@@ -23,9 +23,9 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
             mapper.Execute(@"DELETE FROM ""History""
                              WHERE ""Id"" IN (
                              SELECT ""History"".""Id"" FROM ""History""
-                             LEFT OUTER JOIN ""Movies""
-                             ON ""History"".""MovieId"" = ""Movies"".""Id""
-                             WHERE ""Movies"".""Id"" IS NULL)");
+                             LEFT OUTER JOIN ""Movies_Movies""
+                             ON ""History"".""MovieId"" = ""Movies_Movies"".""Id""
+                             WHERE ""Movies_Movies"".""Id"" IS NULL)");
         }
     }
 }

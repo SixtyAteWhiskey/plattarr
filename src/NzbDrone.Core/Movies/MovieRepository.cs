@@ -285,7 +285,7 @@ namespace NzbDrone.Core.Movies
             {
                 foreach (var belowCutoff in profile.QualityIds)
                 {
-                    clauses.Add(string.Format($"(\"{_table}\".\"QualityProfileId\" = {profile.ProfileId} AND \"MovieFiles\".\"Quality\" LIKE '%_quality_: {belowCutoff},%')"));
+                    clauses.Add(string.Format($"(\"{_table}\".\"QualityProfileId\" = {profile.ProfileId} AND \"Movies_MovieFiles\".\"Quality\" LIKE '%_quality_: {belowCutoff},%')"));
                 }
             }
 
@@ -301,7 +301,7 @@ namespace NzbDrone.Core.Movies
         {
             using (var conn = _database.OpenConnection())
             {
-                var strSql = "SELECT \"Id\" AS \"Key\", \"Path\" AS \"Value\" FROM \"Movies\"";
+                var strSql = "SELECT \"Id\" AS \"Key\", \"Path\" AS \"Value\" FROM \"Movies_Movies\"";
                 return conn.Query<KeyValuePair<int, string>>(strSql).ToDictionary(x => x.Key, x => x.Value);
             }
         }
@@ -310,7 +310,7 @@ namespace NzbDrone.Core.Movies
         {
             using (var conn = _database.OpenConnection())
             {
-                return conn.Query<int>("SELECT \"TmdbId\" FROM \"MovieMetadata\" JOIN \"Movies\" ON (\"Movies\".\"MovieMetadataId\" = \"MovieMetadata\".\"Id\")").ToList();
+                return conn.Query<int>("SELECT \"TmdbId\" FROM \"Movies_MovieMetadata\" JOIN \"Movies_Movies\" ON (\"Movies_Movies\".\"MovieMetadataId\" = \"Movies_MovieMetadata\".\"Id\")").ToList();
             }
         }
 
@@ -318,7 +318,7 @@ namespace NzbDrone.Core.Movies
         {
             using (var conn = _database.OpenConnection())
             {
-                var strSql = "SELECT \"Id\" AS \"Key\", \"Tags\" AS \"Value\" FROM \"Movies\" WHERE \"Tags\" IS NOT NULL";
+                var strSql = "SELECT \"Id\" AS \"Key\", \"Tags\" AS \"Value\" FROM \"Movies_Movies\" WHERE \"Tags\" IS NOT NULL";
                 return conn.Query<KeyValuePair<int, List<int>>>(strSql).ToDictionary(x => x.Key, x => x.Value);
             }
         }
@@ -339,14 +339,14 @@ namespace NzbDrone.Core.Movies
                     recommendations = conn.Query<int>(@"SELECT DISTINCT ""Rec"" FROM (
                                                     SELECT DISTINCT ""Rec"" FROM
                                                     (
-                                                    SELECT DISTINCT CAST(""value"" AS INT) AS ""Rec"" FROM ""MovieMetadata"" JOIN ""Movies"" ON ""Movies"".""MovieMetadataId"" = ""MovieMetadata"".""Id"", json_array_elements_text((""MovieMetadata"".""Recommendations"")::json)
-                                                    WHERE CAST(""value"" AS INT) NOT IN (SELECT ""TmdbId"" FROM ""MovieMetadata"" union SELECT ""TmdbId"" from ""ImportExclusions"" as sub1) LIMIT 10
+                                                    SELECT DISTINCT CAST(""value"" AS INT) AS ""Rec"" FROM ""Movies_MovieMetadata"" JOIN ""Movies_Movies"" ON ""Movies_Movies"".""MovieMetadataId"" = ""Movies_MovieMetadata"".""Id"", json_array_elements_text((""Movies_MovieMetadata"".""Recommendations"")::json)
+                                                    WHERE CAST(""value"" AS INT) NOT IN (SELECT ""TmdbId"" FROM ""Movies_MovieMetadata"" union SELECT ""TmdbId"" from ""ImportExclusions"" as sub1) LIMIT 10
                                                     ) as sub2
                                                     UNION
                                                     SELECT ""Rec"" FROM
                                                     (
-                                                    SELECT CAST(""value"" AS INT) AS ""Rec"" FROM ""MovieMetadata"" JOIN ""Movies"" ON ""Movies"".""MovieMetadataId"" = ""MovieMetadata"".""Id"", json_array_elements_text((""MovieMetadata"".""Recommendations"")::json)
-                                                    WHERE CAST(""value"" AS INT) NOT IN (SELECT ""TmdbId"" FROM ""MovieMetadata"" union SELECT ""TmdbId"" from ""ImportExclusions"" as sub2)
+                                                    SELECT CAST(""value"" AS INT) AS ""Rec"" FROM ""Movies_MovieMetadata"" JOIN ""Movies_Movies"" ON ""Movies_Movies"".""MovieMetadataId"" = ""Movies_MovieMetadata"".""Id"", json_array_elements_text((""Movies_MovieMetadata"".""Recommendations"")::json)
+                                                    WHERE CAST(""value"" AS INT) NOT IN (SELECT ""TmdbId"" FROM ""Movies_MovieMetadata"" union SELECT ""TmdbId"" from ""ImportExclusions"" as sub2)
                                                     GROUP BY ""Rec"" ORDER BY count(*) DESC LIMIT 120
                                                     ) as sub4
                                                     ) as sub5
@@ -357,16 +357,16 @@ namespace NzbDrone.Core.Movies
                     recommendations = conn.Query<int>(@"SELECT DISTINCT ""Rec"" FROM (
                                                     SELECT DISTINCT ""Rec"" FROM
                                                     (
-                                                    SELECT DISTINCT CAST(""j"".""value"" AS INT) AS ""Rec"" FROM ""MovieMetadata"" JOIN ""Movies"" ON ""Movies"".""MovieMetadataId"" == ""MovieMetadata"".""Id""
-                                                    CROSS JOIN json_each(""MovieMetadata"".""Recommendations"") AS ""j""
-                                                    WHERE ""Rec"" NOT IN (SELECT ""TmdbId"" FROM ""MovieMetadata"" union SELECT ""TmdbId"" from ""ImportExclusions"") LIMIT 10
+                                                    SELECT DISTINCT CAST(""j"".""value"" AS INT) AS ""Rec"" FROM ""Movies_MovieMetadata"" JOIN ""Movies_Movies"" ON ""Movies_Movies"".""MovieMetadataId"" == ""Movies_MovieMetadata"".""Id""
+                                                    CROSS JOIN json_each(""Movies_MovieMetadata"".""Recommendations"") AS ""j""
+                                                    WHERE ""Rec"" NOT IN (SELECT ""TmdbId"" FROM ""Movies_MovieMetadata"" union SELECT ""TmdbId"" from ""ImportExclusions"") LIMIT 10
                                                     )
                                                     UNION
                                                     SELECT ""Rec"" FROM
                                                     (
-                                                    SELECT CAST(""j"".""value"" AS INT) AS ""Rec"" FROM ""MovieMetadata"" JOIN ""Movies"" ON ""Movies"".""MovieMetadataId"" == ""MovieMetadata"".""Id""
-                                                    CROSS JOIN json_each(""MovieMetadata"".""Recommendations"") AS ""j""
-                                                    WHERE ""Rec"" NOT IN (SELECT ""TmdbId"" FROM ""MovieMetadata"" union SELECT ""TmdbId"" from ""ImportExclusions"")
+                                                    SELECT CAST(""j"".""value"" AS INT) AS ""Rec"" FROM ""Movies_MovieMetadata"" JOIN ""Movies_Movies"" ON ""Movies_Movies"".""MovieMetadataId"" == ""Movies_MovieMetadata"".""Id""
+                                                    CROSS JOIN json_each(""Movies_MovieMetadata"".""Recommendations"") AS ""j""
+                                                    WHERE ""Rec"" NOT IN (SELECT ""TmdbId"" FROM ""Movies_MovieMetadata"" union SELECT ""TmdbId"" from ""ImportExclusions"")
                                                     GROUP BY ""Rec"" ORDER BY count(*) DESC LIMIT 120
                                                     )
                                                     )
@@ -386,7 +386,7 @@ namespace NzbDrone.Core.Movies
         {
             using var conn = _database.OpenConnection();
 
-            return conn.Query<int>("SELECT \"TmdbId\" FROM \"MovieMetadata\" JOIN \"Movies\" ON (\"Movies\".\"MovieMetadataId\" = \"MovieMetadata\".\"Id\") WHERE \"CollectionTmdbId\" > 0").ToHashSet();
+            return conn.Query<int>("SELECT \"TmdbId\" FROM \"Movies_MovieMetadata\" JOIN \"Movies_Movies\" ON (\"Movies_Movies\".\"MovieMetadataId\" = \"Movies_MovieMetadata\".\"Id\") WHERE \"CollectionTmdbId\" > 0").ToHashSet();
         }
     }
 }

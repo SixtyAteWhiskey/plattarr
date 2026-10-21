@@ -15,11 +15,11 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
         {
             /*var mapper = _database.GetDataMapper();
 
-            mapper.Execute(@"UPDATE ""Movies""
+            mapper.Execute(@"UPDATE ""Movies_Movies""
                 SET ""MovieFileId"" =
-                (Select ""Id"" FROM ""MovieFiles"" WHERE ""Movies"".""Id"" == ""MovieFiles"".""MovieId"")
+                (Select ""Id"" FROM ""Movies_MovieFiles"" WHERE ""Movies_Movies"".""Id"" == ""Movies_MovieFiles"".""MovieId"")
                 WHERE ""MovieFileId"" !=
-                (SELECT ""Id"" FROM ""MovieFiles"" WHERE ""Movies"".""Id"" == ""MovieFiles"".""MovieId"")");*/
+                (SELECT ""Id"" FROM ""Movies_MovieFiles"" WHERE ""Movies_Movies"".""Id"" == ""Movies_MovieFiles"".""MovieId"")");*/
         }
     }
 }

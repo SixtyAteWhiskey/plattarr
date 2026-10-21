@@ -15,9 +15,9 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
         public void Clean()
         {
             using var mapper = _database.OpenConnection();
-            mapper.Execute(@"DELETE FROM ""NamingConfig""
+            mapper.Execute(@"DELETE FROM ""Movies_NamingConfig""
                              WHERE ""Id"" NOT IN (
-                             SELECT ""Id"" FROM ""NamingConfig""
+                             SELECT ""Id"" FROM ""Movies_NamingConfig""
                              LIMIT 1)");
         }
     }
