@@ -49,7 +49,8 @@ namespace NzbDrone.Core.Test.Datastore
         [Test]
         public void should_refuse_an_upstream_database()
         {
-            GivenVersionInfo(1, PreviousSchemaCheck.UpstreamInitialDescription);
+            // Radarr's and pre-step-8 Plattarr's first row, as stored on plattarr-dev.
+            GivenVersionInfo(1, "InitialSetup");
             GivenVersionInfo(244, "add_indexer_overrides");
 
             Action act = Migrate;
@@ -57,6 +58,19 @@ namespace NzbDrone.Core.Test.Datastore
             act.Should().Throw<Exception>()
                .Where(e => e is PreviousSchemaException || e.InnerException is PreviousSchemaException)
                .And.ToString().Should().Contain("schema version 244");
+        }
+
+        [TestCase("InitialSetup")]
+        [TestCase("initial_setup")]
+        [TestCase("SomethingElse")]
+        public void should_refuse_any_version_1_that_is_not_plattarrs(string description)
+        {
+            GivenVersionInfo(1, description);
+
+            Action act = Migrate;
+
+            act.Should().Throw<Exception>()
+               .Where(e => e is PreviousSchemaException || e.InnerException is PreviousSchemaException);
         }
 
         [Test]
