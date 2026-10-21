@@ -1,10 +1,11 @@
 using NLog;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Parser.Model;
 
-namespace NzbDrone.Core.DecisionEngine.Specifications
+namespace NzbDrone.Core.DecisionEngine.ReleaseSpecifications
 {
-    public class TorrentSeedingSpecification : IDownloadDecisionEngineSpecification
+    public class TorrentSeedingSpecification : IReleaseSpecification
     {
         private readonly ICachedIndexerSettingsProvider _cachedIndexerSettingsProvider;
         private readonly Logger _logger;
@@ -18,7 +19,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         public SpecificationPriority Priority => SpecificationPriority.Default;
         public RejectionType Type => RejectionType.Permanent;
 
-        public DownloadSpecDecision IsSatisfiedBy(RemoteMovie subject, ReleaseDecisionInformation information)
+        public DownloadSpecDecision IsSatisfiedBy(RemoteRelease subject, ReleaseDecisionInformation information)
         {
             var torrentInfo = subject.Release as TorrentInfo;
 

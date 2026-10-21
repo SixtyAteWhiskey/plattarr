@@ -1,11 +1,11 @@
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
 
-namespace NzbDrone.Core.DecisionEngine.Specifications
+namespace NzbDrone.Core.DecisionEngine.ReleaseSpecifications
 {
-    public class MaximumSizeSpecification : IDownloadDecisionEngineSpecification
+    public class MaximumSizeSpecification : IReleaseSpecification
     {
         private readonly IConfigService _configService;
         private readonly Logger _logger;
@@ -19,7 +19,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         public SpecificationPriority Priority => SpecificationPriority.Default;
         public RejectionType Type => RejectionType.Permanent;
 
-        public DownloadSpecDecision IsSatisfiedBy(RemoteMovie subject, ReleaseDecisionInformation information)
+        public DownloadSpecDecision IsSatisfiedBy(RemoteRelease subject, ReleaseDecisionInformation information)
         {
             var size = subject.Release.Size.GetValueOrDefault();
             var maximumSize = _configService.MaximumSize.Megabytes();

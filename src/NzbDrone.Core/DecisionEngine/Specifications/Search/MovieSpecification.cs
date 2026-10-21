@@ -1,4 +1,5 @@
 using NLog;
+using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications.Search
@@ -17,12 +18,14 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.Search
 
         public DownloadSpecDecision IsSatisfiedBy(RemoteMovie subject, ReleaseDecisionInformation information)
         {
-            var searchCriteria = information.SearchCriteria;
-
-            if (searchCriteria == null)
+            if (information.SearchCriteria == null)
             {
                 return DownloadSpecDecision.Accept();
             }
+
+            // The movie decision maker only receives movie requests; anything else is a routing bug,
+            // and the cast failure becomes a DecisionError rejection instead of a silent accept.
+            var searchCriteria = (MovieSearchRequest)information.SearchCriteria;
 
             _logger.Debug("Checking if movie matches searched movie");
 

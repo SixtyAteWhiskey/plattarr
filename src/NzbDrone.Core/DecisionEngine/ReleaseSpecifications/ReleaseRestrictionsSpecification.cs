@@ -2,12 +2,12 @@ using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Profiles.Releases;
 
-namespace NzbDrone.Core.DecisionEngine.Specifications
+namespace NzbDrone.Core.DecisionEngine.ReleaseSpecifications
 {
-    public class ReleaseRestrictionsSpecification : IDownloadDecisionEngineSpecification
+    public class ReleaseRestrictionsSpecification : IReleaseSpecification
     {
         private readonly Logger _logger;
         private readonly IReleaseProfileService _releaseProfileService;
@@ -23,12 +23,12 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         public SpecificationPriority Priority => SpecificationPriority.Default;
         public RejectionType Type => RejectionType.Permanent;
 
-        public virtual DownloadSpecDecision IsSatisfiedBy(RemoteMovie subject, ReleaseDecisionInformation information)
+        public virtual DownloadSpecDecision IsSatisfiedBy(RemoteRelease subject, ReleaseDecisionInformation information)
         {
             _logger.Debug("Checking if release meets restrictions: {0}", subject);
 
             var title = subject.Release.Title;
-            var releaseProfiles = _releaseProfileService.EnabledForTags(subject.Movie.Tags, subject.Release.IndexerId);
+            var releaseProfiles = _releaseProfileService.EnabledForTags(subject.Parent.Tags, subject.Release.IndexerId);
 
             var required = releaseProfiles.Where(r => r.Required.Any());
             var ignored = releaseProfiles.Where(r => r.Ignored.Any());
