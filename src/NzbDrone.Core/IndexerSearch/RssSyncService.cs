@@ -14,19 +14,19 @@ namespace NzbDrone.Core.IndexerSearch
     {
         private readonly IIndexerReleaseFetcher _releaseFetcher;
         private readonly IIndexerCategoryService _indexerCategoryService;
-        private readonly List<IReleaseMatcher> _matchers;
+        private readonly List<IMediaModule> _modules;
         private readonly List<IRssReleaseHandler> _handlers;
         private readonly Logger _logger;
 
         public RssSyncService(IIndexerReleaseFetcher releaseFetcher,
                               IIndexerCategoryService indexerCategoryService,
-                              IEnumerable<IReleaseMatcher> matchers,
+                              IEnumerable<IMediaModule> modules,
                               IEnumerable<IRssReleaseHandler> handlers,
                               Logger logger)
         {
             _releaseFetcher = releaseFetcher;
             _indexerCategoryService = indexerCategoryService;
-            _matchers = matchers.ToList();
+            _modules = modules.ToList();
             _handlers = handlers.ToList();
             _logger = logger;
         }
@@ -40,15 +40,15 @@ namespace NzbDrone.Core.IndexerSearch
         {
             _logger.ProgressInfo("Starting RSS Sync");
 
-            var matchers = _matchers.Where(m => _handlers.Any(h => h.Kind == m.Kind)).ToList();
+            var kinds = _modules.Select(m => m.Kind).Where(k => _handlers.Any(h => h.Kind == k)).ToList();
 
-            var releases = await _releaseFetcher.FetchRss(matchers);
+            var releases = await _releaseFetcher.FetchRss(kinds);
 
-            foreach (var matcher in matchers)
+            foreach (var kind in kinds)
             {
-                var routed = releases.Where(r => _indexerCategoryService.BelongsTo(r, matcher)).ToList();
+                var routed = releases.Where(r => _indexerCategoryService.BelongsTo(r, kind)).ToList();
 
-                foreach (var handler in _handlers.Where(h => h.Kind == matcher.Kind))
+                foreach (var handler in _handlers.Where(h => h.Kind == kind))
                 {
                     await handler.Process(routed);
                 }

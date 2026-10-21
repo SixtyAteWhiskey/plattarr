@@ -10,15 +10,13 @@ using NzbDrone.Core.Configuration.Events;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.Housekeeping;
-using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.IndexerHistory;
 using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.IndexerVersions;
 using NzbDrone.Core.Lifecycle;
-using NzbDrone.Core.MediaFiles.Commands;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
-using NzbDrone.Core.Movies.Commands;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Update.Commands;
 
 namespace NzbDrone.Core.Jobs
@@ -34,13 +32,19 @@ namespace NzbDrone.Core.Jobs
     {
         private readonly IScheduledTaskRepository _scheduledTaskRepository;
         private readonly IConfigService _configService;
+        private readonly List<IMediaModule> _modules;
         private readonly Logger _logger;
         private readonly ICached<ScheduledTask> _cache;
 
-        public TaskManager(IScheduledTaskRepository scheduledTaskRepository, IConfigService configService, ICacheManager cacheManager, Logger logger)
+        public TaskManager(IScheduledTaskRepository scheduledTaskRepository,
+                           IConfigService configService,
+                           IEnumerable<IMediaModule> modules,
+                           ICacheManager cacheManager,
+                           Logger logger)
         {
             _scheduledTaskRepository = scheduledTaskRepository;
             _configService = configService;
+            _modules = modules.ToList();
             _cache = cacheManager.GetCache<ScheduledTask>(GetType());
             _logger = logger;
         }
@@ -95,12 +99,6 @@ namespace NzbDrone.Core.Jobs
                     new ScheduledTask
                     {
                         Interval = 24 * 60,
-                        TypeName = typeof(RefreshMovieCommand).FullName
-                    },
-
-                    new ScheduledTask
-                    {
-                        Interval = 24 * 60,
                         TypeName = typeof(HousekeepingCommand).FullName
                     },
 
@@ -118,18 +116,6 @@ namespace NzbDrone.Core.Jobs
 
                     new ScheduledTask
                     {
-                        Interval = 24 * 60,
-                        TypeName = typeof(CleanUpRecycleBinCommand).FullName
-                    },
-
-                    new ScheduledTask
-                    {
-                        Interval = 24 * 60,
-                        TypeName = typeof(RefreshCollectionsCommand).FullName
-                    },
-
-                    new ScheduledTask
-                    {
                         Interval = GetBackupInterval(),
                         TypeName = typeof(BackupCommand).FullName
                     },
@@ -142,17 +128,13 @@ namespace NzbDrone.Core.Jobs
 
                     new ScheduledTask
                     {
-                        Interval = 5,
-                        TypeName = typeof(ImportListSyncCommand).FullName
-                    },
-
-                    new ScheduledTask
-                    {
                         Interval = GetRefreshMonitoredInterval(),
                         TypeName = typeof(RefreshMonitoredDownloadsCommand).FullName,
                         Priority = CommandPriority.High
                     }
                 };
+
+            defaultTasks.AddRange(_modules.SelectMany(m => m.ScheduledTasks));
 
             var currentTasks = _scheduledTaskRepository.All().ToList();
 

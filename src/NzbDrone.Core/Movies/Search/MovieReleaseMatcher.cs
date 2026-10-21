@@ -1,6 +1,4 @@
-using System.Collections.Generic;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.Indexers;
 using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Parser;
@@ -17,8 +15,6 @@ namespace NzbDrone.Core.Movies.Search
     // DownloadDecisionMaker unchanged.
     public class MovieReleaseMatcher : IMovieReleaseMatcher
     {
-        public static readonly IReadOnlyList<int> MovieCategories = new[] { NewznabStandardCategory.Movies.Id };
-
         private readonly IParsingService _parsingService;
 
         public MovieReleaseMatcher(IParsingService parsingService)
@@ -27,8 +23,6 @@ namespace NzbDrone.Core.Movies.Search
         }
 
         public MediaKind Kind => MediaKind.Movies;
-
-        public IReadOnlyList<int> Categories => MovieCategories;
 
         public RemoteMovie Map(ReleaseInfo release, MovieSearchRequest request)
         {

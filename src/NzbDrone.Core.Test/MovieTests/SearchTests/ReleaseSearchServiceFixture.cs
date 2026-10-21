@@ -34,7 +34,7 @@ namespace NzbDrone.Core.Test.MovieTests.SearchTests
             _indexersSearched = 1;
 
             Mocker.GetMock<IIndexerReleaseFetcher>()
-                  .Setup(f => f.Search(It.IsAny<MovieSearchRequest>(), It.IsAny<IEnumerable<int>>(), It.IsAny<IReleaseMatcher>(), It.IsAny<ISearchTranslator<MovieSearchRequest>>()))
+                  .Setup(f => f.Search(It.IsAny<MovieSearchRequest>(), It.IsAny<IEnumerable<int>>(), It.IsAny<MediaKind>(), It.IsAny<ISearchTranslator<MovieSearchRequest>>()))
                   .Returns(() => Task.FromResult(new IndexerSearchResult(new List<ReleaseInfo>(), _indexersSearched)));
 
             Mocker.GetMock<IMakeDownloadDecision>()
@@ -47,14 +47,14 @@ namespace NzbDrone.Core.Test.MovieTests.SearchTests
         }
 
         [Test]
-        public async Task should_pass_movie_tags_and_the_movie_matcher_to_the_indexer_layer()
+        public async Task should_pass_movie_tags_and_media_kind_to_the_indexer_layer()
         {
             await Subject.MovieSearch(_movie, true, false);
 
             Mocker.GetMock<IIndexerReleaseFetcher>()
                   .Verify(f => f.Search(It.Is<MovieSearchRequest>(r => r.Movie == _movie && !r.InteractiveSearch),
                                         It.Is<IEnumerable<int>>(t => t.SequenceEqual(new[] { 3 })),
-                                        Mocker.GetMock<IMovieReleaseMatcher>().Object,
+                                        MediaKind.Movies,
                                         It.IsAny<ISearchTranslator<MovieSearchRequest>>()),
                           Times.Once());
         }

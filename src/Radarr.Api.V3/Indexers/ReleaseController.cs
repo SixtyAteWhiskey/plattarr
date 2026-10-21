@@ -16,6 +16,7 @@ using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.History;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.IndexerSearch;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Parser;
@@ -32,7 +33,6 @@ namespace Radarr.Api.V3.Indexers
     {
         private readonly IIndexerReleaseFetcher _releaseFetcher;
         private readonly IIndexerCategoryService _indexerCategoryService;
-        private readonly IMovieReleaseMatcher _releaseMatcher;
         private readonly ISearchForReleases _releaseSearchService;
         private readonly IMakeDownloadDecision _downloadDecisionMaker;
         private readonly IPrioritizeDownloadDecision _prioritizeDownloadDecision;
@@ -45,7 +45,6 @@ namespace Radarr.Api.V3.Indexers
 
         public ReleaseController(IIndexerReleaseFetcher releaseFetcher,
                              IIndexerCategoryService indexerCategoryService,
-                             IMovieReleaseMatcher releaseMatcher,
                              ISearchForReleases releaseSearchService,
                              IMakeDownloadDecision downloadDecisionMaker,
                              IPrioritizeDownloadDecision prioritizeDownloadDecision,
@@ -59,7 +58,6 @@ namespace Radarr.Api.V3.Indexers
         {
             _releaseFetcher = releaseFetcher;
             _indexerCategoryService = indexerCategoryService;
-            _releaseMatcher = releaseMatcher;
             _releaseSearchService = releaseSearchService;
             _downloadDecisionMaker = downloadDecisionMaker;
             _prioritizeDownloadDecision = prioritizeDownloadDecision;
@@ -174,8 +172,8 @@ namespace Radarr.Api.V3.Indexers
 
         private async Task<List<ReleaseResource>> GetRss()
         {
-            var reports = (await _releaseFetcher.FetchRss(new[] { _releaseMatcher }))
-                .Where(r => _indexerCategoryService.BelongsTo(r, _releaseMatcher))
+            var reports = (await _releaseFetcher.FetchRss(new[] { MediaKind.Movies }))
+                .Where(r => _indexerCategoryService.BelongsTo(r, MediaKind.Movies))
                 .ToList();
             var decisions = _downloadDecisionMaker.GetRssDecision(reports);
             var prioritizedDecisions = _prioritizeDownloadDecision.PrioritizeDecisionsForMovies(decisions);

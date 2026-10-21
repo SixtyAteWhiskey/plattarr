@@ -290,6 +290,21 @@ Module-owned folders, excluded from the count: `Movies`, `MediaFiles`,
    inside it. The test carries an allowlist of files, seeded with the 177
    found today. A change may remove entries; adding one fails review.
 
+As built in porting step 9a (`ModuleBoundaryFixture` in `NzbDrone.Core.Test`):
+
+- The test reads compiled IL, not source: signatures, attributes, locals, and
+  the type, method, and field tokens in method bodies. Lambdas and async state
+  machines count toward their declaring type.
+- The allowlist holds type names, not files: 159 core types at 9a, 156 after
+  9b. It must match the violations exactly, so a new reference fails and so
+  does an entry that no longer violates.
+- The boundary is declared in its final shape now (`ModuleBoundary`): the
+  Radarr namespaces that are movie code (`MediaFiles`, `DecisionEngine`,
+  `History`, `Blocklisting`, `ImportLists`, `Extras`, `Organizer`, and others)
+  and Radarr's title parser types count as Movies before they move under
+  `NzbDrone.Core.Movies`. Moving them changes nothing the test reports.
+- Rule 3 (no module references another) is checked with no allowlist.
+
 ### Shared types
 
 ```csharp
@@ -366,6 +381,38 @@ public interface IMediaModule
   and receives no releases. Its tables still exist, empty, because the schema
   is one migration chain.
 
+As built in porting step 9b, the contract is two interfaces, because
+`TableMapping.Map()` runs in `DbFactory`'s static constructor, before the
+container exists:
+
+```csharp
+public interface IMediaModule            // registered by the container
+{
+    MediaKind Kind { get; }
+    string Name { get; }                 // "Movies"
+    IReadOnlyList<int> DefaultCategories { get; }
+    IEnumerable<ScheduledTask> ScheduledTasks { get; }
+}
+
+public interface IModuleTableMap         // found by reflection, parameterless
+{
+    MediaKind Kind { get; }
+    string TablePrefix { get; }          // "Movies_"
+    void RegisterTypeHandlers();         // before any table is mapped
+    void MapTables(TableMapper mapper);  // after the core tables
+}
+```
+
+- `DefaultCategories` moved here from `IReleaseMatcher`. `IIndexerCategoryService`,
+  `IIndexerReleaseFetcher`, and `RssSyncService` take a `MediaKind` and look the
+  module up.
+- A module maps every entity type it owns, including its views of shared
+  tables (`MovieHistory` on `History`, `Blocklist`). `PendingRelease` and
+  `DownloadHistory` are core types and stay in core mapping.
+- `TableMapper.ModuleTablePrefixes` comes from the table maps.
+- Not built yet, because nothing reads them: `CompatUrlBase` (Phase 2) and
+  `PLATTARR__MODULES__ENABLED` (needs a second module).
+
 ### Contract 2: Release matching
 
 The core fetches RSS once per indexer and hands each release to the modules.
@@ -404,7 +451,7 @@ As built in porting step 7 (`ba4cb87`, `61fd6e7`):
 public interface IReleaseMatcher
 {
     MediaKind Kind { get; }
-    IReadOnlyList<int> Categories { get; }   // moves to IMediaModule.DefaultCategories
+    IReadOnlyList<int> Categories { get; }   // moved to IMediaModule.DefaultCategories in 9b
     RemoteRelease Map(ReleaseInfo release, ModuleSearchRequest request);
 }
 
