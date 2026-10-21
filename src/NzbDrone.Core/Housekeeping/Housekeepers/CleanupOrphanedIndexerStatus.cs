@@ -16,13 +16,13 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
         {
             using var mapper = _database.OpenConnection();
 
-            // Prowlarr's indexer layer. The tables take the plain names in step 8.
-            mapper.Execute(@"DELETE FROM ""PlattarrIndexerStatus""
+            // Prowlarr's indexer layer.
+            mapper.Execute(@"DELETE FROM ""IndexerStatus""
                              WHERE ""Id"" IN (
-                             SELECT ""PlattarrIndexerStatus"".""Id"" FROM ""PlattarrIndexerStatus""
-                             LEFT OUTER JOIN ""PlattarrIndexers""
-                             ON ""PlattarrIndexerStatus"".""ProviderId"" = ""PlattarrIndexers"".""Id""
-                             WHERE ""PlattarrIndexers"".""Id"" IS NULL)");
+                             SELECT ""IndexerStatus"".""Id"" FROM ""IndexerStatus""
+                             LEFT OUTER JOIN ""Indexers""
+                             ON ""IndexerStatus"".""ProviderId"" = ""Indexers"".""Id""
+                             WHERE ""Indexers"".""Id"" IS NULL)");
         }
     }
 }

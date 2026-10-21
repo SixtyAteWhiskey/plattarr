@@ -20,9 +20,9 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
             mapper.Execute(@"DELETE FROM ""IndexerHistory""
                              WHERE ""Id"" IN (
                              SELECT ""IndexerHistory"".""Id"" FROM ""IndexerHistory""
-                             LEFT OUTER JOIN ""PlattarrIndexers""
-                             ON ""IndexerHistory"".""IndexerId"" = ""PlattarrIndexers"".""Id""
-                             WHERE ""PlattarrIndexers"".""Id"" IS NULL)");
+                             LEFT OUTER JOIN ""Indexers""
+                             ON ""IndexerHistory"".""IndexerId"" = ""Indexers"".""Id""
+                             WHERE ""Indexers"".""Id"" IS NULL)");
         }
     }
 }

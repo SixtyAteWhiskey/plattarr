@@ -675,7 +675,7 @@ the master switch. `FailDownloads` is in `IndexerBaseSettings`.
 blocks render as indexer form fields, so they need no API or UI work of their
 own. `IndexerOverrides` waits for step 7, its first reader.
 
-As built in step 7 (`61fd6e7`, `ac24a75`): migration 244 creates
+As built in step 7 (`61fd6e7`, `ac24a75`; in `001_initial` since step 8a):
 `IndexerOverrides` (unique per indexer and media type; rows go with their
 indexer). Fields with readers today: `MultiLanguages`, `RequiredFlags`
 (torrent releases, as in Radarr), `RemoveYear`, and `Categories` (exact IDs,
@@ -782,6 +782,15 @@ numbered migrations.
   the `Movies_` tables.
 - Phase 3 adds the `Tv_` tables in a later migration; Phase 4 adds `Music_`.
 - Hidden media types still have their tables. An empty table costs nothing.
+
+As built in step 8a: `001_initial` reproduces the schema Radarr's migrations 1
+to 242 plus Plattarr's 243 and 244 produced on Postgres, with Radarr's legacy
+indexer tables dropped and Prowlarr's under the plain names `Indexers` and
+`IndexerStatus`. The maintenance check `PreviousSchemaCheck` refuses a
+database whose version 1 is upstream's `initial_setup`. `Movies_` prefixes,
+`MediaKind` on activity tables, and the global catalogs follow in later step 8
+commits, each edited into `001_initial` while no Plattarr database outside dev
+exists.
 
 ### Compatibility APIs
 

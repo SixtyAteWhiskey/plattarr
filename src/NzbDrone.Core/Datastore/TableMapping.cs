@@ -174,10 +174,8 @@ namespace NzbDrone.Core.Datastore
 
             Mapper.Entity<AutoTagging.AutoTag>("AutoTagging").RegisterModel();
 
-            // Prowlarr's indexer layer. Its indexer and status tables keep temporary names until
-            // porting step 8 collapses the migrations; Radarr's old Indexers and IndexerStatus
-            // tables are unmapped since step 7 and dropped in step 8.
-            Mapper.Entity<Indexers.IndexerDefinition>("PlattarrIndexers").RegisterModel()
+            // Prowlarr's indexer layer.
+            Mapper.Entity<Indexers.IndexerDefinition>("Indexers").RegisterModel()
                   .Ignore(x => x.ImplementationName)
                   .Ignore(i => i.Description)
                   .Ignore(i => i.Language)
@@ -192,7 +190,7 @@ namespace NzbDrone.Core.Datastore
                   .Ignore(i => i.SupportsPagination)
                   .Ignore(i => i.Capabilities);
 
-            Mapper.Entity<Indexers.IndexerStatus>("PlattarrIndexerStatus").RegisterModel();
+            Mapper.Entity<Indexers.IndexerStatus>("IndexerStatus").RegisterModel();
 
             Mapper.Entity<IndexerProxyDefinition>("IndexerProxies").RegisterModel()
                   .Ignore(x => x.ImplementationName);
