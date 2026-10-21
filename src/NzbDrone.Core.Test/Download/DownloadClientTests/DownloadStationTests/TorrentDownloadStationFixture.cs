@@ -11,7 +11,7 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Download.Clients.DownloadStation;
 using NzbDrone.Core.Download.Clients.DownloadStation.Proxies;
-using NzbDrone.Core.MediaFiles.TorrentInfo;
+using NzbDrone.Core.Download.Torrents;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Test.Common;
 

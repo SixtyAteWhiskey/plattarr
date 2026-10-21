@@ -9,7 +9,7 @@ using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.ThingiProvider;
 using NzbDrone.Core.Validation;
@@ -96,7 +96,7 @@ namespace NzbDrone.Core.Download
 
         public abstract DownloadProtocol Protocol { get; }
 
-        public abstract Task<string> Download(RemoteMovie remoteMovie, IIndexer indexer);
+        public abstract Task<string> Download(RemoteRelease remoteRelease, IIndexer indexer);
 
         // Plattarr: when a release came from an indexer, the indexer layer fetches the file so
         // its proxy, login, and cookies apply (Prowlarr's grab path). The client fetches the URL

@@ -6,12 +6,11 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download.Clients.Hadouken.Models;
+using NzbDrone.Core.Download.Torrents;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.MediaFiles.TorrentInfo;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.Validation;
 
@@ -28,9 +27,9 @@ namespace NzbDrone.Core.Download.Clients.Hadouken
                         IDiskProvider diskProvider,
                         IRemotePathMappingService remotePathMappingService,
                         ILocalizationService localizationService,
-                        IBlocklistService blocklistService,
+                        IReleaseBlocklist blocklist,
                         Logger logger)
-            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklistService, logger)
+            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklist, logger)
         {
             _proxy = proxy;
         }
@@ -155,14 +154,14 @@ namespace NzbDrone.Core.Download.Clients.Hadouken
             failures.AddIfNotNull(TestGetTorrents());
         }
 
-        protected override string AddFromMagnetLink(RemoteMovie remoteMovie, string hash, string magnetLink)
+        protected override string AddFromMagnetLink(RemoteRelease remoteRelease, string hash, string magnetLink)
         {
             _proxy.AddTorrentUri(Settings, magnetLink);
 
             return hash.ToUpper();
         }
 
-        protected override string AddFromTorrentFile(RemoteMovie remoteMovie, string hash, string filename, byte[] fileContent)
+        protected override string AddFromTorrentFile(RemoteRelease remoteRelease, string hash, string filename, byte[] fileContent)
         {
             return _proxy.AddTorrentFile(Settings, fileContent).ToUpper();
         }

@@ -42,6 +42,23 @@ namespace NzbDrone.Core.Modules
         [JsonIgnore]
         public abstract QualityModel Quality { get; }
 
+        // The values download clients turn into client-side tags (Flood's additional tags). The
+        // release group is whatever the module's parser read from the title.
+        [JsonIgnore]
+        public abstract string ReleaseGroup { get; }
+
+        // Release year of the movie, series or album. Null when unknown.
+        [JsonIgnore]
+        public abstract int? Year { get; }
+
+        // Movie collection or series group. Null for media with none.
+        [JsonIgnore]
+        public virtual string Collection => null;
+
+        // Studio, network or label. Null when unknown.
+        [JsonIgnore]
+        public virtual string Studio => null;
+
         public override string ToString()
         {
             return Release?.Title;

@@ -7,12 +7,11 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download.Clients.Flood.Models;
+using NzbDrone.Core.Download.Torrents;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.MediaFiles.TorrentInfo;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.ThingiProvider;
 
@@ -31,15 +30,15 @@ namespace NzbDrone.Core.Download.Clients.Flood
                         IDiskProvider diskProvider,
                         IRemotePathMappingService remotePathMappingService,
                         ILocalizationService localizationService,
-                        IBlocklistService blocklistService,
+                        IReleaseBlocklist blocklist,
                         Logger logger)
-            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklistService, logger)
+            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklist, logger)
         {
             _proxy = proxy;
             _downloadSeedConfigProvider = downloadSeedConfigProvider;
         }
 
-        private static IEnumerable<string> HandleTags(RemoteMovie remoteMovie, FloodSettings settings)
+        private static IEnumerable<string> HandleTags(RemoteRelease remoteRelease, FloodSettings settings)
         {
             var result = new HashSet<string>();
 
@@ -55,25 +54,25 @@ namespace NzbDrone.Core.Download.Clients.Flood
                     switch (additionalTag)
                     {
                         case (int)AdditionalTags.Collection:
-                            result.Add(remoteMovie.Movie.MovieMetadata.Value.CollectionTitle);
+                            result.Add(remoteRelease.Collection);
                             break;
                         case (int)AdditionalTags.Quality:
-                            result.Add(remoteMovie.ParsedMovieInfo.Quality.Quality.ToString());
+                            result.Add(remoteRelease.Quality.Quality.ToString());
                             break;
                         case (int)AdditionalTags.Languages:
-                            result.UnionWith(remoteMovie.Languages.ConvertAll(language => language.ToString()));
+                            result.UnionWith(remoteRelease.Languages.ConvertAll(language => language.ToString()));
                             break;
                         case (int)AdditionalTags.ReleaseGroup:
-                            result.Add(remoteMovie.ParsedMovieInfo.ReleaseGroup);
+                            result.Add(remoteRelease.ReleaseGroup);
                             break;
                         case (int)AdditionalTags.Year:
-                            result.Add(remoteMovie.Movie.Year.ToString());
+                            result.Add(remoteRelease.Year?.ToString());
                             break;
                         case (int)AdditionalTags.Indexer:
-                            result.Add(remoteMovie.Release.Indexer);
+                            result.Add(remoteRelease.Release.Indexer);
                             break;
                         case (int)AdditionalTags.Studio:
-                            result.Add(remoteMovie.Movie.MovieMetadata.Value.Studio);
+                            result.Add(remoteRelease.Studio);
                             break;
                         default:
                             throw new DownloadClientException("Unexpected additional tag ID");
@@ -87,16 +86,16 @@ namespace NzbDrone.Core.Download.Clients.Flood
         public override string Name => "Flood";
         public override ProviderMessage Message => new ProviderMessage(_localizationService.GetLocalizedString("DownloadClientFloodSettingsRemovalInfo"), ProviderMessageType.Info);
 
-        protected override string AddFromTorrentFile(RemoteMovie remoteMovie, string hash, string filename, byte[] fileContent)
+        protected override string AddFromTorrentFile(RemoteRelease remoteRelease, string hash, string filename, byte[] fileContent)
         {
-            _proxy.AddTorrentByFile(Convert.ToBase64String(fileContent), HandleTags(remoteMovie, Settings), Settings);
+            _proxy.AddTorrentByFile(Convert.ToBase64String(fileContent), HandleTags(remoteRelease, Settings), Settings);
 
             return hash;
         }
 
-        protected override string AddFromMagnetLink(RemoteMovie remoteMovie, string hash, string magnetLink)
+        protected override string AddFromMagnetLink(RemoteRelease remoteRelease, string hash, string magnetLink)
         {
-            _proxy.AddTorrentByUrl(magnetLink, HandleTags(remoteMovie, Settings), Settings);
+            _proxy.AddTorrentByUrl(magnetLink, HandleTags(remoteRelease, Settings), Settings);
 
             return hash;
         }

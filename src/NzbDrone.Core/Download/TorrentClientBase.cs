@@ -7,13 +7,13 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Download.Torrents;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.MediaFiles.TorrentInfo;
-using NzbDrone.Core.Organizer;
+using NzbDrone.Core.Modules;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.ThingiProvider;
@@ -24,7 +24,7 @@ namespace NzbDrone.Core.Download
         where TSettings : IProviderConfig, new()
     {
         protected readonly IHttpClient _httpClient;
-        private readonly IBlocklistService _blocklistService;
+        private readonly IReleaseBlocklist _blocklist;
         protected readonly ITorrentFileInfoReader _torrentFileInfoReader;
 
         protected TorrentClientBase(ITorrentFileInfoReader torrentFileInfoReader,
@@ -33,12 +33,12 @@ namespace NzbDrone.Core.Download
             IDiskProvider diskProvider,
             IRemotePathMappingService remotePathMappingService,
             ILocalizationService localizationService,
-            IBlocklistService blocklistService,
+            IReleaseBlocklist blocklist,
             Logger logger)
             : base(configService, diskProvider, remotePathMappingService, logger, localizationService)
         {
             _httpClient = httpClient;
-            _blocklistService = blocklistService;
+            _blocklist = blocklist;
             _torrentFileInfoReader = torrentFileInfoReader;
         }
 
@@ -46,23 +46,23 @@ namespace NzbDrone.Core.Download
 
         public virtual bool PreferTorrentFile => false;
 
-        protected abstract string AddFromMagnetLink(RemoteMovie remoteMovie, string hash, string magnetLink);
-        protected abstract string AddFromTorrentFile(RemoteMovie remoteMovie, string hash, string filename, byte[] fileContent);
+        protected abstract string AddFromMagnetLink(RemoteRelease remoteRelease, string hash, string magnetLink);
+        protected abstract string AddFromTorrentFile(RemoteRelease remoteRelease, string hash, string filename, byte[] fileContent);
 
-        public override async Task<string> Download(RemoteMovie remoteMovie, IIndexer indexer)
+        public override async Task<string> Download(RemoteRelease remoteRelease, IIndexer indexer)
         {
-            var torrentInfo = remoteMovie.Release as TorrentInfo;
+            var torrentInfo = remoteRelease.Release as TorrentInfo;
 
             string magnetUrl = null;
             string torrentUrl = null;
 
-            if (remoteMovie.Release.DownloadUrl.IsNotNullOrWhiteSpace() && remoteMovie.Release.DownloadUrl.StartsWith("magnet:"))
+            if (remoteRelease.Release.DownloadUrl.IsNotNullOrWhiteSpace() && remoteRelease.Release.DownloadUrl.StartsWith("magnet:"))
             {
-                magnetUrl = remoteMovie.Release.DownloadUrl;
+                magnetUrl = remoteRelease.Release.DownloadUrl;
             }
             else
             {
-                torrentUrl = remoteMovie.Release.DownloadUrl;
+                torrentUrl = remoteRelease.Release.DownloadUrl;
             }
 
             if (torrentInfo != null && !torrentInfo.MagnetUrl.IsNullOrWhiteSpace())
@@ -76,7 +76,7 @@ namespace NzbDrone.Core.Download
                 {
                     try
                     {
-                        return await DownloadFromWebUrl(remoteMovie, indexer, torrentUrl);
+                        return await DownloadFromWebUrl(remoteRelease, indexer, torrentUrl);
                     }
                     catch (Exception ex)
                     {
@@ -93,11 +93,11 @@ namespace NzbDrone.Core.Download
                 {
                     try
                     {
-                        return DownloadFromMagnetUrl(remoteMovie, indexer, magnetUrl);
+                        return DownloadFromMagnetUrl(remoteRelease, indexer, magnetUrl);
                     }
                     catch (NotSupportedException ex)
                     {
-                        throw new ReleaseDownloadException(remoteMovie.Release, "Magnet not supported by download client. ({0})", ex.Message);
+                        throw new ReleaseDownloadException(remoteRelease.Release, "Magnet not supported by download client. ({0})", ex.Message);
                     }
                 }
             }
@@ -107,13 +107,13 @@ namespace NzbDrone.Core.Download
                 {
                     try
                     {
-                        return DownloadFromMagnetUrl(remoteMovie, indexer, magnetUrl);
+                        return DownloadFromMagnetUrl(remoteRelease, indexer, magnetUrl);
                     }
                     catch (NotSupportedException ex)
                     {
                         if (torrentUrl.IsNullOrWhiteSpace())
                         {
-                            throw new ReleaseDownloadException(remoteMovie.Release, "Magnet not supported by download client. ({0})", ex.Message);
+                            throw new ReleaseDownloadException(remoteRelease.Release, "Magnet not supported by download client. ({0})", ex.Message);
                         }
 
                         _logger.Debug("Magnet not supported by download client, trying torrent. ({0})", ex.Message);
@@ -122,14 +122,14 @@ namespace NzbDrone.Core.Download
 
                 if (torrentUrl.IsNotNullOrWhiteSpace())
                 {
-                    return await DownloadFromWebUrl(remoteMovie, indexer, torrentUrl);
+                    return await DownloadFromWebUrl(remoteRelease, indexer, torrentUrl);
                 }
             }
 
             return null;
         }
 
-        private async Task<string> DownloadFromWebUrl(RemoteMovie remoteMovie, IIndexer indexer, string torrentUrl)
+        private async Task<string> DownloadFromWebUrl(RemoteRelease remoteRelease, IIndexer indexer, string torrentUrl)
         {
             if (FetchThroughIndexer(indexer))
             {
@@ -138,12 +138,12 @@ namespace NzbDrone.Core.Download
                 // The indexer layer follows redirects and returns a magnet link as its text.
                 if (IsMagnetLink(data))
                 {
-                    return DownloadFromMagnetUrl(remoteMovie, indexer, Encoding.UTF8.GetString(data));
+                    return DownloadFromMagnetUrl(remoteRelease, indexer, Encoding.UTF8.GetString(data));
                 }
 
-                _logger.Debug("Downloading torrent for movie '{0}' through indexer {1} finished ({2} bytes)", remoteMovie.Release.Title, indexer.Definition.Name, data.Length);
+                _logger.Debug("Downloading torrent for release '{0}' through indexer {1} finished ({2} bytes)", remoteRelease.Release.Title, indexer.Definition.Name, data.Length);
 
-                return AddTorrentFile(remoteMovie, indexer, data);
+                return AddTorrentFile(remoteRelease, indexer, data);
             }
 
             byte[] torrentFile = null;
@@ -151,7 +151,7 @@ namespace NzbDrone.Core.Download
             try
             {
                 var request = new HttpRequest(torrentUrl);
-                request.RateLimitKey = remoteMovie?.Release?.IndexerId.ToString();
+                request.RateLimitKey = remoteRelease?.Release?.IndexerId.ToString();
                 request.Headers.Accept = "application/x-bittorrent";
                 request.AllowAutoRedirect = false;
 
@@ -171,12 +171,12 @@ namespace NzbDrone.Core.Download
                     {
                         if (locationHeader.StartsWith("magnet:"))
                         {
-                            return DownloadFromMagnetUrl(remoteMovie, indexer, locationHeader);
+                            return DownloadFromMagnetUrl(remoteRelease, indexer, locationHeader);
                         }
 
                         request.Url += new HttpUri(locationHeader);
 
-                        return await DownloadFromWebUrl(remoteMovie, indexer, request.Url.ToString());
+                        return await DownloadFromWebUrl(remoteRelease, indexer, request.Url.ToString());
                     }
 
                     throw new WebException("Remote website tried to redirect without providing a location.");
@@ -184,14 +184,14 @@ namespace NzbDrone.Core.Download
 
                 torrentFile = response.ResponseData;
 
-                _logger.Debug("Downloading torrent for movie '{0}' finished ({1} bytes from {2})", remoteMovie.Release.Title, torrentFile.Length, torrentUrl);
+                _logger.Debug("Downloading torrent for release '{0}' finished ({1} bytes from {2})", remoteRelease.Release.Title, torrentFile.Length, torrentUrl);
             }
             catch (HttpException ex)
             {
                 if (ex.Response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Gone)
                 {
-                    _logger.Error(ex, "Downloading torrent file for movie '{0}' failed since it no longer exists ({1})", remoteMovie.Release.Title, torrentUrl);
-                    throw new ReleaseUnavailableException(remoteMovie.Release, "Downloading torrent failed", ex);
+                    _logger.Error(ex, "Downloading torrent file for release '{0}' failed since it no longer exists ({1})", remoteRelease.Release.Title, torrentUrl);
+                    throw new ReleaseUnavailableException(remoteRelease.Release, "Downloading torrent failed", ex);
                 }
 
                 if ((int)ex.Response.StatusCode == 429)
@@ -200,19 +200,19 @@ namespace NzbDrone.Core.Download
                 }
                 else
                 {
-                    _logger.Error(ex, "Downloading torrent file for movie '{0}' failed ({1})", remoteMovie.Release.Title, torrentUrl);
+                    _logger.Error(ex, "Downloading torrent file for release '{0}' failed ({1})", remoteRelease.Release.Title, torrentUrl);
                 }
 
-                throw new ReleaseDownloadException(remoteMovie.Release, "Downloading torrent failed", ex);
+                throw new ReleaseDownloadException(remoteRelease.Release, "Downloading torrent failed", ex);
             }
             catch (WebException ex)
             {
-                _logger.Error(ex, "Downloading torrent file for movie '{0}' failed ({1})", remoteMovie.Release.Title, torrentUrl);
+                _logger.Error(ex, "Downloading torrent file for release '{0}' failed ({1})", remoteRelease.Release.Title, torrentUrl);
 
-                throw new ReleaseDownloadException(remoteMovie.Release, "Downloading torrent failed", ex);
+                throw new ReleaseDownloadException(remoteRelease.Release, "Downloading torrent failed", ex);
             }
 
-            return AddTorrentFile(remoteMovie, indexer, torrentFile);
+            return AddTorrentFile(remoteRelease, indexer, torrentFile);
         }
 
         private static bool IsMagnetLink(byte[] data)
@@ -220,27 +220,27 @@ namespace NzbDrone.Core.Download
             return data.Length > 7 && Encoding.ASCII.GetString(data, 0, 7).Equals("magnet:", StringComparison.OrdinalIgnoreCase);
         }
 
-        private string AddTorrentFile(RemoteMovie remoteMovie, IIndexer indexer, byte[] torrentFile)
+        private string AddTorrentFile(RemoteRelease remoteRelease, IIndexer indexer, byte[] torrentFile)
         {
-            var filename = string.Format("{0}.torrent", FileNameBuilder.CleanFileName(remoteMovie.Release.Title));
+            var filename = string.Format("{0}.torrent", FileNameCleaner.Clean(remoteRelease.Release.Title));
             var hash = _torrentFileInfoReader.GetHashFromTorrentFile(torrentFile);
 
-            EnsureReleaseIsNotBlocklisted(remoteMovie, indexer, hash);
+            EnsureReleaseIsNotBlocklisted(remoteRelease, indexer, hash);
 
-            var actualHash = AddFromTorrentFile(remoteMovie, hash, filename, torrentFile);
+            var actualHash = AddFromTorrentFile(remoteRelease, hash, filename, torrentFile);
 
             if (actualHash.IsNotNullOrWhiteSpace() && hash != actualHash)
             {
                 _logger.Debug(
                     "{0} did not return the expected InfoHash for '{1}', Radarr could potentially lose track of the download in progress.",
                     Definition.Implementation,
-                    remoteMovie.Release.DownloadUrl);
+                    remoteRelease.Release.DownloadUrl);
             }
 
             return actualHash;
         }
 
-        private string DownloadFromMagnetUrl(RemoteMovie remoteMovie, IIndexer indexer, string magnetUrl)
+        private string DownloadFromMagnetUrl(RemoteRelease remoteRelease, IIndexer indexer, string magnetUrl)
         {
             string hash = null;
             string actualHash = null;
@@ -251,14 +251,14 @@ namespace NzbDrone.Core.Download
             }
             catch (FormatException ex)
             {
-                throw new ReleaseDownloadException(remoteMovie.Release, "Failed to parse magnetlink for movie '{0}': '{1}'", ex, remoteMovie.Release.Title, magnetUrl);
+                throw new ReleaseDownloadException(remoteRelease.Release, "Failed to parse magnetlink for release '{0}': '{1}'", ex, remoteRelease.Release.Title, magnetUrl);
             }
 
             if (hash != null)
             {
-                EnsureReleaseIsNotBlocklisted(remoteMovie, indexer, hash);
+                EnsureReleaseIsNotBlocklisted(remoteRelease, indexer, hash);
 
-                actualHash = AddFromMagnetLink(remoteMovie, hash, magnetUrl);
+                actualHash = AddFromMagnetLink(remoteRelease, hash, magnetUrl);
             }
 
             if (actualHash.IsNotNullOrWhiteSpace() && hash != actualHash)
@@ -266,16 +266,16 @@ namespace NzbDrone.Core.Download
                 _logger.Debug(
                     "{0} did not return the expected InfoHash for '{1}', Radarr could potentially lose track of the download in progress.",
                     Definition.Implementation,
-                    remoteMovie.Release.DownloadUrl);
+                    remoteRelease.Release.DownloadUrl);
             }
 
             return actualHash;
         }
 
-        private void EnsureReleaseIsNotBlocklisted(RemoteMovie remoteMovie, IIndexer indexer, string hash)
+        private void EnsureReleaseIsNotBlocklisted(RemoteRelease remoteRelease, IIndexer indexer, string hash)
         {
             var indexerSettings = (indexer?.Definition?.Settings as ITorrentIndexerSettings)?.TorrentBaseSettings;
-            var torrentInfo = remoteMovie.Release as TorrentInfo;
+            var torrentInfo = remoteRelease.Release as TorrentInfo;
             var torrentInfoHash = torrentInfo?.InfoHash;
 
             // If the release didn't come from an interactive search,
@@ -288,11 +288,11 @@ namespace NzbDrone.Core.Download
                 // If the hash isn't known from parsing we set it here so it can be used for blocklisting.
                 torrentInfo.InfoHash = hash;
 
-                if (remoteMovie.ReleaseSource != ReleaseSourceType.InteractiveSearch &&
+                if (remoteRelease.ReleaseSource != ReleaseSourceType.InteractiveSearch &&
                     indexerSettings?.RejectBlocklistedTorrentHashesWhileGrabbing == true &&
-                    _blocklistService.BlocklistedTorrentHash(remoteMovie.Movie.Id, hash))
+                    _blocklist.IsTorrentHashBlocklisted(remoteRelease, hash))
                 {
-                    throw new ReleaseBlockedException(remoteMovie.Release, "Release previously added to blocklist");
+                    throw new ReleaseBlockedException(remoteRelease.Release, "Release previously added to blocklist");
                 }
             }
         }

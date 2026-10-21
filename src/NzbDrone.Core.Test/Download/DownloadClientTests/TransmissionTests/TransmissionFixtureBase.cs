@@ -6,7 +6,7 @@ using NzbDrone.Common.Http;
 using NzbDrone.Common.Serializer;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients.Transmission;
-using NzbDrone.Core.MediaFiles.TorrentInfo;
+using NzbDrone.Core.Download.Torrents;
 
 namespace NzbDrone.Core.Test.Download.DownloadClientTests.TransmissionTests
 {

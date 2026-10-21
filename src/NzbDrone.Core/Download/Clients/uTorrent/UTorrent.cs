@@ -8,11 +8,10 @@ using NzbDrone.Common.Cache;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Download.Torrents;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.MediaFiles.TorrentInfo;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.ThingiProvider;
 using NzbDrone.Core.Validation;
@@ -32,9 +31,9 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
                         IDiskProvider diskProvider,
                         IRemotePathMappingService remotePathMappingService,
                         ILocalizationService localizationService,
-                        IBlocklistService blocklistService,
+                        IReleaseBlocklist blocklist,
                         Logger logger)
-            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklistService, logger)
+            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklist, logger)
         {
             _proxy = proxy;
 
@@ -57,17 +56,17 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
             }
         }
 
-        protected override string AddFromMagnetLink(RemoteMovie remoteMovie, string hash, string magnetLink)
+        protected override string AddFromMagnetLink(RemoteRelease remoteRelease, string hash, string magnetLink)
         {
             _proxy.AddTorrentFromUrl(magnetLink, Settings);
-            _proxy.SetTorrentSeedingConfiguration(hash, remoteMovie.SeedConfiguration, Settings);
+            _proxy.SetTorrentSeedingConfiguration(hash, remoteRelease.SeedConfiguration, Settings);
 
             if (Settings.MovieCategory.IsNotNullOrWhiteSpace())
             {
                 _proxy.SetTorrentLabel(hash, Settings.MovieCategory, Settings);
             }
 
-            var isRecentMovie = remoteMovie.Movie.MovieMetadata.Value.IsRecentMovie;
+            var isRecentMovie = remoteRelease.IsRecent;
 
             if ((isRecentMovie && Settings.RecentMoviePriority == (int)UTorrentPriority.First) ||
                 (!isRecentMovie && Settings.OlderMoviePriority == (int)UTorrentPriority.First))
@@ -80,17 +79,17 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
             return hash;
         }
 
-        protected override string AddFromTorrentFile(RemoteMovie remoteMovie, string hash, string filename, byte[] fileContent)
+        protected override string AddFromTorrentFile(RemoteRelease remoteRelease, string hash, string filename, byte[] fileContent)
         {
             _proxy.AddTorrentFromFile(filename, fileContent, Settings);
-            _proxy.SetTorrentSeedingConfiguration(hash, remoteMovie.SeedConfiguration, Settings);
+            _proxy.SetTorrentSeedingConfiguration(hash, remoteRelease.SeedConfiguration, Settings);
 
             if (Settings.MovieCategory.IsNotNullOrWhiteSpace())
             {
                 _proxy.SetTorrentLabel(hash, Settings.MovieCategory, Settings);
             }
 
-            var isRecentMovie = remoteMovie.Movie.MovieMetadata.Value.IsRecentMovie;
+            var isRecentMovie = remoteRelease.IsRecent;
 
             if ((isRecentMovie && Settings.RecentMoviePriority == (int)UTorrentPriority.First) ||
                 (!isRecentMovie && Settings.OlderMoviePriority == (int)UTorrentPriority.First))

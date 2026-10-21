@@ -18,6 +18,8 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.ReleaseSpecifications
         public QualityModel ParsedQuality { get; set; } = new QualityModel();
 
         public override QualityModel Quality => ParsedQuality;
+        public override string ReleaseGroup => null;
+        public override int? Year => null;
     }
 
     public class TvParent : IMediaParent

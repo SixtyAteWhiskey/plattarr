@@ -6,7 +6,7 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients.RQBit;
-using NzbDrone.Core.MediaFiles.TorrentInfo;
+using NzbDrone.Core.Download.Torrents;
 using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.Download.DownloadClientTests.RQBitTests

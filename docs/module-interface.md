@@ -481,6 +481,22 @@ public interface IRssReleaseHandler
   defaults, or the indexer's override.
 - Rule 3 (two modules both match) needs a second module and is not built.
 
+As built in porting step 9h, download clients take the release, not the movie:
+
+- `IDownloadClient.Download(RemoteRelease, IIndexer)`, and the same type in
+  `TorrentClientBase`, `UsenetClientBase` and all 18 clients. A client reads
+  `Release`, `SeedConfiguration`, `IsRecent`, and for Flood's tags
+  `Quality`, `ReleaseGroup`, `Year`, `Collection` and `Studio` (the last two are
+  null for media that has none). Settings still hold the movie-named category and
+  priority values; porting step 9i replaces them with per-module settings.
+- Three helpers the clients used moved to core: the torrent file reader
+  (`NzbDrone.Core.Download.Torrents`), file name cleaning (`FileNameCleaner`,
+  shared with the movie `FileNameBuilder`), and the blocklisted-hash check
+  (`IReleaseBlocklist`, which asks the `IMediaBlocklist` of the release's kind).
+- Left in the boundary allowlist: tracked downloads, history reads, decision
+  processing, the aggregators, and `ScanWatchFolder` (it needs a core scanner for
+  finished media files).
+
 ### Contract 3: Search translation
 
 Prowlarr's criteria types (`MovieSearchCriteria`, `TvSearchCriteria`,

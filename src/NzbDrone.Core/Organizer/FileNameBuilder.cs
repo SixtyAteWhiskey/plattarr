@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -55,9 +54,6 @@ namespace NzbDrone.Core.Organizer
         private static readonly Regex TitlePrefixRegex = new Regex(@"^(The|An|A) (.*?)((?: *\([^)]+\))*)$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex ReservedDeviceNamesRegex = new Regex(@"^(?:aux|com[1-9]|con|lpt[1-9]|nul|prn)\.", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-        public static readonly ImmutableArray<string> BadCharacters = ImmutableArray.Create("\\", "/", "<", ">", "?", "*", "|", "\"");
-        public static readonly ImmutableArray<string> GoodCharacters = ImmutableArray.Create("+", "+", "", "", "!", "-", "", "");
 
         public FileNameBuilder(INamingConfigService namingConfigService,
                                IQualityDefinitionService qualityDefinitionService,
@@ -646,47 +642,16 @@ namespace NzbDrone.Core.Organizer
 
         private static string CleanFileName(string name, NamingConfig namingConfig)
         {
-            var result = name;
-
-            if (namingConfig.ReplaceIllegalCharacters)
+            var colonReplacement = namingConfig.ColonReplacementFormat switch
             {
-                // Smart replaces a colon followed by a space with space dash space for a better appearance
-                if (namingConfig.ColonReplacementFormat == ColonReplacementFormat.Smart)
-                {
-                    result = result.Replace(": ", " - ");
-                    result = result.Replace(":", "-");
-                }
-                else
-                {
-                    var replacement = string.Empty;
+                ColonReplacementFormat.Smart => null,
+                ColonReplacementFormat.Dash => "-",
+                ColonReplacementFormat.SpaceDash => " -",
+                ColonReplacementFormat.SpaceDashSpace => " - ",
+                _ => string.Empty
+            };
 
-                    switch (namingConfig.ColonReplacementFormat)
-                    {
-                        case ColonReplacementFormat.Dash:
-                            replacement = "-";
-                            break;
-                        case ColonReplacementFormat.SpaceDash:
-                            replacement = " -";
-                            break;
-                        case ColonReplacementFormat.SpaceDashSpace:
-                            replacement = " - ";
-                            break;
-                    }
-
-                    result = result.Replace(":", replacement);
-                }
-            }
-            else
-            {
-                result = result.Replace(":", string.Empty);
-            }
-
-            for (var i = 0; i < BadCharacters.Length; i++)
-            {
-                result = result.Replace(BadCharacters[i], namingConfig.ReplaceIllegalCharacters ? GoodCharacters[i] : string.Empty);
-            }
-
-            return result.TrimStart(' ', '.').TrimEnd(' ');
+            return FileNameCleaner.Clean(name, namingConfig.ReplaceIllegalCharacters, colonReplacement);
         }
 
         private string Truncate(string input, string formatter)

@@ -8,13 +8,12 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download.Clients.rTorrent;
+using NzbDrone.Core.Download.Torrents;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.MediaFiles.TorrentInfo;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.ThingiProvider;
 using NzbDrone.Core.Validation;
@@ -37,9 +36,9 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
                         IDownloadSeedConfigProvider downloadSeedConfigProvider,
                         IRTorrentDirectoryValidator rTorrentDirectoryValidator,
                         ILocalizationService localizationService,
-                        IBlocklistService blocklistService,
+                        IReleaseBlocklist blocklist,
                         Logger logger)
-            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklistService, logger)
+            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklist, logger)
         {
             _proxy = proxy;
             _rTorrentDirectoryValidator = rTorrentDirectoryValidator;
@@ -79,9 +78,9 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
             }
         }
 
-        protected override string AddFromMagnetLink(RemoteMovie remoteMovie, string hash, string magnetLink)
+        protected override string AddFromMagnetLink(RemoteRelease remoteRelease, string hash, string magnetLink)
         {
-            var priority = (RTorrentPriority)(remoteMovie.Movie.MovieMetadata.Value.IsRecentMovie ? Settings.RecentMoviePriority : Settings.OlderMoviePriority);
+            var priority = (RTorrentPriority)(remoteRelease.IsRecent ? Settings.RecentMoviePriority : Settings.OlderMoviePriority);
 
             _proxy.AddTorrentFromUrl(magnetLink, Settings.MovieCategory, priority, Settings.MovieDirectory, Settings);
 
@@ -99,9 +98,9 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
             return hash;
         }
 
-        protected override string AddFromTorrentFile(RemoteMovie remoteMovie, string hash, string filename, byte[] fileContent)
+        protected override string AddFromTorrentFile(RemoteRelease remoteRelease, string hash, string filename, byte[] fileContent)
         {
-            var priority = (RTorrentPriority)(remoteMovie.Movie.MovieMetadata.Value.IsRecentMovie ? Settings.RecentMoviePriority : Settings.OlderMoviePriority);
+            var priority = (RTorrentPriority)(remoteRelease.IsRecent ? Settings.RecentMoviePriority : Settings.OlderMoviePriority);
 
             _proxy.AddTorrentFromFile(filename, fileContent, Settings.MovieCategory, priority, Settings.MovieDirectory, Settings);
 
@@ -111,7 +110,7 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
             {
                 _logger.Debug("rTorrent didn't add the torrent within {0} seconds: {1}.", tries * retryDelay / 1000, filename);
 
-                throw new ReleaseDownloadException(remoteMovie.Release, "Downloading torrent failed");
+                throw new ReleaseDownloadException(remoteRelease.Release, "Downloading torrent failed");
             }
 
             return hash;

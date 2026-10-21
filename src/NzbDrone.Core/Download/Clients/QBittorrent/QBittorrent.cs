@@ -8,11 +8,10 @@ using NzbDrone.Common.Cache;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Download.Torrents;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.MediaFiles.TorrentInfo;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.Validation;
 
@@ -37,9 +36,9 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
                            IRemotePathMappingService remotePathMappingService,
                            ICacheManager cacheManager,
                            ILocalizationService localizationService,
-                           IBlocklistService blocklistService,
+                           IReleaseBlocklist blocklist,
                            Logger logger)
-            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklistService, logger)
+            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklist, logger)
         {
             _proxySelector = proxySelector;
 
@@ -68,20 +67,20 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             }
         }
 
-        protected override string AddFromMagnetLink(RemoteMovie remoteMovie, string hash, string magnetLink)
+        protected override string AddFromMagnetLink(RemoteRelease remoteRelease, string hash, string magnetLink)
         {
             if (!Proxy.GetConfig(Settings).DhtEnabled && !magnetLink.Contains("&tr="))
             {
                 throw new NotSupportedException("Magnet Links without trackers not supported if DHT is disabled");
             }
 
-            var setShareLimits = remoteMovie.SeedConfiguration != null && (remoteMovie.SeedConfiguration.Ratio.HasValue || remoteMovie.SeedConfiguration.SeedTime.HasValue);
+            var setShareLimits = remoteRelease.SeedConfiguration != null && (remoteRelease.SeedConfiguration.Ratio.HasValue || remoteRelease.SeedConfiguration.SeedTime.HasValue);
             var addHasSetShareLimits = setShareLimits && ProxyApiVersion >= new Version(2, 8, 1);
-            var isRecentMovie = remoteMovie.Movie.MovieMetadata.Value.IsRecentMovie;
+            var isRecentMovie = remoteRelease.IsRecent;
             var moveToTop = (isRecentMovie && Settings.RecentMoviePriority == (int)QBittorrentPriority.First) || (!isRecentMovie && Settings.OlderMoviePriority == (int)QBittorrentPriority.First);
             var forceStart = (QBittorrentState)Settings.InitialState == QBittorrentState.ForceStart;
 
-            Proxy.AddTorrentFromUrl(magnetLink, addHasSetShareLimits && setShareLimits ? remoteMovie.SeedConfiguration : null, Settings);
+            Proxy.AddTorrentFromUrl(magnetLink, addHasSetShareLimits && setShareLimits ? remoteRelease.SeedConfiguration : null, Settings);
 
             if ((!addHasSetShareLimits && setShareLimits) || moveToTop || forceStart)
             {
@@ -94,7 +93,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
                 {
                     try
                     {
-                        Proxy.SetTorrentSeedingConfiguration(hash.ToLower(), remoteMovie.SeedConfiguration, Settings);
+                        Proxy.SetTorrentSeedingConfiguration(hash.ToLower(), remoteRelease.SeedConfiguration, Settings);
                     }
                     catch (Exception ex)
                     {
@@ -130,15 +129,15 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             return hash;
         }
 
-        protected override string AddFromTorrentFile(RemoteMovie remoteMovie, string hash, string filename, byte[] fileContent)
+        protected override string AddFromTorrentFile(RemoteRelease remoteRelease, string hash, string filename, byte[] fileContent)
         {
-            var setShareLimits = remoteMovie.SeedConfiguration != null && (remoteMovie.SeedConfiguration.Ratio.HasValue || remoteMovie.SeedConfiguration.SeedTime.HasValue);
+            var setShareLimits = remoteRelease.SeedConfiguration != null && (remoteRelease.SeedConfiguration.Ratio.HasValue || remoteRelease.SeedConfiguration.SeedTime.HasValue);
             var addHasSetShareLimits = setShareLimits && ProxyApiVersion >= new Version(2, 8, 1);
-            var isRecentMovie = remoteMovie.Movie.MovieMetadata.Value.IsRecentMovie;
+            var isRecentMovie = remoteRelease.IsRecent;
             var moveToTop = (isRecentMovie && Settings.RecentMoviePriority == (int)QBittorrentPriority.First) || (!isRecentMovie && Settings.OlderMoviePriority == (int)QBittorrentPriority.First);
             var forceStart = (QBittorrentState)Settings.InitialState == QBittorrentState.ForceStart;
 
-            Proxy.AddTorrentFromFile(filename, fileContent, addHasSetShareLimits ? remoteMovie.SeedConfiguration : null, Settings);
+            Proxy.AddTorrentFromFile(filename, fileContent, addHasSetShareLimits ? remoteRelease.SeedConfiguration : null, Settings);
 
             if ((!addHasSetShareLimits && setShareLimits) || moveToTop || forceStart)
             {
@@ -151,7 +150,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
                 {
                     try
                     {
-                        Proxy.SetTorrentSeedingConfiguration(hash.ToLower(), remoteMovie.SeedConfiguration, Settings);
+                        Proxy.SetTorrentSeedingConfiguration(hash.ToLower(), remoteRelease.SeedConfiguration, Settings);
                     }
                     catch (Exception ex)
                     {
