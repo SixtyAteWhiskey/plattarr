@@ -1,10 +1,7 @@
 using System;
-using System.Collections.Generic;
 using FluentAssertions;
 using FluentValidation.Results;
 using NUnit.Framework;
-using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.Movies;
 using NzbDrone.Core.Notifications;
 using NzbDrone.Core.Validation;
 using NzbDrone.Test.Common;
@@ -58,22 +55,22 @@ namespace NzbDrone.Core.Test.NotificationTests
                 TestLogger.Info("OnDownload was called");
             }
 
-            public override void OnMovieRename(Movie movie, List<RenamedMovieFile> renamedFiles)
+            public override void OnRename(RenameMessage message)
             {
                 TestLogger.Info("OnRename was called");
             }
 
-            public override void OnMovieAdded(Movie movie)
+            public override void OnMediaAdded(MediaAddedMessage message)
             {
                 TestLogger.Info("OnMovieAdded was called");
             }
 
-            public override void OnMovieFileDelete(MovieFileDeleteMessage message)
+            public override void OnMediaFileDelete(MediaFileDeleteMessage message)
             {
                 TestLogger.Info("OnMovieFileDelete was called");
             }
 
-            public override void OnMovieDelete(MovieDeleteMessage deleteMessage)
+            public override void OnMediaDelete(MediaDeleteMessage deleteMessage)
             {
                 TestLogger.Info("OnMovieDelete was called");
             }

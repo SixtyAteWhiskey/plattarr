@@ -801,6 +801,61 @@ Per-module events (`OnMovieAdded`, `OnSeriesAdd`, `OnArtistAdd`) become one
 gain a per-media-type toggle so a user can, for example, notify on movie grabs
 only.
 
+As built in porting step 9g (contract 7). The core no longer references
+a movie type in `Notifications`; 56 types left the boundary allowlist, and
+`ManualInteractionRequiredEvent` with them (129 to 72). The shapes differ
+from the sketch above in these ways:
+
+- **Messages carry two channels.** `Subject` (`ActivitySubject`) holds what
+  text providers show: title, `ItemLabel`, path, year, overview, genres,
+  rating, poster and fanart URLs, tags, `ExternalIds` (keyed by
+  `ExternalIdTypes`) and `Links`. `Data` (`IMediaNotificationData`, with
+  `Kind`) holds the module's own objects. Only the module's builders read
+  `Data`: `IWebhookPayloadBuilder`, `ICustomScriptEnvironmentBuilder`,
+  `ITraktCollectionBuilder`. Core picks the builder with
+  `Single(b => b.Kind == message.Data.Kind)`. Files and releases are neutral
+  (`NotificationFile`, `NotificationRelease`), so there is no `Kind` or
+  `RemoteRelease` on `GrabMessage` itself.
+- **The module raises messages.** `Movies.Notifications.MovieNotificationHandler`
+  handles the movie events, builds messages with `MovieActivityRenderer`
+  (an `IActivityRenderer`, found by `Kind`) and calls the core
+  `INotificationDispatcher`, which `NotificationService` implements. Core
+  keeps the provider selection: enabled events, tag filter, the upgrade rule
+  (`OldFiles.Empty() || OnUpgrade`), the file-delete rule, failure
+  recording.
+- **`AnyEnabled(NotificationEvent)`** lets a module skip building a message
+  when no provider listens. Without it every bulk `MoviesImportedEvent`
+  would load metadata for each movie.
+- **`ActivitySubject.RootFolderPath` is lazy.** `RootFolderService.All()` is
+  expensive; the module supplies a resolver and only Plex and Jellyfin pay.
+- **Renamed provider methods:** `OnRename(RenameMessage)`,
+  `OnMediaAdded`, `OnMediaFileDelete`, `OnMediaDelete`. `Supports*`
+  properties, the `NotificationDefinition` columns (`OnMovieAdded`,
+  `OnMovieDelete`, `OnMovieFileDelete`, `OnMovieFileDeleteForUpgrade`) and
+  the v3 API names are unchanged: no migration.
+- **Deferred:** the per-media-type toggle and the column rename. They have
+  no purpose until a second module exists, and the rename needs a migration
+  plus an API alias.
+- **Moved to `NzbDrone.Core.Modules`:** `DeleteMediaFileReason`,
+  `RenameCompletedEvent`, `DeleteCompletedEvent`.
+- **Link URLs normalized.** Metadata links are built once by the renderer.
+  Discord's Links field now reads `https://www.themoviedb.org/movie/{id}`
+  and `https://www.imdb.com/title/{id}` (no trailing slash). The Trakt link
+  type was selectable in a provider's `MetadataLinks` setting but ignored by
+  the providers that use the generator; it now works (finding 27).
+- **Other behavior changes:** `MoviesImportedEvent` handles each movie
+  separately, so one failure no longer skips the rest; Discord omits the
+  TMDb link when the TMDb id is 0; Discord's file-delete path is
+  `Combine(ParentPath, RelativePath)`.
+- **Not done here:** `DownloadMonitoringService` still handles
+  `MovieGrabbedEvent` and `MovieFileImportedEvent`, so it stays on the
+  allowlist.
+
+`NotificationGoldenFixture` pushes a fixed movie library through the handler
+into Webhook, Custom Script and Discord and compares the output with
+`Files/Notifications/Golden`. The webhook and script files are byte-identical
+to the capture taken before the change.
+
 ### Download client settings
 
 `IDownloadClient.Download` takes `RemoteRelease`. Client settings replace the

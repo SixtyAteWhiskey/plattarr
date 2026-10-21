@@ -1,6 +1,6 @@
 using NzbDrone.Common.Messaging;
 
-namespace NzbDrone.Core.MediaFiles.Events
+namespace NzbDrone.Core.Modules
 {
     public class DeleteCompletedEvent : IEvent
     {

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Common.Cache;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.Movies;
+using NzbDrone.Core.Modules;
 
 namespace NzbDrone.Core.Notifications
 {
@@ -12,7 +12,7 @@ namespace NzbDrone.Core.Notifications
     {
         private class UpdateQueue
         {
-            public Dictionary<int, UpdateQueueItem<TItemInfo>> Pending { get; } = new();
+            public Dictionary<(MediaKind Kind, int ParentId), UpdateQueueItem<TItemInfo>> Pending { get; } = new();
             public bool Refreshing { get; set; }
         }
 
@@ -23,19 +23,20 @@ namespace NzbDrone.Core.Notifications
             _pendingMoviesCache = cacheManager.GetRollingCache<UpdateQueue>(typeof(TQueueHost), "pendingMovies", TimeSpan.FromDays(1));
         }
 
-        public void Add(string identifier, Movie movie, TItemInfo info)
+        public void Add(string identifier, ActivitySubject subject, TItemInfo info)
         {
             var queue = _pendingMoviesCache.Get(identifier, () => new UpdateQueue());
 
             lock (queue)
             {
-                var item = queue.Pending.TryGetValue(movie.Id, out var value)
+                var key = (subject.Kind, subject.ParentId);
+                var item = queue.Pending.TryGetValue(key, out var value)
                     ? value
-                    : new UpdateQueueItem<TItemInfo>(movie);
+                    : new UpdateQueueItem<TItemInfo>(subject);
 
                 item.Info.Add(info);
 
-                queue.Pending[movie.Id] = item;
+                queue.Pending[key] = item;
             }
         }
 
@@ -93,12 +94,12 @@ namespace NzbDrone.Core.Notifications
 
     public class UpdateQueueItem<TItemInfo>
     {
-        public Movie Movie { get; set; }
+        public ActivitySubject Subject { get; set; }
         public HashSet<TItemInfo> Info { get; set; }
 
-        public UpdateQueueItem(Movie movie)
+        public UpdateQueueItem(ActivitySubject subject)
         {
-            Movie = movie;
+            Subject = subject;
             Info = new HashSet<TItemInfo>();
         }
     }

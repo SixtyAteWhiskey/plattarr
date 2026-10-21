@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using NLog;
 using NzbDrone.Common;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 
 namespace NzbDrone.Core.MediaFiles

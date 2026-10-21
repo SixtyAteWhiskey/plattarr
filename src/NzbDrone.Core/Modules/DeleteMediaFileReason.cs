@@ -1,4 +1,4 @@
-﻿namespace NzbDrone.Core.MediaFiles
+﻿namespace NzbDrone.Core.Modules
 {
     public enum DeleteMediaFileReason
     {

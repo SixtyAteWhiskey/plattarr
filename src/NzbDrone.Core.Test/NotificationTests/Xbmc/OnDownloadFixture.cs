@@ -1,10 +1,7 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
-using FizzWare.NBuilder;
 using Moq;
 using NUnit.Framework;
-using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.Movies;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Notifications;
 using NzbDrone.Core.Notifications.Xbmc;
 using NzbDrone.Core.Test.Framework;
@@ -19,17 +16,12 @@ namespace NzbDrone.Core.Test.NotificationTests.Xbmc
         [SetUp]
         public void Setup()
         {
-            var movie = Builder<Movie>.CreateNew()
-                                        .Build();
-
-            var movieFile = Builder<MovieFile>.CreateNew()
-                                                   .Build();
-
-            _downloadMessage = Builder<DownloadMessage>.CreateNew()
-                                                       .With(d => d.Movie = movie)
-                                                       .With(d => d.MovieFile = movieFile)
-                                                       .With(d => d.OldMovieFiles = new List<DeletedMovieFile>())
-                                                       .Build();
+            _downloadMessage = new DownloadMessage
+            {
+                Subject = new ActivitySubject { Kind = MediaKind.Movies, ParentTitle = "Movie" },
+                File = new NotificationFile { Id = 1 },
+                OldFiles = new List<NotificationFile>()
+            };
 
             Subject.Definition = new NotificationDefinition();
             Subject.Definition.Settings = new XbmcSettings
@@ -41,12 +33,7 @@ namespace NzbDrone.Core.Test.NotificationTests.Xbmc
 
         private void GivenOldFiles()
         {
-            _downloadMessage.OldMovieFiles = Builder<DeletedMovieFile>
-                .CreateListOfSize(1)
-                .All()
-                .WithFactory(() => new DeletedMovieFile(Builder<MovieFile>.CreateNew().Build(), null))
-                .Build()
-                .ToList();
+            _downloadMessage.OldFiles = new List<NotificationFile> { new NotificationFile { Id = 2 } };
 
             Subject.Definition.Settings = new XbmcSettings
                                           {

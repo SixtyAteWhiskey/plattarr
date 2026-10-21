@@ -1,16 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using FluentValidation.Results;
 using NLog;
-using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.MediaFiles.MediaInfo;
-using NzbDrone.Core.Movies;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Notifications.Trakt.Resource;
-using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Notifications.Trakt
@@ -19,13 +16,15 @@ namespace NzbDrone.Core.Notifications.Trakt
     {
         private readonly ITraktProxy _proxy;
         private readonly INotificationRepository _notificationRepository;
+        private readonly IEnumerable<ITraktCollectionBuilder> _collectionBuilders;
         private readonly ILocalizationService _localizationService;
         private readonly Logger _logger;
 
-        public Trakt(ITraktProxy proxy, INotificationRepository notificationRepository, ILocalizationService localizationService, Logger logger)
+        public Trakt(ITraktProxy proxy, INotificationRepository notificationRepository, IEnumerable<ITraktCollectionBuilder> collectionBuilders, ILocalizationService localizationService, Logger logger)
         {
             _proxy = proxy;
             _notificationRepository = notificationRepository;
+            _collectionBuilders = collectionBuilders;
             _localizationService = localizationService;
             _logger = logger;
         }
@@ -36,19 +35,19 @@ namespace NzbDrone.Core.Notifications.Trakt
         public override void OnDownload(DownloadMessage message)
         {
             RefreshTokenIfNecessary();
-            AddMovieToCollection(Settings, message.Movie, message.MovieFile);
+            AddMovieToCollection(Settings, message);
         }
 
-        public override void OnMovieFileDelete(MovieFileDeleteMessage deleteMessage)
+        public override void OnMediaFileDelete(MediaFileDeleteMessage deleteMessage)
         {
             RefreshTokenIfNecessary();
-            RemoveMovieFromCollection(Settings, deleteMessage.Movie);
+            RemoveMovieFromCollection(Settings, deleteMessage.Subject);
         }
 
-        public override void OnMovieDelete(MovieDeleteMessage deleteMessage)
+        public override void OnMediaDelete(MediaDeleteMessage deleteMessage)
         {
             RefreshTokenIfNecessary();
-            RemoveMovieFromCollection(Settings, deleteMessage.Movie);
+            RemoveMovieFromCollection(Settings, deleteMessage.Subject);
         }
 
         public override ValidationResult Test()
@@ -149,41 +148,19 @@ namespace NzbDrone.Core.Notifications.Trakt
             }
         }
 
-        private void AddMovieToCollection(TraktSettings settings, Movie movie, MovieFile movieFile)
+        private void AddMovieToCollection(TraktSettings settings, DownloadMessage message)
         {
+            var builder = _collectionBuilders.Single(b => b.Kind == message.Data.Kind);
+
             var payload = new TraktCollectMoviesResource
             {
-                Movies = new List<TraktCollectMovie>()
+                Movies = new List<TraktCollectMovie> { builder.BuildCollected(message) }
             };
-
-            var traktResolution = MapResolution(movieFile.Quality.Quality.Resolution, movieFile.MediaInfo?.ScanType);
-            var hdr = MapHdr(movieFile);
-            var mediaType = MapMediaType(movieFile.Quality.Quality.Source);
-            var audio = MapAudio(movieFile);
-            var audioChannels = MapAudioChannels(movieFile);
-
-            payload.Movies.Add(new TraktCollectMovie
-            {
-                Title = movie.Title,
-                Year = movie.Year,
-                CollectedAt = DateTime.Now,
-                Resolution = traktResolution,
-                Hdr = hdr,
-                MediaType = mediaType,
-                AudioChannels = audioChannels,
-                Audio = audio,
-                Is3D = movieFile.MediaInfo?.VideoMultiViewCount > 1,
-                Ids = new TraktMovieIdsResource
-                {
-                    Tmdb = movie.MovieMetadata.Value.TmdbId,
-                    Imdb = movie.MovieMetadata.Value.ImdbId ?? "",
-                }
-            });
 
             _proxy.AddToCollection(payload, settings.AccessToken);
         }
 
-        private void RemoveMovieFromCollection(TraktSettings settings, Movie movie)
+        private void RemoveMovieFromCollection(TraktSettings settings, ActivitySubject subject)
         {
             var payload = new TraktCollectMoviesResource
             {
@@ -192,104 +169,16 @@ namespace NzbDrone.Core.Notifications.Trakt
 
             payload.Movies.Add(new TraktCollectMovie
             {
-                Title = movie.Title,
-                Year = movie.Year,
+                Title = subject.ParentTitle,
+                Year = subject.Year,
                 Ids = new TraktMovieIdsResource
                 {
-                    Tmdb = movie.MovieMetadata.Value.TmdbId,
-                    Imdb = movie.MovieMetadata.Value.ImdbId ?? "",
+                    Tmdb = int.TryParse(subject.GetExternalId(ExternalIdTypes.Tmdb), out var tmdbId) ? tmdbId : 0,
+                    Imdb = subject.GetExternalId(ExternalIdTypes.Imdb) ?? "",
                 }
             });
 
             _proxy.RemoveFromCollection(payload, settings.AccessToken);
-        }
-
-        private string MapMediaType(QualitySource source)
-        {
-            var traktSource = source switch
-            {
-                QualitySource.BLURAY => "bluray",
-                QualitySource.WEBDL => "digital",
-                QualitySource.WEBRIP => "digital",
-                QualitySource.DVD => "dvd",
-                QualitySource.TV => "dvd",
-                _ => string.Empty
-            };
-
-            return traktSource;
-        }
-
-        private string MapResolution(int resolution, string scanType)
-        {
-            var scanIdentifier = scanType.IsNotNullOrWhiteSpace() && TraktInterlacedTypes.InterlacedTypes.Contains(scanType) ? "i" : "p";
-
-            var traktResolution = resolution switch
-            {
-                2160 => "uhd_4k",
-                1080 => $"hd_1080{scanIdentifier}",
-                720 => "hd_720p",
-                576 => $"sd_576{scanIdentifier}",
-                480 => $"sd_480{scanIdentifier}",
-                _ => string.Empty
-            };
-
-            return traktResolution;
-        }
-
-        private string MapHdr(MovieFile movieFile)
-        {
-            var traktHdr = movieFile.MediaInfo?.VideoHdrFormat switch
-            {
-                HdrFormat.DolbyVision or HdrFormat.DolbyVisionSdr => "dolby_vision",
-                HdrFormat.Hdr10 or HdrFormat.DolbyVisionHdr10 => "hdr10",
-                HdrFormat.Hdr10Plus or HdrFormat.DolbyVisionHdr10Plus => "hdr10_plus",
-                HdrFormat.Hlg10 or HdrFormat.DolbyVisionHlg => "hlg",
-                _ => null
-            };
-
-            return traktHdr;
-        }
-
-        private string MapAudio(MovieFile movieFile)
-        {
-            var audioCodec = movieFile.MediaInfo != null ? MediaInfoFormatter.FormatAudioCodec(movieFile.MediaInfo, movieFile.SceneName) : string.Empty;
-
-            var traktAudioFormat = audioCodec switch
-            {
-                "AC3" => "dolby_digital",
-                "EAC3" => "dolby_digital_plus",
-                "TrueHD" => "dolby_truehd",
-                "EAC3 Atmos" => "dolby_digital_plus_atmos",
-                "TrueHD Atmos" => "dolby_atmos",
-                "DTS" => "dts",
-                "DTS-ES" => "dts",
-                "DTS-HD MA" => "dts_ma",
-                "DTS-HD HRA" => "dts_hr",
-                "DTS-X" => "dts_x",
-                "MP3" => "mp3",
-                "MP2" => "mp2",
-                "Vorbis" => "ogg",
-                "WMA" => "wma",
-                "AAC" => "aac",
-                "PCM" => "lpcm",
-                "FLAC" => "flac",
-                "Opus" => "ogg_opus",
-                _ => string.Empty
-            };
-
-            return traktAudioFormat;
-        }
-
-        private string MapAudioChannels(MovieFile movieFile)
-        {
-            var audioChannels = movieFile.MediaInfo != null ? MediaInfoFormatter.FormatAudioChannels(movieFile.MediaInfo).ToString("0.0") : string.Empty;
-
-            if (audioChannels == "0.0")
-            {
-                audioChannels = string.Empty;
-            }
-
-            return audioChannels;
         }
     }
 }

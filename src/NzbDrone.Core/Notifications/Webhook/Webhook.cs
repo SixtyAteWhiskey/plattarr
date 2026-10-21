@@ -3,10 +3,6 @@ using FluentValidation.Results;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.MediaCover;
-using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.Movies;
-using NzbDrone.Core.Tags;
 using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Notifications.Webhook
@@ -15,8 +11,8 @@ namespace NzbDrone.Core.Notifications.Webhook
     {
         private readonly IWebhookProxy _proxy;
 
-        public Webhook(IWebhookProxy proxy, IConfigFileProvider configFileProvider, IConfigService configService, ILocalizationService localizationService, ITagRepository tagRepository, IMapCoversToLocal mediaCoverService)
-            : base(configFileProvider, configService, localizationService, tagRepository, mediaCoverService)
+        public Webhook(IWebhookProxy proxy, IConfigFileProvider configFileProvider, IConfigService configService, ILocalizationService localizationService, IEnumerable<IWebhookPayloadBuilder> payloadBuilders)
+            : base(configFileProvider, configService, localizationService, payloadBuilders)
         {
             _proxy = proxy;
         }
@@ -33,24 +29,24 @@ namespace NzbDrone.Core.Notifications.Webhook
             _proxy.SendWebhook(BuildOnDownloadPayload(message), Settings);
         }
 
-        public override void OnMovieRename(Movie movie, List<RenamedMovieFile> renamedFiles)
+        public override void OnRename(RenameMessage message)
         {
-            _proxy.SendWebhook(BuildOnRenamePayload(movie, renamedFiles), Settings);
+            _proxy.SendWebhook(BuildOnRenamePayload(message), Settings);
         }
 
-        public override void OnMovieAdded(Movie movie)
+        public override void OnMediaAdded(MediaAddedMessage message)
         {
-            _proxy.SendWebhook(BuildOnMovieAdded(movie), Settings);
+            _proxy.SendWebhook(BuildOnMediaAdded(message), Settings);
         }
 
-        public override void OnMovieFileDelete(MovieFileDeleteMessage deleteMessage)
+        public override void OnMediaFileDelete(MediaFileDeleteMessage deleteMessage)
         {
-            _proxy.SendWebhook(BuildOnMovieFileDelete(deleteMessage), Settings);
+            _proxy.SendWebhook(BuildOnMediaFileDelete(deleteMessage), Settings);
         }
 
-        public override void OnMovieDelete(MovieDeleteMessage deleteMessage)
+        public override void OnMediaDelete(MediaDeleteMessage deleteMessage)
         {
-            _proxy.SendWebhook(BuildOnMovieDelete(deleteMessage), Settings);
+            _proxy.SendWebhook(BuildOnMediaDelete(deleteMessage), Settings);
         }
 
         public override void OnHealthIssue(HealthCheck.HealthCheck healthCheck)

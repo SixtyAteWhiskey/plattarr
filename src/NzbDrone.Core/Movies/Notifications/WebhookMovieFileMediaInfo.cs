@@ -3,7 +3,7 @@ using System.Linq;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.MediaInfo;
 
-namespace NzbDrone.Core.Notifications.Webhook
+namespace NzbDrone.Core.Movies.Notifications
 {
     public class WebhookMovieFileMediaInfo
     {

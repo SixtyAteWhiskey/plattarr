@@ -1,0 +1,773 @@
+{
+  "movie": {
+    "id": 1,
+    "title": "Interstellar",
+    "year": 2014,
+    "releaseDate": "2015-03-31",
+    "folderPath": "/movies/Interstellar (2014)",
+    "tmdbId": 157336,
+    "imdbId": "tt0816692",
+    "overview": "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage.",
+    "genres": [
+      "Adventure",
+      "Drama",
+      "Science Fiction",
+      "Thriller",
+      "Mystery",
+      "Action"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ],
+    "originalLanguage": {
+      "id": 14,
+      "name": "English"
+    }
+  },
+  "remoteMovie": {
+    "tmdbId": 157336,
+    "imdbId": "tt0816692",
+    "title": "Interstellar",
+    "year": 2014
+  },
+  "release": {
+    "quality": "Bluray-1080p",
+    "qualityVersion": 2,
+    "releaseGroup": "GRP",
+    "releaseTitle": "Interstellar.2014.1080p.BluRay.x264-GRP",
+    "indexer": "Knaben",
+    "size": 9876543210,
+    "customFormatScore": 150,
+    "customFormats": [
+      "x264",
+      "IMAX"
+    ],
+    "languages": [
+      {
+        "id": 14,
+        "name": "English"
+      }
+    ],
+    "indexerFlags": []
+  },
+  "downloadClient": "qb-main",
+  "downloadClientType": "qBittorrent",
+  "downloadId": "HASH123",
+  "customFormatInfo": {
+    "customFormats": [
+      {
+        "id": 1,
+        "name": "x264"
+      },
+      {
+        "id": 2,
+        "name": "IMAX"
+      }
+    ],
+    "customFormatScore": 150
+  },
+  "eventType": "Grab",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "movie": {
+    "id": 1,
+    "title": "Interstellar",
+    "year": 2014,
+    "releaseDate": "2015-03-31",
+    "folderPath": "/movies/Interstellar (2014)",
+    "tmdbId": 157336,
+    "imdbId": "tt0816692",
+    "overview": "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage.",
+    "genres": [
+      "Adventure",
+      "Drama",
+      "Science Fiction",
+      "Thriller",
+      "Mystery",
+      "Action"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ],
+    "originalLanguage": {
+      "id": 14,
+      "name": "English"
+    }
+  },
+  "remoteMovie": {
+    "tmdbId": 157336,
+    "imdbId": "tt0816692",
+    "title": "Interstellar",
+    "year": 2014
+  },
+  "movieFile": {
+    "id": 10,
+    "relativePath": "Interstellar (2014) Bluray-1080p.mkv",
+    "path": "/movies/Interstellar (2014)/Interstellar (2014) Bluray-1080p.mkv",
+    "quality": "Bluray-1080p",
+    "qualityVersion": 2,
+    "releaseGroup": "GRP",
+    "sceneName": "Interstellar.2014.1080p.BluRay.x264-GRP",
+    "indexerFlags": "G_Freeleech",
+    "size": 12345678901,
+    "dateAdded": "2026-10-02T03:04:05Z",
+    "languages": [
+      {
+        "id": 14,
+        "name": "English"
+      }
+    ],
+    "mediaInfo": {
+      "audioChannels": 6.0,
+      "audioCodec": "AC3",
+      "audioLanguages": [
+        "eng",
+        "fra"
+      ],
+      "height": 1080,
+      "width": 1920,
+      "subtitles": [
+        "eng",
+        "spa"
+      ],
+      "videoCodec": "x264",
+      "videoDynamicRange": "",
+      "videoDynamicRangeType": ""
+    },
+    "sourcePath": "/downloads/src.mkv"
+  },
+  "isUpgrade": false,
+  "downloadClient": "qb-main",
+  "downloadClientType": "qBittorrent",
+  "downloadId": "HASH123",
+  "customFormatInfo": {
+    "customFormats": [
+      {
+        "id": 1,
+        "name": "x264"
+      }
+    ],
+    "customFormatScore": 75
+  },
+  "release": {
+    "releaseTitle": "Interstellar.2014.1080p.BluRay.x264-GRP",
+    "indexer": "Knaben",
+    "size": 9876543210,
+    "indexerFlags": [
+      "G_Freeleech"
+    ]
+  },
+  "eventType": "Download",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "movie": {
+    "id": 1,
+    "title": "Interstellar",
+    "year": 2014,
+    "releaseDate": "2015-03-31",
+    "folderPath": "/movies/Interstellar (2014)",
+    "tmdbId": 157336,
+    "imdbId": "tt0816692",
+    "overview": "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage.",
+    "genres": [
+      "Adventure",
+      "Drama",
+      "Science Fiction",
+      "Thriller",
+      "Mystery",
+      "Action"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ],
+    "originalLanguage": {
+      "id": 14,
+      "name": "English"
+    }
+  },
+  "remoteMovie": {
+    "tmdbId": 157336,
+    "imdbId": "tt0816692",
+    "title": "Interstellar",
+    "year": 2014
+  },
+  "movieFile": {
+    "id": 10,
+    "relativePath": "Interstellar (2014) Bluray-1080p.mkv",
+    "path": "/movies/Interstellar (2014)/Interstellar (2014) Bluray-1080p.mkv",
+    "quality": "Bluray-1080p",
+    "qualityVersion": 2,
+    "releaseGroup": "GRP",
+    "sceneName": "Interstellar.2014.1080p.BluRay.x264-GRP",
+    "indexerFlags": "G_Freeleech",
+    "size": 12345678901,
+    "dateAdded": "2026-10-02T03:04:05Z",
+    "languages": [
+      {
+        "id": 14,
+        "name": "English"
+      }
+    ],
+    "mediaInfo": {
+      "audioChannels": 6.0,
+      "audioCodec": "AC3",
+      "audioLanguages": [
+        "eng",
+        "fra"
+      ],
+      "height": 1080,
+      "width": 1920,
+      "subtitles": [
+        "eng",
+        "spa"
+      ],
+      "videoCodec": "x264",
+      "videoDynamicRange": "",
+      "videoDynamicRangeType": ""
+    },
+    "sourcePath": "/downloads/src.mkv"
+  },
+  "isUpgrade": true,
+  "downloadClient": "qb-main",
+  "downloadClientType": "qBittorrent",
+  "downloadId": "HASH123",
+  "deletedFiles": [
+    {
+      "id": 9,
+      "relativePath": "Interstellar (2014) HDTV-720p.mkv",
+      "path": "/movies/Interstellar (2014)/Interstellar (2014) HDTV-720p.mkv",
+      "quality": "Bluray-1080p",
+      "qualityVersion": 2,
+      "releaseGroup": "GRP",
+      "sceneName": "Interstellar.2014.1080p.BluRay.x264-GRP",
+      "indexerFlags": "G_Freeleech",
+      "size": 12345678901,
+      "dateAdded": "2026-10-02T03:04:05Z",
+      "languages": [
+        {
+          "id": 14,
+          "name": "English"
+        }
+      ],
+      "mediaInfo": {
+        "audioChannels": 6.0,
+        "audioCodec": "AC3",
+        "audioLanguages": [
+          "eng",
+          "fra"
+        ],
+        "height": 1080,
+        "width": 1920,
+        "subtitles": [
+          "eng",
+          "spa"
+        ],
+        "videoCodec": "x264",
+        "videoDynamicRange": "",
+        "videoDynamicRangeType": ""
+      },
+      "recycleBinPath": "/recycle/old.mkv"
+    }
+  ],
+  "customFormatInfo": {
+    "customFormats": [
+      {
+        "id": 1,
+        "name": "x264"
+      }
+    ],
+    "customFormatScore": 75
+  },
+  "release": {
+    "releaseTitle": "Interstellar.2014.1080p.BluRay.x264-GRP",
+    "indexer": "Knaben",
+    "size": 9876543210,
+    "indexerFlags": [
+      "G_Freeleech"
+    ]
+  },
+  "eventType": "Download",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "movie": {
+    "id": 1,
+    "title": "Interstellar",
+    "year": 2014,
+    "releaseDate": "2015-03-31",
+    "folderPath": "/movies/Interstellar (2014)",
+    "tmdbId": 157336,
+    "imdbId": "tt0816692",
+    "overview": "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage.",
+    "genres": [
+      "Adventure",
+      "Drama",
+      "Science Fiction",
+      "Thriller",
+      "Mystery",
+      "Action"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ],
+    "originalLanguage": {
+      "id": 14,
+      "name": "English"
+    }
+  },
+  "renamedMovieFiles": [
+    {
+      "previousRelativePath": "old.mkv",
+      "previousPath": "/movies/Interstellar (2014)/old.mkv",
+      "id": 10,
+      "relativePath": "Interstellar (2014) Bluray-1080p.mkv",
+      "path": "/movies/Interstellar (2014)/Interstellar (2014) Bluray-1080p.mkv",
+      "quality": "Bluray-1080p",
+      "qualityVersion": 2,
+      "releaseGroup": "GRP",
+      "sceneName": "Interstellar.2014.1080p.BluRay.x264-GRP",
+      "indexerFlags": "G_Freeleech",
+      "size": 12345678901,
+      "dateAdded": "2026-10-02T03:04:05Z",
+      "languages": [
+        {
+          "id": 14,
+          "name": "English"
+        }
+      ],
+      "mediaInfo": {
+        "audioChannels": 6.0,
+        "audioCodec": "AC3",
+        "audioLanguages": [
+          "eng",
+          "fra"
+        ],
+        "height": 1080,
+        "width": 1920,
+        "subtitles": [
+          "eng",
+          "spa"
+        ],
+        "videoCodec": "x264",
+        "videoDynamicRange": "",
+        "videoDynamicRangeType": ""
+      }
+    }
+  ],
+  "eventType": "Rename",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "movie": {
+    "id": 1,
+    "title": "Interstellar",
+    "year": 2014,
+    "releaseDate": "2015-03-31",
+    "folderPath": "/movies/Interstellar (2014)",
+    "tmdbId": 157336,
+    "imdbId": "tt0816692",
+    "overview": "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage.",
+    "genres": [
+      "Adventure",
+      "Drama",
+      "Science Fiction",
+      "Thriller",
+      "Mystery",
+      "Action"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ],
+    "originalLanguage": {
+      "id": 14,
+      "name": "English"
+    }
+  },
+  "addMethod": "manual",
+  "eventType": "MovieAdded",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "movie": {
+    "id": 1,
+    "title": "Interstellar",
+    "year": 2014,
+    "releaseDate": "2015-03-31",
+    "folderPath": "/movies/Interstellar (2014)",
+    "tmdbId": 157336,
+    "imdbId": "tt0816692",
+    "overview": "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage.",
+    "genres": [
+      "Adventure",
+      "Drama",
+      "Science Fiction",
+      "Thriller",
+      "Mystery",
+      "Action"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ],
+    "originalLanguage": {
+      "id": 14,
+      "name": "English"
+    }
+  },
+  "movieFile": {
+    "id": 10,
+    "relativePath": "Interstellar (2014) Bluray-1080p.mkv",
+    "path": "/movies/Interstellar (2014)/Interstellar (2014) Bluray-1080p.mkv",
+    "quality": "Bluray-1080p",
+    "qualityVersion": 2,
+    "releaseGroup": "GRP",
+    "sceneName": "Interstellar.2014.1080p.BluRay.x264-GRP",
+    "indexerFlags": "G_Freeleech",
+    "size": 12345678901,
+    "dateAdded": "2026-10-02T03:04:05Z",
+    "languages": [
+      {
+        "id": 14,
+        "name": "English"
+      }
+    ],
+    "mediaInfo": {
+      "audioChannels": 6.0,
+      "audioCodec": "AC3",
+      "audioLanguages": [
+        "eng",
+        "fra"
+      ],
+      "height": 1080,
+      "width": 1920,
+      "subtitles": [
+        "eng",
+        "spa"
+      ],
+      "videoCodec": "x264",
+      "videoDynamicRange": "",
+      "videoDynamicRangeType": ""
+    }
+  },
+  "deleteReason": "manual",
+  "eventType": "MovieFileDelete",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "movie": {
+    "id": 1,
+    "title": "Interstellar",
+    "year": 2014,
+    "releaseDate": "2015-03-31",
+    "folderPath": "/movies/Interstellar (2014)",
+    "tmdbId": 157336,
+    "imdbId": "tt0816692",
+    "overview": "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage.",
+    "genres": [
+      "Adventure",
+      "Drama",
+      "Science Fiction",
+      "Thriller",
+      "Mystery",
+      "Action"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ],
+    "originalLanguage": {
+      "id": 14,
+      "name": "English"
+    }
+  },
+  "movieFile": {
+    "id": 10,
+    "relativePath": "Interstellar (2014) Bluray-1080p.mkv",
+    "path": "/movies/Interstellar (2014)/Interstellar (2014) Bluray-1080p.mkv",
+    "quality": "Bluray-1080p",
+    "qualityVersion": 2,
+    "releaseGroup": "GRP",
+    "sceneName": "Interstellar.2014.1080p.BluRay.x264-GRP",
+    "indexerFlags": "G_Freeleech",
+    "size": 12345678901,
+    "dateAdded": "2026-10-02T03:04:05Z",
+    "languages": [
+      {
+        "id": 14,
+        "name": "English"
+      }
+    ],
+    "mediaInfo": {
+      "audioChannels": 6.0,
+      "audioCodec": "AC3",
+      "audioLanguages": [
+        "eng",
+        "fra"
+      ],
+      "height": 1080,
+      "width": 1920,
+      "subtitles": [
+        "eng",
+        "spa"
+      ],
+      "videoCodec": "x264",
+      "videoDynamicRange": "",
+      "videoDynamicRangeType": ""
+    }
+  },
+  "deleteReason": "upgrade",
+  "eventType": "MovieFileDelete",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "movie": {
+    "id": 1,
+    "title": "Interstellar",
+    "year": 2014,
+    "releaseDate": "2015-03-31",
+    "folderPath": "/movies/Interstellar (2014)",
+    "tmdbId": 157336,
+    "imdbId": "tt0816692",
+    "overview": "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage.",
+    "genres": [
+      "Adventure",
+      "Drama",
+      "Science Fiction",
+      "Thriller",
+      "Mystery",
+      "Action"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ],
+    "originalLanguage": {
+      "id": 14,
+      "name": "English"
+    }
+  },
+  "deletedFiles": true,
+  "movieFolderSize": 12345678901,
+  "eventType": "MovieDelete",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "movie": {
+    "id": 1,
+    "title": "Interstellar",
+    "year": 2014,
+    "releaseDate": "2015-03-31",
+    "folderPath": "/movies/Interstellar (2014)",
+    "tmdbId": 157336,
+    "imdbId": "tt0816692",
+    "overview": "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage.",
+    "genres": [
+      "Adventure",
+      "Drama",
+      "Science Fiction",
+      "Thriller",
+      "Mystery",
+      "Action"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ],
+    "originalLanguage": {
+      "id": 14,
+      "name": "English"
+    }
+  },
+  "deletedFiles": false,
+  "movieFolderSize": 0,
+  "eventType": "MovieDelete",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "movie": {
+    "id": 1,
+    "title": "Interstellar",
+    "year": 2014,
+    "releaseDate": "2015-03-31",
+    "folderPath": "/movies/Interstellar (2014)",
+    "tmdbId": 157336,
+    "imdbId": "tt0816692",
+    "overview": "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage.",
+    "genres": [
+      "Adventure",
+      "Drama",
+      "Science Fiction",
+      "Thriller",
+      "Mystery",
+      "Action"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ],
+    "originalLanguage": {
+      "id": 14,
+      "name": "English"
+    }
+  },
+  "downloadInfo": {
+    "quality": "Bluray-1080p",
+    "qualityVersion": 2,
+    "title": "Interstellar.2014.1080p.BluRay.x264-GRP",
+    "size": 9876543210
+  },
+  "downloadClient": "qb-main",
+  "downloadClientType": "qBittorrent",
+  "downloadId": "HASH123",
+  "downloadStatus": "Ok",
+  "downloadStatusMessages": [],
+  "customFormatInfo": {
+    "customFormats": [
+      {
+        "id": 1,
+        "name": "x264"
+      },
+      {
+        "id": 2,
+        "name": "IMAX"
+      }
+    ],
+    "customFormatScore": 150
+  },
+  "release": {
+    "releaseTitle": "Interstellar.2014.1080p.BluRay.x264-GRP",
+    "indexer": "Knaben",
+    "size": 9876543210,
+    "indexerFlags": [
+      "G_Freeleech"
+    ]
+  },
+  "eventType": "ManualInteractionRequired",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}

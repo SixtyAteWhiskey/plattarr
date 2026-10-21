@@ -1,13 +1,13 @@
-using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.Movies;
+using NzbDrone.Core.Modules;
 
 namespace NzbDrone.Core.Notifications
 {
-    public class MovieFileDeleteMessage
+    public class MediaFileDeleteMessage
     {
         public string Message { get; set; }
-        public Movie Movie { get; set; }
-        public MovieFile MovieFile { get; set; }
+        public ActivitySubject Subject { get; set; }
+        public IMediaNotificationData Data { get; set; }
+        public NotificationFile File { get; set; }
 
         public DeleteMediaFileReason Reason { get; set; }
 

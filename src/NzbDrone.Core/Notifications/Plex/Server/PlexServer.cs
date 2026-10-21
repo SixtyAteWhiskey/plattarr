@@ -7,8 +7,7 @@ using NzbDrone.Common.Cache;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Annotations;
 using NzbDrone.Core.Exceptions;
-using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.Movies;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Notifications.Plex.PlexTv;
 using NzbDrone.Core.Validation;
 
@@ -34,35 +33,35 @@ namespace NzbDrone.Core.Notifications.Plex.Server
 
         public override void OnDownload(DownloadMessage message)
         {
-            UpdateIfEnabled(message.Movie);
+            UpdateIfEnabled(message.Subject);
         }
 
-        public override void OnMovieRename(Movie movie, List<RenamedMovieFile> renamedFiles)
+        public override void OnRename(RenameMessage message)
         {
-            UpdateIfEnabled(movie);
+            UpdateIfEnabled(message.Subject);
         }
 
-        public override void OnMovieFileDelete(MovieFileDeleteMessage deleteMessage)
+        public override void OnMediaFileDelete(MediaFileDeleteMessage deleteMessage)
         {
-            UpdateIfEnabled(deleteMessage.Movie);
+            UpdateIfEnabled(deleteMessage.Subject);
         }
 
-        public override void OnMovieDelete(MovieDeleteMessage deleteMessage)
+        public override void OnMediaDelete(MediaDeleteMessage deleteMessage)
         {
             if (deleteMessage.DeletedFiles)
             {
-                UpdateIfEnabled(deleteMessage.Movie);
+                UpdateIfEnabled(deleteMessage.Subject);
             }
         }
 
-        private void UpdateIfEnabled(Movie movie)
+        private void UpdateIfEnabled(ActivitySubject subject)
         {
             _plexTvService.Ping(Settings.AuthToken);
 
             if (Settings.UpdateLibrary)
             {
-                _logger.Debug("Scheduling library update for movie {0} {1}", movie.Id, movie.Title);
-                _updateQueue.Add(Settings.Host, movie, false);
+                _logger.Debug("Scheduling library update for {0} {1} {2}", subject.KindLabel, subject.ParentId, subject.ParentTitle);
+                _updateQueue.Add(Settings.Host, subject, false);
             }
         }
 
@@ -72,8 +71,8 @@ namespace NzbDrone.Core.Notifications.Plex.Server
             {
                 if (Settings.UpdateLibrary)
                 {
-                    _logger.Debug("Performing library update for {0} movies", items.Count);
-                    _plexServerService.UpdateLibrary(items.Select(i => i.Movie), Settings);
+                    _logger.Debug("Performing library update for {0} items", items.Count);
+                    _plexServerService.UpdateLibrary(items.Select(i => i.Subject), Settings);
                 }
             });
         }

@@ -1,7 +1,6 @@
-using NzbDrone.Core.Movies;
 using NzbDrone.Core.Parser.Model;
 
-namespace NzbDrone.Core.Notifications.Webhook
+namespace NzbDrone.Core.Movies.Notifications
 {
     public class WebhookRemoteMovie
     {

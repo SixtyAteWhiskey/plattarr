@@ -2,7 +2,7 @@ namespace NzbDrone.Core.Test.Architecture
 {
     // Core types that reference module code today (ModuleBoundaryFixture). This list may only shrink:
     // remove an entry when its type stops referencing a module; never add one. Each group says how it
-    // leaves the list. Seeded in step 9a with 159 types; 156 after 9b, 141 after 9c and 9d, 135 after 9e, 129 after 9f.
+    // leaves the list. Seeded in step 9a with 159 types; 156 after 9b, 141 after 9c and 9d, 135 after 9e, 129 after 9f, 72 after contract 7 (notifications).
     public static class ModuleBoundaryAllowlist
     {
         public static readonly string[] Types =
@@ -32,7 +32,7 @@ namespace NzbDrone.Core.Test.Architecture
             // DiskSpace (1): Root folders come from each module.
             "NzbDrone.Core.DiskSpace.DiskSpaceService",
 
-            // Download (44): Contract 2: tracked downloads and clients work on RemoteRelease (contract 5, import, left in 9e; contract 6, the queue and pending releases, in 9f). Clients use three helpers that belong in core (torrent file reader, file name cleaning, blocklist hash check).
+            // Download (43): Contract 2: tracked downloads and clients work on RemoteRelease (contract 5, import, left in 9e; contract 6, the queue and pending releases, in 9f). Clients use three helpers that belong in core (torrent file reader, file name cleaning, blocklist hash check).
             "NzbDrone.Core.Download.Aggregation.Aggregators.AggregateLanguages",
             "NzbDrone.Core.Download.Aggregation.Aggregators.IAggregateRemoteMovie",
             "NzbDrone.Core.Download.Aggregation.IRemoteMovieAggregationService",
@@ -67,7 +67,6 @@ namespace NzbDrone.Core.Test.Architecture
             "NzbDrone.Core.Download.IDownloadService",
             "NzbDrone.Core.Download.IProcessDownloadDecisions",
             "NzbDrone.Core.Download.IgnoredDownloadService",
-            "NzbDrone.Core.Download.ManualInteractionRequiredEvent",
             "NzbDrone.Core.Download.MovieGrabbedEvent",
             "NzbDrone.Core.Download.ProcessDownloadDecisions",
             "NzbDrone.Core.Download.ProcessedDecisions",
@@ -87,64 +86,6 @@ namespace NzbDrone.Core.Test.Architecture
 
             // Housekeeping (1): Tag cleanup asks each module which tags it uses.
             "NzbDrone.Core.Housekeeping.Housekeepers.CleanupUnusedTags",
-
-            // Notifications (56): Contract 7, before Phase 3.
-            "NzbDrone.Core.Notifications.Apprise.Apprise",
-            "NzbDrone.Core.Notifications.CustomScript.CustomScript",
-            "NzbDrone.Core.Notifications.DeleteMessage",
-            "NzbDrone.Core.Notifications.Discord.Discord",
-            "NzbDrone.Core.Notifications.DownloadMessage",
-            "NzbDrone.Core.Notifications.Email.Email",
-            "NzbDrone.Core.Notifications.Emby.IMediaBrowserService",
-            "NzbDrone.Core.Notifications.Emby.MediaBrowser",
-            "NzbDrone.Core.Notifications.Emby.MediaBrowserProxy",
-            "NzbDrone.Core.Notifications.Emby.MediaBrowserService",
-            "NzbDrone.Core.Notifications.Gotify.Gotify",
-            "NzbDrone.Core.Notifications.GrabMessage",
-            "NzbDrone.Core.Notifications.INotification",
-            "NzbDrone.Core.Notifications.Join.Join",
-            "NzbDrone.Core.Notifications.Mailgun.MailGun",
-            "NzbDrone.Core.Notifications.ManualInteractionRequiredMessage",
-            "NzbDrone.Core.Notifications.MediaServerUpdateQueue`2",
-            "NzbDrone.Core.Notifications.MovieDeleteMessage",
-            "NzbDrone.Core.Notifications.MovieFileDeleteMessage",
-            "NzbDrone.Core.Notifications.Notifiarr.Notifiarr",
-            "NzbDrone.Core.Notifications.NotificationBase`1",
-            "NzbDrone.Core.Notifications.NotificationMetadataLinkGenerator",
-            "NzbDrone.Core.Notifications.NotificationService",
-            "NzbDrone.Core.Notifications.Ntfy.Ntfy",
-            "NzbDrone.Core.Notifications.Plex.Server.IPlexServerService",
-            "NzbDrone.Core.Notifications.Plex.Server.PlexServer",
-            "NzbDrone.Core.Notifications.Plex.Server.PlexServerService",
-            "NzbDrone.Core.Notifications.Prowl.Prowl",
-            "NzbDrone.Core.Notifications.PushBullet.PushBullet",
-            "NzbDrone.Core.Notifications.Pushcut.Pushcut",
-            "NzbDrone.Core.Notifications.Pushover.Pushover",
-            "NzbDrone.Core.Notifications.Pushsafer.Pushsafer",
-            "NzbDrone.Core.Notifications.SendGrid.SendGrid",
-            "NzbDrone.Core.Notifications.Signal.Signal",
-            "NzbDrone.Core.Notifications.Simplepush.Simplepush",
-            "NzbDrone.Core.Notifications.Slack.Slack",
-            "NzbDrone.Core.Notifications.Synology.SynologyIndexer",
-            "NzbDrone.Core.Notifications.Telegram.Telegram",
-            "NzbDrone.Core.Notifications.Trakt.Trakt",
-            "NzbDrone.Core.Notifications.Twitter.Twitter",
-            "NzbDrone.Core.Notifications.UpdateQueueItem`1",
-            "NzbDrone.Core.Notifications.Webhook.Webhook",
-            "NzbDrone.Core.Notifications.Webhook.WebhookAddedPayload",
-            "NzbDrone.Core.Notifications.Webhook.WebhookBase`1",
-            "NzbDrone.Core.Notifications.Webhook.WebhookGrabbedRelease",
-            "NzbDrone.Core.Notifications.Webhook.WebhookImage",
-            "NzbDrone.Core.Notifications.Webhook.WebhookMovie",
-            "NzbDrone.Core.Notifications.Webhook.WebhookMovieFile",
-            "NzbDrone.Core.Notifications.Webhook.WebhookMovieFileDeletePayload",
-            "NzbDrone.Core.Notifications.Webhook.WebhookMovieFileMediaInfo",
-            "NzbDrone.Core.Notifications.Webhook.WebhookRelease",
-            "NzbDrone.Core.Notifications.Webhook.WebhookRemoteMovie",
-            "NzbDrone.Core.Notifications.Webhook.WebhookRenamedMovieFile",
-            "NzbDrone.Core.Notifications.Xbmc.IXbmcService",
-            "NzbDrone.Core.Notifications.Xbmc.Xbmc",
-            "NzbDrone.Core.Notifications.Xbmc.XbmcService",
 
             // Parser (1): ReleaseGroupParser strips media file extensions, which each module defines (MediaFileExtensions maps them to video qualities).
             "NzbDrone.Core.Parser.ReleaseGroupParser",

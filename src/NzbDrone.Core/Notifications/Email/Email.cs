@@ -9,7 +9,6 @@ using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http.Dispatchers;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.Movies;
 
 namespace NzbDrone.Core.Notifications.Email
 {
@@ -34,35 +33,35 @@ namespace NzbDrone.Core.Notifications.Email
         {
             var body = $"{grabMessage.Message} sent to queue.";
 
-            SendEmail(Settings, MOVIE_GRABBED_TITLE_BRANDED, body);
+            SendEmail(Settings, Branded(GrabbedTitle(grabMessage.Subject)), body);
         }
 
         public override void OnDownload(DownloadMessage message)
         {
             var body = $"{message.Message} Downloaded and sorted.";
 
-            SendEmail(Settings, MOVIE_DOWNLOADED_TITLE_BRANDED, body);
+            SendEmail(Settings, Branded(DownloadedTitle(message.Subject)), body);
         }
 
-        public override void OnMovieAdded(Movie movie)
+        public override void OnMediaAdded(MediaAddedMessage message)
         {
-            var body = $"{movie.Title} added to library.";
+            var body = $"{message.Subject.ParentTitle} added to library.";
 
-            SendEmail(Settings, MOVIE_ADDED_TITLE_BRANDED, body);
+            SendEmail(Settings, Branded(AddedTitle(message.Subject)), body);
         }
 
-        public override void OnMovieFileDelete(MovieFileDeleteMessage deleteMessage)
+        public override void OnMediaFileDelete(MediaFileDeleteMessage deleteMessage)
         {
             var body = $"{deleteMessage.Message} deleted.";
 
-            SendEmail(Settings, MOVIE_FILE_DELETED_TITLE_BRANDED, body);
+            SendEmail(Settings, Branded(FileDeletedTitle(deleteMessage.Subject)), body);
         }
 
-        public override void OnMovieDelete(MovieDeleteMessage deleteMessage)
+        public override void OnMediaDelete(MediaDeleteMessage deleteMessage)
         {
             var body = $"{deleteMessage.Message}";
 
-            SendEmail(Settings, MOVIE_DELETED_TITLE_BRANDED, body);
+            SendEmail(Settings, Branded(DeletedTitle(deleteMessage.Subject)), body);
         }
 
         public override void OnHealthIssue(HealthCheck.HealthCheck message)

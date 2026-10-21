@@ -1,6 +1,7 @@
-using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.Modules;
+using NzbDrone.Core.Notifications.Webhook;
 
-namespace NzbDrone.Core.Notifications.Webhook
+namespace NzbDrone.Core.Movies.Notifications
 {
     public class WebhookMovieFileDeletePayload : WebhookPayload
     {

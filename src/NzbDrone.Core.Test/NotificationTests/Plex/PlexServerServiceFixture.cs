@@ -2,9 +2,8 @@ using System.Collections.Generic;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Cache;
-using NzbDrone.Core.Movies;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Notifications.Plex.Server;
-using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
 
@@ -14,7 +13,7 @@ namespace NzbDrone.Core.Test.NotificationTests.Plex
     {
         private const string RootFolderPath = @"C:\Test\Movies";
 
-        private Movie _movie;
+        private ActivitySubject _subject;
         private PlexServerSettings _settings;
 
         [SetUp]
@@ -22,9 +21,11 @@ namespace NzbDrone.Core.Test.NotificationTests.Plex
         {
             Mocker.SetConstant<ICacheManager>(Mocker.Resolve<CacheManager>());
 
-            _movie = new Movie
+            _subject = new ActivitySubject
             {
-                Path = @"C:\Test\Movies\Movie Title (2020)".AsOsAgnostic()
+                Kind = MediaKind.Movies,
+                ParentPath = @"C:\Test\Movies\Movie Title (2020)".AsOsAgnostic(),
+                RootFolderPath = RootFolderPath.AsOsAgnostic()
             };
 
             _settings = new PlexServerSettings
@@ -32,10 +33,6 @@ namespace NzbDrone.Core.Test.NotificationTests.Plex
                 Host = "127.0.0.1",
                 Port = 32400
             };
-
-            Mocker.GetMock<IRootFolderService>()
-                .Setup(s => s.GetBestRootFolderPath(It.IsAny<string>(), null))
-                .Returns(RootFolderPath.AsOsAgnostic());
 
             Mocker.GetMock<IPlexServerProxy>()
                 .Setup(s => s.Version(_settings))
@@ -71,7 +68,7 @@ namespace NzbDrone.Core.Test.NotificationTests.Plex
                 .Setup(s => s.GetMovieSections(_settings))
                 .Returns(sections);
 
-            Subject.UpdateLibrary(_movie, _settings);
+            Subject.UpdateLibrary(_subject, _settings);
 
             Mocker.GetMock<IPlexServerProxy>()
                 .Verify(v => v.Update(1, It.IsAny<string>(), _settings), Times.Once());
@@ -101,7 +98,7 @@ namespace NzbDrone.Core.Test.NotificationTests.Plex
                 .Setup(s => s.GetMovieSections(_settings))
                 .Returns(sections);
 
-            Subject.UpdateLibrary(_movie, _settings);
+            Subject.UpdateLibrary(_subject, _settings);
 
             Mocker.GetMock<IPlexServerProxy>()
                 .Verify(v => v.Update(1, It.IsAny<string>(), _settings), Times.Once());
@@ -124,7 +121,7 @@ namespace NzbDrone.Core.Test.NotificationTests.Plex
                 .Setup(s => s.GetMovieSections(_settings))
                 .Returns(sections);
 
-            Subject.UpdateLibrary(_movie, _settings);
+            Subject.UpdateLibrary(_subject, _settings);
 
             Mocker.GetMock<IPlexServerProxy>()
                 .Verify(v => v.Update(1, It.IsAny<string>(), _settings), Times.Once());
@@ -146,7 +143,7 @@ namespace NzbDrone.Core.Test.NotificationTests.Plex
                 .Setup(s => s.GetMovieSections(_settings))
                 .Returns(sections);
 
-            Subject.UpdateLibrary(_movie, _settings);
+            Subject.UpdateLibrary(_subject, _settings);
 
             Mocker.GetMock<IPlexServerProxy>()
                 .Verify(v => v.Update(1, It.IsAny<string>(), _settings), Times.Once());

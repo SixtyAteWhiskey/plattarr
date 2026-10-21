@@ -1,6 +1,6 @@
 using NzbDrone.Core.MediaFiles;
 
-namespace NzbDrone.Core.Notifications.Webhook
+namespace NzbDrone.Core.Movies.Notifications
 {
     public class WebhookRenamedMovieFile : WebhookMovieFile
     {

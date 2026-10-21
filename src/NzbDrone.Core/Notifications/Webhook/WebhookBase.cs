@@ -1,13 +1,7 @@
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.MediaCover;
-using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.Movies;
-using NzbDrone.Core.Tags;
 
 namespace NzbDrone.Core.Notifications.Webhook
 {
@@ -16,129 +10,45 @@ namespace NzbDrone.Core.Notifications.Webhook
     {
         private readonly IConfigFileProvider _configFileProvider;
         private readonly IConfigService _configService;
+        private readonly IEnumerable<IWebhookPayloadBuilder> _payloadBuilders;
         protected readonly ILocalizationService _localizationService;
-        private readonly ITagRepository _tagRepository;
-        private readonly IMapCoversToLocal _mediaCoverService;
 
-        protected WebhookBase(IConfigFileProvider configFileProvider, IConfigService configService, ILocalizationService localizationService, ITagRepository tagRepository, IMapCoversToLocal mediaCoverService)
+        protected WebhookBase(IConfigFileProvider configFileProvider, IConfigService configService, ILocalizationService localizationService, IEnumerable<IWebhookPayloadBuilder> payloadBuilders)
         {
             _configFileProvider = configFileProvider;
             _configService = configService;
             _localizationService = localizationService;
-            _tagRepository = tagRepository;
-            _mediaCoverService = mediaCoverService;
+            _payloadBuilders = payloadBuilders;
         }
 
-        protected WebhookGrabPayload BuildOnGrabPayload(GrabMessage message)
+        protected WebhookPayload BuildOnGrabPayload(GrabMessage message)
         {
-            var remoteMovie = message.RemoteMovie;
-            var quality = message.Quality;
-
-            return new WebhookGrabPayload
-            {
-                EventType = WebhookEventType.Grab,
-                InstanceName = _configFileProvider.InstanceName,
-                ApplicationUrl = _configService.ApplicationUrl,
-                Movie = GetMovie(message.Movie),
-                RemoteMovie = new WebhookRemoteMovie(remoteMovie),
-                Release = new WebhookRelease(quality, remoteMovie),
-                DownloadClient = message.DownloadClientName,
-                DownloadClientType = message.DownloadClientType,
-                DownloadId = message.DownloadId,
-                CustomFormatInfo = new WebhookCustomFormatInfo(remoteMovie.CustomFormats, remoteMovie.CustomFormatScore)
-            };
+            return Stamp(BuilderFor(message.Data).BuildGrab(message));
         }
 
-        protected WebhookImportPayload BuildOnDownloadPayload(DownloadMessage message)
+        protected WebhookPayload BuildOnDownloadPayload(DownloadMessage message)
         {
-            var movieFile = message.MovieFile;
-
-            var payload = new WebhookImportPayload
-            {
-                EventType = WebhookEventType.Download,
-                InstanceName = _configFileProvider.InstanceName,
-                ApplicationUrl = _configService.ApplicationUrl,
-                Movie = GetMovie(message.Movie),
-                RemoteMovie = new WebhookRemoteMovie(message.Movie),
-                MovieFile = new WebhookMovieFile(movieFile)
-                {
-                    SourcePath = message.SourcePath
-                },
-                Release = new WebhookGrabbedRelease(message.Release, movieFile.IndexerFlags),
-                IsUpgrade = message.OldMovieFiles.Any(),
-                DownloadClient = message.DownloadClientInfo?.Name,
-                DownloadClientType = message.DownloadClientInfo?.Type,
-                DownloadId = message.DownloadId,
-                CustomFormatInfo = new WebhookCustomFormatInfo(message.MovieInfo.CustomFormats, message.MovieInfo.CustomFormatScore)
-            };
-
-            if (message.OldMovieFiles.Any())
-            {
-                payload.DeletedFiles = message.OldMovieFiles.ConvertAll(x =>
-                    new WebhookMovieFile(x.MovieFile)
-                    {
-                        Path = Path.Combine(message.Movie.Path, x.MovieFile.RelativePath),
-                        RecycleBinPath = x.RecycleBinPath
-                    });
-            }
-
-            return payload;
+            return Stamp(BuilderFor(message.Data).BuildDownload(message));
         }
 
-        protected WebhookAddedPayload BuildOnMovieAdded(Movie movie)
+        protected WebhookPayload BuildOnMediaAdded(MediaAddedMessage message)
         {
-            return new WebhookAddedPayload
-            {
-                EventType = WebhookEventType.MovieAdded,
-                InstanceName = _configFileProvider.InstanceName,
-                ApplicationUrl = _configService.ApplicationUrl,
-                Movie = GetMovie(movie),
-                AddMethod = movie.AddOptions.AddMethod
-            };
+            return Stamp(BuilderFor(message.Data).BuildMediaAdded(message));
         }
 
-        protected WebhookMovieFileDeletePayload BuildOnMovieFileDelete(MovieFileDeleteMessage deleteMessage)
+        protected WebhookPayload BuildOnMediaFileDelete(MediaFileDeleteMessage deleteMessage)
         {
-            return new WebhookMovieFileDeletePayload
-            {
-                EventType = WebhookEventType.MovieFileDelete,
-                InstanceName = _configFileProvider.InstanceName,
-                ApplicationUrl = _configService.ApplicationUrl,
-                Movie = GetMovie(deleteMessage.Movie),
-                MovieFile = new WebhookMovieFile(deleteMessage.MovieFile),
-                DeleteReason = deleteMessage.Reason
-            };
+            return Stamp(BuilderFor(deleteMessage.Data).BuildMediaFileDelete(deleteMessage));
         }
 
-        protected WebhookMovieDeletePayload BuildOnMovieDelete(MovieDeleteMessage deleteMessage)
+        protected WebhookPayload BuildOnMediaDelete(MediaDeleteMessage deleteMessage)
         {
-            var payload = new WebhookMovieDeletePayload
-            {
-                EventType = WebhookEventType.MovieDelete,
-                InstanceName = _configFileProvider.InstanceName,
-                ApplicationUrl = _configService.ApplicationUrl,
-                Movie = GetMovie(deleteMessage.Movie),
-                DeletedFiles = deleteMessage.DeletedFiles
-            };
-
-            if (deleteMessage.DeletedFiles && deleteMessage.Movie.MovieFile != null)
-            {
-                payload.MovieFolderSize = deleteMessage.Movie.MovieFile.Size;
-            }
-
-            return payload;
+            return Stamp(BuilderFor(deleteMessage.Data).BuildMediaDelete(deleteMessage));
         }
 
-        protected WebhookRenamePayload BuildOnRenamePayload(Movie movie, List<RenamedMovieFile> renamedFiles)
+        protected WebhookPayload BuildOnRenamePayload(RenameMessage message)
         {
-            return new WebhookRenamePayload
-            {
-                EventType = WebhookEventType.Rename,
-                InstanceName = _configFileProvider.InstanceName,
-                ApplicationUrl = _configService.ApplicationUrl,
-                Movie = GetMovie(movie),
-                RenamedMovieFiles = renamedFiles.ConvertAll(x => new WebhookRenamedMovieFile(x))
-            };
+            return Stamp(BuilderFor(message.Data).BuildRename(message));
         }
 
         protected WebhookHealthPayload BuildHealthPayload(HealthCheck.HealthCheck healthCheck)
@@ -181,87 +91,29 @@ namespace NzbDrone.Core.Notifications.Webhook
             };
         }
 
-        protected WebhookManualInteractionPayload BuildManualInteractionRequiredPayload(ManualInteractionRequiredMessage message)
+        protected WebhookPayload BuildManualInteractionRequiredPayload(ManualInteractionRequiredMessage message)
         {
-            var remoteMovie = message.RemoteMovie;
-            var quality = message.Quality;
-
-            return new WebhookManualInteractionPayload
-            {
-                EventType = WebhookEventType.ManualInteractionRequired,
-                InstanceName = _configFileProvider.InstanceName,
-                ApplicationUrl = _configService.ApplicationUrl,
-                Movie = GetMovie(message.Movie),
-                DownloadInfo = new WebhookDownloadClientItem(quality, message.TrackedDownload.DownloadItem),
-                DownloadClient = message.DownloadClientInfo?.Name,
-                DownloadClientType = message.DownloadClientInfo?.Type,
-                DownloadId = message.DownloadId,
-                DownloadStatus = message.TrackedDownload.Status.ToString(),
-                DownloadStatusMessages = message.TrackedDownload.StatusMessages.Select(x => new WebhookDownloadStatusMessage(x)).ToList(),
-                CustomFormatInfo = new WebhookCustomFormatInfo(remoteMovie.CustomFormats, remoteMovie.CustomFormatScore),
-                Release = new WebhookGrabbedRelease(message.Release)
-            };
+            return Stamp(BuilderFor(message.Data).BuildManualInteraction(message));
         }
 
+        // Which module's test payload "Test" sends is arbitrary; Movies is the only module in Phase 1 and
+        // the first by kind after that.
         protected WebhookPayload BuildTestPayload()
         {
-            return new WebhookGrabPayload
-            {
-                EventType = WebhookEventType.Test,
-                InstanceName = _configFileProvider.InstanceName,
-                ApplicationUrl = _configService.ApplicationUrl,
-                Movie = new WebhookMovie
-                {
-                    Id = 1,
-                    Title = "Test Title",
-                    Year = 1970,
-                    FolderPath = "C:\\testpath",
-                    ReleaseDate = "1970-01-01",
-                    Tags = new List<string> { "test-tag" }
-                },
-                RemoteMovie = new WebhookRemoteMovie
-                {
-                    TmdbId = 1234,
-                    ImdbId = "5678",
-                    Title = "Test title",
-                    Year = 1970
-                },
-                Release = new WebhookRelease
-                {
-                    Indexer = "Test Indexer",
-                    Quality = "Test Quality",
-                    QualityVersion = 1,
-                    ReleaseGroup = "Test Group",
-                    ReleaseTitle = "Test Title",
-                    Size = 9999999
-                }
-            };
+            return Stamp(_payloadBuilders.OrderBy(b => b.Kind).First().BuildTest());
         }
 
-        private WebhookMovie GetMovie(Movie movie)
+        private IWebhookPayloadBuilder BuilderFor(IMediaNotificationData data)
         {
-            if (movie == null)
-            {
-                return null;
-            }
-
-            _mediaCoverService.ConvertToLocalUrls(movie.Id, movie.MovieMetadata.Value.Images, movie.Added);
-
-            return new WebhookMovie(movie, GetTagLabels(movie));
+            return _payloadBuilders.Single(b => b.Kind == data.Kind);
         }
 
-        private List<string> GetTagLabels(Movie movie)
+        private WebhookPayload Stamp(WebhookPayload payload)
         {
-            if (movie == null)
-            {
-                return null;
-            }
+            payload.InstanceName = _configFileProvider.InstanceName;
+            payload.ApplicationUrl = _configService.ApplicationUrl;
 
-            return _tagRepository.GetTags(movie.Tags)
-                .Select(t => t.Label)
-                .Where(l => l.IsNotNullOrWhiteSpace())
-                .OrderBy(l => l)
-                .ToList();
+            return payload;
         }
     }
 }
