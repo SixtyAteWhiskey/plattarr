@@ -8,6 +8,7 @@ using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Movies.Pending;
 
 namespace NzbDrone.Core.Download
 {

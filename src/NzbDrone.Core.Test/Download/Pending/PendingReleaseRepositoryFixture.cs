@@ -2,11 +2,11 @@ using System.Collections.Generic;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
-using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 
@@ -37,7 +37,7 @@ namespace NzbDrone.Core.Test.MediaFiles
                 .All()
                 .With(c => c.MediaKind = MediaKind.Movies)
                 .With(c => c.Id = 0)
-                .With(c => c.MovieId = _movie1.Id)
+                .With(c => c.ParentId = _movie1.Id)
                 .With(c => c.Release = new ReleaseInfo())
                 .BuildListOfNew();
 
@@ -57,10 +57,10 @@ namespace NzbDrone.Core.Test.MediaFiles
                 .All()
                 .With(c => c.MediaKind = MediaKind.Movies)
                 .With(c => c.Id = 0)
-                .With(c => c.MovieId = _movie1.Id)
+                .With(c => c.ParentId = _movie1.Id)
                 .With(c => c.Release = new ReleaseInfo())
                 .Random(2)
-                .With(c => c.MovieId = _movie2.Id)
+                .With(c => c.ParentId = _movie2.Id)
                 .BuildListOfNew();
 
             Db.InsertMany(files);
@@ -68,7 +68,7 @@ namespace NzbDrone.Core.Test.MediaFiles
             var remainingFiles = Subject.AllByMovieId(_movie1.Id);
 
             remainingFiles.Should().HaveCount(3);
-            remainingFiles.Should().OnlyContain(c => c.MovieId == _movie1.Id);
+            remainingFiles.Should().OnlyContain(c => c.ParentId == _movie1.Id);
         }
 
         [Test]
@@ -87,7 +87,7 @@ namespace NzbDrone.Core.Test.MediaFiles
             var pending = Builder<PendingRelease>.CreateNew()
                 .With(c => c.MediaKind = MediaKind.Movies)
                 .With(c => c.Id = 0)
-                .With(c => c.MovieId = _movie1.Id)
+                .With(c => c.ParentId = _movie1.Id)
                 .With(c => c.Release = release)
                 .BuildNew();
 

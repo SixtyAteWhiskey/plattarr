@@ -36,18 +36,18 @@ namespace NzbDrone.Core.Test.Download.DownloadHistoryTests
                 .With(c => c.MediaKind = MediaKind.Movies)
                 .TheFirst(1)
                 .With(c => c.Id = 0)
-                .With(c => c.MovieId = _movie2.Id)
+                .With(c => c.ParentId = _movie2.Id)
                 .TheRest()
                 .With(c => c.Id = 0)
-                .With(c => c.MovieId = _movie1.Id)
+                .With(c => c.ParentId = _movie1.Id)
                 .BuildListOfNew();
 
             Db.InsertMany(items);
 
             Subject.DeleteByMovieIds(new List<int> { _movie1.Id });
 
-            var removedItems = Subject.All().Where(h => h.MovieId == _movie1.Id);
-            var nonRemovedItems = Subject.All().Where(h => h.MovieId == _movie2.Id);
+            var removedItems = Subject.All().Where(h => h.ParentId == _movie1.Id);
+            var nonRemovedItems = Subject.All().Where(h => h.ParentId == _movie2.Id);
 
             removedItems.Should().HaveCount(0);
             nonRemovedItems.Should().HaveCount(1);

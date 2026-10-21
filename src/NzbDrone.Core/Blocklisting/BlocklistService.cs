@@ -85,7 +85,7 @@ namespace NzbDrone.Core.Blocklisting
             var blocklist = new Blocklist
                             {
                                 MediaKind = MediaKind.Movies,
-                                MovieId = remoteMovie.Movie.Id,
+                                ParentId = remoteMovie.Movie.Id,
                                 SourceTitle =  remoteMovie.Release.Title,
                                 Quality = remoteMovie.ParsedMovieInfo.Quality,
                                 Date = DateTime.UtcNow,
@@ -135,7 +135,7 @@ namespace NzbDrone.Core.Blocklisting
             var blocklist = new Blocklist
             {
                 MediaKind = MediaKind.Movies,
-                MovieId = message.MovieId,
+                ParentId = message.MovieId,
                 SourceTitle = message.SourceTitle,
                 Quality = message.Quality,
                 Date = DateTime.UtcNow,

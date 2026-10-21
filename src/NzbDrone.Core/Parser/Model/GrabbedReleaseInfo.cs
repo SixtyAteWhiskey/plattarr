@@ -17,7 +17,7 @@ namespace NzbDrone.Core.Parser.Model
         public GrabbedReleaseInfo(List<MovieHistory> grabbedHistories)
         {
             var grabbedHistory = grabbedHistories.MaxBy(h => h.Date);
-            var movieIds = grabbedHistories.Select(h => h.MovieId).Distinct().ToList();
+            var movieIds = grabbedHistories.Select(h => h.ParentId).Distinct().ToList();
 
             grabbedHistory.Data.TryGetValue("indexer", out var indexer);
             grabbedHistory.Data.TryGetValue("size", out var sizeString);

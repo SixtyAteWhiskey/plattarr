@@ -20,7 +20,7 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
         {
             var blocklist = Builder<Blocklist>.CreateNew()
                                               .With(c => c.MediaKind = MediaKind.Movies)
-                                              .With(h => h.MovieId = default)
+                                              .With(h => h.ParentId = default)
                                               .With(h => h.Quality = new QualityModel())
                                               .With(h => h.Languages = new List<Language>())
                                               .BuildNew();
@@ -39,10 +39,10 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
 
             var blocklist = Builder<Blocklist>.CreateNew()
                                               .With(c => c.MediaKind = MediaKind.Movies)
-                                              .With(h => h.MovieId = default)
+                                              .With(h => h.ParentId = default)
                                               .With(h => h.Quality = new QualityModel())
                                               .With(h => h.Languages = new List<Language>())
-                                              .With(b => b.MovieId = movie.Id)
+                                              .With(b => b.ParentId = movie.Id)
                                               .BuildNew();
 
             Db.Insert(blocklist);
@@ -57,7 +57,7 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
             // A TV row's MovieId points at Tv_ tables, never at Movies_Movies.
             var blocklist = Builder<Blocklist>.CreateNew()
                                               .With(c => c.MediaKind = MediaKind.Tv)
-                                              .With(h => h.MovieId = default)
+                                              .With(h => h.ParentId = default)
                                               .With(h => h.Quality = new QualityModel())
                                               .With(h => h.Languages = new List<Language>())
                                               .BuildNew();

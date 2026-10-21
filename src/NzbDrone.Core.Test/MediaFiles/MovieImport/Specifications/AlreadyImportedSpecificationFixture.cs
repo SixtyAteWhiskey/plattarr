@@ -65,7 +65,7 @@ namespace NzbDrone.Core.Test.MediaFiles.MovieImport.Specifications
         {
             var history = Builder<MovieHistory>.CreateListOfSize(1)
                 .All()
-                .With(h => h.MovieId = _movie.Id)
+                .With(h => h.ParentId = _movie.Id)
                 .With(h => h.EventType = MovieHistoryEventType.Grabbed)
                 .Build()
                 .ToList();
@@ -80,7 +80,7 @@ namespace NzbDrone.Core.Test.MediaFiles.MovieImport.Specifications
         {
             var history = Builder<MovieHistory>.CreateListOfSize(3)
                 .All()
-                .With(h => h.MovieId = _movie.Id)
+                .With(h => h.ParentId = _movie.Id)
                 .TheFirst(1)
                 .With(h => h.EventType = MovieHistoryEventType.Grabbed)
                 .With(h => h.Date = DateTime.UtcNow)
@@ -103,7 +103,7 @@ namespace NzbDrone.Core.Test.MediaFiles.MovieImport.Specifications
         {
             var history = Builder<MovieHistory>.CreateListOfSize(2)
                 .All()
-                .With(h => h.MovieId = _movie.Id)
+                .With(h => h.ParentId = _movie.Id)
                 .TheFirst(1)
                 .With(h => h.EventType = MovieHistoryEventType.DownloadFolderImported)
                 .With(h => h.Date = DateTime.UtcNow.AddDays(-1))

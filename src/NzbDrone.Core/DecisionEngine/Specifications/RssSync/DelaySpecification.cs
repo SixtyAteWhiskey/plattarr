@@ -1,6 +1,6 @@
 using NLog;
 using NzbDrone.Core.CustomFormats;
-using NzbDrone.Core.Download.Pending;
+using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Delay;
 using NzbDrone.Core.Qualities;

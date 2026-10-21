@@ -47,7 +47,7 @@ namespace Radarr.Api.V3.Blocklist
 
             if (movieIds?.Any() == true)
             {
-                pagingSpec.FilterExpressions.Add(b => movieIds.Contains(b.MovieId));
+                pagingSpec.FilterExpressions.Add(b => movieIds.Contains(b.ParentId));
             }
 
             if (protocols?.Any() == true)

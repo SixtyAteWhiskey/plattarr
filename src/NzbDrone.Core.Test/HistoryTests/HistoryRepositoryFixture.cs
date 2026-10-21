@@ -53,7 +53,7 @@ namespace NzbDrone.Core.Test.HistoryTests
                 .With(c => c.MediaKind = MediaKind.Movies)
                 .With(c => c.Quality = new QualityModel(Quality.Bluray1080p))
                 .With(c => c.Languages = new List<Language> { Language.English })
-                .With(c => c.MovieId = 12)
+                .With(c => c.ParentId = 12)
                 .With(c => c.EventType = MovieHistoryEventType.Grabbed)
                 .BuildNew();
 
@@ -61,7 +61,7 @@ namespace NzbDrone.Core.Test.HistoryTests
                 .With(c => c.MediaKind = MediaKind.Movies)
                 .With(c => c.Quality = new QualityModel(Quality.DVD))
                 .With(c => c.Languages = new List<Language> { Language.English })
-                .With(c => c.MovieId = 12)
+                .With(c => c.ParentId = 12)
                 .With(c => c.EventType = MovieHistoryEventType.Grabbed)
              .BuildNew();
 

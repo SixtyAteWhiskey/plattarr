@@ -4,8 +4,8 @@ using FizzWare.NBuilder;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Crypto;
-using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
@@ -53,9 +53,9 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
             {
                 Id = id,
                 Title = "Movie.Title.2020.720p-Radarr",
-                ParsedMovieInfo = new ParsedMovieInfo { MovieTitles = new List<string> { title }, Year = year },
+                ParsedInfo = new ParsedMovieInfo { MovieTitles = new List<string> { title }, Year = year },
                 Release = Builder<ReleaseInfo>.CreateNew().Build(),
-                MovieId = _movie.Id
+                ParentId = _movie.Id
             });
         }
 

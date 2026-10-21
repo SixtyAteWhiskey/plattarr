@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
-using NzbDrone.Core.Movies;
 
-namespace NzbDrone.Core.Download.Pending
+namespace NzbDrone.Core.Movies.Pending
 {
     public interface IPendingReleaseRepository : IBasicRepository<PendingRelease>
     {
@@ -22,18 +22,18 @@ namespace NzbDrone.Core.Download.Pending
 
         public void DeleteByMovieIds(List<int> movieIds)
         {
-            Delete(x => movieIds.Contains(x.MovieId));
+            Delete(x => movieIds.Contains(x.ParentId));
         }
 
         public List<PendingRelease> AllByMovieId(int movieId)
         {
-            return Query(x => x.MovieId == movieId);
+            return Query(x => x.ParentId == movieId);
         }
 
         public List<PendingRelease> WithoutFallback()
         {
             var builder = Builder()
-                .InnerJoin<PendingRelease, Movie>((p, m) => p.MovieId == m.Id)
+                .InnerJoin<PendingRelease, Movie>((p, m) => p.ParentId == m.Id)
                 .Where<PendingRelease>(p => p.Reason != PendingReleaseReason.Fallback);
 
             return Query(builder);

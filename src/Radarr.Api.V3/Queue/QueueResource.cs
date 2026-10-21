@@ -4,6 +4,7 @@ using System.Linq;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Movies;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Queue;
 using Radarr.Api.V3.CustomFormats;
@@ -57,14 +58,14 @@ namespace Radarr.Api.V3.Queue
                 return null;
             }
 
-            var customFormats = model.RemoteMovie?.CustomFormats;
-            var customFormatScore = model.Movie?.QualityProfile?.CalculateCustomFormatScore(customFormats) ?? 0;
+            var customFormats = model.GetRemoteMovie()?.CustomFormats;
+            var customFormatScore = model.GetMovie()?.QualityProfile?.CalculateCustomFormatScore(customFormats) ?? 0;
 
             return new QueueResource
             {
                 Id = model.Id,
-                MovieId = model.Movie?.Id,
-                Movie = includeMovie && model.Movie != null ? model.Movie.ToResource(0) : null,
+                MovieId = model.GetMovie()?.Id,
+                Movie = includeMovie && model.GetMovie() != null ? model.GetMovie().ToResource(0) : null,
                 Languages = model.Languages,
                 Quality = model.Quality,
                 CustomFormats = customFormats?.ToResource(false),

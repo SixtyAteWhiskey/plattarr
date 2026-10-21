@@ -1,10 +1,10 @@
 using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
-using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Housekeeping.Housekeepers;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 
@@ -18,7 +18,7 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
         {
             var pendingRelease = Builder<PendingRelease>.CreateNew()
                 .With(c => c.MediaKind = MediaKind.Movies)
-                .With(h => h.ParsedMovieInfo = new ParsedMovieInfo())
+                .With(h => h.ParsedInfo = new ParsedMovieInfo())
                 .With(h => h.Release = new ReleaseInfo())
                 .BuildNew();
 
@@ -36,8 +36,8 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
 
             var pendingRelease = Builder<PendingRelease>.CreateNew()
                 .With(c => c.MediaKind = MediaKind.Movies)
-                .With(h => h.MovieId = movie.Id)
-                .With(h => h.ParsedMovieInfo = new ParsedMovieInfo())
+                .With(h => h.ParentId = movie.Id)
+                .With(h => h.ParsedInfo = new ParsedMovieInfo())
                 .With(h => h.Release = new ReleaseInfo())
                 .BuildNew();
 
@@ -53,7 +53,7 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
             // A TV row's MovieId points at Tv_ tables, never at Movies_Movies.
             var pendingRelease = Builder<PendingRelease>.CreateNew()
                 .With(c => c.MediaKind = MediaKind.Tv)
-                .With(h => h.ParsedMovieInfo = new ParsedMovieInfo())
+                .With(h => h.ParsedInfo = new ParsedMovieInfo())
                 .With(h => h.Release = new ReleaseInfo())
                 .BuildNew();
 

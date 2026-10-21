@@ -1,6 +1,7 @@
 using System.Linq;
 using NLog;
-using NzbDrone.Core.Download.Pending;
+using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications.RssSync
@@ -37,8 +38,8 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.RssSync
 
             var pending = _pendingReleaseService.GetPendingQueue();
 
-            var matchingMovie = pending.Where(q => q.RemoteMovie?.Movie != null &&
-                                                   q.RemoteMovie.Movie.Id == subject.Movie.Id)
+            var matchingMovie = pending.Where(q => q.GetMovie() != null &&
+                                                   q.GetMovie().Id == subject.Movie.Id)
                 .ToList();
 
             if (matchingMovie.Any())

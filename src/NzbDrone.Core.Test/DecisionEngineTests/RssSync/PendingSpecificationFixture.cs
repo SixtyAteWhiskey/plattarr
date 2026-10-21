@@ -7,9 +7,9 @@ using NUnit.Framework;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.DecisionEngine.Specifications.RssSync;
-using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
@@ -69,7 +69,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
         {
             var queue = remoteMovies.Select(remoteMovie => new Queue.Queue
             {
-                RemoteMovie = remoteMovie
+                RemoteRelease = remoteMovie
             });
 
             Mocker.GetMock<IPendingReleaseService>()
@@ -112,7 +112,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
                 {
                     new()
                     {
-                        RemoteMovie = new RemoteMovie
+                        RemoteRelease = new RemoteMovie
                         {
                             Movie = _otherMovie,
                         }
@@ -136,7 +136,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.RssSync
                 {
                     new()
                     {
-                        RemoteMovie = new RemoteMovie
+                        RemoteRelease = new RemoteMovie
                         {
                             Movie = _movie,
                         }

@@ -2,7 +2,7 @@ namespace NzbDrone.Core.Test.Architecture
 {
     // Core types that reference module code today (ModuleBoundaryFixture). This list may only shrink:
     // remove an entry when its type stops referencing a module; never add one. Each group says how it
-    // leaves the list. Seeded in step 9a with 159 types; 156 after 9b, 141 after 9c and 9d, 135 after 9e.
+    // leaves the list. Seeded in step 9a with 159 types; 156 after 9b, 141 after 9c and 9d, 135 after 9e, 129 after 9f.
     public static class ModuleBoundaryAllowlist
     {
         public static readonly string[] Types =
@@ -32,7 +32,7 @@ namespace NzbDrone.Core.Test.Architecture
             // DiskSpace (1): Root folders come from each module.
             "NzbDrone.Core.DiskSpace.DiskSpaceService",
 
-            // Download (48): Contracts 2 and 6: tracked downloads, pending releases, and clients work on RemoteRelease (contract 5, import, left in 9e). Clients use three helpers that belong in core (torrent file reader, file name cleaning, blocklist hash check).
+            // Download (44): Contract 2: tracked downloads and clients work on RemoteRelease (contract 5, import, left in 9e; contract 6, the queue and pending releases, in 9f). Clients use three helpers that belong in core (torrent file reader, file name cleaning, blocklist hash check).
             "NzbDrone.Core.Download.Aggregation.Aggregators.AggregateLanguages",
             "NzbDrone.Core.Download.Aggregation.Aggregators.IAggregateRemoteMovie",
             "NzbDrone.Core.Download.Aggregation.IRemoteMovieAggregationService",
@@ -69,10 +69,6 @@ namespace NzbDrone.Core.Test.Architecture
             "NzbDrone.Core.Download.IgnoredDownloadService",
             "NzbDrone.Core.Download.ManualInteractionRequiredEvent",
             "NzbDrone.Core.Download.MovieGrabbedEvent",
-            "NzbDrone.Core.Download.Pending.IPendingReleaseService",
-            "NzbDrone.Core.Download.Pending.PendingRelease",
-            "NzbDrone.Core.Download.Pending.PendingReleaseRepository",
-            "NzbDrone.Core.Download.Pending.PendingReleaseService",
             "NzbDrone.Core.Download.ProcessDownloadDecisions",
             "NzbDrone.Core.Download.ProcessedDecisions",
             "NzbDrone.Core.Download.RedownloadFailedDownloadService",
@@ -155,10 +151,6 @@ namespace NzbDrone.Core.Test.Architecture
 
             // Profiles (1): Profile in-use check asks each module.
             "NzbDrone.Core.Profiles.Qualities.QualityProfileService",
-
-            // Queue (2): Contract 6 (activity rendering).
-            "NzbDrone.Core.Queue.Queue",
-            "NzbDrone.Core.Queue.QueueService",
 
             // Tags (1): Tag usage details come from each module.
             "NzbDrone.Core.Tags.TagService",

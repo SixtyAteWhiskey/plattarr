@@ -142,7 +142,7 @@ namespace NzbDrone.Core.History
                 Languages = message.Movie.Languages,
                 SourceTitle = message.Movie.Release.Title,
                 DownloadId = message.DownloadId,
-                MovieId = message.Movie.Movie.Id
+                ParentId = message.Movie.Movie.Id
             };
 
             history.Data.Add("Indexer", message.Movie.Release.Indexer);
@@ -203,7 +203,7 @@ namespace NzbDrone.Core.History
                 Languages = message.MovieInfo.Languages,
                 SourceTitle = message.ImportedMovie.SceneName ?? Path.GetFileNameWithoutExtension(message.MovieInfo.Path),
                 DownloadId = downloadId,
-                MovieId = movie.Id,
+                ParentId = movie.Id,
             };
 
             history.Data.Add("FileId", message.ImportedMovie.Id.ToString());
@@ -235,7 +235,7 @@ namespace NzbDrone.Core.History
                 Quality = message.MovieFile.Quality,
                 Languages = message.MovieFile.Languages,
                 SourceTitle = message.MovieFile.Path,
-                MovieId = message.MovieFile.MovieId
+                ParentId = message.MovieFile.MovieId
             };
 
             history.Data.Add("Reason", message.Reason.ToString());
@@ -261,7 +261,7 @@ namespace NzbDrone.Core.History
                 Quality = message.MovieFile.Quality,
                 Languages = message.MovieFile.Languages,
                 SourceTitle = message.OriginalPath,
-                MovieId = message.MovieFile.MovieId,
+                ParentId = message.MovieFile.MovieId,
             };
 
             history.Data.Add("SourcePath", sourcePath);
@@ -284,7 +284,7 @@ namespace NzbDrone.Core.History
                 Date = DateTime.UtcNow,
                 Quality = message.Quality,
                 SourceTitle = message.SourceTitle,
-                MovieId = message.MovieId,
+                ParentId = message.MovieId,
                 DownloadId = message.DownloadId,
                 Languages = message.Languages
             };
@@ -314,7 +314,7 @@ namespace NzbDrone.Core.History
                 Quality = message.Quality,
                 Languages = message.Languages,
                 SourceTitle = message.SourceTitle,
-                MovieId = message.MovieId,
+                ParentId = message.MovieId,
                 DownloadId = message.DownloadId
             };
 

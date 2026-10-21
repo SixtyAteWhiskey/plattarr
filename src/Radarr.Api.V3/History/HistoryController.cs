@@ -43,7 +43,7 @@ namespace Radarr.Api.V3.History
         {
             if (model.Movie == null)
             {
-                model.Movie = _movieService.GetMovie(model.MovieId);
+                model.Movie = _movieService.GetMovie(model.ParentId);
             }
 
             var resource = model.ToResource(_formatCalculator);
@@ -89,7 +89,7 @@ namespace Radarr.Api.V3.History
 
             if (movieIds != null && movieIds.Any())
             {
-                pagingSpec.FilterExpressions.Add(h => movieIds.Contains(h.MovieId));
+                pagingSpec.FilterExpressions.Add(h => movieIds.Contains(h.ParentId));
             }
 
             return TypedResults.Ok(pagingSpec.ApplyToPage(h => _historyService.Paged(pagingSpec, languages, quality), h => MapToResource(h, includeMovie)));

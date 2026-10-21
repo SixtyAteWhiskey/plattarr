@@ -4,6 +4,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Download.TrackedDownloads;
+using NzbDrone.Core.Movies;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Queue;
@@ -37,13 +38,13 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         public DownloadSpecDecision IsSatisfiedBy(RemoteMovie subject, ReleaseDecisionInformation information)
         {
             var queue = _queueService.GetQueue();
-            var matchingMovies = queue.Where(q => q.RemoteMovie?.Movie != null &&
-                                                   q.RemoteMovie.Movie.Id == subject.Movie.Id)
+            var matchingMovies = queue.Where(q => q.GetMovie() != null &&
+                                                   q.GetMovie().Id == subject.Movie.Id)
                                        .ToList();
 
             foreach (var queueItem in matchingMovies)
             {
-                var remoteMovie = queueItem.RemoteMovie;
+                var remoteMovie = queueItem.GetRemoteMovie();
                 var qualityProfile = subject.Movie.QualityProfile;
 
                 // To avoid a race make sure it's not FailedPending (failed awaiting removal/search).

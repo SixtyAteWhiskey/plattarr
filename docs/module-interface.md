@@ -720,7 +720,42 @@ rename to `ParentId` and `ItemId`/`ItemIds` is then a column rename. Tracked
 download routing rule 1 needs a core reader of `DownloadHistory` across kinds;
 it comes with the routing work, not here.
 
+As built in step 9f:
+
+- Migration 002 (the first since `001_initial`; it upgrades a database in
+  place) renames `MovieId` to `ParentId` on all four tables, renames
+  `PendingReleases.ParsedMovieInfo` to `ParsedInfo` (the owning module's parsed
+  release as JSON, read back by the module that wrote it), and replaces the
+  three `MovieId` indexes with `ParentId` ones. No row changes value: for
+  Movies the parent is the movie. The models carry the new names because the
+  table mapper maps a property to the column of the same name. The v3 API
+  keeps `movieId` on the wire.
+- No `ItemId` on `History` and no `ItemIds` on `Blocklist` or `PendingReleases`
+  yet. For Movies parent and item are the same entity, so the columns would
+  duplicate `ParentId` and nothing would read them (the same rule that left
+  `ItemIds` out of contract 5). They arrive as an additive migration with the TV
+  module's history and blocklist code. `PendingReleases` may never need
+  `ItemIds`: Sonarr's pending release stores only the series and re-derives
+  the episodes by re-parsing (finding 26).
+- `IActivityRenderer` and `ActivitySubject` are not built. Their first caller
+  is contract 7 (`GrabMessage.Subject`); the queue does not need them because
+  `RemoteRelease.Parent` already carries the title and path. They are built
+  with contract 7.
+- The core `Queue` carries `RemoteRelease` instead of `Movie` and
+  `RemoteMovie`. `QueueService` reads quality from the new
+  `RemoteRelease.Quality` and languages from `RemoteRelease.Languages`. Movie
+  code reads the queue through `GetRemoteMovie()` and `GetMovie()`
+  (`MovieQueueExtensions`). A queue item has no `Kind` yet; it is added with
+  the routing work, when a second module can own a download.
+- Pending releases are module code. `PendingRelease`, its repository, and
+  `PendingReleaseService` moved to `NzbDrone.Core.Movies.Pending` and are
+  mapped by `MoviesTableMap`, like `MovieHistory` and `Blocklist`. The
+  `PendingReleaseReason` enum and `PendingReleasesUpdatedEvent` stay in core.
+- Boundary allowlist: 135 to 129 (`Queue`, `QueueService`, and the four
+  pending-release types).
+
 ```csharp
+// Deferred to contract 7 (see the 9f note above).
 public interface IActivityRenderer
 {
     MediaKind Kind { get; }

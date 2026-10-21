@@ -26,7 +26,7 @@ namespace NzbDrone.Core.Download.History
 
         public void DeleteByMovieIds(List<int> movieIds)
         {
-            Delete(r => movieIds.Contains(r.MovieId));
+            Delete(r => movieIds.Contains(r.ParentId));
         }
     }
 }

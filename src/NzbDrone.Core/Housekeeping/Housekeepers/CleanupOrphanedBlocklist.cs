@@ -21,7 +21,7 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
                              WHERE ""Id"" IN (
                              SELECT ""Blocklist"".""Id"" FROM ""Blocklist""
                              LEFT OUTER JOIN ""Movies_Movies""
-                             ON ""Blocklist"".""MovieId"" = ""Movies_Movies"".""Id""
+                             ON ""Blocklist"".""ParentId"" = ""Movies_Movies"".""Id""
                              WHERE ""Blocklist"".""MediaKind"" = {(int)MediaKind.Movies}
                              AND ""Movies_Movies"".""Id"" IS NULL)");
         }

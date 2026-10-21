@@ -18,6 +18,7 @@ namespace NzbDrone.Core.Test.Datastore
         {
             "History",
             "Blocklist",
+            "PendingReleases",
             "ImportExclusions",
             "AutoTagging"
         };

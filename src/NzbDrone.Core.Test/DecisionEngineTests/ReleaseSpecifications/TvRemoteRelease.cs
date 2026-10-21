@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Test.DecisionEngineTests.ReleaseSpecifications
 {
@@ -14,6 +15,9 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.ReleaseSpecifications
         public override IMediaParent Parent => Series;
         public override IReadOnlyList<int> ItemIds => Array.Empty<int>();
         public override bool IsRecent => false;
+        public QualityModel ParsedQuality { get; set; } = new QualityModel();
+
+        public override QualityModel Quality => ParsedQuality;
     }
 
     public class TvParent : IMediaParent

@@ -38,7 +38,7 @@ namespace Radarr.Api.V3.Blocklist
             {
                 Id = model.Id,
 
-                MovieId = model.MovieId,
+                MovieId = model.ParentId,
                 SourceTitle = model.SourceTitle,
                 Languages = model.Languages,
                 Quality = model.Quality,

@@ -5,6 +5,7 @@ using NUnit.Framework;
 using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Housekeeping.Housekeepers;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 
@@ -20,7 +21,7 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
                 .With(c => c.MediaKind = MediaKind.Movies)
                 .With(h => h.Reason = PendingReleaseReason.DownloadClientUnavailable)
                 .With(h => h.Added = DateTime.UtcNow.AddDays(-21))
-                .With(h => h.ParsedMovieInfo = new ParsedMovieInfo())
+                .With(h => h.ParsedInfo = new ParsedMovieInfo())
                 .With(h => h.Release = new ReleaseInfo())
                 .BuildNew();
 
@@ -36,7 +37,7 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
                 .With(c => c.MediaKind = MediaKind.Movies)
                 .With(h => h.Reason = PendingReleaseReason.Fallback)
                 .With(h => h.Added = DateTime.UtcNow.AddDays(-21))
-                .With(h => h.ParsedMovieInfo = new ParsedMovieInfo())
+                .With(h => h.ParsedInfo = new ParsedMovieInfo())
                 .With(h => h.Release = new ReleaseInfo())
                 .BuildNew();
 
@@ -52,7 +53,7 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
                 .With(c => c.MediaKind = MediaKind.Movies)
                 .With(h => h.Reason = PendingReleaseReason.Delay)
                 .With(h => h.Added = DateTime.UtcNow.AddDays(-21))
-                .With(h => h.ParsedMovieInfo = new ParsedMovieInfo())
+                .With(h => h.ParsedInfo = new ParsedMovieInfo())
                 .With(h => h.Release = new ReleaseInfo())
                 .BuildNew();
 
