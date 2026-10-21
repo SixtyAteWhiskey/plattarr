@@ -1,6 +1,7 @@
 using FluentValidation;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Movies.Validators;
 using NzbDrone.Core.Validation;
 using NzbDrone.Core.Validation.Paths;
 using Radarr.Http;

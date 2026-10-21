@@ -1,13 +1,41 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using NzbDrone.Core.Languages;
-using NzbDrone.Core.Organizer;
 
 namespace NzbDrone.Core.Parser
 {
     public static class IsoLanguages
     {
+        // generated from https://www.loc.gov/standards/iso639-2/ISO-639-2_utf-8.txt
+        public static readonly ImmutableDictionary<string, string> Iso639BTMap = new Dictionary<string, string>
+        {
+            { "alb", "sqi" },
+            { "arm", "hye" },
+            { "baq", "eus" },
+            { "bur", "mya" },
+            { "chi", "zho" },
+            { "cze", "ces" },
+            { "dut", "nld" },
+            { "fre", "fra" },
+            { "geo", "kat" },
+            { "ger", "deu" },
+            { "gre", "ell" },
+            { "gsw", "deu" },
+            { "ice", "isl" },
+            { "mac", "mkd" },
+            { "mao", "mri" },
+            { "may", "msa" },
+            { "per", "fas" },
+            { "rum", "ron" },
+            { "slo", "slk" },
+            { "tib", "bod" },
+            { "wel", "cym" },
+            { "khk", "mon" },
+            { "mvf", "mon" }
+        }.ToImmutableDictionary();
+
         private static readonly HashSet<IsoLanguage> All = new HashSet<IsoLanguage>
                                                            {
                                                                new IsoLanguage("en", "", "eng", "English", Language.English),
@@ -104,7 +132,7 @@ namespace NzbDrone.Core.Parser
             else if (langCode.Length == 3)
             {
                 // Lookup ISO639-2T code
-                if (FileNameBuilder.Iso639BTMap.TryGetValue(langCode, out var mapped))
+                if (Iso639BTMap.TryGetValue(langCode, out var mapped))
                 {
                     langCode = mapped;
                 }

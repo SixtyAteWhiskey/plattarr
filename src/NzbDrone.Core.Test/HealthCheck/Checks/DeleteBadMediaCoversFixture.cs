@@ -9,8 +9,8 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Extras.Metadata;
 using NzbDrone.Core.Extras.Metadata.Files;
-using NzbDrone.Core.Housekeeping.Housekeepers;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Housekeepers;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
 

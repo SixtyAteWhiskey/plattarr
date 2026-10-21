@@ -2,13 +2,13 @@ using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.Localization;
 using NzbDrone.Core.MediaFiles.Events;
-using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Events;
 using NzbDrone.Core.RootFolders;
 
-namespace NzbDrone.Core.HealthCheck.Checks
+namespace NzbDrone.Core.Movies.HealthChecks
 {
     [CheckOn(typeof(MoviesDeletedEvent))]
     [CheckOn(typeof(MovieMovedEvent))]
@@ -28,7 +28,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
             _rootFolderService = rootFolderService;
         }
 
-        public override HealthCheck Check()
+        public override HealthCheck.HealthCheck Check()
         {
             var rootFolders = _movieService.AllMoviePaths()
                 .Select(s => _rootFolderService.GetBestRootFolderPath(s.Value))
@@ -41,7 +41,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
             {
                 if (missingRootFolders.Count == 1)
                 {
-                    return new HealthCheck(GetType(),
+                    return new HealthCheck.HealthCheck(GetType(),
                         HealthCheckResult.Error,
                         HealthCheckReason.RootFolderMissing,
                         _localizationService.GetLocalizedString(
@@ -53,7 +53,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                         "#missing-root-folder");
                 }
 
-                return new HealthCheck(GetType(),
+                return new HealthCheck.HealthCheck(GetType(),
                     HealthCheckResult.Error,
                     HealthCheckReason.RootFolderMultipleMissing,
                     _localizationService.GetLocalizedString(
@@ -65,7 +65,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                     "#missing-root-folder");
             }
 
-            return new HealthCheck(GetType());
+            return new HealthCheck.HealthCheck(GetType());
         }
     }
 }

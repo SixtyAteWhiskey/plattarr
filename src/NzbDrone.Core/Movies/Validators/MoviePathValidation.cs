@@ -2,9 +2,8 @@ using System.Linq;
 using FluentValidation.Validators;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.Movies;
 
-namespace NzbDrone.Core.Validation.Paths
+namespace NzbDrone.Core.Movies.Validators
 {
     public class MoviePathValidator : PropertyValidator
     {

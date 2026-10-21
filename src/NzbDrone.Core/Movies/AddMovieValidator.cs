@@ -1,5 +1,6 @@
 using FluentValidation;
 using FluentValidation.Results;
+using NzbDrone.Core.Movies.Validators;
 using NzbDrone.Core.Validation.Paths;
 
 namespace NzbDrone.Core.Movies

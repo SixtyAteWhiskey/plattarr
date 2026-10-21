@@ -2,10 +2,11 @@ using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Datastore.Events;
+using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.Localization;
 using NzbDrone.Core.Organizer;
 
-namespace NzbDrone.Core.HealthCheck.Checks
+namespace NzbDrone.Core.Movies.HealthChecks
 {
     [CheckOn(typeof(ModelEvent<NamingConfig>))]
     public class NamingConfigCheck : HealthCheckBase, IProvideHealthCheck
@@ -18,7 +19,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
             _namingConfigService = namingConfigService;
         }
 
-        public override HealthCheck Check()
+        public override HealthCheck.HealthCheck Check()
         {
             var namingConfig = _namingConfigService.GetConfig();
 
@@ -28,7 +29,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
 
                 if (match.Any())
                 {
-                    return new HealthCheck(
+                    return new HealthCheck.HealthCheck(
                         GetType(),
                         HealthCheckResult.Error,
                         HealthCheckReason.NamingConfigDeprecatedToken,
@@ -40,7 +41,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                 }
             }
 
-            return new HealthCheck(GetType());
+            return new HealthCheck.HealthCheck(GetType());
         }
     }
 }

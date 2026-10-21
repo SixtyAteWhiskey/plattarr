@@ -1,7 +1,6 @@
 using FluentValidation.Validators;
-using NzbDrone.Core.Movies;
 
-namespace NzbDrone.Core.Validation.Paths
+namespace NzbDrone.Core.Movies.Validators
 {
     public class MovieExistsValidator : PropertyValidator
     {

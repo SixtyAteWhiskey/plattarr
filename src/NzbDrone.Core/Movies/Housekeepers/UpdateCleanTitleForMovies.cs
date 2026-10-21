@@ -1,6 +1,6 @@
-using NzbDrone.Core.Movies;
+using NzbDrone.Core.Housekeeping;
 
-namespace NzbDrone.Core.Housekeeping.Housekeepers
+namespace NzbDrone.Core.Movies.Housekeepers
 {
     public class UpdateCleanTitleForMovies : IHousekeepingTask
     {
