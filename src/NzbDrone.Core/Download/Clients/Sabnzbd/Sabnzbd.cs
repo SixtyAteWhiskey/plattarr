@@ -39,10 +39,10 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
 
         protected override string AddFromNzbFile(RemoteRelease remoteRelease, string filename, byte[] fileContent)
         {
-            var category = Settings.MovieCategory;
-            var priority = remoteRelease.IsRecent ? Settings.RecentMoviePriority : Settings.OlderMoviePriority;
+            var module = Settings.For(remoteRelease.Kind);
+            var priority = remoteRelease.IsRecent ? module.RecentPriority : module.OlderPriority;
 
-            var response = _proxy.DownloadNzb(fileContent, filename, category, priority, Settings);
+            var response = _proxy.DownloadNzb(fileContent, filename, module.Category, priority, Settings);
 
             if (response == null || response.Ids.Empty())
             {
@@ -185,9 +185,19 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
 
         public override IEnumerable<DownloadClientItem> GetItems()
         {
+            var monitored = Settings.MonitoredCategories();
+            var defaultCategory = Settings.ForCategory(null).Category;
+
             foreach (var downloadClientItem in GetQueue().Concat(GetHistory()))
             {
-                if (downloadClientItem.Category == Settings.MovieCategory || (downloadClientItem.Category == "*" && Settings.MovieCategory.IsNullOrWhiteSpace()))
+                var category = downloadClientItem.Category;
+
+                // With no category configured the client takes the default ("*") category.
+                var isOurs = monitored.Any()
+                    ? Settings.Monitors(category)
+                    : category == defaultCategory || category == "*";
+
+                if (isOurs)
                 {
                     yield return downloadClientItem;
                 }
@@ -248,34 +258,52 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
             var config = _proxy.GetConfig(Settings);
             var categories = GetCategories(config).ToArray();
 
-            var category = categories.FirstOrDefault(v => v.Name == Settings.MovieCategory);
-
-            if (category == null)
-            {
-                category = categories.FirstOrDefault(v => v.Name == "*");
-            }
-
             var status = new DownloadClientInfo
             {
                 IsLocalhost = Settings.Host == "127.0.0.1" || Settings.Host == "localhost"
             };
 
-            if (category != null)
+            var folders = new List<OsPath>();
+
+            // One output folder per module category. A client-side sorting mode on any of them
+            // is reported, as it breaks the import of that category.
+            foreach (var module in Settings.ModuleCategories.Any() ? Settings.ModuleCategories : new List<ModuleCategorySettings> { new ModuleCategorySettings() })
             {
-                if (config.Misc.enable_tv_sorting && ContainsCategory(config.Misc.tv_categories, Settings.MovieCategory))
+                var category = categories.FirstOrDefault(v => v.Name == module.Category) ??
+                               categories.FirstOrDefault(v => v.Name == "*");
+
+                if (category == null)
                 {
-                    status.SortingMode = "TV";
-                }
-                else if (config.Misc.enable_movie_sorting && ContainsCategory(config.Misc.movie_categories, Settings.MovieCategory))
-                {
-                    status.SortingMode = "Movie";
-                }
-                else if (config.Misc.enable_date_sorting && ContainsCategory(config.Misc.date_categories, Settings.MovieCategory))
-                {
-                    status.SortingMode = "Date";
+                    continue;
                 }
 
-                status.OutputRootFolders = new List<OsPath> { _remotePathMappingService.RemapRemoteToLocal(Settings.Host, category.FullPath) };
+                if (status.SortingMode == null)
+                {
+                    if (config.Misc.enable_tv_sorting && ContainsCategory(config.Misc.tv_categories, module.Category))
+                    {
+                        status.SortingMode = "TV";
+                    }
+                    else if (config.Misc.enable_movie_sorting && ContainsCategory(config.Misc.movie_categories, module.Category))
+                    {
+                        status.SortingMode = "Movie";
+                    }
+                    else if (config.Misc.enable_date_sorting && ContainsCategory(config.Misc.date_categories, module.Category))
+                    {
+                        status.SortingMode = "Date";
+                    }
+                }
+
+                var folder = _remotePathMappingService.RemapRemoteToLocal(Settings.Host, category.FullPath);
+
+                if (!folders.Contains(folder))
+                {
+                    folders.Add(folder);
+                }
+            }
+
+            if (folders.Any())
+            {
+                status.OutputRootFolders = folders;
             }
 
             status.RemovesCompletedDownloads = RemovesCompletedDownloads(config);
@@ -288,7 +316,11 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
             failures.AddIfNotNull(TestConnectionAndVersion());
             failures.AddIfNotNull(TestAuthentication());
             failures.AddIfNotNull(TestGlobalConfig());
-            failures.AddIfNotNull(TestCategory());
+
+            foreach (var module in Settings.ModuleCategories)
+            {
+                failures.AddIfNotNull(TestCategory(module));
+            }
         }
 
         private bool HasVersion(int major, int minor, int patch = 0)
@@ -452,16 +484,16 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
             return null;
         }
 
-        private ValidationFailure TestCategory()
+        private ValidationFailure TestCategory(ModuleCategorySettings module)
         {
             var config = _proxy.GetConfig(Settings);
-            var category = GetCategories(config).FirstOrDefault((SabnzbdCategory v) => v.Name == Settings.MovieCategory);
+            var category = GetCategories(config).FirstOrDefault((SabnzbdCategory v) => v.Name == module.Category);
 
             if (category != null)
             {
                 if (category.Dir.EndsWith("*"))
                 {
-                    return new NzbDroneValidationFailure("MovieCategory", _localizationService.GetLocalizedString("DownloadClientSabnzbdValidationEnableJobFolders"))
+                    return new NzbDroneValidationFailure(ModuleCategoryFieldNames.Category(module.Kind), _localizationService.GetLocalizedString("DownloadClientSabnzbdValidationEnableJobFolders"))
                     {
                         InfoLink = _proxy.GetBaseUrl(Settings, "config/categories/"),
                         DetailedDescription = _localizationService.GetLocalizedString("DownloadClientSabnzbdValidationEnableJobFoldersDetail")
@@ -470,9 +502,9 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
             }
             else
             {
-                if (!Settings.MovieCategory.IsNullOrWhiteSpace())
+                if (!module.Category.IsNullOrWhiteSpace())
                 {
-                    return new NzbDroneValidationFailure("MovieCategory", _localizationService.GetLocalizedString("DownloadClientValidationCategoryMissing"))
+                    return new NzbDroneValidationFailure(ModuleCategoryFieldNames.Category(module.Kind), _localizationService.GetLocalizedString("DownloadClientValidationCategoryMissing"))
                     {
                         InfoLink = _proxy.GetBaseUrl(Settings, "config/categories/"),
                         DetailedDescription = _localizationService.GetLocalizedString("DownloadClientValidationCategoryMissingDetail", new Dictionary<string, object> { { "clientName", Name } })
@@ -481,36 +513,36 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
             }
 
             // New in SABnzbd 4.1, but on older versions this will be empty and not apply
-            if (config.Sorters.Any(s => s.is_active && ContainsCategory(s.sort_cats, Settings.MovieCategory)))
+            if (config.Sorters.Any(s => s.is_active && ContainsCategory(s.sort_cats, module.Category)))
             {
-                return new NzbDroneValidationFailure("MovieCategory", _localizationService.GetLocalizedString("DownloadClientSabnzbdValidationEnableDisableTvSorting"))
+                return new NzbDroneValidationFailure(ModuleCategoryFieldNames.Category(module.Kind), _localizationService.GetLocalizedString("DownloadClientSabnzbdValidationEnableDisableTvSorting"))
                 {
                     InfoLink = _proxy.GetBaseUrl(Settings, "config/sorting/"),
                     DetailedDescription = _localizationService.GetLocalizedString("DownloadClientSabnzbdValidationEnableDisableTvSortingDetail")
                 };
             }
 
-            if (config.Misc.enable_tv_sorting && ContainsCategory(config.Misc.tv_categories, Settings.MovieCategory))
+            if (config.Misc.enable_tv_sorting && ContainsCategory(config.Misc.tv_categories, module.Category))
             {
-                return new NzbDroneValidationFailure("MovieCategory", _localizationService.GetLocalizedString("DownloadClientSabnzbdValidationEnableDisableTvSorting"))
+                return new NzbDroneValidationFailure(ModuleCategoryFieldNames.Category(module.Kind), _localizationService.GetLocalizedString("DownloadClientSabnzbdValidationEnableDisableTvSorting"))
                 {
                     InfoLink = _proxy.GetBaseUrl(Settings, "config/sorting/"),
                     DetailedDescription = _localizationService.GetLocalizedString("DownloadClientSabnzbdValidationEnableDisableTvSortingDetail")
                 };
             }
 
-            if (config.Misc.enable_movie_sorting && ContainsCategory(config.Misc.movie_categories, Settings.MovieCategory))
+            if (config.Misc.enable_movie_sorting && ContainsCategory(config.Misc.movie_categories, module.Category))
             {
-                return new NzbDroneValidationFailure("MovieCategory", _localizationService.GetLocalizedString("DownloadClientSabnzbdValidationEnableDisableMovieSorting"))
+                return new NzbDroneValidationFailure(ModuleCategoryFieldNames.Category(module.Kind), _localizationService.GetLocalizedString("DownloadClientSabnzbdValidationEnableDisableMovieSorting"))
                 {
                     InfoLink = _proxy.GetBaseUrl(Settings, "config/sorting/"),
                     DetailedDescription = _localizationService.GetLocalizedString("DownloadClientSabnzbdValidationEnableDisableMovieSortingDetail")
                 };
             }
 
-            if (config.Misc.enable_date_sorting && ContainsCategory(config.Misc.date_categories, Settings.MovieCategory))
+            if (config.Misc.enable_date_sorting && ContainsCategory(config.Misc.date_categories, module.Category))
             {
-                return new NzbDroneValidationFailure("MovieCategory", _localizationService.GetLocalizedString("DownloadClientSabnzbdValidationEnableDisableDateSorting"))
+                return new NzbDroneValidationFailure(ModuleCategoryFieldNames.Category(module.Kind), _localizationService.GetLocalizedString("DownloadClientSabnzbdValidationEnableDisableDateSorting"))
                 {
                     InfoLink = _proxy.GetBaseUrl(Settings, "config/sorting/"),
                     DetailedDescription = _localizationService.GetLocalizedString("DownloadClientSabnzbdValidationEnableDisableDateSortingDetail")

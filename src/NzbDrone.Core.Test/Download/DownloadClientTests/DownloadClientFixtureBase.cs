@@ -11,11 +11,13 @@ using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RemotePathMappings;
+using NzbDrone.Core.Test.DecisionEngineTests.ReleaseSpecifications;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.Download.DownloadClientTests
@@ -59,6 +61,18 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests
             remoteMovie.Movie = new Movie();
 
             return remoteMovie;
+        }
+
+        // A release of another media type, to prove a client routes by the release's kind.
+        protected virtual RemoteRelease CreateRemoteTv()
+        {
+            var remoteTv = new TvRemoteRelease();
+            remoteTv.Release = new ReleaseInfo();
+            remoteTv.Release.Title = _title;
+            remoteTv.Release.DownloadUrl = _downloadUrl;
+            remoteTv.Release.DownloadProtocol = Subject.Protocol;
+
+            return remoteTv;
         }
 
         // A Prowlarr-layer indexer whose Download() behaves like HttpIndexerBase.Download

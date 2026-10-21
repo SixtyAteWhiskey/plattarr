@@ -38,10 +38,10 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
                 Port = 2222,
                 ApiKey = "5c770e3197e4fe763423ee7c392c25d1",
                 Username = "admin",
-                Password = "pass",
-                MovieCategory = "movie",
-                RecentMoviePriority = (int)SabnzbdPriority.High
+                Password = "pass"
             };
+            Subject.Definition.Settings.Movies().Category = "movie";
+            Subject.Definition.Settings.Movies().RecentPriority = (int)SabnzbdPriority.High;
             _queued = new SabnzbdQueue
             {
                 DefaultRootFolder = @"Y:\nzbget\root".AsOsAgnostic(),
@@ -356,6 +356,31 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
             var items = Subject.GetItems();
 
             items.Should().BeEmpty();
+        }
+
+        [Test]
+        public async Task Download_of_a_tv_release_should_use_the_tv_category_and_priority()
+        {
+            Subject.Definition.Settings.AddTv("tv", (int)SabnzbdPriority.Force, (int)SabnzbdPriority.Force);
+            GivenSuccessfulDownload();
+
+            await Subject.Download(CreateRemoteTv(), CreateIndexer());
+
+            // TvRemoteRelease is not recent, so the older priority applies.
+            Mocker.GetMock<ISabnzbdProxy>()
+                  .Verify(v => v.DownloadNzb(It.IsAny<byte[]>(), It.IsAny<string>(), "tv", (int)SabnzbdPriority.Force, It.IsAny<SabnzbdSettings>()), Times.Once());
+        }
+
+        [Test]
+        public void GetItems_should_return_downloads_of_every_media_type_the_client_serves()
+        {
+            Subject.Definition.Settings.AddTv("tv");
+            _completed.Items.First().Category = "tv";
+
+            GivenQueue(null);
+            GivenHistory(_completed);
+
+            Subject.GetItems().Select(i => i.Category).Should().Equal("tv");
         }
 
         [Test]
@@ -700,7 +725,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
         [Test]
         public void should_test_failed_if_tv_sorting_default_category()
         {
-            Subject.Definition.Settings.As<SabnzbdSettings>().MovieCategory = null;
+            Subject.Definition.Settings.Movies().Category = null;
 
             _config.Misc.enable_tv_sorting = true;
             _config.Misc.tv_categories = new[] { "Default" };

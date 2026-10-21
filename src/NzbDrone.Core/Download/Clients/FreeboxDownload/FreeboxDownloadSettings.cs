@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text.RegularExpressions;
 using FluentValidation;
 using NzbDrone.Common.Extensions;
@@ -9,6 +10,8 @@ namespace NzbDrone.Core.Download.Clients.FreeboxDownload
 {
     public class FreeboxDownloadSettingsValidator : AbstractValidator<FreeboxDownloadSettings>
     {
+        private static readonly Regex CategoryPattern = new(@"^\.?[-a-z]*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
         public FreeboxDownloadSettingsValidator()
         {
             RuleFor(c => c.Host).ValidHost();
@@ -20,20 +23,30 @@ namespace NzbDrone.Core.Download.Clients.FreeboxDownload
                                  .WithMessage("'App ID' must not be empty.");
             RuleFor(c => c.AppToken).NotEmpty()
                                     .WithMessage("'App Token' must not be empty.");
-            RuleFor(c => c.Category).Matches(@"^\.?[-a-z]*$", RegexOptions.IgnoreCase)
-                                    .WithMessage("Allowed characters a-z and -");
+            RuleForEach(c => c.ModuleCategories).Custom((entry, context) =>
+            {
+                if (!CategoryPattern.IsMatch(entry.Category ?? string.Empty))
+                {
+                    context.AddCategoryFailure(entry, "Allowed characters a-z and -");
+                }
+
+                if (entry.Category.IsNotNullOrWhiteSpace() && ((FreeboxDownloadSettings)context.InstanceToValidate).DestinationDirectory.IsNotNullOrWhiteSpace())
+                {
+                    context.AddCategoryFailure(entry, "Cannot use 'Category' and 'Destination Directory' at the same time.");
+                }
+            });
+
+            RuleFor(c => c.ModuleCategories).UniqueCategories();
             RuleFor(c => c.DestinationDirectory).IsValidPath()
                                                 .When(c => c.DestinationDirectory.IsNotNullOrWhiteSpace());
             RuleFor(c => c.DestinationDirectory).Empty()
-                                    .When(c => c.Category.IsNotNullOrWhiteSpace())
-                                    .WithMessage("Cannot use 'Category' and 'Destination Directory' at the same time.");
-            RuleFor(c => c.Category).Empty()
-                                    .When(c => c.DestinationDirectory.IsNotNullOrWhiteSpace())
+                                    .When(c => c.ModuleCategories.Any(e => e.Category.IsNotNullOrWhiteSpace()))
                                     .WithMessage("Cannot use 'Category' and 'Destination Directory' at the same time.");
         }
     }
 
-    public class FreeboxDownloadSettings : DownloadClientSettingsBase<FreeboxDownloadSettings>
+    [ModuleCategoryFields(7, CategoryHelpText = "DownloadClientSettingsCategorySubFolderHelpText", PriorityOptions = typeof(FreeboxDownloadPriority), DefaultPriority = (int)FreeboxDownloadPriority.Last)]
+    public class FreeboxDownloadSettings : ModuleDownloadClientSettings<FreeboxDownloadSettings>
     {
         private static readonly FreeboxDownloadSettingsValidator Validator = new();
 
@@ -70,15 +83,6 @@ namespace NzbDrone.Core.Download.Clients.FreeboxDownload
 
         [FieldDefinition(6, Label = "Destination", Type = FieldType.Textbox, Advanced = true, HelpText = "DownloadClientSettingsDestinationHelpText")]
         public string DestinationDirectory { get; set; }
-
-        [FieldDefinition(7, Label = "Category", Type = FieldType.Textbox, HelpText = "DownloadClientSettingsCategorySubFolderHelpText")]
-        public string Category { get; set; }
-
-        [FieldDefinition(8, Label = "DownloadClientSettingsRecentPriority", Type = FieldType.Select, SelectOptions = typeof(FreeboxDownloadPriority), HelpText = "DownloadClientSettingsRecentPriorityMovieHelpText")]
-        public int RecentPriority { get; set; }
-
-        [FieldDefinition(9, Label = "DownloadClientSettingsOlderPriority", Type = FieldType.Select, SelectOptions = typeof(FreeboxDownloadPriority), HelpText = "DownloadClientSettingsOlderPriorityMovieHelpText")]
-        public int OlderPriority { get; set; }
 
         [FieldDefinition(10, Label = "DownloadClientSettingsAddPaused", Type = FieldType.Checkbox)]
         public bool AddPaused { get; set; }

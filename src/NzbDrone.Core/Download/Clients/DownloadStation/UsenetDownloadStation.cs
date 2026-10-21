@@ -80,25 +80,14 @@ namespace NzbDrone.Core.Download.Clients.DownloadStation
                     totalRemainingSize += taskRemainingSize;
                 }
 
-                if (Settings.TvDirectory.IsNotNullOrWhiteSpace())
+                if (!DownloadStationCategories.TryGetCategory(Settings, outputPath, out var category))
                 {
-                    if (!new OsPath($"/{Settings.TvDirectory}").Contains(outputPath))
-                    {
-                        continue;
-                    }
-                }
-                else if (Settings.TvCategory.IsNotNullOrWhiteSpace())
-                {
-                    var directories = outputPath.FullPath.Split('\\', '/');
-                    if (!directories.Contains(Settings.TvCategory))
-                    {
-                        continue;
-                    }
+                    continue;
                 }
 
                 var item = new DownloadClientItem()
                 {
-                    Category = Settings.TvCategory,
+                    Category = category,
                     DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, false),
                     DownloadId = CreateDownloadId(nzb.Id, serialNumber),
                     Title = nzb.Title,
@@ -145,14 +134,21 @@ namespace NzbDrone.Core.Download.Clients.DownloadStation
 
                 // Download station returns the path without the leading `/`, but the leading
                 // slash is required to get the full path back from download station.
-                var path = new OsPath($"/{GetDownloadDirectory()}");
+                // One output folder per module category (or just the one directory when it is set).
+                var categories = Settings.TvDirectory.IsNotNullOrWhiteSpace()
+                    ? new List<string> { null }
+                    : Settings.ModuleCategories.Select(m => m.Category).Distinct().ToList();
 
-                var fullPath = _sharedFolderResolver.RemapToFullPath(path, Settings, serialNumber);
+                var folders = categories.Select(c => new OsPath($"/{GetDownloadDirectory(c)}"))
+                                        .Select(p => _sharedFolderResolver.RemapToFullPath(p, Settings, serialNumber))
+                                        .Select(p => _remotePathMappingService.RemapRemoteToLocal(Settings.Host, p))
+                                        .Distinct()
+                                        .ToList();
 
                 return new DownloadClientInfo
                 {
                     IsLocalhost = Settings.Host == "127.0.0.1" || Settings.Host == "localhost",
-                    OutputRootFolders = new List<OsPath> { _remotePathMappingService.RemapRemoteToLocal(Settings.Host, fullPath) }
+                    OutputRootFolders = folders
                 };
             }
             catch (DownloadClientException e)
@@ -178,7 +174,7 @@ namespace NzbDrone.Core.Download.Clients.DownloadStation
         {
             var hashedSerialNumber = _serialNumberProvider.GetSerialNumber(Settings);
 
-            DsTaskProxy.AddTaskFromData(fileContent, filename, GetDownloadDirectory(), Settings);
+            DsTaskProxy.AddTaskFromData(fileContent, filename, GetDownloadDirectory(Settings.For(remoteRelease.Kind).Category), Settings);
 
             var items = GetTasks().Where(t => t.Additional.Detail["uri"] == filename);
 
@@ -203,15 +199,19 @@ namespace NzbDrone.Core.Download.Clients.DownloadStation
                 return;
             }
 
-            failures.AddIfNotNull(TestOutputPath());
+            foreach (var module in Settings.ModuleCategories)
+            {
+                failures.AddIfNotNull(TestOutputPath(module));
+            }
+
             failures.AddIfNotNull(TestGetNZB());
         }
 
-        protected ValidationFailure TestOutputPath()
+        protected ValidationFailure TestOutputPath(ModuleCategorySettings module)
         {
             try
             {
-                var downloadDir = GetDownloadDirectory();
+                var downloadDir = GetDownloadDirectory(module.Category);
 
                 if (downloadDir == null)
                 {
@@ -222,7 +222,7 @@ namespace NzbDrone.Core.Download.Clients.DownloadStation
                 }
 
                 var sharedFolder = downloadDir.Split('\\', '/')[0];
-                var fieldName = Settings.TvDirectory.IsNotNullOrWhiteSpace() ? nameof(Settings.TvDirectory) : nameof(Settings.TvCategory);
+                var fieldName = Settings.TvDirectory.IsNotNullOrWhiteSpace() ? nameof(Settings.TvDirectory) : ModuleCategoryFieldNames.Category(module.Kind);
 
                 var folderInfo = _fileStationProxy.GetInfoFileOrDirectory($"/{downloadDir}", Settings);
 
@@ -426,7 +426,7 @@ namespace NzbDrone.Core.Download.Clients.DownloadStation
             return path;
         }
 
-        protected string GetDownloadDirectory()
+        protected string GetDownloadDirectory(string category)
         {
             if (Settings.TvDirectory.IsNotNullOrWhiteSpace())
             {
@@ -435,9 +435,9 @@ namespace NzbDrone.Core.Download.Clients.DownloadStation
 
             var destDir = GetDefaultDir();
 
-            if (destDir.IsNotNullOrWhiteSpace() && Settings.TvCategory.IsNotNullOrWhiteSpace())
+            if (destDir.IsNotNullOrWhiteSpace() && category.IsNotNullOrWhiteSpace())
             {
-                return $"{destDir.TrimEnd('/')}/{Settings.TvCategory}";
+                return $"{destDir.TrimEnd('/')}/{category}";
             }
 
             return destDir.TrimEnd('/');

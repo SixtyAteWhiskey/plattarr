@@ -16,13 +16,20 @@ namespace NzbDrone.Core.Download.Clients.NzbVortex
             RuleFor(c => c.ApiKey).NotEmpty()
                                   .WithMessage("API Key is required");
 
-            RuleFor(c => c.TvCategory).NotEmpty()
-                                      .WithMessage("A category is recommended")
-                                      .AsWarning();
+            RuleForEach(c => c.ModuleCategories).Custom((entry, context) =>
+            {
+                if (entry.Category.IsNullOrWhiteSpace())
+                {
+                    context.AddCategoryFailure(entry, "A category is recommended", warning: true);
+                }
+            });
+
+            RuleFor(c => c.ModuleCategories).UniqueCategories();
         }
     }
 
-    public class NzbVortexSettings : DownloadClientSettingsBase<NzbVortexSettings>
+    [ModuleCategoryFields(4, CategoryLabel = "Group", PriorityOptions = typeof(NzbVortexPriority), DefaultPriority = (int)NzbVortexPriority.Normal)]
+    public class NzbVortexSettings : ModuleDownloadClientSettings<NzbVortexSettings>
     {
         private static readonly NzbVortexSettingsValidator Validator = new();
 
@@ -30,9 +37,6 @@ namespace NzbDrone.Core.Download.Clients.NzbVortex
         {
             Host = "localhost";
             Port = 4321;
-            TvCategory = "Movies";
-            RecentMoviePriority = (int)NzbVortexPriority.Normal;
-            OlderMoviePriority = (int)NzbVortexPriority.Normal;
         }
 
         [FieldDefinition(0, Label = "Host", Type = FieldType.Textbox)]
@@ -48,15 +52,6 @@ namespace NzbDrone.Core.Download.Clients.NzbVortex
 
         [FieldDefinition(3, Label = "ApiKey", Type = FieldType.Textbox, Privacy = PrivacyLevel.ApiKey)]
         public string ApiKey { get; set; }
-
-        [FieldDefinition(4, Label = "Group", Type = FieldType.Textbox, HelpText = "DownloadClientSettingsCategoryHelpText")]
-        public string TvCategory { get; set; }
-
-        [FieldDefinition(5, Label = "DownloadClientSettingsRecentPriority", Type = FieldType.Select, SelectOptions = typeof(NzbVortexPriority), HelpText = "DownloadClientSettingsRecentPriorityMovieHelpText")]
-        public int RecentMoviePriority { get; set; }
-
-        [FieldDefinition(6, Label = "DownloadClientSettingsOlderPriority", Type = FieldType.Select, SelectOptions = typeof(NzbVortexPriority), HelpText = "DownloadClientSettingsOlderPriorityMovieHelpText")]
-        public int OlderMoviePriority { get; set; }
 
         public override NzbDroneValidationResult Validate()
         {

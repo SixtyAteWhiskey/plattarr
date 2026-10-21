@@ -13,7 +13,7 @@ namespace NzbDrone.Core.Download.Clients.NzbVortex
 {
     public interface INzbVortexProxy
     {
-        string DownloadNzb(byte[] nzbData, string filename, int priority, NzbVortexSettings settings);
+        string DownloadNzb(byte[] nzbData, string filename, string group, int priority, NzbVortexSettings settings);
         void Remove(int id, bool deleteData, NzbVortexSettings settings);
         NzbVortexVersionResponse GetVersion(NzbVortexSettings settings);
         NzbVortexApiVersionResponse GetApiVersion(NzbVortexSettings settings);
@@ -37,15 +37,15 @@ namespace NzbDrone.Core.Download.Clients.NzbVortex
             _authSessionIdCache = cacheManager.GetCache<string>(GetType(), "authCache");
         }
 
-        public string DownloadNzb(byte[] nzbData, string filename, int priority, NzbVortexSettings settings)
+        public string DownloadNzb(byte[] nzbData, string filename, string group, int priority, NzbVortexSettings settings)
         {
             var requestBuilder = BuildRequest(settings).Resource("nzb/add")
                                                        .Post()
                                                        .AddQueryParam("priority", priority.ToString());
 
-            if (settings.TvCategory.IsNotNullOrWhiteSpace())
+            if (group.IsNotNullOrWhiteSpace())
             {
-                requestBuilder.AddQueryParam("groupname", settings.TvCategory);
+                requestBuilder.AddQueryParam("groupname", group);
             }
 
             requestBuilder.AddFormUpload("name", filename, nzbData, "application/x-nzb");
@@ -92,9 +92,12 @@ namespace NzbDrone.Core.Download.Clients.NzbVortex
         {
             var requestBuilder = BuildRequest(settings).Resource("nzb");
 
-            if (settings.TvCategory.IsNotNullOrWhiteSpace())
+            // NZBVortex filters by one group; with several the caller filters the result.
+            var groups = settings.MonitoredCategories();
+
+            if (groups.Count == 1)
             {
-                requestBuilder.AddQueryParam("groupName", settings.TvCategory);
+                requestBuilder.AddQueryParam("groupName", groups[0]);
             }
 
             requestBuilder.AddQueryParam("limitDone", doneLimit.ToString());

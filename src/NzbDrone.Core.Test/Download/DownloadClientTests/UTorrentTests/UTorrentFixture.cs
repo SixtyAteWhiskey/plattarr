@@ -30,9 +30,9 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.UTorrentTests
                 Host = "127.0.0.1",
                 Port = 2222,
                 Username = "admin",
-                Password = "pass",
-                MovieCategory = "movie"
+                Password = "pass"
             };
+            Subject.Definition.Settings.Movies().Category = "movie";
 
             _queued = new UTorrentTorrent
             {

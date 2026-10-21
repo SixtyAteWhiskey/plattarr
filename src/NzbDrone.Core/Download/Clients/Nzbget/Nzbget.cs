@@ -38,12 +38,11 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
 
         protected override string AddFromNzbFile(RemoteRelease remoteRelease, string filename, byte[] fileContent)
         {
-            var category = Settings.MovieCategory;
-
-            var priority = remoteRelease.IsRecent ? Settings.RecentMoviePriority : Settings.OlderMoviePriority;
+            var module = Settings.For(remoteRelease.Kind);
+            var priority = remoteRelease.IsRecent ? module.RecentPriority : module.OlderPriority;
 
             var addpaused = Settings.AddPaused;
-            var response = _proxy.DownloadNzb(fileContent, filename, category, priority, addpaused, Settings);
+            var response = _proxy.DownloadNzb(fileContent, filename, module.Category, priority, addpaused, Settings);
 
             if (response == null)
             {
@@ -198,7 +197,13 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
 
         public override IEnumerable<DownloadClientItem> GetItems()
         {
-            return GetQueue().Concat(GetHistory()).Where(downloadClientItem => downloadClientItem.Category == Settings.MovieCategory);
+            var monitored = Settings.MonitoredCategories();
+            var defaultCategory = Settings.ForCategory(null).Category;
+
+            // With no category configured the client takes the uncategorised downloads, as it always did.
+            return GetQueue().Concat(GetHistory()).Where(downloadClientItem => monitored.Any()
+                ? Settings.Monitors(downloadClientItem.Category)
+                : downloadClientItem.Category == defaultCategory);
         }
 
         public override void RemoveItem(DownloadClientItem item, bool deleteData)
@@ -215,16 +220,24 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
         {
             var config = _proxy.GetConfig(Settings);
 
-            var category = GetCategories(config).FirstOrDefault(v => v.Name == Settings.MovieCategory);
+            var categories = GetCategories(config).ToList();
 
             var status = new DownloadClientInfo
             {
                 IsLocalhost = Settings.Host == "127.0.0.1" || Settings.Host == "localhost"
             };
 
-            if (category != null)
+            // One output folder per module category.
+            var folders = Settings.ModuleCategories
+                                  .Select(m => categories.FirstOrDefault(v => v.Name == m.Category))
+                                  .Where(c => c != null)
+                                  .Select(c => _remotePathMappingService.RemapRemoteToLocal(Settings.Host, new OsPath(c.DestDir)))
+                                  .Distinct()
+                                  .ToList();
+
+            if (folders.Any())
             {
-                status.OutputRootFolders = new List<OsPath> { _remotePathMappingService.RemapRemoteToLocal(Settings.Host, new OsPath(category.DestDir)) };
+                status.OutputRootFolders = folders;
             }
 
             return status;
@@ -268,7 +281,12 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
         protected override void Test(List<ValidationFailure> failures)
         {
             failures.AddIfNotNull(TestConnection());
-            failures.AddIfNotNull(TestCategory());
+
+            foreach (var module in Settings.ModuleCategories)
+            {
+                failures.AddIfNotNull(TestCategory(module));
+            }
+
             failures.AddIfNotNull(TestSettings());
         }
 
@@ -302,14 +320,14 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
             return null;
         }
 
-        private ValidationFailure TestCategory()
+        private ValidationFailure TestCategory(ModuleCategorySettings module)
         {
             var config = _proxy.GetConfig(Settings);
             var categories = GetCategories(config);
 
-            if (!Settings.MovieCategory.IsNullOrWhiteSpace() && !categories.Any(v => v.Name == Settings.MovieCategory))
+            if (!module.Category.IsNullOrWhiteSpace() && !categories.Any(v => v.Name == module.Category))
             {
-                return new NzbDroneValidationFailure("MovieCategory", _localizationService.GetLocalizedString("DownloadClientValidationCategoryMissing"))
+                return new NzbDroneValidationFailure(ModuleCategoryFieldNames.Category(module.Kind), _localizationService.GetLocalizedString("DownloadClientValidationCategoryMissing"))
                 {
                     InfoLink = _proxy.GetBaseUrl(Settings),
                     DetailedDescription = _localizationService.GetLocalizedString("DownloadClientValidationCategoryMissingDetail", new Dictionary<string, object> { { "clientName", Name } })

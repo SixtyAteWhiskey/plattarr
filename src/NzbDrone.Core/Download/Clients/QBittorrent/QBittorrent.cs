@@ -50,18 +50,20 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
         public override void MarkItemAsImported(DownloadClientItem downloadClientItem)
         {
+            var module = Settings.ForItem(downloadClientItem);
+
             // set post-import category
-            if (Settings.MovieImportedCategory.IsNotNullOrWhiteSpace() &&
-                Settings.MovieImportedCategory != Settings.MovieCategory)
+            if (module.ImportedCategory.IsNotNullOrWhiteSpace() &&
+                module.ImportedCategory != module.Category)
             {
                 try
                 {
-                    Proxy.SetTorrentLabel(downloadClientItem.DownloadId.ToLower(), Settings.MovieImportedCategory, Settings);
+                    Proxy.SetTorrentLabel(downloadClientItem.DownloadId.ToLower(), module.ImportedCategory, Settings);
                 }
                 catch (DownloadClientException)
                 {
                     _logger.Warn("Failed to set post-import torrent label \"{0}\" for {1} in qBittorrent. Does the label exist?",
-                        Settings.MovieImportedCategory,
+                        module.ImportedCategory,
                         downloadClientItem.Title);
                 }
             }
@@ -74,13 +76,14 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
                 throw new NotSupportedException("Magnet Links without trackers not supported if DHT is disabled");
             }
 
+            var module = Settings.For(remoteRelease.Kind);
             var setShareLimits = remoteRelease.SeedConfiguration != null && (remoteRelease.SeedConfiguration.Ratio.HasValue || remoteRelease.SeedConfiguration.SeedTime.HasValue);
             var addHasSetShareLimits = setShareLimits && ProxyApiVersion >= new Version(2, 8, 1);
-            var isRecentMovie = remoteRelease.IsRecent;
-            var moveToTop = (isRecentMovie && Settings.RecentMoviePriority == (int)QBittorrentPriority.First) || (!isRecentMovie && Settings.OlderMoviePriority == (int)QBittorrentPriority.First);
+            var isRecent = remoteRelease.IsRecent;
+            var moveToTop = (isRecent && module.RecentPriority == (int)QBittorrentPriority.First) || (!isRecent && module.OlderPriority == (int)QBittorrentPriority.First);
             var forceStart = (QBittorrentState)Settings.InitialState == QBittorrentState.ForceStart;
 
-            Proxy.AddTorrentFromUrl(magnetLink, addHasSetShareLimits && setShareLimits ? remoteRelease.SeedConfiguration : null, Settings);
+            Proxy.AddTorrentFromUrl(magnetLink, module.Category, addHasSetShareLimits && setShareLimits ? remoteRelease.SeedConfiguration : null, Settings);
 
             if ((!addHasSetShareLimits && setShareLimits) || moveToTop || forceStart)
             {
@@ -131,13 +134,14 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
         protected override string AddFromTorrentFile(RemoteRelease remoteRelease, string hash, string filename, byte[] fileContent)
         {
+            var module = Settings.For(remoteRelease.Kind);
             var setShareLimits = remoteRelease.SeedConfiguration != null && (remoteRelease.SeedConfiguration.Ratio.HasValue || remoteRelease.SeedConfiguration.SeedTime.HasValue);
             var addHasSetShareLimits = setShareLimits && ProxyApiVersion >= new Version(2, 8, 1);
-            var isRecentMovie = remoteRelease.IsRecent;
-            var moveToTop = (isRecentMovie && Settings.RecentMoviePriority == (int)QBittorrentPriority.First) || (!isRecentMovie && Settings.OlderMoviePriority == (int)QBittorrentPriority.First);
+            var isRecent = remoteRelease.IsRecent;
+            var moveToTop = (isRecent && module.RecentPriority == (int)QBittorrentPriority.First) || (!isRecent && module.OlderPriority == (int)QBittorrentPriority.First);
             var forceStart = (QBittorrentState)Settings.InitialState == QBittorrentState.ForceStart;
 
-            Proxy.AddTorrentFromFile(filename, fileContent, addHasSetShareLimits ? remoteRelease.SeedConfiguration : null, Settings);
+            Proxy.AddTorrentFromFile(filename, fileContent, module.Category, addHasSetShareLimits ? remoteRelease.SeedConfiguration : null, Settings);
 
             if ((!addHasSetShareLimits && setShareLimits) || moveToTop || forceStart)
             {
@@ -214,23 +218,42 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
         public override string Name => "qBittorrent";
 
+        // qBittorrent filters by one category per request, so each monitored category is a request.
+        // With no category configured it takes every torrent, as it always did.
+        private List<QBittorrentTorrent> GetMonitoredTorrents()
+        {
+            var categories = Settings.MonitoredCategories();
+
+            if (categories.Empty())
+            {
+                return Proxy.GetTorrents(null, Settings);
+            }
+
+            return categories.SelectMany(c => Proxy.GetTorrents(c, Settings))
+                             .GroupBy(t => t.Hash)
+                             .Select(g => g.First())
+                             .ToList();
+        }
+
         public override IEnumerable<DownloadClientItem> GetItems()
         {
             var version = Proxy.GetApiVersion(Settings);
             var config = Proxy.GetConfig(Settings);
-            var torrents = Proxy.GetTorrents(Settings);
+            var torrents = GetMonitoredTorrents();
 
             var queueItems = new List<DownloadClientItem>();
 
             foreach (var torrent in torrents)
             {
+                var category = torrent.Category.IsNotNullOrWhiteSpace() ? torrent.Category : torrent.Label;
+
                 var item = new DownloadClientItem
                 {
                     DownloadId = torrent.Hash.ToUpper(),
-                    Category = torrent.Category.IsNotNullOrWhiteSpace() ? torrent.Category : torrent.Label,
+                    Category = category,
                     Title = torrent.Name,
                     TotalSize = torrent.Size,
-                    DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, Settings.MovieImportedCategory.IsNotNullOrWhiteSpace()),
+                    DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, Settings.ForCategory(category).ImportedCategory.IsNotNullOrWhiteSpace()),
                     RemainingSize = (long)(torrent.Size * (1.0 - torrent.Progress)),
                     RemainingTime = GetRemainingTime(torrent),
                     SeedRatio = torrent.Ratio
@@ -373,39 +396,44 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             var version = Proxy.GetApiVersion(Settings);
             var config = Proxy.GetConfig(Settings);
 
-            var destDir = new OsPath(config.SavePath);
+            var defaultDir = new OsPath(config.SavePath);
+            var categories = Settings.MonitoredCategories();
+            var labels = categories.Any() && version >= Version.Parse("2.0") ? Proxy.GetLabels(Settings) : null;
 
-            if (Settings.MovieCategory.IsNotNullOrWhiteSpace() && version >= Version.Parse("2.0"))
+            // One output folder per category: a category can have its own save path.
+            var destDirs = categories.Select(c => GetCategoryDestination(defaultDir, labels, c)).Distinct().ToList();
+
+            if (destDirs.Empty())
             {
-                if (Proxy.GetLabels(Settings).TryGetValue(Settings.MovieCategory, out var label) && label.SavePath.IsNotNullOrWhiteSpace())
-                {
-                    var savePath = label.SavePath;
-
-                    if (savePath.StartsWith("//"))
-                    {
-                        _logger.Trace("Replacing double forward slashes in path '{0}'. If this is not meant to be a Windows UNC path fix the 'Save Path' in qBittorrent's {1} category", savePath, Settings.MovieCategory);
-                        savePath = savePath.Replace('/', '\\');
-                    }
-
-                    var labelDir = new OsPath(savePath);
-
-                    if (labelDir.IsRooted)
-                    {
-                        destDir = labelDir;
-                    }
-                    else
-                    {
-                        destDir = destDir + labelDir;
-                    }
-                }
+                destDirs.Add(defaultDir);
             }
 
             return new DownloadClientInfo
             {
                 IsLocalhost = Settings.Host == "127.0.0.1" || Settings.Host == "localhost",
-                OutputRootFolders = new List<OsPath> { _remotePathMappingService.RemapRemoteToLocal(Settings.Host, destDir) },
+                OutputRootFolders = destDirs.Select(d => _remotePathMappingService.RemapRemoteToLocal(Settings.Host, d)).ToList(),
                 RemovesCompletedDownloads = RemovesCompletedDownloads(config)
             };
+        }
+
+        private OsPath GetCategoryDestination(OsPath defaultDir, Dictionary<string, QBittorrentLabel> labels, string category)
+        {
+            if (labels != null && labels.TryGetValue(category, out var label) && label.SavePath.IsNotNullOrWhiteSpace())
+            {
+                var savePath = label.SavePath;
+
+                if (savePath.StartsWith("//"))
+                {
+                    _logger.Trace("Replacing double forward slashes in path '{0}'. If this is not meant to be a Windows UNC path fix the 'Save Path' in qBittorrent's {1} category", savePath, category);
+                    savePath = savePath.Replace('/', '\\');
+                }
+
+                var labelDir = new OsPath(savePath);
+
+                return labelDir.IsRooted ? labelDir : defaultDir + labelDir;
+            }
+
+            return defaultDir;
         }
 
         private bool RemovesCompletedDownloads(QBittorrentPreferences config)
@@ -444,18 +472,20 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
                 else if (version < Version.Parse("1.6"))
                 {
                     // API version 6 introduced support for labels
-                    if (Settings.MovieCategory.IsNotNullOrWhiteSpace())
+                    var withCategory = Settings.ModuleCategories.FirstOrDefault(c => c.Category.IsNotNullOrWhiteSpace());
+
+                    if (withCategory != null)
                     {
-                        return new NzbDroneValidationFailure("Category", _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationCategoryUnsupported"))
+                        return new NzbDroneValidationFailure(ModuleCategoryFieldNames.Category(withCategory.Kind), _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationCategoryUnsupported"))
                         {
                             DetailedDescription = _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationCategoryUnsupportedDetail")
                         };
                     }
                 }
-                else if (Settings.MovieCategory.IsNullOrWhiteSpace())
+                else if (Settings.ModuleCategories.FirstOrDefault(c => c.Category.IsNullOrWhiteSpace()) is { } withoutCategory)
                 {
                     // warn if labels are supported, but category is not provided
-                    return new NzbDroneValidationFailure("MovieCategory", _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationCategoryRecommended"))
+                    return new NzbDroneValidationFailure(ModuleCategoryFieldNames.Category(withoutCategory.Kind), _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationCategoryRecommended"))
                     {
                         IsWarning = true,
                         DetailedDescription = _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationCategoryRecommendedDetail")
@@ -509,7 +539,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
         private ValidationFailure TestCategory()
         {
-            if (Settings.MovieCategory.IsNullOrWhiteSpace() && Settings.MovieImportedCategory.IsNullOrWhiteSpace())
+            if (Settings.ModuleCategories.All(c => c.Category.IsNullOrWhiteSpace() && c.ImportedCategory.IsNullOrWhiteSpace()))
             {
                 return null;
             }
@@ -523,31 +553,34 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
             var labels = Proxy.GetLabels(Settings);
 
-            if (Settings.MovieCategory.IsNotNullOrWhiteSpace() && !labels.ContainsKey(Settings.MovieCategory))
+            foreach (var module in Settings.ModuleCategories)
             {
-                Proxy.AddLabel(Settings.MovieCategory, Settings);
-                labels = Proxy.GetLabels(Settings);
-
-                if (!labels.ContainsKey(Settings.MovieCategory))
+                if (module.Category.IsNotNullOrWhiteSpace() && !labels.ContainsKey(module.Category))
                 {
-                    return new NzbDroneValidationFailure("MovieCategory", _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationCategoryAddFailure"))
+                    Proxy.AddLabel(module.Category, Settings);
+                    labels = Proxy.GetLabels(Settings);
+
+                    if (!labels.ContainsKey(module.Category))
                     {
-                        DetailedDescription = _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationCategoryAddFailureDetail")
-                    };
+                        return new NzbDroneValidationFailure(ModuleCategoryFieldNames.Category(module.Kind), _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationCategoryAddFailure"))
+                        {
+                            DetailedDescription = _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationCategoryAddFailureDetail")
+                        };
+                    }
                 }
-            }
 
-            if (Settings.MovieImportedCategory.IsNotNullOrWhiteSpace() && !labels.ContainsKey(Settings.MovieImportedCategory))
-            {
-                Proxy.AddLabel(Settings.MovieImportedCategory, Settings);
-                labels = Proxy.GetLabels(Settings);
-
-                if (!labels.ContainsKey(Settings.MovieImportedCategory))
+                if (module.ImportedCategory.IsNotNullOrWhiteSpace() && !labels.ContainsKey(module.ImportedCategory))
                 {
-                    return new NzbDroneValidationFailure("MovieImportedCategory", _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationCategoryAddFailure"))
+                    Proxy.AddLabel(module.ImportedCategory, Settings);
+                    labels = Proxy.GetLabels(Settings);
+
+                    if (!labels.ContainsKey(module.ImportedCategory))
                     {
-                        DetailedDescription = _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationCategoryAddFailureDetail")
-                    };
+                        return new NzbDroneValidationFailure(ModuleCategoryFieldNames.ImportedCategory(module.Kind), _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationCategoryAddFailure"))
+                        {
+                            DetailedDescription = _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationCategoryAddFailureDetail")
+                        };
+                    }
                 }
             }
 
@@ -556,10 +589,9 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
         private ValidationFailure TestPrioritySupport()
         {
-            var recentPriorityDefault = Settings.RecentMoviePriority == (int)QBittorrentPriority.Last;
-            var olderPriorityDefault = Settings.OlderMoviePriority == (int)QBittorrentPriority.Last;
+            var modules = Settings.ModuleCategories.Where(c => c.RecentPriority != (int)QBittorrentPriority.Last || c.OlderPriority != (int)QBittorrentPriority.Last).ToList();
 
-            if (olderPriorityDefault && recentPriorityDefault)
+            if (modules.Empty())
             {
                 return null;
             }
@@ -570,20 +602,15 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
                 if (!config.QueueingEnabled)
                 {
-                    if (!recentPriorityDefault)
+                    var module = modules.First();
+                    var field = module.RecentPriority != (int)QBittorrentPriority.Last
+                        ? ModuleCategoryFieldNames.RecentPriority(module.Kind)
+                        : ModuleCategoryFieldNames.OlderPriority(module.Kind);
+
+                    return new NzbDroneValidationFailure(field, _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationQueueingNotEnabled"))
                     {
-                        return new NzbDroneValidationFailure(nameof(Settings.RecentMoviePriority), _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationQueueingNotEnabled"))
-                        {
-                            DetailedDescription = _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationQueueingNotEnabledDetail")
-                        };
-                    }
-                    else if (!olderPriorityDefault)
-                    {
-                        return new NzbDroneValidationFailure(nameof(Settings.OlderMoviePriority), _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationQueueingNotEnabled"))
-                        {
-                            DetailedDescription = _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationQueueingNotEnabledDetail")
-                        };
-                    }
+                        DetailedDescription = _localizationService.GetLocalizedString("DownloadClientQbittorrentValidationQueueingNotEnabledDetail")
+                    };
                 }
             }
             catch (Exception ex)
@@ -599,7 +626,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
         {
             try
             {
-                Proxy.GetTorrents(Settings);
+                Proxy.GetTorrents(null, Settings);
             }
             catch (Exception ex)
             {

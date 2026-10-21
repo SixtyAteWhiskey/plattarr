@@ -54,7 +54,7 @@ namespace NzbDrone.Core.Download.Clients.Hadouken
 
             foreach (var torrent in torrents)
             {
-                if (Settings.Category.IsNotNullOrWhiteSpace() && torrent.Label != Settings.Category)
+                if (!Settings.Monitors(torrent.Label))
                 {
                     continue;
                 }
@@ -71,6 +71,7 @@ namespace NzbDrone.Core.Download.Clients.Hadouken
                 {
                     DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, false),
                     DownloadId = torrent.InfoHash.ToUpper(),
+                    Category = torrent.Label,
                     OutputPath = outputPath + torrent.Name,
                     RemainingSize = torrent.TotalSize - torrent.DownloadedBytes,
                     RemainingTime = eta,
@@ -156,14 +157,14 @@ namespace NzbDrone.Core.Download.Clients.Hadouken
 
         protected override string AddFromMagnetLink(RemoteRelease remoteRelease, string hash, string magnetLink)
         {
-            _proxy.AddTorrentUri(Settings, magnetLink);
+            _proxy.AddTorrentUri(Settings, magnetLink, Settings.For(remoteRelease.Kind).Category);
 
             return hash.ToUpper();
         }
 
         protected override string AddFromTorrentFile(RemoteRelease remoteRelease, string hash, string filename, byte[] fileContent)
         {
-            return _proxy.AddTorrentFile(Settings, fileContent).ToUpper();
+            return _proxy.AddTorrentFile(Settings, fileContent, Settings.For(remoteRelease.Kind).Category).ToUpper();
         }
 
         private ValidationFailure TestConnection()

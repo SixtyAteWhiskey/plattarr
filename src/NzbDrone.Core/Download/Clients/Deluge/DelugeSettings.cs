@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using FluentValidation;
 using NzbDrone.Core.Annotations;
 using NzbDrone.Core.Validation;
@@ -6,17 +7,33 @@ namespace NzbDrone.Core.Download.Clients.Deluge
 {
     public class DelugeSettingsValidator : AbstractValidator<DelugeSettings>
     {
+        private const string CategoryMessage = "Allowed characters a-z, 0-9 and -";
+        private static readonly Regex CategoryPattern = new(@"^[-a-z0-9]*$", RegexOptions.Compiled);
+
         public DelugeSettingsValidator()
         {
             RuleFor(c => c.Host).ValidHost();
             RuleFor(c => c.Port).InclusiveBetween(1, 65535);
 
-            RuleFor(c => c.MovieCategory).Matches("^[-a-z0-9]*$").WithMessage("Allowed characters a-z, 0-9 and -");
-            RuleFor(c => c.MovieImportedCategory).Matches("^[-a-z0-9]*$").WithMessage("Allowed characters a-z, 0-9 and -");
+            RuleForEach(c => c.ModuleCategories).Custom((entry, context) =>
+            {
+                if (!CategoryPattern.IsMatch(entry.Category ?? string.Empty))
+                {
+                    context.AddCategoryFailure(entry, CategoryMessage);
+                }
+
+                if (!CategoryPattern.IsMatch(entry.ImportedCategory ?? string.Empty))
+                {
+                    context.AddImportedCategoryFailure(entry, CategoryMessage);
+                }
+            });
+
+            RuleFor(c => c.ModuleCategories).UniqueCategories();
         }
     }
 
-    public class DelugeSettings : DownloadClientSettingsBase<DelugeSettings>
+    [ModuleCategoryFields(5, PostImportCategory = true, PriorityOptions = typeof(DelugePriority), DefaultPriority = (int)DelugePriority.Last)]
+    public class DelugeSettings : ModuleDownloadClientSettings<DelugeSettings>
     {
         private static readonly DelugeSettingsValidator Validator = new();
 
@@ -25,7 +42,6 @@ namespace NzbDrone.Core.Download.Clients.Deluge
             Host = "localhost";
             Port = 8112;
             Password = "deluge";
-            MovieCategory = "radarr";
         }
 
         [FieldDefinition(0, Label = "Host", Type = FieldType.Textbox)]
@@ -44,18 +60,6 @@ namespace NzbDrone.Core.Download.Clients.Deluge
 
         [FieldDefinition(4, Label = "Password", Type = FieldType.Password, Privacy = PrivacyLevel.Password)]
         public string Password { get; set; }
-
-        [FieldDefinition(5, Label = "Category", Type = FieldType.Textbox, HelpText = "DownloadClientSettingsCategoryHelpText")]
-        public string MovieCategory { get; set; }
-
-        [FieldDefinition(6, Label = "PostImportCategory", Type = FieldType.Textbox, Advanced = true, HelpText = "DownloadClientSettingsPostImportCategoryHelpText")]
-        public string MovieImportedCategory { get; set; }
-
-        [FieldDefinition(7, Label = "DownloadClientSettingsRecentPriority", Type = FieldType.Select, SelectOptions = typeof(DelugePriority), HelpText = "DownloadClientSettingsRecentPriorityMovieHelpText")]
-        public int RecentMoviePriority { get; set; }
-
-        [FieldDefinition(8, Label = "DownloadClientSettingsOlderPriority", Type = FieldType.Select, SelectOptions = typeof(DelugePriority), HelpText = "DownloadClientSettingsOlderPriorityMovieHelpText")]
-        public int OlderMoviePriority { get; set; }
 
         [FieldDefinition(9, Label = "DownloadClientSettingsAddPaused", Type = FieldType.Checkbox)]
         public bool AddPaused { get; set; }

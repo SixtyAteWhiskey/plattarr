@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using FluentValidation;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Annotations;
@@ -7,6 +8,9 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 {
     public class QBittorrentSettingsValidator : AbstractValidator<QBittorrentSettings>
     {
+        private const string CategoryMessage = @"Can not contain '\', '//', or start/end with '/'";
+        private static readonly Regex CategoryPattern = new(@"^([^\\\/](\/?[^\\\/])*)?$", RegexOptions.Compiled);
+
         public QBittorrentSettingsValidator()
         {
             RuleFor(c => c.Host).ValidHost();
@@ -20,12 +24,25 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
                 .WithMessage("Password must be empty when using API Key.")
                 .When(c => c.ApiKey.IsNotNullOrWhiteSpace());
 
-            RuleFor(c => c.MovieCategory).Matches(@"^([^\\\/](\/?[^\\\/])*)?$").WithMessage(@"Can not contain '\', '//', or start/end with '/'");
-            RuleFor(c => c.MovieImportedCategory).Matches(@"^([^\\\/](\/?[^\\\/])*)?$").WithMessage(@"Can not contain '\', '//', or start/end with '/'");
+            RuleForEach(c => c.ModuleCategories).Custom((entry, context) =>
+            {
+                if (!CategoryPattern.IsMatch(entry.Category ?? string.Empty))
+                {
+                    context.AddCategoryFailure(entry, CategoryMessage);
+                }
+
+                if (!CategoryPattern.IsMatch(entry.ImportedCategory ?? string.Empty))
+                {
+                    context.AddImportedCategoryFailure(entry, CategoryMessage);
+                }
+            });
+
+            RuleFor(c => c.ModuleCategories).UniqueCategories();
         }
     }
 
-    public class QBittorrentSettings : DownloadClientSettingsBase<QBittorrentSettings>
+    [ModuleCategoryFields(7, PostImportCategory = true, PriorityOptions = typeof(QBittorrentPriority), DefaultPriority = (int)QBittorrentPriority.Last)]
+    public class QBittorrentSettings : ModuleDownloadClientSettings<QBittorrentSettings>
     {
         private static readonly QBittorrentSettingsValidator Validator = new();
 
@@ -33,7 +50,6 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
         {
             Host = "localhost";
             Port = 8080;
-            MovieCategory = "radarr";
         }
 
         [FieldDefinition(0, Label = "Host", Type = FieldType.Textbox)]
@@ -58,18 +74,6 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
         [FieldDefinition(6, Label = "Password", Type = FieldType.Password, Privacy = PrivacyLevel.Password)]
         public string Password { get; set; }
-
-        [FieldDefinition(7, Label = "Category", Type = FieldType.Textbox, HelpText = "DownloadClientSettingsCategoryHelpText")]
-        public string MovieCategory { get; set; }
-
-        [FieldDefinition(8, Label = "PostImportCategory", Type = FieldType.Textbox, Advanced = true, HelpText = "DownloadClientSettingsPostImportCategoryHelpText")]
-        public string MovieImportedCategory { get; set; }
-
-        [FieldDefinition(9, Label = "DownloadClientSettingsRecentPriority", Type = FieldType.Select, SelectOptions = typeof(QBittorrentPriority), HelpText = "DownloadClientSettingsRecentPriorityMovieHelpText")]
-        public int RecentMoviePriority { get; set; }
-
-        [FieldDefinition(10, Label = "DownloadClientSettingsOlderPriority", Type = FieldType.Select, SelectOptions = typeof(QBittorrentPriority), HelpText = "DownloadClientSettingsOlderPriorityMovieHelpText")]
-        public int OlderMoviePriority { get; set; }
 
         [FieldDefinition(11, Label = "DownloadClientSettingsInitialState", Type = FieldType.Select, SelectOptions = typeof(QBittorrentState), HelpText = "DownloadClientQbittorrentSettingsInitialStateHelpText")]
         public int InitialState { get; set; }

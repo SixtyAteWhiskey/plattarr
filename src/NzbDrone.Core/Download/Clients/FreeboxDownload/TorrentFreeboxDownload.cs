@@ -59,11 +59,17 @@ namespace NzbDrone.Core.Download.Clients.FreeboxDownload
                     }
                 }
 
-                if (Settings.Category.IsNotNullOrWhiteSpace())
+                // The client has no labels: a task belongs to the category whose folder it sits in.
+                var categories = Settings.MonitoredCategories();
+                var category = Settings.ForCategory(null).Category;
+
+                if (categories.Any())
                 {
                     var directories = outputPath.FullPath.Split('\\', '/');
 
-                    if (!directories.Contains(Settings.Category))
+                    category = categories.FirstOrDefault(c => directories.Contains(c));
+
+                    if (category == null)
                     {
                         continue;
                     }
@@ -72,7 +78,7 @@ namespace NzbDrone.Core.Download.Clients.FreeboxDownload
                 var item = new DownloadClientItem()
                 {
                     DownloadId = torrent.Id,
-                    Category = Settings.Category,
+                    Category = category,
                     Title = torrent.Name,
                     TotalSize = torrent.Size,
                     DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, false),
@@ -130,7 +136,7 @@ namespace NzbDrone.Core.Download.Clients.FreeboxDownload
         protected override string AddFromMagnetLink(RemoteRelease remoteRelease, string hash, string magnetLink)
         {
             return _proxy.AddTaskFromUrl(magnetLink,
-                                         GetDownloadDirectory(remoteRelease).EncodeBase64(),
+                                         GetDownloadDirectory(Settings.For(remoteRelease.Kind).Category, remoteRelease).EncodeBase64(),
                                          ToBePaused(),
                                          ToBeQueuedFirst(remoteRelease),
                                          GetSeedRatio(remoteRelease),
@@ -141,7 +147,7 @@ namespace NzbDrone.Core.Download.Clients.FreeboxDownload
         {
             return _proxy.AddTaskFromFile(filename,
                                           fileContent,
-                                          GetDownloadDirectory(remoteRelease).EncodeBase64(),
+                                          GetDownloadDirectory(Settings.For(remoteRelease.Kind).Category, remoteRelease).EncodeBase64(),
                                           ToBePaused(),
                                           ToBeQueuedFirst(remoteRelease),
                                           GetSeedRatio(remoteRelease),
@@ -155,12 +161,16 @@ namespace NzbDrone.Core.Download.Clients.FreeboxDownload
 
         public override DownloadClientInfo GetStatus()
         {
-            var destDir = GetDownloadDirectory();
+            // One output folder per module category.
+            var folders = Settings.ModuleCategories.Select(m => GetDownloadDirectory(m.Category))
+                                  .Distinct()
+                                  .Select(d => _remotePathMappingService.RemapRemoteToLocal(Settings.Host, new OsPath(d)))
+                                  .ToList();
 
             return new DownloadClientInfo
             {
                 IsLocalhost = Settings.Host == "127.0.0.1" || Settings.Host == "::1" || Settings.Host == "localhost",
-                OutputRootFolders = new List<OsPath> { _remotePathMappingService.RemapRemoteToLocal(Settings.Host, new OsPath(destDir)) }
+                OutputRootFolders = folders
             };
         }
 
@@ -186,7 +196,7 @@ namespace NzbDrone.Core.Download.Clients.FreeboxDownload
             }
         }
 
-        private string GetDownloadDirectory(RemoteRelease remoteRelease = null)
+        private string GetDownloadDirectory(string category, RemoteRelease remoteRelease = null)
         {
             string destDir;
 
@@ -198,9 +208,9 @@ namespace NzbDrone.Core.Download.Clients.FreeboxDownload
             {
                 destDir = _proxy.GetDownloadConfiguration(Settings).DecodedDownloadDirectory.TrimEnd('/');
 
-                if (Settings.Category.IsNotNullOrWhiteSpace())
+                if (category.IsNotNullOrWhiteSpace())
                 {
-                    destDir = $"{destDir}/{Settings.Category}";
+                    destDir = $"{destDir}/{category}";
                 }
             }
 
@@ -220,10 +230,11 @@ namespace NzbDrone.Core.Download.Clients.FreeboxDownload
 
         private bool ToBeQueuedFirst(RemoteRelease remoteRelease)
         {
-            var isRecentMovie = remoteRelease.IsRecent;
+            var module = Settings.For(remoteRelease.Kind);
+            var isRecent = remoteRelease.IsRecent;
 
-            if ((isRecentMovie && Settings.RecentPriority == (int)FreeboxDownloadPriority.First) ||
-                (!isRecentMovie && Settings.OlderPriority == (int)FreeboxDownloadPriority.First))
+            if ((isRecent && module.RecentPriority == (int)FreeboxDownloadPriority.First) ||
+                (!isRecent && module.OlderPriority == (int)FreeboxDownloadPriority.First))
             {
                 return true;
             }

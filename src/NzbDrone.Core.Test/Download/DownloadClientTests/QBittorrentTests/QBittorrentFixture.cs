@@ -31,9 +31,9 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
                 Host = "127.0.0.1",
                 Port = 2222,
                 Username = "admin",
-                Password = "pass",
-                MovieCategory = "movies-radarr"
+                Password = "pass"
             };
+            Subject.Definition.Settings.Movies().Category = "movies-radarr";
 
             Mocker.GetMock<ITorrentFileInfoReader>()
                   .Setup(s => s.GetHashFromTorrentFile(It.IsAny<byte[]>()))
@@ -75,18 +75,18 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
         protected void GivenFailedDownload()
         {
             Mocker.GetMock<IQBittorrentProxy>()
-                .Setup(s => s.AddTorrentFromUrl(It.IsAny<string>(), It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>()))
+                .Setup(s => s.AddTorrentFromUrl(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>()))
                 .Throws<InvalidOperationException>();
 
             Mocker.GetMock<IQBittorrentProxy>()
-                .Setup(s => s.AddTorrentFromFile(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>()))
+                .Setup(s => s.AddTorrentFromFile(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>()))
                 .Throws<InvalidOperationException>();
         }
 
         protected void GivenSuccessfulDownload()
         {
             Mocker.GetMock<IQBittorrentProxy>()
-                .Setup(s => s.AddTorrentFromFile(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>()))
+                .Setup(s => s.AddTorrentFromFile(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>()))
                 .Callback(() =>
                 {
                     var torrent = new QBittorrentTorrent
@@ -106,8 +106,8 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
 
         protected void GivenHighPriority()
         {
-            Subject.Definition.Settings.As<QBittorrentSettings>().OlderMoviePriority = (int)QBittorrentPriority.First;
-            Subject.Definition.Settings.As<QBittorrentSettings>().RecentMoviePriority = (int)QBittorrentPriority.First;
+            Subject.Definition.Settings.Movies().OlderPriority = (int)QBittorrentPriority.First;
+            Subject.Definition.Settings.Movies().RecentPriority = (int)QBittorrentPriority.First;
         }
 
         protected void GivenGlobalSeedLimits(float maxRatio, int maxSeedingTime = -1, int maxInactiveSeedingTime = -1, QBittorrentMaxRatioAction maxRatioAction = QBittorrentMaxRatioAction.Pause)
@@ -134,7 +134,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
             }
 
             Mocker.GetMock<IQBittorrentProxy>()
-                .Setup(s => s.GetTorrents(It.IsAny<QBittorrentSettings>()))
+                .Setup(s => s.GetTorrents(It.IsAny<string>(), It.IsAny<QBittorrentSettings>()))
                 .Returns(torrents);
 
             foreach (var torrent in torrents)
@@ -476,7 +476,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
             indexer.Verify(i => i.Download(new Uri(_downloadUrl)), Times.Once());
             Mocker.GetMock<IHttpClient>().Verify(c => c.GetAsync(It.IsAny<HttpRequest>()), Times.Never());
             Mocker.GetMock<IQBittorrentProxy>()
-                  .Verify(p => p.AddTorrentFromFile(It.IsAny<string>(), new byte[] { 1, 2, 3 }, It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>()), Times.Once());
+                  .Verify(p => p.AddTorrentFromFile(It.IsAny<string>(), new byte[] { 1, 2, 3 }, "movies-radarr", It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>()), Times.Once());
         }
 
         [Test]
@@ -490,7 +490,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
 
             id.Should().Be("CBC2F069FE8BB2F544EAE707D75BCD3DE9DCF951");
             Mocker.GetMock<IQBittorrentProxy>()
-                  .Verify(p => p.AddTorrentFromUrl(magnet, It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>()), Times.Once());
+                  .Verify(p => p.AddTorrentFromUrl(magnet, "movies-radarr", It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>()), Times.Once());
         }
 
         [Test]
@@ -556,7 +556,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
             Assert.DoesNotThrowAsync(async () => await Subject.Download(remoteMovie, CreateIndexer()));
 
             Mocker.GetMock<IQBittorrentProxy>()
-                  .Verify(s => s.AddTorrentFromUrl(It.IsAny<string>(), It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>()), Times.Once());
+                  .Verify(s => s.AddTorrentFromUrl(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>()), Times.Once());
         }
 
         [Test]
@@ -1045,6 +1045,82 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
 
             Mocker.GetMock<IQBittorrentProxySelector>()
                   .Verify(v => v.GetProxy(It.IsAny<QBittorrentSettings>(), true), Times.Once());
+        }
+
+        [Test]
+        public async Task Download_of_a_tv_release_should_use_the_tv_category()
+        {
+            Subject.Definition.Settings.AddTv("tv-sonarr");
+            GivenSuccessfulDownload();
+            const string magnet = "magnet:?xt=urn:btih:ZPBPA2P6ROZPKRHK44D5OW6NHXU5Z6KR&tr=udp";
+            var indexer = GivenIndexerReturning(Encoding.UTF8.GetBytes(magnet));
+
+            await Subject.Download(CreateRemoteTv(), indexer.Object);
+
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(p => p.AddTorrentFromUrl(magnet, "tv-sonarr", It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>()), Times.Once());
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(p => p.AddTorrentFromUrl(It.IsAny<string>(), "movies-radarr", It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>()), Times.Never());
+        }
+
+        [Test]
+        public async Task Download_of_a_tv_release_should_use_the_tv_priority_not_the_movie_priority()
+        {
+            GivenHighPriority();
+            Subject.Definition.Settings.AddTv("tv-sonarr", (int)QBittorrentPriority.Last, (int)QBittorrentPriority.Last);
+            GivenSuccessfulDownload();
+
+            await Subject.Download(CreateRemoteTv(), CreateIndexer());
+
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(v => v.MoveTorrentToTopInQueue(It.IsAny<string>(), It.IsAny<QBittorrentSettings>()), Times.Never());
+        }
+
+        [Test]
+        public void Download_of_a_tv_release_without_a_tv_entry_should_fail_and_say_why()
+        {
+            GivenSuccessfulDownload();
+
+            Func<Task> act = () => Subject.Download(CreateRemoteTv(), CreateIndexer());
+
+            act.Should().ThrowAsync<DownloadClientException>().Result.WithMessage("*no category settings for Tv*");
+
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(p => p.AddTorrentFromUrl(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>()), Times.Never());
+        }
+
+        [Test]
+        public void GetItems_should_ask_for_every_monitored_category_and_attribute_each_download()
+        {
+            Subject.Definition.Settings.AddTv("tv-sonarr");
+            Subject.Definition.Settings.Movies().ImportedCategory = "movies-done";
+
+            QBittorrentTorrent Torrent(string hash, string label) => new QBittorrentTorrent
+            {
+                Hash = hash,
+                Name = _title,
+                Size = 1000,
+                Progress = 0.7,
+                Eta = 8640000,
+                State = "downloading",
+                Label = label,
+                SavePath = ""
+            };
+
+            var proxy = Mocker.GetMock<IQBittorrentProxy>();
+
+            proxy.Setup(s => s.GetTorrents("movies-radarr", It.IsAny<QBittorrentSettings>())).Returns(new List<QBittorrentTorrent> { Torrent("MOVIE", "movies-radarr") });
+            proxy.Setup(s => s.GetTorrents("tv-sonarr", It.IsAny<QBittorrentSettings>())).Returns(new List<QBittorrentTorrent> { Torrent("SHOW", "tv-sonarr") });
+            proxy.Setup(s => s.GetTorrentProperties(It.IsAny<string>(), It.IsAny<QBittorrentSettings>())).Returns(new QBittorrentTorrentProperties { SavePath = "" });
+            proxy.Setup(s => s.GetTorrentFiles(It.IsAny<string>(), It.IsAny<QBittorrentSettings>())).Returns(new List<QBittorrentTorrentFile> { new QBittorrentTorrentFile { Name = _title } });
+
+            var items = Subject.GetItems().ToList();
+
+            items.Select(i => (i.DownloadId, i.Category)).Should().BeEquivalentTo(new[] { ("MOVIE", "movies-radarr"), ("SHOW", "tv-sonarr") });
+
+            // Only the Movies entry has a post-import category.
+            items.Single(i => i.Category == "movies-radarr").DownloadClientInfo.HasPostImportCategory.Should().BeTrue();
+            items.Single(i => i.Category == "tv-sonarr").DownloadClientInfo.HasPostImportCategory.Should().BeFalse();
         }
     }
 }

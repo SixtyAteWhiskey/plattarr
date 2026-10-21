@@ -32,10 +32,10 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.NzbVortexTests
             {
                 Host = "127.0.0.1",
                 Port = 2222,
-                ApiKey = "1234-ABCD",
-                TvCategory = "tv",
-                RecentMoviePriority = (int)NzbgetPriority.High
+                ApiKey = "1234-ABCD"
             };
+            Subject.Definition.Settings.Movies().Category = "tv";
+            Subject.Definition.Settings.Movies().RecentPriority = (int)NzbgetPriority.High;
 
             _queued = new NzbVortexQueueItem
             {
@@ -70,14 +70,14 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.NzbVortexTests
         protected void GivenFailedDownload()
         {
             Mocker.GetMock<INzbVortexProxy>()
-                .Setup(s => s.DownloadNzb(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<NzbVortexSettings>()))
+                .Setup(s => s.DownloadNzb(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<NzbVortexSettings>()))
                 .Returns((string)null);
         }
 
         protected void GivenSuccessfulDownload()
         {
             Mocker.GetMock<INzbVortexProxy>()
-                .Setup(s => s.DownloadNzb(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<NzbVortexSettings>()))
+                .Setup(s => s.DownloadNzb(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<NzbVortexSettings>()))
                 .Returns(Guid.NewGuid().ToString().Replace("-", ""));
         }
 
@@ -299,7 +299,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.NzbVortexTests
         {
             Mocker.GetMock<INzbVortexProxy>()
                 .Setup(v => v.GetGroups(It.IsAny<NzbVortexSettings>()))
-                .Returns(new List<NzbVortexGroup> { new NzbVortexGroup { GroupName = ((NzbVortexSettings)Subject.Definition.Settings).TvCategory } });
+                .Returns(new List<NzbVortexGroup> { new NzbVortexGroup { GroupName = Subject.Definition.Settings.Movies().Category } });
 
             Mocker.GetMock<INzbVortexProxy>()
                 .Setup(v => v.GetApiVersion(It.IsAny<NzbVortexSettings>()))

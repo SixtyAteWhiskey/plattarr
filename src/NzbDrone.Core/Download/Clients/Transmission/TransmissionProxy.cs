@@ -17,8 +17,8 @@ namespace NzbDrone.Core.Download.Clients.Transmission
     public interface ITransmissionProxy
     {
         IReadOnlyCollection<TransmissionTorrent> GetTorrents(IReadOnlyCollection<string> hashStrings, TransmissionSettings settings);
-        void AddTorrentFromUrl(string torrentUrl, string downloadDirectory, TransmissionSettings settings);
-        void AddTorrentFromData(byte[] torrentData, string downloadDirectory, TransmissionSettings settings);
+        void AddTorrentFromUrl(string torrentUrl, string category, string downloadDirectory, TransmissionSettings settings);
+        void AddTorrentFromData(byte[] torrentData, string category, string downloadDirectory, TransmissionSettings settings);
         void SetTorrentSeedingConfiguration(string hash, TorrentSeedConfiguration seedConfiguration, TransmissionSettings settings);
         TransmissionConfig GetConfig(TransmissionSettings settings);
         string GetProtocolVersion(TransmissionSettings settings);
@@ -54,7 +54,7 @@ namespace NzbDrone.Core.Download.Clients.Transmission
             return torrents;
         }
 
-        public void AddTorrentFromUrl(string torrentUrl, string downloadDirectory, TransmissionSettings settings)
+        public void AddTorrentFromUrl(string torrentUrl, string category, string downloadDirectory, TransmissionSettings settings)
         {
             var arguments = new Dictionary<string, object>
             {
@@ -67,15 +67,15 @@ namespace NzbDrone.Core.Download.Clients.Transmission
                 arguments.Add("download-dir", downloadDirectory);
             }
 
-            if (settings.MovieCategory.IsNotNullOrWhiteSpace())
+            if (category.IsNotNullOrWhiteSpace())
             {
-                arguments.Add("labels", new List<string> { settings.MovieCategory });
+                arguments.Add("labels", new List<string> { category });
             }
 
             ProcessRequest("torrent-add", arguments, settings);
         }
 
-        public void AddTorrentFromData(byte[] torrentData, string downloadDirectory, TransmissionSettings settings)
+        public void AddTorrentFromData(byte[] torrentData, string category, string downloadDirectory, TransmissionSettings settings)
         {
             var arguments = new Dictionary<string, object>
             {
@@ -88,9 +88,9 @@ namespace NzbDrone.Core.Download.Clients.Transmission
                 arguments.Add("download-dir", downloadDirectory);
             }
 
-            if (settings.MovieCategory.IsNotNullOrWhiteSpace())
+            if (category.IsNotNullOrWhiteSpace())
             {
-                arguments.Add("labels", new List<string> { settings.MovieCategory });
+                arguments.Add("labels", new List<string> { category });
             }
 
             ProcessRequest("torrent-add", arguments, settings);

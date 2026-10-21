@@ -42,6 +42,8 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.FreeboxDownloadTests
                 AppToken = "S0mEv3RY1oN9T0k3n"
             };
 
+            _settings.Movies().Category = null;
+
             Subject.Definition.Settings = _settings;
 
             _downloadConfiguration = new FreeboxDownloadConfiguration()
@@ -80,7 +82,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.FreeboxDownloadTests
 
         protected void GivenCategory()
         {
-            _settings.Category = _category;
+            _settings.Movies().Category = _category;
         }
 
         protected void GivenDestinationDirectory()
@@ -211,8 +213,8 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.FreeboxDownloadTests
         [TestCase(22, (int)FreeboxDownloadPriority.Last, (int)FreeboxDownloadPriority.Last, false)]
         public async Task Download_should_queue_torrent_first_as_expected(int ageDay, int olderPriority, int recentPriority, bool toBeQueuedFirstFlag)
         {
-            _settings.OlderPriority = olderPriority;
-            _settings.RecentPriority = recentPriority;
+            _settings.Movies().OlderPriority = olderPriority;
+            _settings.Movies().RecentPriority = recentPriority;
 
             GivenDownloadConfiguration();
             GivenSuccessfulDownload();
@@ -279,7 +281,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.FreeboxDownloadTests
         [Test]
         public void GetItems_when_category_is_set_should_ignore_downloads_in_wrong_folder()
         {
-            _settings.Category = "somecategory";
+            _settings.Movies().Category = "somecategory";
 
             _task.Status = FreeboxDownloadTaskStatus.Done;
 
