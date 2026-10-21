@@ -2,19 +2,22 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Modules;
 
 namespace NzbDrone.Core.CustomFormats
 {
-    public class CustomFormat : ModelBase, IEquatable<CustomFormat>
+    public class CustomFormat : ModelBase, IEquatable<CustomFormat>, IMediaKindScoped
     {
         public CustomFormat()
         {
+            AppliesTo = new List<MediaKind>();
         }
 
         public CustomFormat(string name, params ICustomFormatSpecification[] specs)
         {
             Name = name;
             Specifications = specs.ToList();
+            AppliesTo = new List<MediaKind>();
         }
 
         public string Name { get; set; }
@@ -22,6 +25,9 @@ namespace NzbDrone.Core.CustomFormats
         public bool IncludeCustomFormatWhenRenaming { get; set; }
 
         public List<ICustomFormatSpecification> Specifications { get; set; }
+
+        // Media types this format scores; empty means all of them.
+        public List<MediaKind> AppliesTo { get; set; }
 
         public override string ToString()
         {

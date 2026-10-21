@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.CustomFormats;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Profiles.Qualities;
 using Radarr.Http;
 using Radarr.Http.REST;
@@ -46,6 +47,21 @@ namespace Radarr.Api.V3.Profiles.Quality
                     context.AddFailure("Minimum Custom Format Score can never be satisfied");
                 }
             });
+
+            SharedValidator.RuleForEach(c => c.AppliesTo)
+                .Must(kind => kind is MediaKind.Movies or MediaKind.Tv)
+                .WithMessage("Quality profiles can only apply to movies and TV");
+
+            SharedValidator.RuleFor(c => c).Custom((profile, context) =>
+            {
+                if (profile.Id != 0 &&
+                    profile.AppliesTo is { Count: > 0 } &&
+                    !profile.AppliesTo.Contains(MediaKind.Movies) &&
+                    _qualityProfileService.InUseByMovies(profile.Id))
+                {
+                    context.AddFailure("AppliesTo", "Profile is used by movies, import lists, or collections, so it must apply to movies");
+                }
+            });
         }
 
         [RestPostById]
@@ -70,6 +86,11 @@ namespace Radarr.Api.V3.Profiles.Quality
         public Results<Accepted<QualityProfileResource>, NotFound> Update([FromBody] QualityProfileResource resource)
         {
             var model = resource.ToModel();
+
+            if (resource.AppliesTo == null)
+            {
+                model.AppliesTo = _qualityProfileService.Get(resource.Id).AppliesTo;
+            }
 
             _qualityProfileService.Update(model);
 

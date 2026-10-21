@@ -3,15 +3,17 @@ using System.Linq;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Profiles.Qualities
 {
-    public class QualityProfile : ModelBase
+    public class QualityProfile : ModelBase, IMediaKindScoped
     {
         public QualityProfile()
         {
             FormatItems = new List<ProfileFormatItem>();
+            AppliesTo = new List<MediaKind>();
         }
 
         public string Name { get; set; }
@@ -23,6 +25,9 @@ namespace NzbDrone.Core.Profiles.Qualities
         public List<ProfileFormatItem> FormatItems { get; set; }
         public Language Language { get; set; }
         public bool UpgradeAllowed { get; set; }
+
+        // Video media types this profile serves; empty means all of them.
+        public List<MediaKind> AppliesTo { get; set; }
 
         public Quality FirststAllowedQuality()
         {

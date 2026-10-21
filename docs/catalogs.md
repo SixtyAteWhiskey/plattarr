@@ -145,6 +145,16 @@ quality or language ID other than 0.
 read only profiles and custom formats that apply to Movies. A profile in use
 by a movie can't drop Movies from `AppliesTo`.
 
+As built (8d2): both tables store `AppliesTo` as a JSON list of media type
+names (`["tv"]`), default `[]`. Movie custom format scoring skips formats
+that don't apply to Movies. `QualityProfileExistsValidator`, used wherever a
+profile is assigned to a movie, import list, or collection, rejects a profile
+that doesn't apply to Movies. The v3 resources carry `appliesTo`; upstream
+Radarr clients omit it, so a missing value on update keeps the stored one. A
+quality profile accepts only `movies` and `tv`. `/api/v3` still lists every
+profile and format, since the UI uses it; the `/radarr/api/v3`
+compatibility API will list only the ones that apply to Movies.
+
 ### Order of work
 
 1. 8d1: catalogs and translation tables. `Quality` and `Language` carry

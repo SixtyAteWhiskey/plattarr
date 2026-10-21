@@ -8,6 +8,7 @@ using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Lifecycle;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Collections;
 using NzbDrone.Core.Profiles.Qualities;
@@ -47,6 +48,36 @@ namespace NzbDrone.Core.Test.Profiles
 
             Mocker.GetMock<IQualityProfileRepository>()
                 .Verify(v => v.Insert(It.IsAny<QualityProfile>()), Times.Never());
+        }
+
+        [Test]
+        public void should_not_scope_profile_away_from_movies_while_a_movie_uses_it()
+        {
+            Mocker.GetMock<IMovieService>().Setup(c => c.GetAllMovies())
+                  .Returns(Builder<Movie>.CreateListOfSize(1).All().With(c => c.QualityProfileId = 2).Build().ToList());
+            Mocker.GetMock<IImportListFactory>().Setup(c => c.All()).Returns(new List<ImportListDefinition>());
+            Mocker.GetMock<IMovieCollectionService>().Setup(c => c.GetAllCollections()).Returns(new List<MovieCollection>());
+
+            var profile = new QualityProfile { Id = 2, AppliesTo = new List<MediaKind> { MediaKind.Tv } };
+
+            Assert.Throws<QualityProfileInUseException>(() => Subject.Update(profile));
+
+            Mocker.GetMock<IQualityProfileRepository>().Verify(c => c.Update(It.IsAny<QualityProfile>()), Times.Never());
+        }
+
+        [Test]
+        public void should_scope_unused_profile_away_from_movies()
+        {
+            Mocker.GetMock<IMovieService>().Setup(c => c.GetAllMovies())
+                  .Returns(Builder<Movie>.CreateListOfSize(1).All().With(c => c.QualityProfileId = 3).Build().ToList());
+            Mocker.GetMock<IImportListFactory>().Setup(c => c.All()).Returns(new List<ImportListDefinition>());
+            Mocker.GetMock<IMovieCollectionService>().Setup(c => c.GetAllCollections()).Returns(new List<MovieCollection>());
+
+            var profile = new QualityProfile { Id = 2, AppliesTo = new List<MediaKind> { MediaKind.Tv } };
+
+            Subject.Update(profile);
+
+            Mocker.GetMock<IQualityProfileRepository>().Verify(c => c.Update(profile), Times.Once());
         }
 
         [Test]

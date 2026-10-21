@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Profiles;
 using NzbDrone.Core.Profiles.Qualities;
 using Radarr.Http.REST;
@@ -19,6 +20,10 @@ namespace Radarr.Api.V3.Profiles.Quality
         public int MinUpgradeFormatScore { get; set; }
         public List<ProfileFormatItemResource> FormatItems { get; set; }
         public Language Language { get; set; }
+
+        // Plattarr: video media types the profile serves; empty means all. Omitted by
+        // upstream Radarr clients, so null keeps the stored value on update.
+        public List<MediaKind> AppliesTo { get; set; }
     }
 
     public class QualityProfileQualityItemResource : RestResource
@@ -61,7 +66,8 @@ namespace Radarr.Api.V3.Profiles.Quality
                 CutoffFormatScore = model.CutoffFormatScore,
                 MinUpgradeFormatScore = model.MinUpgradeFormatScore,
                 FormatItems = model.FormatItems.ConvertAll(ToResource),
-                Language = model.Language
+                Language = model.Language,
+                AppliesTo = model.AppliesTo
             };
         }
 
@@ -110,7 +116,8 @@ namespace Radarr.Api.V3.Profiles.Quality
                 CutoffFormatScore = resource.CutoffFormatScore,
                 MinUpgradeFormatScore = resource.MinUpgradeFormatScore,
                 FormatItems = resource.FormatItems.ConvertAll(ToModel),
-                Language = resource.Language
+                Language = resource.Language,
+                AppliesTo = resource.AppliesTo ?? new List<MediaKind>()
             };
         }
 

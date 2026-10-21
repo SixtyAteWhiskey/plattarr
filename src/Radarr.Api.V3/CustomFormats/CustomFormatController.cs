@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentValidation;
@@ -41,6 +42,10 @@ namespace Radarr.Api.V3.CustomFormats
                     context.AddFailure("Condition name(s) cannot be empty or consist of only spaces");
                 }
             });
+
+            SharedValidator.RuleForEach(c => c.AppliesTo)
+                .Must(kind => Enum.IsDefined(kind))
+                .WithMessage("Unknown media type");
         }
 
         protected override CustomFormatResource GetResourceById(int id)
@@ -71,6 +76,11 @@ namespace Radarr.Api.V3.CustomFormats
         public Results<Accepted<CustomFormatResource>, NotFound> Update([FromBody] CustomFormatResource resource)
         {
             var model = resource.ToModel(_specifications);
+
+            if (resource.AppliesTo == null)
+            {
+                model.AppliesTo = _formatService.GetById(resource.Id).AppliesTo;
+            }
 
             Validate(model);
 

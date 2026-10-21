@@ -7,6 +7,7 @@ using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Collections;
 using NzbDrone.Core.Qualities;
@@ -21,6 +22,7 @@ namespace NzbDrone.Core.Profiles.Qualities
         List<QualityProfile> All();
         QualityProfile Get(int id);
         bool Exists(int id);
+        bool InUseByMovies(int id);
         QualityProfile GetDefaultProfile(string name, Quality cutoff = null, params Quality[] allowed);
         List<Language> GetAcceptableLanguages(int profileId);
     }
@@ -59,17 +61,27 @@ namespace NzbDrone.Core.Profiles.Qualities
 
         public void Update(QualityProfile profile)
         {
+            if (!profile.AppliesToKind(MediaKind.Movies) && InUseByMovies(profile.Id))
+            {
+                throw new QualityProfileInUseException(profile.Id);
+            }
+
             _profileRepository.Update(profile);
         }
 
         public void Delete(int id)
         {
-            if (_movieService.GetAllMovies().Any(c => c.QualityProfileId == id) || _importListFactory.All().Any(c => c.QualityProfileId == id) || _collectionService.GetAllCollections().Any(c => c.QualityProfileId == id))
+            if (InUseByMovies(id))
             {
                 throw new QualityProfileInUseException(id);
             }
 
             _profileRepository.Delete(id);
+        }
+
+        public bool InUseByMovies(int id)
+        {
+            return _movieService.GetAllMovies().Any(c => c.QualityProfileId == id) || _importListFactory.All().Any(c => c.QualityProfileId == id) || _collectionService.GetAllCollections().Any(c => c.QualityProfileId == id);
         }
 
         public List<QualityProfile> All()
