@@ -47,7 +47,7 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
         {
             var request = BuildRequest("addfile", settings).Post();
 
-            request.AddQueryParam("cat", settings.MovieCategory);
+            request.AddQueryParam("cat", category);
             request.AddQueryParam("priority", priority);
 
             request.AddFormUpload("name", filename, nzbData, "application/x-nzb");
@@ -119,9 +119,12 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
             request.AddQueryParam("start", start);
             request.AddQueryParam("limit", limit);
 
-            if (settings.MovieCategory.IsNotNullOrWhiteSpace())
+            // SABnzbd filters by one category; with several the caller filters the result.
+            var categories = settings.MonitoredCategories();
+
+            if (categories.Count == 1)
             {
-                request.AddQueryParam("category", settings.MovieCategory);
+                request.AddQueryParam("category", categories[0]);
             }
 
             var response = ProcessRequest(request, settings);
@@ -135,9 +138,12 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
             request.AddQueryParam("start", start);
             request.AddQueryParam("limit", limit);
 
-            if (settings.MovieCategory.IsNotNullOrWhiteSpace())
+            // SABnzbd filters by one category; with several the caller filters the result.
+            var categories = settings.MonitoredCategories();
+
+            if (categories.Count == 1)
             {
-                request.AddQueryParam("category", settings.MovieCategory);
+                request.AddQueryParam("category", categories[0]);
             }
 
             var response = ProcessRequest(request, settings);

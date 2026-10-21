@@ -37,18 +37,20 @@ namespace NzbDrone.Core.Download.Clients.Deluge
 
         public override void MarkItemAsImported(DownloadClientItem downloadClientItem)
         {
+            var module = Settings.ForItem(downloadClientItem);
+
             // set post-import category
-            if (Settings.MovieImportedCategory.IsNotNullOrWhiteSpace() &&
-                Settings.MovieImportedCategory != Settings.MovieCategory)
+            if (module.ImportedCategory.IsNotNullOrWhiteSpace() &&
+                module.ImportedCategory != module.Category)
             {
                 try
                 {
-                    _proxy.SetTorrentLabel(downloadClientItem.DownloadId.ToLower(), Settings.MovieImportedCategory, Settings);
+                    _proxy.SetTorrentLabel(downloadClientItem.DownloadId.ToLower(), module.ImportedCategory, Settings);
                 }
                 catch (DownloadClientUnavailableException)
                 {
                     _logger.Warn("Failed to set torrent post-import label \"{0}\" for {1} in Deluge. Does the label exist?",
-                        Settings.MovieImportedCategory,
+                        module.ImportedCategory,
                         downloadClientItem.Title);
                 }
             }
@@ -65,15 +67,17 @@ namespace NzbDrone.Core.Download.Clients.Deluge
 
             _proxy.SetTorrentSeedingConfiguration(actualHash, remoteRelease.SeedConfiguration, Settings);
 
-            if (Settings.MovieCategory.IsNotNullOrWhiteSpace())
+            var module = Settings.For(remoteRelease.Kind);
+
+            if (module.Category.IsNotNullOrWhiteSpace())
             {
-                _proxy.SetTorrentLabel(actualHash, Settings.MovieCategory, Settings);
+                _proxy.SetTorrentLabel(actualHash, module.Category, Settings);
             }
 
-            var isRecentMovie = remoteRelease.IsRecent;
+            var isRecent = remoteRelease.IsRecent;
 
-            if ((isRecentMovie && Settings.RecentMoviePriority == (int)DelugePriority.First) ||
-                (!isRecentMovie && Settings.OlderMoviePriority == (int)DelugePriority.First))
+            if ((isRecent && module.RecentPriority == (int)DelugePriority.First) ||
+                (!isRecent && module.OlderPriority == (int)DelugePriority.First))
             {
                 _proxy.MoveTorrentToTopInQueue(actualHash, Settings);
             }
@@ -92,15 +96,17 @@ namespace NzbDrone.Core.Download.Clients.Deluge
 
             _proxy.SetTorrentSeedingConfiguration(actualHash, remoteRelease.SeedConfiguration, Settings);
 
-            if (Settings.MovieCategory.IsNotNullOrWhiteSpace())
+            var module = Settings.For(remoteRelease.Kind);
+
+            if (module.Category.IsNotNullOrWhiteSpace())
             {
-                _proxy.SetTorrentLabel(actualHash, Settings.MovieCategory, Settings);
+                _proxy.SetTorrentLabel(actualHash, module.Category, Settings);
             }
 
-            var isRecentMovie = remoteRelease.IsRecent;
+            var isRecent = remoteRelease.IsRecent;
 
-            if ((isRecentMovie && Settings.RecentMoviePriority == (int)DelugePriority.First) ||
-                (!isRecentMovie && Settings.OlderMoviePriority == (int)DelugePriority.First))
+            if ((isRecent && module.RecentPriority == (int)DelugePriority.First) ||
+                (!isRecent && module.OlderPriority == (int)DelugePriority.First))
             {
                 _proxy.MoveTorrentToTopInQueue(actualHash, Settings);
             }
@@ -112,21 +118,18 @@ namespace NzbDrone.Core.Download.Clients.Deluge
 
         public override IEnumerable<DownloadClientItem> GetItems()
         {
-            IEnumerable<DelugeTorrent> torrents;
+            // Deluge lists torrents by label, one request per monitored category; with no category
+            // configured it takes every torrent, as it always did.
+            var categories = Settings.MonitoredCategories();
 
-            if (Settings.MovieCategory.IsNotNullOrWhiteSpace())
-            {
-                torrents = _proxy.GetTorrentsByLabel(Settings.MovieCategory, Settings);
-            }
-            else
-            {
-                torrents = _proxy.GetTorrents(Settings);
-            }
+            var torrents = categories.Any()
+                ? categories.SelectMany(c => _proxy.GetTorrentsByLabel(c, Settings).Select(t => (Torrent: t, Category: c))).ToList()
+                : _proxy.GetTorrents(Settings).Select(t => (Torrent: t, Category: (string)null)).ToList();
 
             var items = new List<DownloadClientItem>();
             var ignoredCount = 0;
 
-            foreach (var torrent in torrents)
+            foreach (var (torrent, category) in torrents)
             {
                 // Ignore torrents without a hash or name, but track to log a single warning
                 // for all invalid torrents as well as reconnect to the Daemon.
@@ -139,9 +142,9 @@ namespace NzbDrone.Core.Download.Clients.Deluge
                 var item = new DownloadClientItem();
                 item.DownloadId = torrent.Hash.ToUpper();
                 item.Title = torrent.Name;
-                item.Category = Settings.MovieCategory;
+                item.Category = category;
 
-                item.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, Settings.MovieImportedCategory.IsNotNullOrWhiteSpace());
+                item.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, Settings.ForCategory(category).ImportedCategory.IsNotNullOrWhiteSpace());
 
                 var outputPath = _remotePathMappingService.RemapRemoteToLocal(Settings.Host, new OsPath(torrent.DownloadPath));
                 item.OutputPath = outputPath + torrent.Name;
@@ -221,43 +224,57 @@ namespace NzbDrone.Core.Download.Clients.Deluge
         public override DownloadClientInfo GetStatus()
         {
             var config = _proxy.GetConfig(Settings);
-            var label = _proxy.GetLabelOptions(Settings);
 
-            OsPath destDir;
+            // One output folder per monitored category: a label can have its own move-completed path.
+            var categories = Settings.MonitoredCategories();
 
-            if (Settings.CompletedDirectory.IsNotNullOrWhiteSpace())
+            if (categories.Empty())
             {
-                destDir = new OsPath(Settings.CompletedDirectory);
+                categories.Add(null);
             }
-            else if (Settings.DownloadDirectory.IsNotNullOrWhiteSpace())
-            {
-                destDir = new OsPath(Settings.DownloadDirectory);
-            }
-            else if (label is { ApplyMoveCompleted: true, MoveCompleted: true })
-            {
-                // if label exists and a label completed path exists and is enabled use it instead of global
-                destDir = new OsPath(label.MoveCompletedPath);
-            }
-            else if (config.GetValueOrDefault("move_completed", false).ToString() == "True")
-            {
-                destDir = new OsPath(config.GetValueOrDefault("move_completed_path") as string);
-            }
-            else
-            {
-                destDir = new OsPath(config.GetValueOrDefault("download_location") as string);
-            }
+
+            var destDirs = categories.Select(c => GetDestination(config, _proxy.GetLabelOptions(c, Settings)))
+                                     .Where(d => !d.IsEmpty)
+                                     .Distinct()
+                                     .ToList();
 
             var status = new DownloadClientInfo
             {
                 IsLocalhost = Settings.Host is "127.0.0.1" or "localhost"
             };
 
-            if (!destDir.IsEmpty)
+            if (destDirs.Any())
             {
-                status.OutputRootFolders = new List<OsPath> { _remotePathMappingService.RemapRemoteToLocal(Settings.Host, destDir) };
+                status.OutputRootFolders = destDirs.Select(d => _remotePathMappingService.RemapRemoteToLocal(Settings.Host, d)).ToList();
             }
 
             return status;
+        }
+
+        private OsPath GetDestination(Dictionary<string, object> config, DelugeLabel label)
+        {
+            if (Settings.CompletedDirectory.IsNotNullOrWhiteSpace())
+            {
+                return new OsPath(Settings.CompletedDirectory);
+            }
+
+            if (Settings.DownloadDirectory.IsNotNullOrWhiteSpace())
+            {
+                return new OsPath(Settings.DownloadDirectory);
+            }
+
+            if (label is { ApplyMoveCompleted: true, MoveCompleted: true })
+            {
+                // if label exists and a label completed path exists and is enabled use it instead of global
+                return new OsPath(label.MoveCompletedPath);
+            }
+
+            if (config.GetValueOrDefault("move_completed", false).ToString() == "True")
+            {
+                return new OsPath(config.GetValueOrDefault("move_completed_path") as string);
+            }
+
+            return new OsPath(config.GetValueOrDefault("download_location") as string);
         }
 
         protected override void Test(List<ValidationFailure> failures)
@@ -323,7 +340,7 @@ namespace NzbDrone.Core.Download.Clients.Deluge
 
         private ValidationFailure TestCategory()
         {
-            if (Settings.MovieCategory.IsNullOrWhiteSpace() && Settings.MovieImportedCategory.IsNullOrWhiteSpace())
+            if (Settings.ModuleCategories.All(c => c.Category.IsNullOrWhiteSpace() && c.ImportedCategory.IsNullOrWhiteSpace()))
             {
                 return null;
             }
@@ -332,7 +349,7 @@ namespace NzbDrone.Core.Download.Clients.Deluge
 
             if (!methods.Any(m => m.StartsWith("label.")))
             {
-                return new NzbDroneValidationFailure("MovieCategory", _localizationService.GetLocalizedString("DownloadClientDelugeValidationLabelPluginInactive"))
+                return new NzbDroneValidationFailure(ModuleCategoryFieldNames.Category(Settings.ModuleCategories.First().Kind), _localizationService.GetLocalizedString("DownloadClientDelugeValidationLabelPluginInactive"))
                 {
                     DetailedDescription = _localizationService.GetLocalizedString("DownloadClientDelugeValidationLabelPluginInactiveDetail", new Dictionary<string, object> { { "clientName", Name } })
                 };
@@ -340,31 +357,34 @@ namespace NzbDrone.Core.Download.Clients.Deluge
 
             var labels = _proxy.GetAvailableLabels(Settings);
 
-            if (Settings.MovieCategory.IsNotNullOrWhiteSpace() && !labels.Contains(Settings.MovieCategory))
+            foreach (var module in Settings.ModuleCategories)
             {
-                _proxy.AddLabel(Settings.MovieCategory, Settings);
-                labels = _proxy.GetAvailableLabels(Settings);
-
-                if (!labels.Contains(Settings.MovieCategory))
+                if (module.Category.IsNotNullOrWhiteSpace() && !labels.Contains(module.Category))
                 {
-                    return new NzbDroneValidationFailure("MovieCategory", _localizationService.GetLocalizedString("DownloadClientDelugeValidationLabelPluginFailure"))
+                    _proxy.AddLabel(module.Category, Settings);
+                    labels = _proxy.GetAvailableLabels(Settings);
+
+                    if (!labels.Contains(module.Category))
                     {
-                        DetailedDescription = _localizationService.GetLocalizedString("DownloadClientDelugeValidationLabelPluginFailureDetail", new Dictionary<string, object> { { "clientName", Name } })
-                    };
+                        return new NzbDroneValidationFailure(ModuleCategoryFieldNames.Category(module.Kind), _localizationService.GetLocalizedString("DownloadClientDelugeValidationLabelPluginFailure"))
+                        {
+                            DetailedDescription = _localizationService.GetLocalizedString("DownloadClientDelugeValidationLabelPluginFailureDetail", new Dictionary<string, object> { { "clientName", Name } })
+                        };
+                    }
                 }
-            }
 
-            if (Settings.MovieImportedCategory.IsNotNullOrWhiteSpace() && !labels.Contains(Settings.MovieImportedCategory))
-            {
-                _proxy.AddLabel(Settings.MovieImportedCategory, Settings);
-                labels = _proxy.GetAvailableLabels(Settings);
-
-                if (!labels.Contains(Settings.MovieImportedCategory))
+                if (module.ImportedCategory.IsNotNullOrWhiteSpace() && !labels.Contains(module.ImportedCategory))
                 {
-                    return new NzbDroneValidationFailure("MovieImportedCategory", _localizationService.GetLocalizedString("DownloadClientDelugeValidationLabelPluginFailure"))
+                    _proxy.AddLabel(module.ImportedCategory, Settings);
+                    labels = _proxy.GetAvailableLabels(Settings);
+
+                    if (!labels.Contains(module.ImportedCategory))
                     {
-                        DetailedDescription = _localizationService.GetLocalizedString("DownloadClientDelugeValidationLabelPluginFailureDetail", new Dictionary<string, object> { { "clientName", Name } })
-                    };
+                        return new NzbDroneValidationFailure(ModuleCategoryFieldNames.ImportedCategory(module.Kind), _localizationService.GetLocalizedString("DownloadClientDelugeValidationLabelPluginFailure"))
+                        {
+                            DetailedDescription = _localizationService.GetLocalizedString("DownloadClientDelugeValidationLabelPluginFailureDetail", new Dictionary<string, object> { { "clientName", Name } })
+                        };
+                    }
                 }
             }
 

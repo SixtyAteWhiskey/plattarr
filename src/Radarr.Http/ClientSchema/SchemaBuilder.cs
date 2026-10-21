@@ -9,7 +9,9 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Reflection;
 using NzbDrone.Common.Serializer;
 using NzbDrone.Core.Annotations;
+using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Localization;
+using NzbDrone.Core.Modules;
 
 namespace Radarr.Http.ClientSchema
 {
@@ -18,10 +20,18 @@ namespace Radarr.Http.ClientSchema
         private const string PRIVATE_VALUE = "********";
         private static Dictionary<Type, FieldMapping[]> _mappings = new Dictionary<Type, FieldMapping[]>();
         private static ILocalizationService _localizationService;
+        private static List<IMediaModule> _modules = new List<IMediaModule>();
 
         public static void Initialize(IContainer container)
         {
             _localizationService = container.Resolve<ILocalizationService>();
+            _modules = container.ResolveMany<IMediaModule>().OrderBy(m => m.Kind).ToList();
+
+            // Mappings built before this point may have been built with another module list.
+            lock (_mappings)
+            {
+                _mappings.Clear();
+            }
         }
 
         public static List<Field> ToSchema(object model)
@@ -183,7 +193,140 @@ namespace Radarr.Http.ClientSchema
                 }
             }
 
+            var moduleFields = typeof(IModuleCategorySettings).IsAssignableFrom(type) ? type.GetCustomAttribute<ModuleCategoryFieldsAttribute>() : null;
+
+            if (moduleFields != null)
+            {
+                // The class's own fields are already in order; the generated ones go where the
+                // old movie-named properties used to sit.
+                var index = result.Count(m => m.Field.Order < moduleFields.Order);
+
+                result.InsertRange(index, GetModuleCategoryMappings(moduleFields, prefix, targetSelector));
+            }
+
             return result.ToArray();
+        }
+
+        // One block of category fields per registered media type, named like the upstream apps name
+        // theirs (movieCategory, tvCategory, ...). A single registered media type keeps the plain
+        // upstream labels; with several, each label names its media type.
+        private static List<FieldMapping> GetModuleCategoryMappings(ModuleCategoryFieldsAttribute attribute, string prefix, Func<object, object> targetSelector)
+        {
+            var result = new List<FieldMapping>();
+            var stringConverter = GetValueConverter(typeof(string));
+            var intConverter = GetValueConverter(typeof(int));
+
+            foreach (var module in _modules)
+            {
+                var kind = module.Kind;
+                var tag = ModuleCategoryFieldNames.Tag(kind);
+
+                ModuleCategorySettings Find(object target)
+                {
+                    return ((IModuleCategorySettings)targetSelector(target)).ModuleCategories?.FirstOrDefault(c => c.Kind == kind);
+                }
+
+                ModuleCategorySettings FindOrAdd(object target)
+                {
+                    var settings = (IModuleCategorySettings)targetSelector(target);
+                    var entry = settings.ModuleCategories?.FirstOrDefault(c => c.Kind == kind);
+
+                    if (entry == null)
+                    {
+                        entry = ModuleCategorySettings.CreateDefault(kind, attribute.DefaultPriority);
+                        settings.ModuleCategories ??= new List<ModuleCategorySettings>();
+                        settings.ModuleCategories.Add(entry);
+                    }
+
+                    return entry;
+                }
+
+                string Label(string key)
+                {
+                    var label = _localizationService.GetLocalizedString(key, new Dictionary<string, object>());
+
+                    return _modules.Count > 1
+                        ? _localizationService.GetLocalizedString("DownloadClientSettingsMediaTypeLabel", new Dictionary<string, object> { { "label", label }, { "mediaType", module.Name } })
+                        : label;
+                }
+
+                void Add(string name, string label, string helpText, FieldType type, bool advanced, List<SelectOption> options, Type propertyType, Func<ModuleCategorySettings, object> get, object missing, Action<ModuleCategorySettings, object> set)
+                {
+                    result.Add(new FieldMapping
+                    {
+                        Field = new Field
+                        {
+                            Name = prefix + GetCamelCaseName(name),
+                            Label = Label(label),
+                            HelpText = helpText.IsNotNullOrWhiteSpace() ? _localizationService.GetLocalizedString(helpText, new Dictionary<string, object>()) : null,
+                            Type = type.ToString().FirstCharToLower(),
+                            Advanced = advanced,
+                            SelectOptions = options
+                        },
+                        PropertyType = propertyType,
+                        GetterFunc = t => Find(t) is { } entry ? get(entry) : missing,
+                        SetterFunc = (t, v) => set(FindOrAdd(t), v)
+                    });
+                }
+
+                Add(
+                    ModuleCategoryFieldNames.Category(kind),
+                    attribute.CategoryLabel,
+                    attribute.CategoryHelpText,
+                    FieldType.Textbox,
+                    false,
+                    null,
+                    typeof(string),
+                    e => e.Category,
+                    ModuleCategorySettings.DefaultCategory(kind),
+                    (e, v) => e.Category = v is string s ? s : (string)stringConverter(v));
+
+                if (attribute.PostImportCategory)
+                {
+                    Add(
+                        ModuleCategoryFieldNames.ImportedCategory(kind),
+                        "PostImportCategory",
+                        "DownloadClientSettingsPostImportCategoryHelpText",
+                        FieldType.Textbox,
+                        true,
+                        null,
+                        typeof(string),
+                        e => e.ImportedCategory,
+                        null,
+                        (e, v) => e.ImportedCategory = v is string s ? s : (string)stringConverter(v));
+                }
+
+                if (attribute.PriorityOptions != null)
+                {
+                    var options = GetSelectOptions(attribute.PriorityOptions);
+
+                    Add(
+                        ModuleCategoryFieldNames.RecentPriority(kind),
+                        "DownloadClientSettingsRecentPriority",
+                        $"DownloadClientSettingsRecentPriority{tag}HelpText",
+                        FieldType.Select,
+                        false,
+                        options,
+                        typeof(int),
+                        e => e.RecentPriority,
+                        attribute.DefaultPriority,
+                        (e, v) => e.RecentPriority = v is int i ? i : (int)intConverter(v));
+
+                    Add(
+                        ModuleCategoryFieldNames.OlderPriority(kind),
+                        "DownloadClientSettingsOlderPriority",
+                        $"DownloadClientSettingsOlderPriority{tag}HelpText",
+                        FieldType.Select,
+                        false,
+                        options,
+                        typeof(int),
+                        e => e.OlderPriority,
+                        attribute.DefaultPriority,
+                        (e, v) => e.OlderPriority = v is int i ? i : (int)intConverter(v));
+                }
+            }
+
+            return result;
         }
 
         private static Tuple<PropertyInfo, FieldDefinitionAttribute>[] GetProperties(Type type)

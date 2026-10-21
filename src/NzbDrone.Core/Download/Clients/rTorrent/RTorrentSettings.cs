@@ -1,4 +1,5 @@
 using FluentValidation;
+using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Annotations;
 using NzbDrone.Core.Validation;
 
@@ -10,13 +11,20 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
         {
             RuleFor(c => c.Host).ValidHost();
             RuleFor(c => c.Port).InclusiveBetween(1, 65535);
-            RuleFor(c => c.MovieCategory).NotEmpty()
-                                      .WithMessage("A category is recommended")
-                                      .AsWarning();
+            RuleForEach(c => c.ModuleCategories).Custom((entry, context) =>
+            {
+                if (entry.Category.IsNullOrWhiteSpace())
+                {
+                    context.AddCategoryFailure(entry, "A category is recommended", warning: true);
+                }
+            });
+
+            RuleFor(c => c.ModuleCategories).UniqueCategories();
         }
     }
 
-    public class RTorrentSettings : DownloadClientSettingsBase<RTorrentSettings>
+    [ModuleCategoryFields(6, PostImportCategory = true, PriorityOptions = typeof(RTorrentPriority), DefaultPriority = (int)RTorrentPriority.Normal)]
+    public class RTorrentSettings : ModuleDownloadClientSettings<RTorrentSettings>
     {
         private static readonly RTorrentSettingsValidator Validator = new();
 
@@ -25,9 +33,6 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
             Host = "localhost";
             Port = 8080;
             UrlBase = "RPC2";
-            MovieCategory = "radarr";
-            OlderMoviePriority = (int)RTorrentPriority.Normal;
-            RecentMoviePriority = (int)RTorrentPriority.Normal;
         }
 
         [FieldDefinition(0, Label = "Host", Type = FieldType.Textbox)]
@@ -51,20 +56,8 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
         [FieldDefinition(5, Label = "Password", Type = FieldType.Password, Privacy = PrivacyLevel.Password)]
         public string Password { get; set; }
 
-        [FieldDefinition(6, Label = "Category", Type = FieldType.Textbox, HelpText = "DownloadClientSettingsCategoryHelpText")]
-        public string MovieCategory { get; set; }
-
-        [FieldDefinition(7, Label = "PostImportCategory", Type = FieldType.Textbox, Advanced = true, HelpText = "DownloadClientSettingsPostImportCategoryHelpText")]
-        public string MovieImportedCategory { get; set; }
-
         [FieldDefinition(8, Label = "Directory", Type = FieldType.Textbox, Advanced = true, HelpText = "DownloadClientRTorrentSettingsDirectoryHelpText")]
         public string MovieDirectory { get; set; }
-
-        [FieldDefinition(9, Label = "DownloadClientSettingsRecentPriority", Type = FieldType.Select, SelectOptions = typeof(RTorrentPriority), HelpText = "DownloadClientSettingsRecentPriorityMovieHelpText")]
-        public int RecentMoviePriority { get; set; }
-
-        [FieldDefinition(10, Label = "DownloadClientSettingsOlderPriority", Type = FieldType.Select, SelectOptions = typeof(RTorrentPriority), HelpText = "DownloadClientSettingsOlderPriorityMovieHelpText")]
-        public int OlderMoviePriority { get; set; }
 
         [FieldDefinition(11, Label = "DownloadClientRTorrentSettingsAddStopped", Type = FieldType.Checkbox, HelpText = "DownloadClientRTorrentSettingsAddStoppedHelpText")]
         public bool AddStopped { get; set; }

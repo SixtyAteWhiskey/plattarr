@@ -42,16 +42,18 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
 
         public override void MarkItemAsImported(DownloadClientItem downloadClientItem)
         {
+            var module = Settings.ForItem(downloadClientItem);
+
             // set post-import category
-            if (Settings.MovieImportedCategory.IsNotNullOrWhiteSpace() &&
-                Settings.MovieImportedCategory != Settings.MovieCategory)
+            if (module.ImportedCategory.IsNotNullOrWhiteSpace() &&
+                module.ImportedCategory != module.Category)
             {
-                _proxy.SetTorrentLabel(downloadClientItem.DownloadId.ToLower(), Settings.MovieImportedCategory, Settings);
+                _proxy.SetTorrentLabel(downloadClientItem.DownloadId.ToLower(), module.ImportedCategory, Settings);
 
                 // old label must be explicitly removed
-                if (Settings.MovieCategory.IsNotNullOrWhiteSpace())
+                if (module.Category.IsNotNullOrWhiteSpace())
                 {
-                    _proxy.RemoveTorrentLabel(downloadClientItem.DownloadId.ToLower(), Settings.MovieCategory, Settings);
+                    _proxy.RemoveTorrentLabel(downloadClientItem.DownloadId.ToLower(), module.Category, Settings);
                 }
             }
         }
@@ -61,15 +63,17 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
             _proxy.AddTorrentFromUrl(magnetLink, Settings);
             _proxy.SetTorrentSeedingConfiguration(hash, remoteRelease.SeedConfiguration, Settings);
 
-            if (Settings.MovieCategory.IsNotNullOrWhiteSpace())
+            var module = Settings.For(remoteRelease.Kind);
+
+            if (module.Category.IsNotNullOrWhiteSpace())
             {
-                _proxy.SetTorrentLabel(hash, Settings.MovieCategory, Settings);
+                _proxy.SetTorrentLabel(hash, module.Category, Settings);
             }
 
-            var isRecentMovie = remoteRelease.IsRecent;
+            var isRecent = remoteRelease.IsRecent;
 
-            if ((isRecentMovie && Settings.RecentMoviePriority == (int)UTorrentPriority.First) ||
-                (!isRecentMovie && Settings.OlderMoviePriority == (int)UTorrentPriority.First))
+            if ((isRecent && module.RecentPriority == (int)UTorrentPriority.First) ||
+                (!isRecent && module.OlderPriority == (int)UTorrentPriority.First))
             {
                 _proxy.MoveTorrentToTopInQueue(hash, Settings);
             }
@@ -84,15 +88,17 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
             _proxy.AddTorrentFromFile(filename, fileContent, Settings);
             _proxy.SetTorrentSeedingConfiguration(hash, remoteRelease.SeedConfiguration, Settings);
 
-            if (Settings.MovieCategory.IsNotNullOrWhiteSpace())
+            var module = Settings.For(remoteRelease.Kind);
+
+            if (module.Category.IsNotNullOrWhiteSpace())
             {
-                _proxy.SetTorrentLabel(hash, Settings.MovieCategory, Settings);
+                _proxy.SetTorrentLabel(hash, module.Category, Settings);
             }
 
-            var isRecentMovie = remoteRelease.IsRecent;
+            var isRecent = remoteRelease.IsRecent;
 
-            if ((isRecentMovie && Settings.RecentMoviePriority == (int)UTorrentPriority.First) ||
-                (!isRecentMovie && Settings.OlderMoviePriority == (int)UTorrentPriority.First))
+            if ((isRecent && module.RecentPriority == (int)UTorrentPriority.First) ||
+                (!isRecent && module.OlderPriority == (int)UTorrentPriority.First))
             {
                 _proxy.MoveTorrentToTopInQueue(hash, Settings);
             }
@@ -114,7 +120,12 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
 
             foreach (var torrent in torrents)
             {
-                if (torrent.Label != Settings.MovieCategory)
+                // With no category configured the client takes only unlabelled torrents, as it always did.
+                var monitored = Settings.MonitoredCategories().Any()
+                    ? Settings.Monitors(torrent.Label)
+                    : torrent.Label.IsNullOrWhiteSpace();
+
+                if (!monitored)
                 {
                     continue;
                 }
@@ -124,7 +135,7 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
                 item.Title = torrent.Name;
                 item.TotalSize = torrent.Size;
                 item.Category = torrent.Label;
-                item.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, Settings.MovieImportedCategory.IsNotNullOrWhiteSpace());
+                item.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, Settings.ForCategory(torrent.Label).ImportedCategory.IsNotNullOrWhiteSpace());
                 item.RemainingSize = torrent.Remaining;
                 item.SeedRatio = torrent.Ratio;
 
@@ -183,7 +194,7 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
         {
             List<UTorrentTorrent> torrents;
 
-            var cacheKey = string.Format("{0}:{1}:{2}", Settings.Host, Settings.Port, Settings.MovieCategory);
+            var cacheKey = string.Format("{0}:{1}:{2}", Settings.Host, Settings.Port, string.Join(",", Settings.MonitoredCategories()));
             var cache = _torrentCache.Find(cacheKey);
 
             var response = _proxy.GetTorrents(cache == null ? null : cache.CacheID, Settings);
@@ -222,21 +233,27 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
         {
             var config = _proxy.GetConfig(Settings);
 
-            var destDir = new OsPath(null);
-
-            if (config.GetValueOrDefault("dir_active_download_flag") == "true")
-            {
-                destDir = new OsPath(config.GetValueOrDefault("dir_active_download"));
-            }
+            var destDirs = new List<OsPath>();
 
             if (config.GetValueOrDefault("dir_completed_download_flag") == "true")
             {
-                destDir = new OsPath(config.GetValueOrDefault("dir_completed_download"));
+                var completed = new OsPath(config.GetValueOrDefault("dir_completed_download"));
 
                 if (config.GetValueOrDefault("dir_add_label") == "true")
                 {
-                    destDir = destDir + Settings.MovieCategory;
+                    // One output folder per label: the client adds the label to the completed path.
+                    var categories = Settings.MonitoredCategories();
+
+                    destDirs.AddRange(categories.Any() ? categories.Select(c => completed + c) : new[] { completed });
                 }
+                else
+                {
+                    destDirs.Add(completed);
+                }
+            }
+            else if (config.GetValueOrDefault("dir_active_download_flag") == "true")
+            {
+                destDirs.Add(new OsPath(config.GetValueOrDefault("dir_active_download")));
             }
 
             var status = new DownloadClientInfo
@@ -244,9 +261,11 @@ namespace NzbDrone.Core.Download.Clients.UTorrent
                 IsLocalhost = Settings.Host == "127.0.0.1" || Settings.Host == "localhost"
             };
 
-            if (!destDir.IsEmpty)
+            destDirs = destDirs.Where(d => !d.IsEmpty).Distinct().ToList();
+
+            if (destDirs.Any())
             {
-                status.OutputRootFolders = new List<OsPath> { _remotePathMappingService.RemapRemoteToLocal(Settings.Host, destDir) };
+                status.OutputRootFolders = destDirs.Select(d => _remotePathMappingService.RemapRemoteToLocal(Settings.Host, d)).ToList();
             }
 
             return status;

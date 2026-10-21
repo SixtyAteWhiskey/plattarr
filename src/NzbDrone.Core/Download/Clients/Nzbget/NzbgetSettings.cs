@@ -16,11 +16,20 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
             RuleFor(c => c.Username).NotEmpty().When(c => !string.IsNullOrWhiteSpace(c.Password));
             RuleFor(c => c.Password).NotEmpty().When(c => !string.IsNullOrWhiteSpace(c.Username));
 
-            RuleFor(c => c.MovieCategory).NotEmpty().WithMessage("A category is recommended").AsWarning();
+            RuleForEach(c => c.ModuleCategories).Custom((entry, context) =>
+            {
+                if (entry.Category.IsNullOrWhiteSpace())
+                {
+                    context.AddCategoryFailure(entry, "A category is recommended", warning: true);
+                }
+            });
+
+            RuleFor(c => c.ModuleCategories).UniqueCategories();
         }
     }
 
-    public class NzbgetSettings : DownloadClientSettingsBase<NzbgetSettings>
+    [ModuleCategoryFields(6, PriorityOptions = typeof(NzbgetPriority), DefaultPriority = (int)NzbgetPriority.Normal)]
+    public class NzbgetSettings : ModuleDownloadClientSettings<NzbgetSettings>
     {
         private static readonly NzbgetSettingsValidator Validator = new();
 
@@ -28,11 +37,8 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
         {
             Host = "localhost";
             Port = 6789;
-            MovieCategory = "Movies";
             Username = "nzbget";
             Password = "tegbzn6789";
-            RecentMoviePriority = (int)NzbgetPriority.Normal;
-            OlderMoviePriority = (int)NzbgetPriority.Normal;
         }
 
         [FieldDefinition(0, Label = "Host", Type = FieldType.Textbox)]
@@ -55,15 +61,6 @@ namespace NzbDrone.Core.Download.Clients.Nzbget
 
         [FieldDefinition(5, Label = "Password", Type = FieldType.Password, Privacy = PrivacyLevel.Password)]
         public string Password { get; set; }
-
-        [FieldDefinition(6, Label = "Category", Type = FieldType.Textbox, HelpText = "DownloadClientSettingsCategoryHelpText")]
-        public string MovieCategory { get; set; }
-
-        [FieldDefinition(7, Label = "DownloadClientSettingsRecentPriority", Type = FieldType.Select, SelectOptions = typeof(NzbgetPriority), HelpText = "DownloadClientSettingsRecentPriorityMovieHelpText")]
-        public int RecentMoviePriority { get; set; }
-
-        [FieldDefinition(8, Label = "DownloadClientSettingsOlderPriority", Type = FieldType.Select, SelectOptions = typeof(NzbgetPriority), HelpText = "DownloadClientSettingsOlderPriorityMovieHelpText")]
-        public int OlderMoviePriority { get; set; }
 
         [FieldDefinition(9, Label = "DownloadClientSettingsAddPaused", Type = FieldType.Checkbox, HelpText = "DownloadClientNzbgetSettingsAddPausedHelpText")]
         public bool AddPaused { get; set; }

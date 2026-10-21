@@ -34,10 +34,10 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.NzbgetTests
                 Host = "127.0.0.1",
                 Port = 2222,
                 Username = "admin",
-                Password = "pass",
-                MovieCategory = "movie",
-                RecentMoviePriority = (int)NzbgetPriority.High
+                Password = "pass"
             };
+            Subject.Definition.Settings.Movies().Category = "movie";
+            Subject.Definition.Settings.Movies().RecentPriority = (int)NzbgetPriority.High;
 
             _queued = new NzbgetQueueItem
             {

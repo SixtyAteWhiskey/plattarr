@@ -47,19 +47,21 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
 
         public override void MarkItemAsImported(DownloadClientItem downloadClientItem)
         {
+            var module = Settings.ForItem(downloadClientItem);
+
             // Set post-import label
-            if (Settings.MovieImportedCategory.IsNotNullOrWhiteSpace() &&
-                Settings.MovieImportedCategory != Settings.MovieCategory)
+            if (module.ImportedCategory.IsNotNullOrWhiteSpace() &&
+                module.ImportedCategory != module.Category)
             {
                 try
                 {
-                    _proxy.SetTorrentLabel(downloadClientItem.DownloadId.ToLower(), Settings.MovieImportedCategory, Settings);
+                    _proxy.SetTorrentLabel(downloadClientItem.DownloadId.ToLower(), module.ImportedCategory, Settings);
                 }
                 catch (Exception ex)
                 {
                     _logger.Warn(ex,
                         "Failed to set torrent post-import label \"{0}\" for {1} in rTorrent. Does the label exist?",
-                        Settings.MovieImportedCategory,
+                        module.ImportedCategory,
                         downloadClientItem.Title);
                 }
             }
@@ -80,9 +82,10 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
 
         protected override string AddFromMagnetLink(RemoteRelease remoteRelease, string hash, string magnetLink)
         {
-            var priority = (RTorrentPriority)(remoteRelease.IsRecent ? Settings.RecentMoviePriority : Settings.OlderMoviePriority);
+            var module = Settings.For(remoteRelease.Kind);
+            var priority = (RTorrentPriority)(remoteRelease.IsRecent ? module.RecentPriority : module.OlderPriority);
 
-            _proxy.AddTorrentFromUrl(magnetLink, Settings.MovieCategory, priority, Settings.MovieDirectory, Settings);
+            _proxy.AddTorrentFromUrl(magnetLink, module.Category, priority, Settings.MovieDirectory, Settings);
 
             var tries = 10;
             var retryDelay = 500;
@@ -100,9 +103,10 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
 
         protected override string AddFromTorrentFile(RemoteRelease remoteRelease, string hash, string filename, byte[] fileContent)
         {
-            var priority = (RTorrentPriority)(remoteRelease.IsRecent ? Settings.RecentMoviePriority : Settings.OlderMoviePriority);
+            var module = Settings.For(remoteRelease.Kind);
+            var priority = (RTorrentPriority)(remoteRelease.IsRecent ? module.RecentPriority : module.OlderPriority);
 
-            _proxy.AddTorrentFromFile(filename, fileContent, Settings.MovieCategory, priority, Settings.MovieDirectory, Settings);
+            _proxy.AddTorrentFromFile(filename, fileContent, module.Category, priority, Settings.MovieDirectory, Settings);
 
             var tries = 10;
             var retryDelay = 500;
@@ -130,7 +134,7 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
             foreach (var torrent in torrents)
             {
                 // Don't concern ourselves with categories other than specified
-                if (Settings.MovieCategory.IsNotNullOrWhiteSpace() && torrent.Category != Settings.MovieCategory)
+                if (!Settings.Monitors(torrent.Category))
                 {
                     continue;
                 }
@@ -149,7 +153,7 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
                 }
 
                 var item = new DownloadClientItem();
-                item.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, Settings.MovieImportedCategory.IsNotNullOrWhiteSpace());
+                item.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, Settings.ForCategory(torrent.Category).ImportedCategory.IsNotNullOrWhiteSpace());
                 item.Title = torrent.Name;
                 item.DownloadId = torrent.Hash;
                 item.OutputPath = _remotePathMappingService.RemapRemoteToLocal(Settings.Host, new OsPath(torrent.Path));

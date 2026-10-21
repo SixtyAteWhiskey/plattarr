@@ -20,10 +20,8 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.RTorrentTests
         public void Setup()
         {
             Subject.Definition = new DownloadClientDefinition();
-            Subject.Definition.Settings = new RTorrentSettings()
-            {
-                MovieCategory = null
-            };
+            Subject.Definition.Settings = new RTorrentSettings();
+            Subject.Definition.Settings.Movies().Category = null;
 
             _downloading = new RTorrentTorrent
             {

@@ -39,9 +39,11 @@ namespace NzbDrone.Core.Download.Clients.Transmission
                 throw new NotSupportedException($"{Name} does not support marking items as imported");
             }
 
+            var module = Settings.ForItem(downloadClientItem);
+
             // set post-import category
-            if (Settings.MovieImportedCategory.IsNotNullOrWhiteSpace() &&
-                Settings.MovieImportedCategory != Settings.MovieCategory)
+            if (module.ImportedCategory.IsNotNullOrWhiteSpace() &&
+                module.ImportedCategory != module.Category)
             {
                 var hash = downloadClientItem.DownloadId.ToLowerInvariant();
                 var torrent = _proxy.GetTorrents(new[] { hash }, Settings).FirstOrDefault();
@@ -55,18 +57,18 @@ namespace NzbDrone.Core.Download.Clients.Transmission
                 try
                 {
                     var labels = torrent.Labels.ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-                    labels.Add(Settings.MovieImportedCategory);
+                    labels.Add(module.ImportedCategory);
 
-                    if (Settings.MovieCategory.IsNotNullOrWhiteSpace())
+                    if (module.Category.IsNotNullOrWhiteSpace())
                     {
-                        labels.Remove(Settings.MovieCategory);
+                        labels.Remove(module.Category);
                     }
 
                     _proxy.SetTorrentLabels(hash, labels, Settings);
                 }
                 catch (DownloadClientException ex)
                 {
-                    _logger.Warn(ex, "Failed to set post-import torrent label \"{0}\" for {1} in Transmission.", Settings.MovieImportedCategory, downloadClientItem.Title);
+                    _logger.Warn(ex, "Failed to set post-import torrent label \"{0}\" for {1} in Transmission.", module.ImportedCategory, downloadClientItem.Title);
                 }
             }
         }

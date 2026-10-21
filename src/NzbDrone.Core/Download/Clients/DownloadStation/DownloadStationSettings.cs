@@ -8,6 +8,8 @@ namespace NzbDrone.Core.Download.Clients.DownloadStation
 {
     public class DownloadStationSettingsValidator : AbstractValidator<DownloadStationSettings>
     {
+        private static readonly Regex CategoryPattern = new(@"^\.?[-a-z]*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
         public DownloadStationSettingsValidator()
         {
             RuleFor(c => c.Host).ValidHost();
@@ -17,15 +19,25 @@ namespace NzbDrone.Core.Download.Clients.DownloadStation
                                        .When(c => c.TvDirectory.IsNotNullOrWhiteSpace())
                                        .WithMessage("Cannot start with /");
 
-            RuleFor(c => c.TvCategory).Matches(@"^\.?[-a-z]*$", RegexOptions.IgnoreCase).WithMessage("Allowed characters a-z and -");
+            RuleForEach(c => c.ModuleCategories).Custom((entry, context) =>
+            {
+                if (!CategoryPattern.IsMatch(entry.Category ?? string.Empty))
+                {
+                    context.AddCategoryFailure(entry, "Allowed characters a-z and -");
+                }
 
-            RuleFor(c => c.TvCategory).Empty()
-                                      .When(c => c.TvDirectory.IsNotNullOrWhiteSpace())
-                                      .WithMessage("Cannot use Category and Directory");
+                if (entry.Category.IsNotNullOrWhiteSpace() && ((DownloadStationSettings)context.InstanceToValidate).TvDirectory.IsNotNullOrWhiteSpace())
+                {
+                    context.AddCategoryFailure(entry, "Cannot use Category and Directory");
+                }
+            });
+
+            RuleFor(c => c.ModuleCategories).UniqueCategories();
         }
     }
 
-    public class DownloadStationSettings : DownloadClientSettingsBase<DownloadStationSettings>
+    [ModuleCategoryFields(5, CategoryHelpText = "DownloadClientSettingsCategorySubFolderHelpText")]
+    public class DownloadStationSettings : ModuleDownloadClientSettings<DownloadStationSettings>
     {
         private static readonly DownloadStationSettingsValidator Validator = new();
 
@@ -44,9 +56,6 @@ namespace NzbDrone.Core.Download.Clients.DownloadStation
 
         [FieldDefinition(4, Label = "Password", Type = FieldType.Password, Privacy = PrivacyLevel.Password)]
         public string Password { get; set; }
-
-        [FieldDefinition(5, Label = "Category", Type = FieldType.Textbox, HelpText = "DownloadClientSettingsCategorySubFolderHelpText")]
-        public string TvCategory { get; set; }
 
         [FieldDefinition(6, Label = "Directory", Type = FieldType.Textbox, HelpText = "DownloadClientDownloadStationSettingsDirectoryHelpText")]
         public string TvDirectory { get; set; }

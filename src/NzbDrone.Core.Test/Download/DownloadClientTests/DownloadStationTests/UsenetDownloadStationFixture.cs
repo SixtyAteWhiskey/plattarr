@@ -51,6 +51,8 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.DownloadStationTests
                 Password = "pass"
             };
 
+            _settings.Movies().Category = null;
+
             Subject.Definition = new DownloadClientDefinition();
             Subject.Definition.Settings = _settings;
 
@@ -214,7 +216,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.DownloadStationTests
 
         protected void GivenTvCategory()
         {
-            _settings.TvCategory = _category;
+            _settings.Movies().Category = _category;
         }
 
         protected void GivenTvDirectory()

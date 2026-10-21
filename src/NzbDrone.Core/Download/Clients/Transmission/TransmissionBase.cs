@@ -47,30 +47,9 @@ namespace NzbDrone.Core.Download.Clients.Transmission
             {
                 var outputPath = new OsPath(torrent.DownloadDir);
 
-                if (Settings.MovieCategory.IsNotNullOrWhiteSpace() && SupportsLabels && torrent.Labels is { Count: > 0 })
+                if (!TryGetCategory(torrent, outputPath, out var category))
                 {
-                    if (!torrent.Labels.Contains(Settings.MovieCategory, StringComparer.InvariantCultureIgnoreCase))
-                    {
-                        continue;
-                    }
-                }
-                else
-                {
-                    if (Settings.MovieDirectory.IsNotNullOrWhiteSpace())
-                    {
-                        if (!new OsPath(Settings.MovieDirectory).Contains(outputPath))
-                        {
-                            continue;
-                        }
-                    }
-                    else if (Settings.MovieCategory.IsNotNullOrWhiteSpace())
-                    {
-                        var directories = outputPath.FullPath.Split('\\', '/');
-                        if (!directories.Contains(Settings.MovieCategory))
-                        {
-                            continue;
-                        }
-                    }
+                    continue;
                 }
 
                 outputPath = _remotePathMappingService.RemapRemoteToLocal(Settings.Host, outputPath);
@@ -78,9 +57,9 @@ namespace NzbDrone.Core.Download.Clients.Transmission
                 var item = new DownloadClientItem
                 {
                     DownloadId = torrent.HashString.ToUpper(),
-                    Category = Settings.MovieCategory,
+                    Category = category,
                     Title = torrent.Name,
-                    DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, Settings.MovieImportedCategory.IsNotNullOrWhiteSpace() && SupportsLabels),
+                    DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, Settings.ForCategory(category).ImportedCategory.IsNotNullOrWhiteSpace() && SupportsLabels),
                     OutputPath = GetOutputPath(outputPath, torrent),
                     TotalSize = torrent.TotalSize,
                     RemainingSize = torrent.LeftUntilDone,
@@ -188,39 +167,39 @@ namespace NzbDrone.Core.Download.Clients.Transmission
 
         public override DownloadClientInfo GetStatus()
         {
-            string destDir;
+            var destDirs = new List<string>();
 
             if (Settings.MovieDirectory.IsNotNullOrWhiteSpace())
             {
-                destDir = Settings.MovieDirectory;
+                destDirs.Add(Settings.MovieDirectory);
             }
             else
             {
-                var config = _proxy.GetConfig(Settings);
-                destDir = config.DownloadDir;
+                var downloadDir = _proxy.GetConfig(Settings).DownloadDir;
+                var categories = Settings.MonitoredCategories();
 
-                if (Settings.MovieCategory.IsNotNullOrWhiteSpace())
-                {
-                    destDir = $"{destDir}/{Settings.MovieCategory}";
-                }
+                // One output folder per monitored category: each has its own subfolder.
+                destDirs.AddRange(categories.Any() ? categories.Select(c => $"{downloadDir}/{c}") : new[] { downloadDir });
             }
 
             return new DownloadClientInfo
             {
                 IsLocalhost = Settings.Host == "127.0.0.1" || Settings.Host == "localhost",
-                OutputRootFolders = new List<OsPath> { _remotePathMappingService.RemapRemoteToLocal(Settings.Host, new OsPath(destDir)) }
+                OutputRootFolders = destDirs.Select(d => _remotePathMappingService.RemapRemoteToLocal(Settings.Host, new OsPath(d))).ToList()
             };
         }
 
         protected override string AddFromMagnetLink(RemoteRelease remoteRelease, string hash, string magnetLink)
         {
-            _proxy.AddTorrentFromUrl(magnetLink, GetDownloadDirectory(), Settings);
+            var module = Settings.For(remoteRelease.Kind);
+
+            _proxy.AddTorrentFromUrl(magnetLink, module.Category, GetDownloadDirectory(module.Category), Settings);
             _proxy.SetTorrentSeedingConfiguration(hash, remoteRelease.SeedConfiguration, Settings);
 
-            var isRecentMovie = remoteRelease.IsRecent;
+            var isRecent = remoteRelease.IsRecent;
 
-            if ((isRecentMovie && Settings.RecentMoviePriority == (int)TransmissionPriority.First) ||
-                (!isRecentMovie && Settings.OlderMoviePriority == (int)TransmissionPriority.First))
+            if ((isRecent && module.RecentPriority == (int)TransmissionPriority.First) ||
+                (!isRecent && module.OlderPriority == (int)TransmissionPriority.First))
             {
                 _proxy.MoveTorrentToTopInQueue(hash, Settings);
             }
@@ -230,13 +209,15 @@ namespace NzbDrone.Core.Download.Clients.Transmission
 
         protected override string AddFromTorrentFile(RemoteRelease remoteRelease, string hash, string filename, byte[] fileContent)
         {
-            _proxy.AddTorrentFromData(fileContent, GetDownloadDirectory(), Settings);
+            var module = Settings.For(remoteRelease.Kind);
+
+            _proxy.AddTorrentFromData(fileContent, module.Category, GetDownloadDirectory(module.Category), Settings);
             _proxy.SetTorrentSeedingConfiguration(hash, remoteRelease.SeedConfiguration, Settings);
 
-            var isRecentMovie = remoteRelease.IsRecent;
+            var isRecent = remoteRelease.IsRecent;
 
-            if ((isRecentMovie && Settings.RecentMoviePriority == (int)TransmissionPriority.First) ||
-                (!isRecentMovie && Settings.OlderMoviePriority == (int)TransmissionPriority.First))
+            if ((isRecent && module.RecentPriority == (int)TransmissionPriority.First) ||
+                (!isRecent && module.OlderPriority == (int)TransmissionPriority.First))
             {
                 _proxy.MoveTorrentToTopInQueue(hash, Settings);
             }
@@ -260,14 +241,14 @@ namespace NzbDrone.Core.Download.Clients.Transmission
             return outputPath + torrent.Name.Replace(":", "_");
         }
 
-        protected string GetDownloadDirectory()
+        protected string GetDownloadDirectory(string category)
         {
             if (Settings.MovieDirectory.IsNotNullOrWhiteSpace())
             {
                 return Settings.MovieDirectory;
             }
 
-            if (!Settings.MovieCategory.IsNotNullOrWhiteSpace())
+            if (!category.IsNotNullOrWhiteSpace())
             {
                 return null;
             }
@@ -275,7 +256,45 @@ namespace NzbDrone.Core.Download.Clients.Transmission
             var config = _proxy.GetConfig(Settings);
             var destDir = config.DownloadDir;
 
-            return $"{destDir.TrimEnd('/')}/{Settings.MovieCategory}";
+            return $"{destDir.TrimEnd('/')}/{category}";
+        }
+
+        // Decides whether a torrent is one of ours and which category it belongs to. By label when
+        // the client supports them and the torrent has any, otherwise by the download directory:
+        // the configured directory, or a category folder in the path.
+        private bool TryGetCategory(TransmissionTorrent torrent, OsPath outputPath, out string category)
+        {
+            var categories = Settings.MonitoredCategories();
+
+            category = null;
+
+            if (categories.Any() && SupportsLabels && torrent.Labels is { Count: > 0 })
+            {
+                category = categories.FirstOrDefault(c => torrent.Labels.Contains(c, StringComparer.InvariantCultureIgnoreCase));
+
+                return category != null;
+            }
+
+            if (Settings.MovieDirectory.IsNotNullOrWhiteSpace())
+            {
+                if (!new OsPath(Settings.MovieDirectory).Contains(outputPath))
+                {
+                    return false;
+                }
+            }
+            else if (categories.Any())
+            {
+                var directories = outputPath.FullPath.Split('\\', '/');
+
+                category = categories.FirstOrDefault(c => directories.Contains(c));
+
+                return category != null;
+            }
+
+            // The directory does not say which media type this is: it belongs to Movies, as ever.
+            category = Settings.ForCategory(null).Category;
+
+            return true;
         }
 
         protected ValidationFailure TestConnection()

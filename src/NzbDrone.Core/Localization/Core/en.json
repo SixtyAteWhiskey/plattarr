@@ -538,6 +538,7 @@
   "DownloadClientSettingsDestinationHelpText": "Manually specifies download destination, leave blank to use the default",
   "DownloadClientSettingsInitialState": "Initial State",
   "DownloadClientSettingsInitialStateHelpText": "Initial state for torrents added to {clientName}",
+  "DownloadClientSettingsMediaTypeLabel": "{label} ({mediaType})",
   "DownloadClientSettingsOlderPriority": "Older Priority",
   "DownloadClientSettingsOlderPriorityMovieHelpText": "Priority to use when grabbing movies that aired over 21 days ago",
   "DownloadClientSettingsPostImportCategoryHelpText": "Category for {appName} to set after it has imported the download. {appName} will not remove torrents in that category even if seeding finished. Leave blank to keep same category.",

@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using FluentValidation;
 using NzbDrone.Common.Extensions;
@@ -9,6 +8,8 @@ namespace NzbDrone.Core.Download.Clients.Transmission
 {
     public class TransmissionSettingsValidator : AbstractValidator<TransmissionSettings>
     {
+        private static readonly Regex CategoryPattern = new(@"^\.?[-a-z]*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
         public TransmissionSettingsValidator()
         {
             RuleFor(c => c.Host).ValidHost();
@@ -16,37 +17,33 @@ namespace NzbDrone.Core.Download.Clients.Transmission
 
             RuleFor(c => c.UrlBase).ValidUrlBase();
 
-            RuleFor(c => c.MovieCategory).Matches(@"^\.?[-a-z]*$", RegexOptions.IgnoreCase).WithMessage("Allowed characters a-z and -");
+            RuleForEach(c => c.ModuleCategories).Custom((entry, context) =>
+            {
+                if (!CategoryPattern.IsMatch(entry.Category ?? string.Empty))
+                {
+                    context.AddCategoryFailure(entry, "Allowed characters a-z and -");
+                }
 
-            RuleFor(c => c.MovieCategory).Empty()
-                .When(c => c.MovieDirectory.IsNotNullOrWhiteSpace())
-                .WithMessage("Cannot use Category and Directory");
+                if (entry.Category.IsNotNullOrWhiteSpace() && ((TransmissionSettings)context.InstanceToValidate).MovieDirectory.IsNotNullOrWhiteSpace())
+                {
+                    context.AddCategoryFailure(entry, "Cannot use Category and Directory");
+                }
+            });
+
+            RuleFor(c => c.ModuleCategories).UniqueCategories();
         }
     }
 
-    public class TransmissionSettings : DownloadClientSettingsBase<TransmissionSettings>
+    [ModuleCategoryFields(6, CategoryHelpText = "DownloadClientSettingsCategorySubFolderHelpText", PostImportCategory = true, PriorityOptions = typeof(TransmissionPriority), DefaultPriority = (int)TransmissionPriority.Last)]
+    public class TransmissionSettings : ModuleDownloadClientSettings<TransmissionSettings>
     {
         private static readonly TransmissionSettingsValidator Validator = new();
 
-        // This constructor is used when creating a new instance, such as the user adding a new Transmission client.
         public TransmissionSettings()
         {
             Host = "localhost";
             Port = 9091;
             UrlBase = "/transmission/";
-            MovieCategory = "radarr";
-        }
-
-        // TODO: Remove this in v6
-        // This constructor is used when deserializing from JSON, it will set the
-        // category to the deserialized value, defaulting to null.
-        [JsonConstructor]
-        public TransmissionSettings(string movieCategory = null)
-        {
-            Host = "localhost";
-            Port = 9091;
-            UrlBase = "/transmission/";
-            MovieCategory = movieCategory;
         }
 
         [FieldDefinition(0, Label = "Host", Type = FieldType.Textbox)]
@@ -71,20 +68,8 @@ namespace NzbDrone.Core.Download.Clients.Transmission
         [FieldDefinition(5, Label = "Password", Type = FieldType.Password, Privacy = PrivacyLevel.Password)]
         public string Password { get; set; }
 
-        [FieldDefinition(6, Label = "Category", Type = FieldType.Textbox, HelpText = "DownloadClientSettingsCategorySubFolderHelpText")]
-        public string MovieCategory { get; set; }
-
-        [FieldDefinition(7, Label = "PostImportCategory", Type = FieldType.Textbox, Advanced = true, HelpText = "DownloadClientSettingsPostImportCategoryHelpText")]
-        public string MovieImportedCategory { get; set; }
-
         [FieldDefinition(8, Label = "Directory", Type = FieldType.Textbox, Advanced = true, HelpText = "DownloadClientTransmissionSettingsDirectoryHelpText")]
         public string MovieDirectory { get; set; }
-
-        [FieldDefinition(9, Label = "DownloadClientSettingsRecentPriority", Type = FieldType.Select, SelectOptions = typeof(TransmissionPriority), HelpText = "DownloadClientSettingsRecentPriorityMovieHelpText")]
-        public int RecentMoviePriority { get; set; }
-
-        [FieldDefinition(10, Label = "DownloadClientSettingsOlderPriority", Type = FieldType.Select, SelectOptions = typeof(TransmissionPriority), HelpText = "DownloadClientSettingsOlderPriorityMovieHelpText")]
-        public int OlderMoviePriority { get; set; }
 
         [FieldDefinition(11, Label = "DownloadClientSettingsAddPaused", Type = FieldType.Checkbox)]
         public bool AddPaused { get; set; }

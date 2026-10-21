@@ -34,9 +34,10 @@ namespace NzbDrone.Core.Download.Clients.NzbVortex
 
         protected override string AddFromNzbFile(RemoteRelease remoteRelease, string filename, byte[] fileContents)
         {
-            var priority = remoteRelease.IsRecent ? Settings.RecentMoviePriority : Settings.OlderMoviePriority;
+            var module = Settings.For(remoteRelease.Kind);
+            var priority = remoteRelease.IsRecent ? module.RecentPriority : module.OlderPriority;
 
-            var response = _proxy.DownloadNzb(fileContents, filename, priority, Settings);
+            var response = _proxy.DownloadNzb(fileContents, filename, module.Category, priority, Settings);
 
             if (response == null)
             {
@@ -66,6 +67,11 @@ namespace NzbDrone.Core.Download.Clients.NzbVortex
 
             foreach (var vortexQueueItem in vortexQueue)
             {
+                if (!Settings.Monitors(vortexQueueItem.GroupName))
+                {
+                    continue;
+                }
+
                 var queueItem = new DownloadClientItem();
 
                 queueItem.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, false);
@@ -161,7 +167,11 @@ namespace NzbDrone.Core.Download.Clients.NzbVortex
             failures.AddIfNotNull(TestConnection());
             failures.AddIfNotNull(TestApiVersion());
             failures.AddIfNotNull(TestAuthentication());
-            failures.AddIfNotNull(TestCategory());
+
+            foreach (var module in Settings.ModuleCategories)
+            {
+                failures.AddIfNotNull(TestCategory(module));
+            }
         }
 
         private ValidationFailure TestConnection()
@@ -221,15 +231,15 @@ namespace NzbDrone.Core.Download.Clients.NzbVortex
             return null;
         }
 
-        private ValidationFailure TestCategory()
+        private ValidationFailure TestCategory(ModuleCategorySettings module)
         {
-            var group = GetGroups().FirstOrDefault(c => c.GroupName == Settings.TvCategory);
+            var group = GetGroups().FirstOrDefault(c => c.GroupName == module.Category);
 
             if (group == null)
             {
-                if (Settings.TvCategory.IsNotNullOrWhiteSpace())
+                if (module.Category.IsNotNullOrWhiteSpace())
                 {
-                    return new NzbDroneValidationFailure("TvCategory", _localizationService.GetLocalizedString("DownloadClientValidationGroupMissing"))
+                    return new NzbDroneValidationFailure(ModuleCategoryFieldNames.Category(module.Kind), _localizationService.GetLocalizedString("DownloadClientValidationGroupMissing"))
                     {
                         DetailedDescription = _localizationService.GetLocalizedString("DownloadClientValidationGroupMissingDetail", new Dictionary<string, object> { { "clientName", Name } })
                     };

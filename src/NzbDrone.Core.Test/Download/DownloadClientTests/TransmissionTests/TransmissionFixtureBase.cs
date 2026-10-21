@@ -29,9 +29,9 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.TransmissionTests
                 Host = "127.0.0.1",
                 Port = 2222,
                 Username = "admin",
-                Password = "pass",
-                MovieCategory = ""
+                Password = "pass"
             };
+            _settings.Movies().Category = "";
 
             Subject.Definition = new DownloadClientDefinition();
             Subject.Definition.Settings = _settings;
@@ -115,7 +115,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.TransmissionTests
 
         protected void GivenMovieCategory()
         {
-            _settings.MovieCategory = "radarr";
+            _settings.Movies().Category = "radarr";
         }
 
         protected void GivenMovieDirectory()
@@ -126,7 +126,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.TransmissionTests
         protected void GivenFailedDownload()
         {
             Mocker.GetMock<ITransmissionProxy>()
-                  .Setup(s => s.AddTorrentFromUrl(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TransmissionSettings>()))
+                  .Setup(s => s.AddTorrentFromUrl(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TransmissionSettings>()))
                   .Throws<InvalidOperationException>();
         }
 
@@ -137,11 +137,11 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.TransmissionTests
                   .Returns<HttpRequest>(r => new HttpResponse(r, new HttpHeader(), new byte[1000]));
 
             Mocker.GetMock<ITransmissionProxy>()
-                  .Setup(s => s.AddTorrentFromUrl(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TransmissionSettings>()))
+                  .Setup(s => s.AddTorrentFromUrl(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TransmissionSettings>()))
                   .Callback(PrepareClientToReturnQueuedItem);
 
             Mocker.GetMock<ITransmissionProxy>()
-                  .Setup(s => s.AddTorrentFromData(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<TransmissionSettings>()))
+                  .Setup(s => s.AddTorrentFromData(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TransmissionSettings>()))
                   .Callback(PrepareClientToReturnQueuedItem);
         }
 

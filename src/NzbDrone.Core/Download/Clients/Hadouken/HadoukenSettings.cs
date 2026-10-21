@@ -18,10 +18,13 @@ namespace NzbDrone.Core.Download.Clients.Hadouken
 
             RuleFor(c => c.Password).NotEmpty()
                                     .WithMessage("Password must not be empty.");
+
+            RuleFor(c => c.ModuleCategories).UniqueCategories();
         }
     }
 
-    public class HadoukenSettings : DownloadClientSettingsBase<HadoukenSettings>
+    [ModuleCategoryFields(6)]
+    public class HadoukenSettings : ModuleDownloadClientSettings<HadoukenSettings>
     {
         private static readonly HadoukenSettingsValidator Validator = new();
 
@@ -29,7 +32,6 @@ namespace NzbDrone.Core.Download.Clients.Hadouken
         {
             Host = "localhost";
             Port = 7070;
-            Category = "radarr";
         }
 
         [FieldDefinition(0, Label = "Host", Type = FieldType.Textbox)]
@@ -52,9 +54,6 @@ namespace NzbDrone.Core.Download.Clients.Hadouken
 
         [FieldDefinition(5, Label = "Password", Type = FieldType.Password, Privacy = PrivacyLevel.Password)]
         public string Password { get; set; }
-
-        [FieldDefinition(6, Label = "Category", Type = FieldType.Textbox, HelpText = "DownloadClientSettingsCategoryHelpText")]
-        public string Category { get; set; }
 
         public override NzbDroneValidationResult Validate()
         {
