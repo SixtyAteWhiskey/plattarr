@@ -1,10 +1,11 @@
 using System.Linq;
 using NzbDrone.Core.Extras.Metadata;
 using NzbDrone.Core.Extras.Metadata.Consumers.Kometa;
+using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.Localization;
 using NzbDrone.Core.ThingiProvider.Events;
 
-namespace NzbDrone.Core.HealthCheck.Checks
+namespace NzbDrone.Core.Movies.HealthChecks
 {
     [CheckOn(typeof(ProviderUpdatedEvent<IMetadata>))]
     public class MetadataCheck : HealthCheckBase
@@ -17,19 +18,19 @@ namespace NzbDrone.Core.HealthCheck.Checks
             _metadataFactory = metadataFactory;
         }
 
-        public override HealthCheck Check()
+        public override HealthCheck.HealthCheck Check()
         {
             var enabled = _metadataFactory.Enabled();
 
             if (enabled.Any(m => m.Definition.Implementation == nameof(KometaMetadata)))
             {
-                return new HealthCheck(GetType(),
+                return new HealthCheck.HealthCheck(GetType(),
                     HealthCheckResult.Warning,
                     HealthCheckReason.MetadataKometaDeprecated,
                     $"{_localizationService.GetLocalizedString("MetadataKometaDeprecated")}");
             }
 
-            return new HealthCheck(GetType());
+            return new HealthCheck.HealthCheck(GetType());
         }
     }
 }

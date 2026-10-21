@@ -2,7 +2,7 @@ namespace NzbDrone.Core.Test.Architecture
 {
     // Core types that reference module code today (ModuleBoundaryFixture). This list may only shrink:
     // remove an entry when its type stops referencing a module; never add one. Each group says how it
-    // leaves the list. Seeded in step 9a with 159 types; 156 after 9b.
+    // leaves the list. Seeded in step 9a with 159 types; 156 after 9b, 141 after 9c.
     public static class ModuleBoundaryAllowlist
     {
         public static readonly string[] Types =
@@ -88,26 +88,15 @@ namespace NzbDrone.Core.Test.Architecture
             "NzbDrone.Core.Download.TrackedDownloads.TrackedDownloadService",
             "NzbDrone.Core.Download.UsenetClientBase`1",
 
-            // HealthCheck (13): Movie checks move into the module; download client checks read root folders from every module.
+            // HealthCheck (5): Core checks that read movie root folders, paths, or import events; they ask every module.
             "NzbDrone.Core.HealthCheck.Checks.DownloadClientRemovesCompletedDownloadsCheck",
             "NzbDrone.Core.HealthCheck.Checks.DownloadClientRootFolderCheck",
             "NzbDrone.Core.HealthCheck.Checks.DownloadClientSortingCheck",
-            "NzbDrone.Core.HealthCheck.Checks.ImportListRootFolderCheck",
-            "NzbDrone.Core.HealthCheck.Checks.ImportListStatusCheck",
-            "NzbDrone.Core.HealthCheck.Checks.MetadataCheck",
             "NzbDrone.Core.HealthCheck.Checks.MountCheck",
-            "NzbDrone.Core.HealthCheck.Checks.MovieCollectionRootFolderCheck",
-            "NzbDrone.Core.HealthCheck.Checks.NamingConfigCheck",
-            "NzbDrone.Core.HealthCheck.Checks.RecyclingBinCheck",
             "NzbDrone.Core.HealthCheck.Checks.RemotePathMappingCheck",
-            "NzbDrone.Core.HealthCheck.Checks.RemovedMovieCheck",
-            "NzbDrone.Core.HealthCheck.Checks.RootFolderCheck",
 
-            // Housekeeping (4): Movie housekeepers move into the module.
+            // Housekeeping (1): Tag cleanup asks each module which tags it uses.
             "NzbDrone.Core.Housekeeping.Housekeepers.CleanupUnusedTags",
-            "NzbDrone.Core.Housekeeping.Housekeepers.DeleteBadMediaCovers",
-            "NzbDrone.Core.Housekeeping.Housekeepers.FixFutureImportListStatusTimes",
-            "NzbDrone.Core.Housekeeping.Housekeepers.UpdateCleanTitleForMovies",
 
             // Notifications (56): Contract 7, before Phase 3.
             "NzbDrone.Core.Notifications.Apprise.Apprise",
@@ -167,8 +156,7 @@ namespace NzbDrone.Core.Test.Architecture
             "NzbDrone.Core.Notifications.Xbmc.Xbmc",
             "NzbDrone.Core.Notifications.Xbmc.XbmcService",
 
-            // Parser (2): Core parsers use two module helpers; move the helpers to core.
-            "NzbDrone.Core.Parser.IsoLanguages",
+            // Parser (1): ReleaseGroupParser strips media file extensions, which each module defines (MediaFileExtensions maps them to video qualities).
             "NzbDrone.Core.Parser.ReleaseGroupParser",
 
             // Profiles (1): Profile in-use check asks each module.
@@ -181,10 +169,7 @@ namespace NzbDrone.Core.Test.Architecture
             // Tags (1): Tag usage details come from each module.
             "NzbDrone.Core.Tags.TagService",
 
-            // Validation (6): Movie path validators move into the module; root folder validators read every module.
-            "NzbDrone.Core.Validation.Paths.MovieAncestorValidator",
-            "NzbDrone.Core.Validation.Paths.MovieExistsValidator",
-            "NzbDrone.Core.Validation.Paths.MoviePathValidator",
+            // Validation (3): Root folder validators check every module's root folders.
             "NzbDrone.Core.Validation.Paths.RootFolderAncestorValidator",
             "NzbDrone.Core.Validation.Paths.RootFolderExistsValidator",
             "NzbDrone.Core.Validation.Paths.RootFolderValidator"

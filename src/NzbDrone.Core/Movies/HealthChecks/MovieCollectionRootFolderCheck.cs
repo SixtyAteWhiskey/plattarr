@@ -3,12 +3,13 @@ using System.Linq;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Datastore.Events;
+using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.Localization;
 using NzbDrone.Core.Movies.Collections;
 using NzbDrone.Core.Movies.Events;
 using NzbDrone.Core.RootFolders;
 
-namespace NzbDrone.Core.HealthCheck.Checks
+namespace NzbDrone.Core.Movies.HealthChecks
 {
     [CheckOn(typeof(CollectionRefreshCompleteEvent))]
     [CheckOn(typeof(CollectionEditedEvent))]
@@ -28,7 +29,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
             _rootFolderService = rootFolderService;
         }
 
-        public override HealthCheck Check()
+        public override HealthCheck.HealthCheck Check()
         {
             var collections = _collectionService.GetAllCollections();
             var rootFolders = _rootFolderService.All();
@@ -61,7 +62,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                 {
                     var missingRootFolder = missingRootFolders.First();
 
-                    return new HealthCheck(GetType(),
+                    return new HealthCheck.HealthCheck(GetType(),
                         HealthCheckResult.Error,
                         HealthCheckReason.RootFolderMissing,
                         _localizationService.GetLocalizedString("MovieCollectionRootFolderMissingRootHealthCheckMessage", new Dictionary<string, object>
@@ -71,7 +72,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                         "#movie-collection-missing-root-folder");
                 }
 
-                return new HealthCheck(GetType(),
+                return new HealthCheck.HealthCheck(GetType(),
                     HealthCheckResult.Error,
                     HealthCheckReason.RootFolderMultipleMissing,
                     _localizationService.GetLocalizedString("MovieCollectionFolderMultipleMissingRootsHealthCheckMessage", new Dictionary<string, object>
@@ -81,7 +82,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                     "#movie-collection-missing-root-folder");
             }
 
-            return new HealthCheck(GetType());
+            return new HealthCheck.HealthCheck(GetType());
         }
 
         private string FormatRootFolder(string rootFolderPath, List<MovieCollection> collections)

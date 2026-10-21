@@ -5,9 +5,9 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Extras.Metadata.Files;
-using NzbDrone.Core.Movies;
+using NzbDrone.Core.Housekeeping;
 
-namespace NzbDrone.Core.Housekeeping.Housekeepers
+namespace NzbDrone.Core.Movies.Housekeepers
 {
     public class DeleteBadMediaCovers : IHousekeepingTask
     {

@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Events;
 
-namespace NzbDrone.Core.HealthCheck.Checks
+namespace NzbDrone.Core.Movies.HealthChecks
 {
     [CheckOn(typeof(MovieUpdatedEvent))]
     [CheckOn(typeof(MoviesDeletedEvent))]
@@ -20,20 +20,20 @@ namespace NzbDrone.Core.HealthCheck.Checks
             _movieService = movieService;
         }
 
-        public override HealthCheck Check()
+        public override HealthCheck.HealthCheck Check()
         {
             var deletedMovie = _movieService.GetAllMovies().Where(v => v.MovieMetadata.Value.Status == MovieStatusType.Deleted).ToList();
 
             if (deletedMovie.Empty())
             {
-                return new HealthCheck(GetType());
+                return new HealthCheck.HealthCheck(GetType());
             }
 
             var movieText = deletedMovie.Select(s => $"{s.Title} (tmdbid {s.TmdbId})").Join(", ");
 
             if (deletedMovie.Count == 1)
             {
-                return new HealthCheck(GetType(),
+                return new HealthCheck.HealthCheck(GetType(),
                     HealthCheckResult.Error,
                     HealthCheckReason.RemovedMovieSingle,
                     _localizationService.GetLocalizedString("RemovedMovieCheckSingleMessage", new Dictionary<string, object>
@@ -43,7 +43,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                     "#movie-was-removed-from-tmdb");
             }
 
-            return new HealthCheck(GetType(),
+            return new HealthCheck.HealthCheck(GetType(),
                 HealthCheckResult.Error,
                 HealthCheckReason.RemovedMovieMultiple,
                 _localizationService.GetLocalizedString("RemovedMovieCheckMultipleMessage", new Dictionary<string, object>

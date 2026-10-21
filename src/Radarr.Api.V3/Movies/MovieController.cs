@@ -18,6 +18,7 @@ using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Commands;
 using NzbDrone.Core.Movies.Events;
 using NzbDrone.Core.Movies.Translations;
+using NzbDrone.Core.Movies.Validators;
 using NzbDrone.Core.MovieStats;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Validation;

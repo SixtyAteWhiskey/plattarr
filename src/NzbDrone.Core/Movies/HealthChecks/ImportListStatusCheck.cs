@@ -1,11 +1,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.Localization;
 using NzbDrone.Core.ThingiProvider.Events;
 
-namespace NzbDrone.Core.HealthCheck.Checks
+namespace NzbDrone.Core.Movies.HealthChecks
 {
     [CheckOn(typeof(ProviderUpdatedEvent<IImportList>))]
     [CheckOn(typeof(ProviderDeletedEvent<IImportList>))]
@@ -22,7 +23,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
             _providerStatusService = providerStatusService;
         }
 
-        public override HealthCheck Check()
+        public override HealthCheck.HealthCheck Check()
         {
             var enabledProviders = _providerFactory.GetAvailableProviders();
             var backOffProviders = enabledProviders.Join(_providerStatusService.GetBlockedProviders(),
@@ -33,19 +34,19 @@ namespace NzbDrone.Core.HealthCheck.Checks
 
             if (backOffProviders.Empty())
             {
-                return new HealthCheck(GetType());
+                return new HealthCheck.HealthCheck(GetType());
             }
 
             if (backOffProviders.Count == enabledProviders.Count)
             {
-                return new HealthCheck(GetType(),
+                return new HealthCheck.HealthCheck(GetType(),
                     HealthCheckResult.Error,
                     HealthCheckReason.ImportListStatusAllUnavailable,
                     _localizationService.GetLocalizedString("ImportListStatusCheckAllClientMessage"),
                     "#import-lists-are-unavailable-due-to-failures");
             }
 
-            return new HealthCheck(GetType(),
+            return new HealthCheck.HealthCheck(GetType(),
                 HealthCheckResult.Warning,
                 HealthCheckReason.ImportListStatusUnavailable,
                 _localizationService.GetLocalizedString("ImportListStatusCheckSingleClientMessage", new Dictionary<string, object>

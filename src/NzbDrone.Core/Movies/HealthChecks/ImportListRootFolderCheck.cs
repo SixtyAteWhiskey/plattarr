@@ -3,6 +3,7 @@ using System.Linq;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Datastore.Events;
+using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.Localization;
 using NzbDrone.Core.MediaFiles.Events;
@@ -10,7 +11,7 @@ using NzbDrone.Core.Movies.Events;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.ThingiProvider.Events;
 
-namespace NzbDrone.Core.HealthCheck.Checks
+namespace NzbDrone.Core.Movies.HealthChecks
 {
     [CheckOn(typeof(ProviderUpdatedEvent<IImportList>))]
     [CheckOn(typeof(ProviderDeletedEvent<IImportList>))]
@@ -33,7 +34,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
             _rootFolderService = rootFolderService;
         }
 
-        public override HealthCheck Check()
+        public override HealthCheck.HealthCheck Check()
         {
             var importLists = _importListFactory.All();
             var rootFolders = _rootFolderService.All();
@@ -66,7 +67,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                 {
                     var missingRootFolder = missingRootFolders.First();
 
-                    return new HealthCheck(GetType(),
+                    return new HealthCheck.HealthCheck(GetType(),
                         HealthCheckResult.Error,
                         HealthCheckReason.ImportListRootFolderMissing,
                         _localizationService.GetLocalizedString("ImportListMissingRoot", new Dictionary<string, object>
@@ -76,7 +77,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                         "#import-list-missing-root-folder");
                 }
 
-                return new HealthCheck(GetType(),
+                return new HealthCheck.HealthCheck(GetType(),
                     HealthCheckResult.Error,
                     HealthCheckReason.ImportListRootFolderMultipleMissing,
                     _localizationService.GetLocalizedString("ImportListMultipleMissingRoots", new Dictionary<string, object>
@@ -86,7 +87,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                     "#import-list-missing-root-folder");
             }
 
-            return new HealthCheck(GetType());
+            return new HealthCheck.HealthCheck(GetType());
         }
 
         private string FormatRootFolder(string rootFolderPath, List<ImportListDefinition> importLists)
