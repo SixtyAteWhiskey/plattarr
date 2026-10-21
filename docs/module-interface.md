@@ -630,6 +630,59 @@ tables.
 `ImportResult` keeps its current shape (`ImportResultType`, errors) and
 replaces the movie reference with `ItemIds`.
 
+As built in porting step 9e (compared with Sonarr `b3d4bb8`):
+
+```csharp
+public interface IDownloadImporter
+{
+    MediaKind Kind { get; }
+    DownloadImportCheck Check(TrackedDownload trackedDownload);   // Ready, Skip, Blocked
+    IReadOnlyList<IImportResult> Import(TrackedDownload trackedDownload, string outputPath);
+    bool IsImported(TrackedDownload trackedDownload, IReadOnlyList<IImportResult> importResults);
+    void ImportBlocked(TrackedDownload trackedDownload);
+}
+
+public interface IImportResult
+{
+    ImportResultType Result { get; }
+    List<string> Errors { get; }
+    string Path { get; }                       // null when no file was matched
+    FailDownloads? FailsDownloadAs { get; }    // the indexer option this rejection falls under
+}
+```
+
+- `CompletedDownloadService` and `RejectedImportService` are core and read
+  only `TrackedDownload`, `RemoteRelease`, and `IImportResult`. The
+  completed-download check splits: the core checks status, state, and the
+  output path; the module's `Check` does the grab-history and title match
+  (Radarr's and Sonarr's are the same shape with different entities). The
+  output path is now checked before the grab-history test, so a download
+  that fails both shows the path warning.
+- `IsImported` takes the results just returned. Radarr marks a download
+  imported when any file was; Sonarr requires every episode in
+  `RemoteEpisode`. Both fall back to history, so the whole decision is the
+  module's. `TrackedDownloadAlreadyImported` moved to
+  `NzbDrone.Core.Movies.Import`.
+- `ImportBlocked` replaces the core's `ManualInteractionRequiredEvent`
+  publish: the event carries `RemoteMovie` and movie grab history, so the
+  module raises it. The core still sends it once per tracked download.
+- `ImportMode` is not in the contract. Automatic import is always `Auto`;
+  manual import calls the module directly.
+- `ImportResult` keeps its movie shape and implements `IImportResult`. No
+  `ItemIds`: the core reads nothing per item. `FailsDownloadAs` maps the
+  first rejection (`DangerousFile`, `ExecutableFile`), as
+  `RejectedImportService` did. Sonarr's `UserRejectedExtension` arrives
+  with a `FailDownloads` value in Phase 3.
+- `ImportResultType` moved to `NzbDrone.Core.Modules`; values unchanged.
+- `TrackedDownload` carries `Kind` and `RemoteRelease`; `RemoteMovie` is a
+  typed view of `RemoteRelease`. A download with no kind, or a kind with no
+  importer, is blocked with a warning.
+- Routing: `TrackedDownloadService` is still movie code and sets `Kind` to
+  Movies for every download it tracks. The rules below come with the TV
+  module, when tracking is generalized.
+- The "not imported or missing" status names the items by kind ("movies",
+  "episodes", "tracks").
+
 #### Tracked download routing
 
 A download in the client must be attributed to one module before import:

@@ -10,6 +10,7 @@ using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.MediaFiles.Commands;
 using NzbDrone.Core.MediaFiles.MovieImport;
 using NzbDrone.Core.Messaging.Commands;
+using NzbDrone.Core.Modules;
 
 namespace NzbDrone.Core.MediaFiles
 {

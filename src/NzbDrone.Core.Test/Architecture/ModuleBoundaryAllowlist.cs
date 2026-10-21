@@ -2,7 +2,7 @@ namespace NzbDrone.Core.Test.Architecture
 {
     // Core types that reference module code today (ModuleBoundaryFixture). This list may only shrink:
     // remove an entry when its type stops referencing a module; never add one. Each group says how it
-    // leaves the list. Seeded in step 9a with 159 types; 156 after 9b, 141 after 9c.
+    // leaves the list. Seeded in step 9a with 159 types; 156 after 9b, 141 after 9c and 9d, 135 after 9e.
     public static class ModuleBoundaryAllowlist
     {
         public static readonly string[] Types =
@@ -32,7 +32,7 @@ namespace NzbDrone.Core.Test.Architecture
             // DiskSpace (1): Root folders come from each module.
             "NzbDrone.Core.DiskSpace.DiskSpaceService",
 
-            // Download (54): Contracts 2 and 5: tracked downloads, pending releases, and clients work on RemoteRelease. Clients use three helpers that belong in core (torrent file reader, file name cleaning, blocklist hash check).
+            // Download (48): Contracts 2 and 6: tracked downloads, pending releases, and clients work on RemoteRelease (contract 5, import, left in 9e). Clients use three helpers that belong in core (torrent file reader, file name cleaning, blocklist hash check).
             "NzbDrone.Core.Download.Aggregation.Aggregators.AggregateLanguages",
             "NzbDrone.Core.Download.Aggregation.Aggregators.IAggregateRemoteMovie",
             "NzbDrone.Core.Download.Aggregation.IRemoteMovieAggregationService",
@@ -58,17 +58,14 @@ namespace NzbDrone.Core.Test.Architecture
             "NzbDrone.Core.Download.Clients.Transmission.TransmissionBase",
             "NzbDrone.Core.Download.Clients.UTorrent.UTorrent",
             "NzbDrone.Core.Download.Clients.Vuze.Vuze",
-            "NzbDrone.Core.Download.CompletedDownloadService",
             "NzbDrone.Core.Download.DownloadClientBase`1",
             "NzbDrone.Core.Download.DownloadSeedConfigProvider",
             "NzbDrone.Core.Download.DownloadService",
             "NzbDrone.Core.Download.FailedDownloadService",
             "NzbDrone.Core.Download.History.DownloadHistoryService",
-            "NzbDrone.Core.Download.ICompletedDownloadService",
             "NzbDrone.Core.Download.IDownloadClient",
             "NzbDrone.Core.Download.IDownloadService",
             "NzbDrone.Core.Download.IProcessDownloadDecisions",
-            "NzbDrone.Core.Download.IRejectedImportService",
             "NzbDrone.Core.Download.IgnoredDownloadService",
             "NzbDrone.Core.Download.ManualInteractionRequiredEvent",
             "NzbDrone.Core.Download.MovieGrabbedEvent",
@@ -79,12 +76,9 @@ namespace NzbDrone.Core.Test.Architecture
             "NzbDrone.Core.Download.ProcessDownloadDecisions",
             "NzbDrone.Core.Download.ProcessedDecisions",
             "NzbDrone.Core.Download.RedownloadFailedDownloadService",
-            "NzbDrone.Core.Download.RejectedImportService",
             "NzbDrone.Core.Download.TorrentClientBase`1",
             "NzbDrone.Core.Download.TrackedDownloads.DownloadMonitoringService",
-            "NzbDrone.Core.Download.TrackedDownloads.ITrackedDownloadAlreadyImported",
             "NzbDrone.Core.Download.TrackedDownloads.TrackedDownload",
-            "NzbDrone.Core.Download.TrackedDownloads.TrackedDownloadAlreadyImported",
             "NzbDrone.Core.Download.TrackedDownloads.TrackedDownloadService",
             "NzbDrone.Core.Download.UsenetClientBase`1",
 

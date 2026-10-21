@@ -6,10 +6,11 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.History;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Import;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 
-namespace NzbDrone.Core.Test.Download.TrackedDownloads
+namespace NzbDrone.Core.Test.MovieTests.ImportTests
 {
     [TestFixture]
     public class TrackedDownloadAlreadyImportedFixture : CoreTest<TrackedDownloadAlreadyImported>
