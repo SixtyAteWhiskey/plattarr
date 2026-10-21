@@ -17,10 +17,15 @@ function selectProviderSchema(state, section, payload, schemaDefaults) {
 
   const {
     implementation,
+    schemaName,
     presetName
   } = payload;
 
-  const selectedImplementation = _.find(newState.schema, { implementation });
+  // Plattarr: one implementation (Cardigann, Newznab presets) can back many
+  // indexer schema entries, so indexers also match on the schema entry's name.
+  const selectedImplementation = schemaName ?
+    _.find(newState.schema, { implementation, name: schemaName }) :
+    _.find(newState.schema, { implementation });
 
   const selectedSchema = presetName ?
     _.find(selectedImplementation.presets, { name: presetName }) :

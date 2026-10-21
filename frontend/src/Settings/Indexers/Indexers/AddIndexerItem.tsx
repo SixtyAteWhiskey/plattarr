@@ -12,16 +12,20 @@ import AddIndexerPresetMenuItem from './AddIndexerPresetMenuItem';
 import styles from './AddIndexerItem.css';
 
 interface AddIndexerItemProps {
+  name: string;
   implementation: string;
   implementationName: string;
+  schemaName?: string;
   infoLink: string;
   presets?: Indexer[];
   onIndexerSelect: () => void;
 }
 
 function AddIndexerItem({
+  name,
   implementation,
   implementationName,
+  schemaName,
   infoLink,
   presets,
   onIndexerSelect,
@@ -34,18 +38,25 @@ function AddIndexerItem({
       selectIndexerSchema({
         implementation,
         implementationName,
+        schemaName,
       })
     );
 
     onIndexerSelect();
-  }, [implementation, implementationName, dispatch, onIndexerSelect]);
+  }, [
+    implementation,
+    implementationName,
+    schemaName,
+    dispatch,
+    onIndexerSelect,
+  ]);
 
   return (
     <div className={styles.indexer}>
       <Link className={styles.underlay} onPress={handleIndexerSelect} />
 
       <div className={styles.overlay}>
-        <div className={styles.name}>{implementationName}</div>
+        <div className={styles.name}>{name}</div>
 
         <div className={styles.actions}>
           {hasPresets && (
@@ -67,6 +78,7 @@ function AddIndexerItem({
                         name={preset.name}
                         implementation={implementation}
                         implementationName={implementationName}
+                        schemaName={schemaName}
                         onPress={onIndexerSelect}
                       />
                     );
