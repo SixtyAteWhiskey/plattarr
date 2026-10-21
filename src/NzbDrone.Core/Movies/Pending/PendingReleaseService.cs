@@ -7,13 +7,14 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.DecisionEngine;
+using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Aggregation;
+using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.Jobs;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
-using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Events;
 using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Parser;
@@ -22,7 +23,7 @@ using NzbDrone.Core.Profiles.Delay;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Queue;
 
-namespace NzbDrone.Core.Download.Pending
+namespace NzbDrone.Core.Movies.Pending
 {
     public interface IPendingReleaseService
     {
@@ -203,12 +204,12 @@ namespace NzbDrone.Core.Download.Pending
             }
 
             // Return best quality release for each movie
-            var deduped = queued.Where(q => q.Movie != null).GroupBy(q => q.Movie.Id).Select(g =>
+            var deduped = queued.Where(q => q.GetMovie() != null).GroupBy(q => q.GetMovie().Id).Select(g =>
             {
-                var movies = g.First().Movie;
+                var movies = g.First().GetMovie();
 
                 return g.OrderByDescending(e => e.Quality, new QualityModelComparer(movies.QualityProfile))
-                        .ThenBy(q => PrioritizeDownloadProtocol(q.Movie, q.Protocol))
+                        .ThenBy(q => PrioritizeDownloadProtocol(q.GetMovie(), q.Protocol))
                         .First();
             });
 
@@ -223,9 +224,9 @@ namespace NzbDrone.Core.Download.Pending
         public void RemovePendingQueueItems(int queueId)
         {
             var targetItem = FindPendingRelease(queueId);
-            var movieReleases = _repository.AllByMovieId(targetItem.MovieId);
+            var movieReleases = _repository.AllByMovieId(targetItem.ParentId);
 
-            var releasesToRemove = movieReleases.Where(c => c.ParsedMovieInfo.PrimaryMovieTitle == targetItem.ParsedMovieInfo.PrimaryMovieTitle);
+            var releasesToRemove = movieReleases.Where(c => c.ParsedInfo.PrimaryMovieTitle == targetItem.ParsedInfo.PrimaryMovieTitle);
 
             _repository.DeleteMany(releasesToRemove.Select(c => c.Id));
         }
@@ -262,14 +263,14 @@ namespace NzbDrone.Core.Download.Pending
                 }
             }
 
-            foreach (var movie in _movieService.GetMovies(releases.Select(v => v.MovieId).Distinct().Where(v => !movieMap.ContainsKey(v))))
+            foreach (var movie in _movieService.GetMovies(releases.Select(v => v.ParentId).Distinct().Where(v => !movieMap.ContainsKey(v))))
             {
                 movieMap[movie.Id] = movie;
             }
 
             foreach (var release in releases)
             {
-                var movie = movieMap.GetValueOrDefault(release.MovieId);
+                var movie = movieMap.GetValueOrDefault(release.ParentId);
 
                 // Just in case the movie was removed, but wasn't cleaned up yet (housekeeper will clean it up)
                 if (movie == null)
@@ -278,9 +279,9 @@ namespace NzbDrone.Core.Download.Pending
                 }
 
                 // Languages will be empty if added before upgrading to v4, reparsing the languages if they're empty will set it to Unknown or better.
-                if (release.ParsedMovieInfo.Languages.Empty())
+                if (release.ParsedInfo.Languages.Empty())
                 {
-                    release.ParsedMovieInfo.Languages = LanguageParser.ParseLanguages(release.Title);
+                    release.ParsedInfo.Languages = LanguageParser.ParseLanguages(release.Title);
                 }
 
                 release.RemoteMovie = new RemoteMovie
@@ -288,7 +289,7 @@ namespace NzbDrone.Core.Download.Pending
                     Movie = movie,
                     MovieMatchType = release.AdditionalInfo?.MovieMatchType ?? MovieMatchType.Unknown,
                     ReleaseSource = release.AdditionalInfo?.ReleaseSource ?? ReleaseSourceType.Unknown,
-                    ParsedMovieInfo = release.ParsedMovieInfo,
+                    ParsedMovieInfo = release.ParsedInfo,
                     Release = release.Release
                 };
 
@@ -334,13 +335,12 @@ namespace NzbDrone.Core.Download.Pending
             var queue = new Queue.Queue
             {
                 Id = GetQueueId(pendingRelease, movie),
-                Movie = movie,
                 Quality = pendingRelease.RemoteMovie.ParsedMovieInfo?.Quality ?? new QualityModel(),
                 Languages = pendingRelease.RemoteMovie.Languages,
                 Title = pendingRelease.Title,
                 Size = pendingRelease.RemoteMovie.Release.Size.GetValueOrDefault(),
                 SizeLeft = pendingRelease.RemoteMovie.Release.Size.GetValueOrDefault(),
-                RemoteMovie = pendingRelease.RemoteMovie,
+                RemoteRelease = pendingRelease.RemoteMovie,
                 TimeLeft = timeLeft,
                 EstimatedCompletionTime = ect,
                 Added = pendingRelease.Added,
@@ -358,8 +358,8 @@ namespace NzbDrone.Core.Download.Pending
             var release = new PendingRelease
             {
                 MediaKind = MediaKind.Movies,
-                MovieId = decision.RemoteMovie.Movie.Id,
-                ParsedMovieInfo = decision.RemoteMovie.ParsedMovieInfo,
+                ParentId = decision.RemoteMovie.Movie.Id,
+                ParsedInfo = decision.RemoteMovie.ParsedMovieInfo,
                 Release = decision.RemoteMovie.Release,
                 Title = decision.RemoteMovie.Release.Title,
                 Added = DateTime.UtcNow,
@@ -371,7 +371,7 @@ namespace NzbDrone.Core.Download.Pending
                 }
             };
 
-            if (release.ParsedMovieInfo == null)
+            if (release.ParsedInfo == null)
             {
                 _logger.Warn("Pending release {0} does not have ParsedMovieInfo, will cause issues.", release.Title);
             }

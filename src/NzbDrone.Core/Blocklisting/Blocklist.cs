@@ -13,7 +13,7 @@ namespace NzbDrone.Core.Blocklisting
     public class Blocklist : ModelBase, IMediaKindRecord
     {
         public MediaKind MediaKind { get; set; }
-        public int MovieId { get; set; }
+        public int ParentId { get; set; }
         public Movie Movie { get; set; }
         public string SourceTitle { get; set; }
         public QualityModel Quality { get; set; }

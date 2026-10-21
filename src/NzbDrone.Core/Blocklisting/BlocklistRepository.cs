@@ -24,18 +24,18 @@ namespace NzbDrone.Core.Blocklisting
 
         public List<Blocklist> BlocklistedByTitle(int movieId, string sourceTitle)
         {
-            return Query(x => x.MovieId == movieId && x.SourceTitle.Contains(sourceTitle));
+            return Query(x => x.ParentId == movieId && x.SourceTitle.Contains(sourceTitle));
         }
 
         public List<Blocklist> BlocklistedByTorrentInfoHash(int movieId, string torrentInfoHash)
         {
-            return Query(x => x.MovieId == movieId && x.TorrentInfoHash.Contains(torrentInfoHash));
+            return Query(x => x.ParentId == movieId && x.TorrentInfoHash.Contains(torrentInfoHash));
         }
 
         public List<Blocklist> BlocklistedByMovie(int movieId)
         {
-            var builder = Builder().Join<Blocklist, Movie>((h, a) => h.MovieId == a.Id)
-                                   .Where<Blocklist>(h => h.MovieId == movieId);
+            var builder = Builder().Join<Blocklist, Movie>((h, a) => h.ParentId == a.Id)
+                                   .Where<Blocklist>(h => h.ParentId == movieId);
 
             return _database.QueryJoined<Blocklist, Movie>(builder, (blocklist, movie) =>
             {
@@ -46,7 +46,7 @@ namespace NzbDrone.Core.Blocklisting
 
         public void DeleteForMovies(List<int> movieIds)
         {
-            Delete(x => movieIds.Contains(x.MovieId));
+            Delete(x => movieIds.Contains(x.ParentId));
         }
 
         public override PagingSpec<Blocklist> GetPaged(PagingSpec<Blocklist> pagingSpec)
@@ -62,7 +62,7 @@ namespace NzbDrone.Core.Blocklisting
         protected override SqlBuilder PagedBuilder()
         {
             var builder = Builder()
-                .Join<Blocklist, Movie>((b, m) => b.MovieId == m.Id)
+                .Join<Blocklist, Movie>((b, m) => b.ParentId == m.Id)
                 .LeftJoin<Movie, MovieMetadata>((m, mm) => m.MovieMetadataId == mm.Id);
 
             return builder;

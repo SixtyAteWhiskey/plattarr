@@ -59,7 +59,7 @@ namespace NzbDrone.Core.Test.MediaFiles.MovieImport.Specifications
 
             for (var i = 0; i < grabbedHistories.Count; i++)
             {
-                grabbedHistories[i].MovieId = movies[i].Id;
+                grabbedHistories[i].ParentId = movies[i].Id;
             }
 
             _localMovie.Release = new GrabbedReleaseInfo(grabbedHistories);

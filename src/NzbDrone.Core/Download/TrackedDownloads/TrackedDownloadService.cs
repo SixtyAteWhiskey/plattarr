@@ -135,7 +135,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                 if (parsedMovieInfo != null)
                 {
                     trackedDownload.RemoteMovie = downloadHistory is { EventType: DownloadHistoryEventType.DownloadImported }
-                        ? _parsingService.Map(parsedMovieInfo, downloadHistory.MovieId)
+                        ? _parsingService.Map(parsedMovieInfo, downloadHistory.ParentId)
                         : _parsingService.Map(parsedMovieInfo, "", 0, null);
                 }
 
@@ -159,7 +159,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                         if (parsedMovieInfo != null)
                         {
                             trackedDownload.RemoteMovie = _parsingService.Map(parsedMovieInfo,
-                                firstHistoryItem.MovieId);
+                                firstHistoryItem.ParentId);
                         }
                     }
 

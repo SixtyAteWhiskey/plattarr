@@ -8,6 +8,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
@@ -66,7 +67,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
 
             Mocker.GetMock<IPendingReleaseRepository>()
                   .Setup(s => s.AllByMovieId(It.IsAny<int>()))
-                  .Returns<int>(i => _heldReleases.Where(v => v.MovieId == i).ToList());
+                  .Returns<int>(i => _heldReleases.Where(v => v.ParentId == i).ToList());
 
             Mocker.GetMock<IMovieService>()
                   .Setup(s => s.GetMovie(It.IsAny<int>()))
@@ -85,11 +86,11 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
 
             var heldReleases = Builder<PendingRelease>.CreateListOfSize(1)
                                                    .All()
-                                                   .With(h => h.MovieId = _movie.Id)
+                                                   .With(h => h.ParentId = _movie.Id)
                                                    .With(h => h.Title = title)
                                                    .With(h => h.Release = release)
                                                    .With(h => h.Reason = reason)
-                                                   .With(h => h.ParsedMovieInfo = _parsedMovieInfo)
+                                                   .With(h => h.ParsedInfo = _parsedMovieInfo)
                                                    .Build();
 
             _heldReleases.AddRange(heldReleases);

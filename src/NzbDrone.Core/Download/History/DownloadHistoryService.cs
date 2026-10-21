@@ -104,7 +104,7 @@ namespace NzbDrone.Core.Download.History
             {
                 MediaKind = MediaKind.Movies,
                 EventType = DownloadHistoryEventType.DownloadGrabbed,
-                MovieId = message.Movie.Movie.Id,
+                ParentId = message.Movie.Movie.Id,
                 DownloadId = message.DownloadId,
                 SourceTitle = message.Movie.Release.Title,
                 Date = DateTime.UtcNow,
@@ -147,7 +147,7 @@ namespace NzbDrone.Core.Download.History
             {
                 MediaKind = MediaKind.Movies,
                 EventType = DownloadHistoryEventType.FileImported,
-                MovieId = message.ImportedMovie.MovieId,
+                ParentId = message.ImportedMovie.MovieId,
                 DownloadId = downloadId,
                 SourceTitle = message.MovieInfo.Path,
                 Date = DateTime.UtcNow,
@@ -169,7 +169,7 @@ namespace NzbDrone.Core.Download.History
             {
                 MediaKind = MediaKind.Movies,
                 EventType = DownloadHistoryEventType.DownloadImported,
-                MovieId = message.MovieId,
+                ParentId = message.MovieId,
                 DownloadId = downloadItem.DownloadId,
                 SourceTitle = downloadItem.Title,
                 Date = DateTime.UtcNow,
@@ -195,7 +195,7 @@ namespace NzbDrone.Core.Download.History
             {
                 MediaKind = MediaKind.Movies,
                 EventType = DownloadHistoryEventType.DownloadFailed,
-                MovieId = message.MovieId,
+                ParentId = message.MovieId,
                 DownloadId = message.DownloadId,
                 SourceTitle = message.SourceTitle,
                 Date = DateTime.UtcNow,
@@ -215,7 +215,7 @@ namespace NzbDrone.Core.Download.History
             {
                 MediaKind = MediaKind.Movies,
                 EventType = DownloadHistoryEventType.DownloadIgnored,
-                MovieId = message.MovieId,
+                ParentId = message.MovieId,
                 DownloadId = message.DownloadId,
                 SourceTitle = message.SourceTitle,
                 Date = DateTime.UtcNow,

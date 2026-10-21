@@ -10,7 +10,6 @@ using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Datastore.Converters;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.History;
-using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.IndexerHistory;
 using NzbDrone.Core.IndexerProxies;
 using NzbDrone.Core.IndexerVersions;
@@ -92,9 +91,6 @@ namespace NzbDrone.Core.Datastore
             Mapper.Entity<QualityProfile>("QualityProfiles").RegisterModel();
             Mapper.Entity<Log>("Logs").RegisterModel();
 
-            // RemoteMovie is not persisted. It has no type handler, so RegisterModel skips it.
-            Mapper.Entity<PendingRelease>("PendingReleases").RegisterModel();
-
             Mapper.Entity<RemotePathMapping>("RemotePathMappings").RegisterModel();
             Mapper.Entity<Tag>("Tags").RegisterModel();
             Mapper.Entity<ReleaseProfile>("ReleaseProfiles").RegisterModel();
@@ -168,7 +164,6 @@ namespace NzbDrone.Core.Datastore
             SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<List<Language>>(new LanguageIntConverter()));
             SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<List<string>>());
             SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<ReleaseInfo>());
-            SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<PendingReleaseAdditionalInfo>());
             SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<HashSet<int>>());
             SqlMapper.AddTypeHandler(new OsPathConverter());
             SqlMapper.RemoveTypeMap(typeof(Guid));

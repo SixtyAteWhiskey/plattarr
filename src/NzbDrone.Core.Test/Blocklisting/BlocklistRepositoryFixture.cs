@@ -26,7 +26,7 @@ namespace NzbDrone.Core.Test.Blocklisting
             _blocklist = new Blocklist
             {
                 MediaKind = MediaKind.Movies,
-                MovieId = 1234,
+                ParentId = 1234,
                 Quality = new QualityModel(),
                 Languages = new List<Language>(),
                 SourceTitle = "movie.title.1998",
@@ -54,7 +54,7 @@ namespace NzbDrone.Core.Test.Blocklisting
         {
             Subject.Insert(_blocklist);
 
-            Subject.All().First().MovieId.Should().Be(_blocklist.MovieId);
+            Subject.All().First().ParentId.Should().Be(_blocklist.ParentId);
         }
 
         [Test]
@@ -62,7 +62,7 @@ namespace NzbDrone.Core.Test.Blocklisting
         {
             Subject.Insert(_blocklist);
 
-            Subject.BlocklistedByTitle(_blocklist.MovieId, _blocklist.SourceTitle.ToUpperInvariant()).Should().HaveCount(1);
+            Subject.BlocklistedByTitle(_blocklist.ParentId, _blocklist.SourceTitle.ToUpperInvariant()).Should().HaveCount(1);
         }
 
         [Test]
@@ -72,9 +72,9 @@ namespace NzbDrone.Core.Test.Blocklisting
                 .All()
                 .With(c => c.MediaKind = MediaKind.Movies)
                 .TheFirst(1)
-                .With(c => c.MovieId = _movie2.Id)
+                .With(c => c.ParentId = _movie2.Id)
                 .TheRest()
-                .With(c => c.MovieId = _movie1.Id)
+                .With(c => c.ParentId = _movie1.Id)
                 .All()
                 .With(c => c.Quality = new QualityModel())
                 .With(c => c.Languages = new List<Language>())
@@ -86,8 +86,8 @@ namespace NzbDrone.Core.Test.Blocklisting
             Subject.DeleteForMovies(new List<int> { _movie1.Id });
 
             var blocklist = Subject.All();
-            var removedMovieBlocklists = blocklist.Where(b => b.MovieId == _movie1.Id);
-            var nonRemovedMovieBlocklists = blocklist.Where(b => b.MovieId == _movie2.Id);
+            var removedMovieBlocklists = blocklist.Where(b => b.ParentId == _movie1.Id);
+            var nonRemovedMovieBlocklists = blocklist.Where(b => b.ParentId == _movie2.Id);
 
             removedMovieBlocklists.Should().HaveCount(0);
             nonRemovedMovieBlocklists.Should().HaveCount(1);

@@ -75,7 +75,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         {
             var queue = remoteMovies.Select(remoteMovie => new Queue.Queue
             {
-                RemoteMovie = remoteMovie,
+                RemoteRelease = remoteMovie,
                 TrackedDownloadState = trackedDownloadState
             });
 

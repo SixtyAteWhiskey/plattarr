@@ -37,7 +37,7 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
                     {
                         DownloadId = "35238",
                         SourceTitle = "TV Series S01",
-                        MovieId = 3,
+                        ParentId = 3,
                     }
                 });
         }
@@ -95,7 +95,7 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
             {
                 DownloadId = "35238",
                 SourceTitle = "TV Series S01",
-                MovieId = 3,
+                ParentId = 3,
                 EventType = MovieHistoryEventType.Grabbed,
             };
             episodeHistory.Data.Add("indexer", "MyIndexer (Prowlarr)");
@@ -286,7 +286,7 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
                 .Setup(s => s.GetLatestDownloadHistoryItem(It.Is<string>(sr => sr == "35238")))
                 .Returns(new DownloadHistory
                 {
-                    MovieId = 5,
+                    ParentId = 5,
                     EventType = DownloadHistoryEventType.DownloadImported,
                 });
 
@@ -331,7 +331,7 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
                 .Setup(s => s.GetLatestDownloadHistoryItem(It.Is<string>(sr => sr == "35238")))
                 .Returns(new DownloadHistory
                 {
-                    MovieId = 5,
+                    ParentId = 5,
                     EventType = DownloadHistoryEventType.DownloadGrabbed,
                 });
 
@@ -350,7 +350,7 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
                 .Setup(s => s.GetLatestDownloadHistoryItem(It.Is<string>(sr => sr == "35238")))
                 .Returns(new DownloadHistory
                 {
-                    MovieId = 5,
+                    ParentId = 5,
                     EventType = DownloadHistoryEventType.DownloadImported,
                 });
 

@@ -37,7 +37,7 @@ namespace NzbDrone.Core.Test.Datastore
             return new Blocklist
             {
                 MediaKind = kind,
-                MovieId = _movie.Id,
+                ParentId = _movie.Id,
                 SourceTitle = Title,
                 TorrentInfoHash = "abc",
                 Quality = new QualityModel(),

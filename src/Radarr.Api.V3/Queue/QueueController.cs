@@ -14,6 +14,8 @@ using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Queue;
@@ -174,7 +176,7 @@ namespace Radarr.Api.V3.Queue
             var orderByFunc = GetOrderByFunc(pagingSpec);
 
             var queue = _queueService.GetQueue();
-            var filteredQueue = includeUnknownMovieItems ? queue : queue.Where(q => q.Movie != null);
+            var filteredQueue = includeUnknownMovieItems ? queue : queue.Where(q => q.GetMovie() != null);
             var pending = _pendingReleaseService.GetPendingQueue();
 
             var hasMovieIdFilter = movieIds is { Count: > 0 };
@@ -188,7 +190,7 @@ namespace Radarr.Api.V3.Queue
 
                 if (hasMovieIdFilter)
                 {
-                    include &= q.Movie != null && movieIds.Contains(q.Movie.Id);
+                    include &= q.GetMovie() != null && movieIds.Contains(q.GetMovie().Id);
                 }
 
                 if (include && protocol.HasValue)
@@ -292,11 +294,11 @@ namespace Radarr.Api.V3.Queue
                 case "status":
                     return q => q.Status.ToString();
                 case "movies.sortTitle":
-                    return q => q.Movie?.MovieMetadata.Value.SortTitle ?? q.Title;
+                    return q => q.GetMovie()?.MovieMetadata.Value.SortTitle ?? q.Title;
                 case "title":
                     return q => q.Title;
                 case "year":
-                    return q => q.Movie?.Year ?? 0;
+                    return q => q.GetMovie()?.Year ?? 0;
                 case "languages":
                     return q => q.Languages;
                 case "quality":
@@ -315,7 +317,7 @@ namespace Radarr.Api.V3.Queue
         {
             if (blocklist)
             {
-                _blocklistService.Block(pendingRelease.RemoteMovie, "Pending release manually blocklisted");
+                _blocklistService.Block(pendingRelease.GetRemoteMovie(), "Pending release manually blocklisted");
             }
 
             _pendingReleaseService.RemovePendingQueueItems(pendingRelease.Id);

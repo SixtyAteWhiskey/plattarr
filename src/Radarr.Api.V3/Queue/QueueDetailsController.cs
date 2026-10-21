@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Core.Datastore.Events;
 using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Queue;
 using NzbDrone.SignalR;
 using Radarr.Http;
@@ -49,7 +51,7 @@ namespace Radarr.Api.V3.Queue
 
             if (movieId.HasValue)
             {
-                return TypedResults.Ok(fullQueue.Where(q => q.Movie?.Id == movieId.Value).ToResource(includeMovie));
+                return TypedResults.Ok(fullQueue.Where(q => q.GetMovie()?.Id == movieId.Value).ToResource(includeMovie));
             }
 
             return TypedResults.Ok(fullQueue.ToResource(includeMovie));

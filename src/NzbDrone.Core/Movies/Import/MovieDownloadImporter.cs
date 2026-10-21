@@ -62,7 +62,7 @@ namespace NzbDrone.Core.Movies.Import
             {
                 if (historyItem != null)
                 {
-                    movie = _movieService.GetMovie(historyItem.MovieId);
+                    movie = _movieService.GetMovie(historyItem.ParentId);
                 }
 
                 if (movie == null)

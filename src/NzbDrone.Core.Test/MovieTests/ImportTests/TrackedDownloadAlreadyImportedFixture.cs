@@ -45,7 +45,7 @@ namespace NzbDrone.Core.Test.MovieTests.ImportTests
             {
                 _historyItems.Add(
                     Builder<MovieHistory>.CreateNew()
-                                            .With(h => h.MovieId = movie.Id)
+                                            .With(h => h.ParentId = movie.Id)
                                             .With(h => h.EventType = eventType)
                                             .Build());
             }

@@ -61,7 +61,7 @@ namespace NzbDrone.Core.Movies.Search
 
             var movies = _movieService.MoviesWithoutFiles(pagingSpec).Records.ToList();
 
-            var queue = _queueService.GetQueue().Where(q => q.Movie != null).Select(q => q.Movie.Id);
+            var queue = _queueService.GetQueue().Where(q => q.GetMovie() != null).Select(q => q.GetMovie().Id);
             var missing = movies.Where(e => !queue.Contains(e.Id)).ToList();
 
             SearchForBulkMovies(missing, message.Trigger == CommandTrigger.Manual).GetAwaiter().GetResult();
@@ -81,7 +81,7 @@ namespace NzbDrone.Core.Movies.Search
 
             var movies = _movieCutoffService.MoviesWhereCutoffUnmet(pagingSpec).Records.ToList();
 
-            var queue = _queueService.GetQueue().Where(q => q.Movie != null).Select(q => q.Movie.Id);
+            var queue = _queueService.GetQueue().Where(q => q.GetMovie() != null).Select(q => q.GetMovie().Id);
             var missing = movies.Where(e => !queue.Contains(e.Id)).ToList();
 
             SearchForBulkMovies(missing, message.Trigger == CommandTrigger.Manual).GetAwaiter().GetResult();

@@ -45,7 +45,7 @@ namespace Radarr.Api.V3.History
             {
                 Id = model.Id,
 
-                MovieId = model.MovieId,
+                MovieId = model.ParentId,
                 SourceTitle = model.SourceTitle,
                 Languages = model.Languages,
                 Quality = model.Quality,

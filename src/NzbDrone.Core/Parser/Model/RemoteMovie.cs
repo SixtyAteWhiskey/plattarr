@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Parser.Model
 {
@@ -24,6 +25,9 @@ namespace NzbDrone.Core.Parser.Model
 
         [JsonIgnore]
         public override bool IsRecent => Movie?.MovieMetadata?.Value?.IsRecentMovie ?? false;
+
+        [JsonIgnore]
+        public override QualityModel Quality => ParsedMovieInfo?.Quality ?? new QualityModel(Qualities.Quality.Unknown);
     }
 
     public enum ReleaseSourceType

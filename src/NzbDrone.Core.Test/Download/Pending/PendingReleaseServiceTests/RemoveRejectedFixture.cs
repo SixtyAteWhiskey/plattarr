@@ -6,8 +6,8 @@ using NUnit.Framework;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
-using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
@@ -90,10 +90,10 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
 
             var heldReleases = Builder<PendingRelease>.CreateListOfSize(1)
                                                    .All()
-                                                   .With(h => h.MovieId = _movie.Id)
+                                                   .With(h => h.ParentId = _movie.Id)
                                                    .With(h => h.Title = title)
                                                    .With(h => h.Release = release)
-                                                   .With(h => h.ParsedMovieInfo = _parsedMovieInfo)
+                                                   .With(h => h.ParsedInfo = _parsedMovieInfo)
                                                    .Build();
 
             Mocker.GetMock<IPendingReleaseRepository>()

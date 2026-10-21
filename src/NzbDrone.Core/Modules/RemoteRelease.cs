@@ -4,6 +4,7 @@ using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Modules
 {
@@ -36,6 +37,10 @@ namespace NzbDrone.Core.Modules
 
         [JsonIgnore]
         public abstract bool IsRecent { get; }
+
+        // The quality the module's parser read from the release title (Unknown when it found none).
+        [JsonIgnore]
+        public abstract QualityModel Quality { get; }
 
         public override string ToString()
         {

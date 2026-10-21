@@ -18,6 +18,7 @@ using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies.AlternativeTitles;
 using NzbDrone.Core.Movies.Collections;
 using NzbDrone.Core.Movies.Credits;
+using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Movies.Translations;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser.Model;
@@ -36,6 +37,7 @@ namespace NzbDrone.Core.Movies
             SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<List<IAutoTaggingSpecification>>(new AutoTaggingSpecificationConverter()));
             SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<ParsedMovieInfo>(new QualityIntConverter(), new LanguageIntConverter()));
             SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<Ratings>());
+            SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<PendingReleaseAdditionalInfo>());
             SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<List<MovieTranslation>>());
         }
 
@@ -92,6 +94,9 @@ namespace NzbDrone.Core.Movies
             // every query to movies.
             mapper.Entity<MovieHistory>("History").RegisterModel();
             mapper.Entity<Blocklist>("Blocklist").RegisterModel();
+
+            // RemoteMovie is not persisted. It has no type handler, so RegisterModel skips it.
+            mapper.Entity<PendingRelease>("PendingReleases").RegisterModel();
 
             // Global tables whose entity code is still Radarr's (spec, "Other tables").
             mapper.Entity<ImportListExclusion>("ImportExclusions").RegisterModel();

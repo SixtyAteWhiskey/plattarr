@@ -33,7 +33,7 @@ namespace NzbDrone.Core.Movies.Import
 
             var movie = trackedDownload.RemoteMovie.Movie;
 
-            var lastHistoryItem = historyItems.FirstOrDefault(h => h.MovieId == movie.Id);
+            var lastHistoryItem = historyItems.FirstOrDefault(h => h.ParentId == movie.Id);
 
             if (lastHistoryItem == null)
             {

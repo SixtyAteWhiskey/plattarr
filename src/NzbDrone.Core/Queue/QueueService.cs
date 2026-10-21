@@ -5,7 +5,6 @@ using NzbDrone.Common.Crypto;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Messaging.Events;
-using NzbDrone.Core.Movies;
 using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Queue
@@ -42,24 +41,14 @@ namespace NzbDrone.Core.Queue
             _queue.Remove(Find(id));
         }
 
-        private IEnumerable<Queue> MapQueue(TrackedDownload trackedDownload)
+        private Queue MapQueue(TrackedDownload trackedDownload)
         {
-            if (trackedDownload.RemoteMovie != null && trackedDownload.RemoteMovie.Movie != null)
-            {
-                yield return MapMovie(trackedDownload, trackedDownload.RemoteMovie.Movie);
-            }
-            else
-            {
-                yield return MapMovie(trackedDownload, null);
-            }
-        }
+            var remoteRelease = trackedDownload.RemoteRelease;
 
-        private Queue MapMovie(TrackedDownload trackedDownload, Movie movie)
-        {
             var queue = new Queue
             {
-                Languages = trackedDownload.RemoteMovie?.Languages ?? new List<Language> { Language.Unknown },
-                Quality = trackedDownload.RemoteMovie?.ParsedMovieInfo.Quality ?? new QualityModel(Quality.Unknown),
+                Languages = remoteRelease?.Languages ?? new List<Language> { Language.Unknown },
+                Quality = remoteRelease?.Quality ?? new QualityModel(Quality.Unknown),
                 Title = trackedDownload.DownloadItem.Title,
                 Size = trackedDownload.DownloadItem.TotalSize,
                 SizeLeft = trackedDownload.DownloadItem.RemainingSize,
@@ -69,10 +58,9 @@ namespace NzbDrone.Core.Queue
                 TrackedDownloadState = trackedDownload.State,
                 StatusMessages = trackedDownload.StatusMessages.ToList(),
                 ErrorMessage = trackedDownload.DownloadItem.Message,
-                RemoteMovie = trackedDownload.RemoteMovie,
+                RemoteRelease = remoteRelease,
                 DownloadId = trackedDownload.DownloadItem.DownloadId,
                 Protocol = trackedDownload.Protocol,
-                Movie = movie,
                 DownloadClient = trackedDownload.DownloadItem.DownloadClientInfo.Name,
                 Indexer = trackedDownload.Indexer,
                 OutputPath = trackedDownload.DownloadItem.OutputPath.ToString(),
@@ -95,7 +83,7 @@ namespace NzbDrone.Core.Queue
             _queue = message.TrackedDownloads
                 .Where(t => t.IsTrackable)
                 .OrderBy(c => c.DownloadItem.RemainingTime)
-                .SelectMany(MapQueue)
+                .Select(MapQueue)
                 .ToList();
 
             _eventAggregator.PublishEvent(new QueueUpdatedEvent());

@@ -52,7 +52,7 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
                                                   .With(c => c.MediaKind = MediaKind.Movies)
                                                   .With(h => h.Quality = new QualityModel())
                                                   .With(h => h.Languages = new List<Language>())
-                                                  .With(h => h.MovieId = _movie.Id)
+                                                  .With(h => h.ParentId = _movie.Id)
                                                   .BuildNew();
             Db.Insert(history);
 
