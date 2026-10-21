@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
 
-namespace NzbDrone.Core.Notifications.Webhook
+namespace NzbDrone.Core.Movies.Notifications
 {
     public class WebhookMovieFile
     {

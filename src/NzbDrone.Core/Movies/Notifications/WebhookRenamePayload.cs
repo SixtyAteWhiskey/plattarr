@@ -1,6 +1,7 @@
 using System.Collections.Generic;
+using NzbDrone.Core.Notifications.Webhook;
 
-namespace NzbDrone.Core.Notifications.Webhook
+namespace NzbDrone.Core.Movies.Notifications
 {
     public class WebhookRenamePayload : WebhookPayload
     {

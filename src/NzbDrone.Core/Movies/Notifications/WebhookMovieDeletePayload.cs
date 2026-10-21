@@ -1,4 +1,6 @@
-namespace NzbDrone.Core.Notifications.Webhook
+using NzbDrone.Core.Notifications.Webhook;
+
+namespace NzbDrone.Core.Movies.Notifications
 {
     public class WebhookMovieDeletePayload : WebhookPayload
     {

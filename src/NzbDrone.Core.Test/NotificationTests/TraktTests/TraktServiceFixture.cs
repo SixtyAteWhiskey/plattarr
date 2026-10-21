@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.MediaInfo;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Notifications;
 using NzbDrone.Core.Notifications;
 using NzbDrone.Core.Notifications.Trakt;
 using NzbDrone.Core.Notifications.Trakt.Resource;
@@ -17,23 +20,32 @@ namespace NzbDrone.Core.Test.NotificationTests
     public class TraktServiceFixture : CoreTest<Trakt>
     {
         private DownloadMessage _downloadMessage;
+        private MovieFile _movieFile;
         private NotificationDefinition _traktDefinition;
 
         [SetUp]
         public void Setup()
         {
-            _downloadMessage = new DownloadMessage
+            _movieFile = new MovieFile
             {
-                Movie = new Movie(),
-                MovieFile = new MovieFile
+                MediaInfo = null,
+                Quality = new QualityModel
                 {
-                    MediaInfo = null,
-                    Quality = new QualityModel
-                    {
-                        Quality = Quality.Unknown
-                    }
+                    Quality = Quality.Unknown
                 }
             };
+
+            _downloadMessage = new DownloadMessage
+            {
+                Subject = new ActivitySubject { Kind = MediaKind.Movies },
+                Data = new MovieNotificationData
+                {
+                    Movie = new Movie(),
+                    MovieFile = _movieFile
+                }
+            };
+
+            Mocker.SetConstant<IEnumerable<ITraktCollectionBuilder>>(new[] { new MovieTraktCollectionBuilder() });
 
             _traktDefinition = new NotificationDefinition
             {
@@ -50,7 +62,7 @@ namespace NzbDrone.Core.Test.NotificationTests
 
         private void GiventValidMediaInfo(Quality quality, string audioChannels, string audioFormat, string scanType, HdrFormat hdrFormat = HdrFormat.None)
         {
-            _downloadMessage.MovieFile.MediaInfo = new MediaInfoModel
+            _movieFile.MediaInfo = new MediaInfoModel
             {
                 AudioChannelPositions = audioChannels,
                 AudioFormat = audioFormat,
@@ -58,7 +70,7 @@ namespace NzbDrone.Core.Test.NotificationTests
                 VideoHdrFormat = hdrFormat
             };
 
-            _downloadMessage.MovieFile.Quality.Quality = quality;
+            _movieFile.Quality.Quality = quality;
         }
 
         [Test]

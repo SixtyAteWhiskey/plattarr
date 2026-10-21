@@ -9,16 +9,15 @@ using NzbDrone.Common.Cache;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.Movies;
-using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Notifications.Plex.Server
 {
     public interface IPlexServerService
     {
-        void UpdateLibrary(Movie movie, PlexServerSettings settings);
-        void UpdateLibrary(IEnumerable<Movie> movie, PlexServerSettings settings);
+        void UpdateLibrary(ActivitySubject subject, PlexServerSettings settings);
+        void UpdateLibrary(IEnumerable<ActivitySubject> subjects, PlexServerSettings settings);
         ValidationFailure Test(PlexServerSettings settings);
     }
 
@@ -26,25 +25,23 @@ namespace NzbDrone.Core.Notifications.Plex.Server
     {
         private readonly ICached<Version> _versionCache;
         private readonly IPlexServerProxy _plexServerProxy;
-        private readonly IRootFolderService _rootFolderService;
         private readonly ILocalizationService _localizationService;
         private readonly Logger _logger;
 
-        public PlexServerService(ICacheManager cacheManager, IPlexServerProxy plexServerProxy, IRootFolderService rootFolderService, ILocalizationService localizationService, Logger logger)
+        public PlexServerService(ICacheManager cacheManager, IPlexServerProxy plexServerProxy, ILocalizationService localizationService, Logger logger)
         {
             _versionCache = cacheManager.GetCache<Version>(GetType(), "versionCache");
             _plexServerProxy = plexServerProxy;
-            _rootFolderService = rootFolderService;
             _localizationService = localizationService;
             _logger = logger;
         }
 
-        public void UpdateLibrary(Movie movie, PlexServerSettings settings)
+        public void UpdateLibrary(ActivitySubject subject, PlexServerSettings settings)
         {
-            UpdateLibrary(new[] { movie }, settings);
+            UpdateLibrary(new[] { subject }, settings);
         }
 
-        public void UpdateLibrary(IEnumerable<Movie> multipleMovies, PlexServerSettings settings)
+        public void UpdateLibrary(IEnumerable<ActivitySubject> subjects, PlexServerSettings settings)
         {
             try
             {
@@ -56,9 +53,9 @@ namespace NzbDrone.Core.Notifications.Plex.Server
 
                 var sections = GetSections(settings);
 
-                foreach (var movie in multipleMovies)
+                foreach (var subject in subjects)
                 {
-                    UpdateSections(movie, sections, settings);
+                    UpdateSections(subject, sections, settings);
                 }
 
                 _logger.Debug("Finished sending Update Request to Plex Server (took {0} ms)", watch.ElapsedMilliseconds);
@@ -95,10 +92,10 @@ namespace NzbDrone.Core.Notifications.Plex.Server
             return version;
         }
 
-        private void UpdateSections(Movie movie, List<PlexSection> sections, PlexServerSettings settings)
+        private void UpdateSections(ActivitySubject subject, List<PlexSection> sections, PlexServerSettings settings)
         {
-            var rootFolderPath = _rootFolderService.GetBestRootFolderPath(movie.Path);
-            var movieRelativePath = rootFolderPath.GetRelativePath(movie.Path);
+            var rootFolderPath = subject.RootFolderPath;
+            var movieRelativePath = rootFolderPath.GetRelativePath(subject.ParentPath);
 
             // Try to update every matching section location before falling back to updating all section locations.
             var matched = false;

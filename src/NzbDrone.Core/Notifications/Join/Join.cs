@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using FluentValidation.Results;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.Movies;
 
 namespace NzbDrone.Core.Notifications.Join
 {
@@ -20,27 +19,27 @@ namespace NzbDrone.Core.Notifications.Join
 
         public override void OnGrab(GrabMessage message)
         {
-            _proxy.SendNotification(MOVIE_GRABBED_TITLE_BRANDED, message.Message, Settings);
+            _proxy.SendNotification(Branded(GrabbedTitle(message.Subject)), message.Message, Settings);
         }
 
         public override void OnDownload(DownloadMessage message)
         {
-            _proxy.SendNotification(MOVIE_DOWNLOADED_TITLE_BRANDED, message.Message, Settings);
+            _proxy.SendNotification(Branded(DownloadedTitle(message.Subject)), message.Message, Settings);
         }
 
-        public override void OnMovieAdded(Movie movie)
+        public override void OnMediaAdded(MediaAddedMessage message)
         {
-            _proxy.SendNotification(MOVIE_ADDED_TITLE_BRANDED, $"{movie.Title} added to library", Settings);
+            _proxy.SendNotification(Branded(AddedTitle(message.Subject)), $"{message.Subject.ParentTitle} added to library", Settings);
         }
 
-        public override void OnMovieFileDelete(MovieFileDeleteMessage deleteMessage)
+        public override void OnMediaFileDelete(MediaFileDeleteMessage deleteMessage)
         {
-            _proxy.SendNotification(MOVIE_FILE_DELETED_TITLE_BRANDED, deleteMessage.Message, Settings);
+            _proxy.SendNotification(Branded(FileDeletedTitle(deleteMessage.Subject)), deleteMessage.Message, Settings);
         }
 
-        public override void OnMovieDelete(MovieDeleteMessage deleteMessage)
+        public override void OnMediaDelete(MediaDeleteMessage deleteMessage)
         {
-            _proxy.SendNotification(MOVIE_DELETED_TITLE_BRANDED, deleteMessage.Message, Settings);
+            _proxy.SendNotification(Branded(DeletedTitle(deleteMessage.Subject)), deleteMessage.Message, Settings);
         }
 
         public override void OnHealthIssue(HealthCheck.HealthCheck message)

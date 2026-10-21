@@ -1,0 +1,435 @@
+{
+  "embeds": [
+    {
+      "description": "Movie Grabbed",
+      "title": "Interstellar (2014)",
+      "color": 16761392,
+      "url": "https://www.themoviedb.org/movie/157336",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "thumbnail": {
+        "url": "https://img.example/poster.jpg"
+      },
+      "image": {
+        "url": "https://img.example/fanart.jpg"
+      },
+      "timestamp": "T",
+      "fields": [
+        {
+          "name": "Overview",
+          "value": "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage.",
+          "inline": false
+        },
+        {
+          "name": "Rating",
+          "value": "8.4",
+          "inline": false
+        },
+        {
+          "name": "Genres",
+          "value": "Adventure, Drama, Science Fiction, Thriller, Mystery",
+          "inline": false
+        },
+        {
+          "name": "Quality",
+          "value": "Bluray-1080p",
+          "inline": true
+        },
+        {
+          "name": "Group",
+          "value": "GRP",
+          "inline": false
+        },
+        {
+          "name": "Size",
+          "value": "9.2 GB",
+          "inline": true
+        },
+        {
+          "name": "Links",
+          "value": "[TMDb](https://www.themoviedb.org/movie/157336) / [Trakt](https://trakt.tv/movies/tt0816692) / [IMDb](https://www.imdb.com/title/tt0816692) / [YouTube](https://www.youtube.com/watch?v=zSWdZVtXT7E) / [Website](http://www.interstellarmovie.net)",
+          "inline": false
+        },
+        {
+          "name": "Release",
+          "value": "```Interstellar.2014.1080p.BluRay.x264-GRP```",
+          "inline": false
+        },
+        {
+          "name": "Indexer",
+          "value": "Knaben",
+          "inline": false
+        },
+        {
+          "name": "Custom Formats",
+          "value": "x264|IMAX",
+          "inline": false
+        },
+        {
+          "name": "Custom Format Score",
+          "value": "150",
+          "inline": false
+        },
+        {
+          "name": "Tags",
+          "value": "favorite, scifi",
+          "inline": false
+        }
+      ]
+    }
+  ]
+}
+=====
+{
+  "embeds": [
+    {
+      "description": "Movie Imported",
+      "title": "Interstellar (2014)",
+      "color": 2605644,
+      "url": "https://www.themoviedb.org/movie/157336",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "thumbnail": {
+        "url": "https://img.example/poster.jpg"
+      },
+      "image": {
+        "url": "https://img.example/fanart.jpg"
+      },
+      "timestamp": "T",
+      "fields": [
+        {
+          "name": "Overview",
+          "value": "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage.",
+          "inline": false
+        },
+        {
+          "name": "Rating",
+          "value": "8.4",
+          "inline": false
+        },
+        {
+          "name": "Genres",
+          "value": "Adventure, Drama, Science Fiction, Thriller, Mystery",
+          "inline": false
+        },
+        {
+          "name": "Quality",
+          "value": "Bluray-1080p",
+          "inline": true
+        },
+        {
+          "name": "Codecs",
+          "value": "h264 / AC3 6",
+          "inline": true
+        },
+        {
+          "name": "Group",
+          "value": "GRP",
+          "inline": false
+        },
+        {
+          "name": "Size",
+          "value": "11.5 GB",
+          "inline": true
+        },
+        {
+          "name": "Languages",
+          "value": "eng/fra",
+          "inline": false
+        },
+        {
+          "name": "Subtitles",
+          "value": "eng/spa",
+          "inline": false
+        },
+        {
+          "name": "Links",
+          "value": "[TMDb](https://www.themoviedb.org/movie/157336) / [Trakt](https://trakt.tv/movies/tt0816692) / [IMDb](https://www.imdb.com/title/tt0816692) / [YouTube](https://www.youtube.com/watch?v=zSWdZVtXT7E) / [Website](http://www.interstellarmovie.net)",
+          "inline": false
+        },
+        {
+          "name": "Release",
+          "value": "```Interstellar.2014.1080p.BluRay.x264-GRP```",
+          "inline": false
+        },
+        {
+          "name": "Tags",
+          "value": "favorite, scifi",
+          "inline": false
+        },
+        {
+          "name": "Custom Formats",
+          "value": "x264",
+          "inline": false
+        },
+        {
+          "name": "Custom Format Score",
+          "value": "75",
+          "inline": false
+        }
+      ]
+    }
+  ]
+}
+=====
+{
+  "embeds": [
+    {
+      "description": "Movie Upgraded",
+      "title": "Interstellar (2014)",
+      "color": 4089856,
+      "url": "https://www.themoviedb.org/movie/157336",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "thumbnail": {
+        "url": "https://img.example/poster.jpg"
+      },
+      "image": {
+        "url": "https://img.example/fanart.jpg"
+      },
+      "timestamp": "T",
+      "fields": [
+        {
+          "name": "Overview",
+          "value": "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage.",
+          "inline": false
+        },
+        {
+          "name": "Rating",
+          "value": "8.4",
+          "inline": false
+        },
+        {
+          "name": "Genres",
+          "value": "Adventure, Drama, Science Fiction, Thriller, Mystery",
+          "inline": false
+        },
+        {
+          "name": "Quality",
+          "value": "Bluray-1080p",
+          "inline": true
+        },
+        {
+          "name": "Codecs",
+          "value": "h264 / AC3 6",
+          "inline": true
+        },
+        {
+          "name": "Group",
+          "value": "GRP",
+          "inline": false
+        },
+        {
+          "name": "Size",
+          "value": "11.5 GB",
+          "inline": true
+        },
+        {
+          "name": "Languages",
+          "value": "eng/fra",
+          "inline": false
+        },
+        {
+          "name": "Subtitles",
+          "value": "eng/spa",
+          "inline": false
+        },
+        {
+          "name": "Links",
+          "value": "[TMDb](https://www.themoviedb.org/movie/157336) / [Trakt](https://trakt.tv/movies/tt0816692) / [IMDb](https://www.imdb.com/title/tt0816692) / [YouTube](https://www.youtube.com/watch?v=zSWdZVtXT7E) / [Website](http://www.interstellarmovie.net)",
+          "inline": false
+        },
+        {
+          "name": "Release",
+          "value": "```Interstellar.2014.1080p.BluRay.x264-GRP```",
+          "inline": false
+        },
+        {
+          "name": "Tags",
+          "value": "favorite, scifi",
+          "inline": false
+        },
+        {
+          "name": "Custom Formats",
+          "value": "x264",
+          "inline": false
+        },
+        {
+          "name": "Custom Format Score",
+          "value": "75",
+          "inline": false
+        }
+      ]
+    }
+  ]
+}
+=====
+{
+  "content": "Renamed",
+  "embeds": [
+    {
+      "description": "old.mkv renamed to Interstellar (2014) Bluray-1080p.mkv",
+      "title": "Interstellar",
+      "color": 0
+    }
+  ]
+}
+=====
+{
+  "embeds": [
+    {
+      "description": "Movie Added",
+      "title": "Interstellar",
+      "color": 2605644,
+      "url": "https://www.themoviedb.org/movie/157336",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "thumbnail": {
+        "url": "https://img.example/poster.jpg"
+      },
+      "image": {
+        "url": "https://img.example/fanart.jpg"
+      },
+      "fields": [
+        {
+          "name": "Links",
+          "value": "[TMDb](https://www.themoviedb.org/movie/157336) / [Trakt](https://trakt.tv/movies/tt0816692) / [IMDb](https://www.imdb.com/title/tt0816692) / [YouTube](https://www.youtube.com/watch?v=zSWdZVtXT7E) / [Website](http://www.interstellarmovie.net)",
+          "inline": false
+        }
+      ]
+    }
+  ]
+}
+=====
+{
+  "embeds": [
+    {
+      "description": "Movie File Deleted",
+      "title": "Interstellar (2014)",
+      "color": 15749200,
+      "url": "https://www.themoviedb.org/movie/157336",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "timestamp": "T",
+      "fields": [
+        {
+          "name": "Reason",
+          "value": "Manual",
+          "inline": false
+        },
+        {
+          "name": "File name",
+          "value": "```/movies/Interstellar (2014)/Interstellar (2014) Bluray-1080p.mkv```",
+          "inline": false
+        }
+      ]
+    }
+  ]
+}
+=====
+{
+  "embeds": [
+    {
+      "description": "Movie removed and all files were deleted",
+      "title": "Interstellar",
+      "color": 15749200,
+      "url": "https://www.themoviedb.org/movie/157336",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "thumbnail": {
+        "url": "https://img.example/poster.jpg"
+      },
+      "image": {
+        "url": "https://img.example/fanart.jpg"
+      },
+      "fields": [
+        {
+          "name": "Links",
+          "value": "[TMDb](https://www.themoviedb.org/movie/157336) / [Trakt](https://trakt.tv/movies/tt0816692) / [IMDb](https://www.imdb.com/title/tt0816692) / [YouTube](https://www.youtube.com/watch?v=zSWdZVtXT7E) / [Website](http://www.interstellarmovie.net)",
+          "inline": false
+        }
+      ]
+    }
+  ]
+}
+=====
+{
+  "embeds": [
+    {
+      "description": "Manual interaction needed",
+      "title": "Interstellar (2014)",
+      "color": 16761392,
+      "url": "https://www.themoviedb.org/movie/157336",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "thumbnail": {
+        "url": "https://img.example/poster.jpg"
+      },
+      "image": {
+        "url": "https://img.example/fanart.jpg"
+      },
+      "timestamp": "T",
+      "fields": [
+        {
+          "name": "Overview",
+          "value": "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage.",
+          "inline": false
+        },
+        {
+          "name": "Rating",
+          "value": "8.4",
+          "inline": false
+        },
+        {
+          "name": "Genres",
+          "value": "Adventure, Drama, Science Fiction, Thriller, Mystery",
+          "inline": false
+        },
+        {
+          "name": "Quality",
+          "value": "Bluray-1080p",
+          "inline": true
+        },
+        {
+          "name": "Group",
+          "value": "GRP",
+          "inline": false
+        },
+        {
+          "name": "Size",
+          "value": "9.2 GB",
+          "inline": true
+        },
+        {
+          "name": "Links",
+          "value": "[TMDb](https://www.themoviedb.org/movie/157336) / [Trakt](https://trakt.tv/movies/tt0816692) / [IMDb](https://www.imdb.com/title/tt0816692) / [YouTube](https://www.youtube.com/watch?v=zSWdZVtXT7E) / [Website](http://www.interstellarmovie.net)",
+          "inline": false
+        },
+        {
+          "name": "Download",
+          "value": "```Interstellar.2014.1080p.BluRay.x264-GRP```",
+          "inline": false
+        },
+        {
+          "name": "Tags",
+          "value": "favorite, scifi",
+          "inline": false
+        }
+      ]
+    }
+  ]
+}

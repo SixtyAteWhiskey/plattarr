@@ -4,14 +4,14 @@ using System.Linq;
 using FluentValidation.Results;
 using NLog;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.Movies;
+using NzbDrone.Core.Modules;
 
 namespace NzbDrone.Core.Notifications.Xbmc
 {
     public interface IXbmcService
     {
         void Notify(XbmcSettings settings, string title, string message);
-        void Update(XbmcSettings settings, Movie movie);
+        void Update(XbmcSettings settings, ActivitySubject subject);
         void Clean(XbmcSettings settings);
         ValidationFailure Test(XbmcSettings settings, string message);
     }
@@ -34,7 +34,7 @@ namespace NzbDrone.Core.Notifications.Xbmc
             _proxy.Notify(settings, title, message);
         }
 
-        public void Update(XbmcSettings settings, Movie movie)
+        public void Update(XbmcSettings settings, ActivitySubject subject)
         {
             if (CheckIfVideoPlayerOpen(settings))
             {
@@ -43,7 +43,7 @@ namespace NzbDrone.Core.Notifications.Xbmc
                 return;
             }
 
-            UpdateLibrary(settings, movie);
+            UpdateLibrary(settings, subject);
         }
 
         public void Clean(XbmcSettings settings)
@@ -58,7 +58,7 @@ namespace NzbDrone.Core.Notifications.Xbmc
             _proxy.CleanLibrary(settings);
         }
 
-        public string GetMoviePath(XbmcSettings settings, Movie movie)
+        public string GetMoviePath(XbmcSettings settings, ActivitySubject subject)
         {
             var allMovies = _proxy.GetMovies(settings);
 
@@ -70,7 +70,7 @@ namespace NzbDrone.Core.Notifications.Xbmc
 
             var matchingMovies = allMovies.FirstOrDefault(s =>
             {
-                return s.ImdbNumber == movie.ImdbId;
+                return s.ImdbNumber == subject.GetExternalId(ExternalIdTypes.Imdb);
             });
 
             if (matchingMovies != null)
@@ -81,19 +81,19 @@ namespace NzbDrone.Core.Notifications.Xbmc
             return null;
         }
 
-        private void UpdateLibrary(XbmcSettings settings, Movie movie)
+        private void UpdateLibrary(XbmcSettings settings, ActivitySubject subject)
         {
             try
             {
-                var moviePath = GetMoviePath(settings, movie);
+                var moviePath = GetMoviePath(settings, subject);
 
                 if (moviePath != null)
                 {
-                    _logger.Debug("Updating movie {0} (Kodi path: {1}) on Kodi host: {2}", movie, moviePath, settings.Address);
+                    _logger.Debug("Updating movie {0} (Kodi path: {1}) on Kodi host: {2}", subject.ParentTitle, moviePath, settings.Address);
                 }
                 else
                 {
-                    _logger.Debug("Movie {0} doesn't exist on Kodi host: {1}, Updating Entire Library", movie, settings.Address);
+                    _logger.Debug("Movie {0} doesn't exist on Kodi host: {1}, Updating Entire Library", subject.ParentTitle, settings.Address);
                 }
 
                 var response = _proxy.UpdateLibrary(settings, moviePath);

@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using FluentValidation.Results;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Exceptions;
-using NzbDrone.Core.Movies;
 using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Notifications.Twitter
@@ -29,19 +28,19 @@ namespace NzbDrone.Core.Notifications.Twitter
             _twitterService.SendNotification($"[Radarr] Imported: {message.Message}", Settings);
         }
 
-        public override void OnMovieAdded(Movie movie)
+        public override void OnMediaAdded(MediaAddedMessage message)
         {
-            _twitterService.SendNotification($"[Radarr] Added: {movie.Title}", Settings);
+            _twitterService.SendNotification($"[Radarr] Added: {message.Subject.ParentTitle}", Settings);
         }
 
-        public override void OnMovieFileDelete(MovieFileDeleteMessage deleteMessage)
+        public override void OnMediaFileDelete(MediaFileDeleteMessage deleteMessage)
         {
-            _twitterService.SendNotification($"Movie File Deleted: {deleteMessage.Message}", Settings);
+            _twitterService.SendNotification($"{FileDeletedTitle(deleteMessage.Subject)}: {deleteMessage.Message}", Settings);
         }
 
-        public override void OnMovieDelete(MovieDeleteMessage deleteMessage)
+        public override void OnMediaDelete(MediaDeleteMessage deleteMessage)
         {
-            _twitterService.SendNotification($"Movie Deleted: {deleteMessage.Message}", Settings);
+            _twitterService.SendNotification($"{DeletedTitle(deleteMessage.Subject)}: {deleteMessage.Message}", Settings);
         }
 
         public override void OnHealthIssue(HealthCheck.HealthCheck healthCheck)

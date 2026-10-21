@@ -1,12 +1,10 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Sockets;
 using FluentValidation.Results;
 using NLog;
 using NzbDrone.Common.Cache;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.Movies;
+using NzbDrone.Core.Modules;
 
 namespace NzbDrone.Core.Notifications.Xbmc
 {
@@ -37,30 +35,30 @@ namespace NzbDrone.Core.Notifications.Xbmc
             const string header = "Radarr - Downloaded";
 
             Notify(Settings, header, message.Message);
-            UpdateAndClean(message.Movie, message.OldMovieFiles.Any());
+            UpdateAndClean(message.Subject, message.IsUpgrade);
         }
 
-        public override void OnMovieRename(Movie movie, List<RenamedMovieFile> renamedFiles)
+        public override void OnRename(RenameMessage message)
         {
-            UpdateAndClean(movie);
+            UpdateAndClean(message.Subject);
         }
 
-        public override void OnMovieFileDelete(MovieFileDeleteMessage deleteMessage)
+        public override void OnMediaFileDelete(MediaFileDeleteMessage deleteMessage)
         {
             const string header = "Radarr - Deleted";
 
             Notify(Settings, header, deleteMessage.Message);
-            UpdateAndClean(deleteMessage.Movie, true);
+            UpdateAndClean(deleteMessage.Subject, true);
         }
 
-        public override void OnMovieDelete(MovieDeleteMessage deleteMessage)
+        public override void OnMediaDelete(MediaDeleteMessage deleteMessage)
         {
             if (deleteMessage.DeletedFiles)
             {
                 const string header = "Radarr - Deleted";
 
                 Notify(Settings, header, deleteMessage.Message);
-                UpdateAndClean(deleteMessage.Movie, true);
+                UpdateAndClean(deleteMessage.Subject, true);
             }
         }
 
@@ -90,7 +88,7 @@ namespace NzbDrone.Core.Notifications.Xbmc
         {
             _updateQueue.ProcessQueue(Settings.Host, (items) =>
             {
-                _logger.Debug("Performing library update for {0} movies", items.Count);
+                _logger.Debug("Performing library update for {0} items", items.Count);
 
                 items.ForEach(item =>
                 {
@@ -98,7 +96,7 @@ namespace NzbDrone.Core.Notifications.Xbmc
                     {
                         if (Settings.UpdateLibrary)
                         {
-                            _xbmcService.Update(Settings, item.Movie);
+                            _xbmcService.Update(Settings, item.Subject);
                         }
 
                         if (item.Info.Contains(true) && Settings.CleanLibrary)
@@ -140,12 +138,12 @@ namespace NzbDrone.Core.Notifications.Xbmc
             }
         }
 
-        private void UpdateAndClean(Movie movie, bool clean = true)
+        private void UpdateAndClean(ActivitySubject subject, bool clean = true)
         {
             if (Settings.UpdateLibrary || Settings.CleanLibrary)
             {
-                _logger.Debug("Scheduling library update for movie {0} {1}", movie.Id, movie.Title);
-                _updateQueue.Add(Settings.Host, movie, clean);
+                _logger.Debug("Scheduling library update for {0} {1} {2}", subject.KindLabel, subject.ParentId, subject.ParentTitle);
+                _updateQueue.Add(Settings.Host, subject, clean);
             }
         }
     }

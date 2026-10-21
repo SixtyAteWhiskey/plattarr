@@ -3,7 +3,7 @@ using System.Linq;
 using FizzWare.NBuilder;
 using Moq;
 using NUnit.Framework;
-using NzbDrone.Core.Movies;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Notifications.Xbmc;
 using NzbDrone.Core.Notifications.Xbmc.Model;
 using NzbDrone.Core.Test.Framework;
@@ -41,9 +41,11 @@ namespace NzbDrone.Core.Test.NotificationTests.Xbmc
         [Test]
         public void should_update_using_movie_path()
         {
-            var movie = Builder<Movie>.CreateNew()
-                                      .With(s => s.ImdbId = IMDB_ID)
-                                      .Build();
+            var movie = new ActivitySubject
+            {
+                Kind = MediaKind.Movies,
+                ExternalIds = new() { [ExternalIdTypes.Imdb] = IMDB_ID }
+            };
 
             Subject.Update(_settings, movie);
 
@@ -54,10 +56,12 @@ namespace NzbDrone.Core.Test.NotificationTests.Xbmc
         [Test]
         public void should_update_all_paths_when_movie_path_not_found()
         {
-            var fakeMovie = Builder<Movie>.CreateNew()
-                                          .With(s => s.ImdbId = "tt01000")
-                                          .With(s => s.Title = "Not A Real Movie")
-                                          .Build();
+            var fakeMovie = new ActivitySubject
+            {
+                Kind = MediaKind.Movies,
+                ParentTitle = "Not A Real Movie",
+                ExternalIds = new() { [ExternalIdTypes.Imdb] = "tt01000" }
+            };
 
             Subject.Update(_settings, fakeMovie);
 

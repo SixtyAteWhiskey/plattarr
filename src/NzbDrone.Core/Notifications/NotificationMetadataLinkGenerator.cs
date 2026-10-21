@@ -1,32 +1,28 @@
 using System.Collections.Generic;
-using NzbDrone.Common.Extensions;
-using NzbDrone.Core.Movies;
+using System.Linq;
+using NzbDrone.Core.Modules;
 
 namespace NzbDrone.Core.Notifications;
 
 public static class NotificationMetadataLinkGenerator
 {
-    public static List<NotificationMetadataLink> GenerateLinks(Movie movie, IEnumerable<int> metadataLinks)
+    // The links the provider's MetadataLinks setting selects, in the order the setting lists them.
+    public static List<NotificationMetadataLink> GenerateLinks(ActivitySubject subject, IEnumerable<int> metadataLinks)
     {
         var links = new List<NotificationMetadataLink>();
 
-        if (movie == null)
+        if (subject == null)
         {
             return links;
         }
 
         foreach (var type in metadataLinks)
         {
-            var linkType = (MetadataLinkType)type;
+            var link = subject.Links.FirstOrDefault(l => l.Type == (MetadataLinkType)type);
 
-            if (linkType == MetadataLinkType.Imdb && movie.ImdbId.IsNotNullOrWhiteSpace())
+            if (link != null)
             {
-                links.Add(new NotificationMetadataLink(MetadataLinkType.Imdb, "IMDb", $"https://www.imdb.com/title/{movie.ImdbId}"));
-            }
-
-            if (linkType == MetadataLinkType.Tmdb && movie.TmdbId > 0)
-            {
-                links.Add(new NotificationMetadataLink(MetadataLinkType.Tmdb, "TMDb", $"https://www.themoviedb.org/movie/{movie.TmdbId}"));
+                links.Add(link);
             }
         }
 

@@ -1,9 +1,8 @@
 using System.Collections.Generic;
-using System.Linq;
 using FluentValidation.Results;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
-using NzbDrone.Core.Movies;
+using NzbDrone.Core.Modules;
 
 namespace NzbDrone.Core.Notifications.Telegram
 {
@@ -25,9 +24,9 @@ namespace NzbDrone.Core.Notifications.Telegram
 
         public override void OnGrab(GrabMessage grabMessage)
         {
-            var title = Settings.IncludeAppNameInTitle ? MOVIE_GRABBED_TITLE_BRANDED : MOVIE_GRABBED_TITLE;
+            var title = Settings.IncludeAppNameInTitle ? Branded(GrabbedTitle(grabMessage.Subject)) : GrabbedTitle(grabMessage.Subject);
             title = Settings.IncludeInstanceNameInTitle ? $"{title} - {InstanceName}" : title;
-            var links = GetLinks(grabMessage.Movie);
+            var links = GetLinks(grabMessage.Subject);
 
             _proxy.SendNotification(title, grabMessage.Message, links, Settings);
         }
@@ -35,44 +34,44 @@ namespace NzbDrone.Core.Notifications.Telegram
         public override void OnDownload(DownloadMessage message)
         {
             string title;
-            if (message.OldMovieFiles.Any())
+            if (message.IsUpgrade)
             {
-                title = Settings.IncludeAppNameInTitle ? MOVIE_UPGRADED_TITLE_BRANDED : MOVIE_UPGRADED_TITLE;
+                title = Settings.IncludeAppNameInTitle ? Branded(UpgradedTitle(message.Subject)) : UpgradedTitle(message.Subject);
             }
             else
             {
-                title = Settings.IncludeAppNameInTitle ? MOVIE_DOWNLOADED_TITLE_BRANDED : MOVIE_DOWNLOADED_TITLE;
+                title = Settings.IncludeAppNameInTitle ? Branded(DownloadedTitle(message.Subject)) : DownloadedTitle(message.Subject);
             }
 
             title = Settings.IncludeInstanceNameInTitle ? $"{title} - {InstanceName}" : title;
-            var links = GetLinks(message.Movie);
+            var links = GetLinks(message.Subject);
 
             _proxy.SendNotification(title, message.Message, links, Settings);
         }
 
-        public override void OnMovieAdded(Movie movie)
+        public override void OnMediaAdded(MediaAddedMessage message)
         {
-            var title = Settings.IncludeAppNameInTitle ? MOVIE_ADDED_TITLE_BRANDED : MOVIE_ADDED_TITLE;
+            var title = Settings.IncludeAppNameInTitle ? Branded(AddedTitle(message.Subject)) : AddedTitle(message.Subject);
             title = Settings.IncludeInstanceNameInTitle ? $"{title} - {InstanceName}" : title;
-            var links = GetLinks(movie);
+            var links = GetLinks(message.Subject);
 
-            _proxy.SendNotification(title, $"{movie.Title} added to library", links, Settings);
+            _proxy.SendNotification(title, $"{message.Subject.ParentTitle} added to library", links, Settings);
         }
 
-        public override void OnMovieFileDelete(MovieFileDeleteMessage deleteMessage)
+        public override void OnMediaFileDelete(MediaFileDeleteMessage deleteMessage)
         {
-            var title = Settings.IncludeAppNameInTitle ? MOVIE_FILE_DELETED_TITLE_BRANDED : MOVIE_FILE_DELETED_TITLE;
+            var title = Settings.IncludeAppNameInTitle ? Branded(FileDeletedTitle(deleteMessage.Subject)) : FileDeletedTitle(deleteMessage.Subject);
             title = Settings.IncludeInstanceNameInTitle ? $"{title} - {InstanceName}" : title;
-            var links = GetLinks(deleteMessage.Movie);
+            var links = GetLinks(deleteMessage.Subject);
 
             _proxy.SendNotification(title, deleteMessage.Message, links, Settings);
         }
 
-        public override void OnMovieDelete(MovieDeleteMessage deleteMessage)
+        public override void OnMediaDelete(MediaDeleteMessage deleteMessage)
         {
-            var title = Settings.IncludeAppNameInTitle ? MOVIE_DELETED_TITLE_BRANDED : MOVIE_DELETED_TITLE;
+            var title = Settings.IncludeAppNameInTitle ? Branded(DeletedTitle(deleteMessage.Subject)) : DeletedTitle(deleteMessage.Subject);
             title = Settings.IncludeInstanceNameInTitle ? $"{title} - {InstanceName}" : title;
-            var links = GetLinks(deleteMessage.Movie);
+            var links = GetLinks(deleteMessage.Subject);
 
             _proxy.SendNotification(title, deleteMessage.Message, links, Settings);
         }
@@ -118,36 +117,10 @@ namespace NzbDrone.Core.Notifications.Telegram
             return new ValidationResult(failures);
         }
 
-        private List<TelegramLink> GetLinks(Movie movie)
+        private List<TelegramLink> GetLinks(ActivitySubject subject)
         {
-            var links = new List<TelegramLink>();
-
-            if (movie == null)
-            {
-                return links;
-            }
-
-            foreach (var link in Settings.MetadataLinks)
-            {
-                var linkType = (MetadataLinkType)link;
-
-                if (linkType == MetadataLinkType.Tmdb && movie.TmdbId > 0)
-                {
-                    links.Add(new TelegramLink("TMDb", $"https://www.themoviedb.org/movie/{movie.TmdbId}"));
-                }
-
-                if (linkType == MetadataLinkType.Imdb && movie.ImdbId.IsNotNullOrWhiteSpace())
-                {
-                    links.Add(new TelegramLink("IMDb", $"https://www.imdb.com/title/{movie.ImdbId}"));
-                }
-
-                if (linkType == MetadataLinkType.Trakt && movie.ImdbId.IsNotNullOrWhiteSpace())
-                {
-                    links.Add(new TelegramLink("Trakt", $"https://trakt.tv/movies/{movie.ImdbId}"));
-                }
-            }
-
-            return links;
+            return NotificationMetadataLinkGenerator.GenerateLinks(subject, Settings.MetadataLinks)
+                .ConvertAll(l => new TelegramLink(l.Label, l.Link));
         }
     }
 }

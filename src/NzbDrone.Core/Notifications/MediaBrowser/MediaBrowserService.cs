@@ -7,14 +7,14 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.Movies;
+using NzbDrone.Core.Modules;
 
 namespace NzbDrone.Core.Notifications.Emby
 {
     public interface IMediaBrowserService
     {
         void Notify(MediaBrowserSettings settings, string title, string message);
-        void Update(MediaBrowserSettings settings, Movie movie, string updateType);
+        void Update(MediaBrowserSettings settings, ActivitySubject subject, string updateType);
         ValidationFailure Test(MediaBrowserSettings settings);
     }
 
@@ -36,11 +36,11 @@ namespace NzbDrone.Core.Notifications.Emby
             _proxy.Notify(settings, title, message);
         }
 
-        public void Update(MediaBrowserSettings settings, Movie movie, string updateType)
+        public void Update(MediaBrowserSettings settings, ActivitySubject subject, string updateType)
         {
-            var paths = _proxy.GetPaths(settings, movie);
+            var paths = _proxy.GetPaths(settings, subject);
 
-            var mappedPath = new OsPath(movie.Path);
+            var mappedPath = new OsPath(subject.ParentPath);
 
             if (settings.MapTo.IsNotNullOrWhiteSpace())
             {

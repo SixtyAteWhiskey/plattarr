@@ -1,0 +1,22 @@
+using NzbDrone.Core.Modules;
+
+namespace NzbDrone.Core.Notifications.Webhook
+{
+    // A media module's webhook payloads. The module emits its upstream payload shape so existing receivers
+    // keep working; the core fills InstanceName and ApplicationUrl and sends the result.
+    public interface IWebhookPayloadBuilder
+    {
+        MediaKind Kind { get; }
+
+        WebhookPayload BuildGrab(GrabMessage message);
+        WebhookPayload BuildDownload(DownloadMessage message);
+        WebhookPayload BuildRename(RenameMessage message);
+        WebhookPayload BuildMediaAdded(MediaAddedMessage message);
+        WebhookPayload BuildMediaFileDelete(MediaFileDeleteMessage message);
+        WebhookPayload BuildMediaDelete(MediaDeleteMessage message);
+        WebhookPayload BuildManualInteraction(ManualInteractionRequiredMessage message);
+
+        // The payload "Test" sends, in the module's own shape.
+        WebhookPayload BuildTest();
+    }
+}

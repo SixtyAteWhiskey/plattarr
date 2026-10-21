@@ -1,9 +1,7 @@
 using System.Collections.Generic;
-using System.Linq;
 using FluentValidation.Results;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.MediaCover;
-using NzbDrone.Core.Movies;
+using NzbDrone.Core.Modules;
 
 namespace NzbDrone.Core.Notifications.Pushcut
 {
@@ -31,27 +29,27 @@ namespace NzbDrone.Core.Notifications.Pushcut
 
         public override void OnGrab(GrabMessage grabMessage)
         {
-            _proxy.SendNotification(MOVIE_GRABBED_TITLE, grabMessage?.Message, GetPosterUrl(grabMessage.Movie), GetLinks(grabMessage.Movie), Settings);
+            _proxy.SendNotification(GrabbedTitle(grabMessage.Subject), grabMessage?.Message, GetPosterUrl(grabMessage.Subject), GetLinks(grabMessage.Subject), Settings);
         }
 
         public override void OnDownload(DownloadMessage downloadMessage)
         {
-            _proxy.SendNotification(downloadMessage.OldMovieFiles.Any() ? MOVIE_UPGRADED_TITLE : MOVIE_DOWNLOADED_TITLE, downloadMessage.Message, GetPosterUrl(downloadMessage.Movie), GetLinks(downloadMessage.Movie), Settings);
+            _proxy.SendNotification(downloadMessage.IsUpgrade ? UpgradedTitle(downloadMessage.Subject) : DownloadedTitle(downloadMessage.Subject), downloadMessage.Message, GetPosterUrl(downloadMessage.Subject), GetLinks(downloadMessage.Subject), Settings);
         }
 
-        public override void OnMovieAdded(Movie movie)
+        public override void OnMediaAdded(MediaAddedMessage message)
         {
-            _proxy.SendNotification(MOVIE_ADDED_TITLE, $"{movie.Title} added to library", GetPosterUrl(movie), GetLinks(movie), Settings);
+            _proxy.SendNotification(AddedTitle(message.Subject), $"{message.Subject.ParentTitle} added to library", GetPosterUrl(message.Subject), GetLinks(message.Subject), Settings);
         }
 
-        public override void OnMovieFileDelete(MovieFileDeleteMessage deleteMessage)
+        public override void OnMediaFileDelete(MediaFileDeleteMessage deleteMessage)
         {
-            _proxy.SendNotification(MOVIE_FILE_DELETED_TITLE, deleteMessage.Message, GetPosterUrl(deleteMessage.Movie), GetLinks(deleteMessage.Movie), Settings);
+            _proxy.SendNotification(FileDeletedTitle(deleteMessage.Subject), deleteMessage.Message, GetPosterUrl(deleteMessage.Subject), GetLinks(deleteMessage.Subject), Settings);
         }
 
-        public override void OnMovieDelete(MovieDeleteMessage deleteMessage)
+        public override void OnMediaDelete(MediaDeleteMessage deleteMessage)
         {
-            _proxy.SendNotification(MOVIE_DELETED_TITLE, deleteMessage.Message, GetPosterUrl(deleteMessage.Movie), GetLinks(deleteMessage.Movie), Settings);
+            _proxy.SendNotification(DeletedTitle(deleteMessage.Subject), deleteMessage.Message, GetPosterUrl(deleteMessage.Subject), GetLinks(deleteMessage.Subject), Settings);
         }
 
         public override void OnHealthIssue(HealthCheck.HealthCheck healthCheck)
@@ -74,14 +72,14 @@ namespace NzbDrone.Core.Notifications.Pushcut
             _proxy.SendNotification(MANUAL_INTERACTION_REQUIRED_TITLE_BRANDED, manualInteractionRequiredMessage.Message, null, new List<NotificationMetadataLink>(), Settings);
         }
 
-        private string GetPosterUrl(Movie movie)
+        private string GetPosterUrl(ActivitySubject subject)
         {
-            return movie.MovieMetadata.Value.Images.FirstOrDefault(x => x.CoverType == MediaCoverTypes.Poster)?.RemoteUrl;
+            return subject?.PosterUrl;
         }
 
-        private List<NotificationMetadataLink> GetLinks(Movie movie)
+        private List<NotificationMetadataLink> GetLinks(ActivitySubject subject)
         {
-            return NotificationMetadataLinkGenerator.GenerateLinks(movie, Settings.MetadataLinks);
+            return NotificationMetadataLinkGenerator.GenerateLinks(subject, Settings.MetadataLinks);
         }
     }
 }

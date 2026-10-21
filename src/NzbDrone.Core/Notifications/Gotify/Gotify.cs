@@ -4,10 +4,8 @@ using System.Linq;
 using System.Text;
 using FluentValidation.Results;
 using NLog;
-using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.MediaCover;
-using NzbDrone.Core.Movies;
+using NzbDrone.Core.Modules;
 
 namespace NzbDrone.Core.Notifications.Gotify
 {
@@ -31,27 +29,27 @@ namespace NzbDrone.Core.Notifications.Gotify
 
         public override void OnGrab(GrabMessage message)
         {
-            SendNotification(MOVIE_GRABBED_TITLE, message.Message, message.Movie);
+            SendNotification(GrabbedTitle(message.Subject), message.Message, message.Subject);
         }
 
         public override void OnDownload(DownloadMessage message)
         {
-            SendNotification(MOVIE_DOWNLOADED_TITLE, message.Message, message.Movie);
+            SendNotification(DownloadedTitle(message.Subject), message.Message, message.Subject);
         }
 
-        public override void OnMovieAdded(Movie movie)
+        public override void OnMediaAdded(MediaAddedMessage message)
         {
-            SendNotification(MOVIE_ADDED_TITLE, $"{movie.Title} added to library", movie);
+            SendNotification(AddedTitle(message.Subject), $"{message.Subject.ParentTitle} added to library", message.Subject);
         }
 
-        public override void OnMovieFileDelete(MovieFileDeleteMessage deleteMessage)
+        public override void OnMediaFileDelete(MediaFileDeleteMessage deleteMessage)
         {
-            SendNotification(MOVIE_FILE_DELETED_TITLE, deleteMessage.Message, deleteMessage.Movie);
+            SendNotification(FileDeletedTitle(deleteMessage.Subject), deleteMessage.Message, deleteMessage.Subject);
         }
 
-        public override void OnMovieDelete(MovieDeleteMessage deleteMessage)
+        public override void OnMediaDelete(MediaDeleteMessage deleteMessage)
         {
-            SendNotification(MOVIE_DELETED_TITLE, deleteMessage.Message, deleteMessage.Movie);
+            SendNotification(DeletedTitle(deleteMessage.Subject), deleteMessage.Message, deleteMessage.Subject);
         }
 
         public override void OnHealthIssue(HealthCheck.HealthCheck healthCheck)
@@ -71,7 +69,7 @@ namespace NzbDrone.Core.Notifications.Gotify
 
         public override void OnManualInteractionRequired(ManualInteractionRequiredMessage message)
         {
-            SendNotification(MANUAL_INTERACTION_REQUIRED_TITLE, message.Message, message.Movie);
+            SendNotification(MANUAL_INTERACTION_REQUIRED_TITLE, message.Message, message.Subject);
         }
 
         public override ValidationResult Test()
@@ -123,7 +121,7 @@ namespace NzbDrone.Core.Notifications.Gotify
             return new ValidationResult(failures);
         }
 
-        private void SendNotification(string title, string message, Movie movie)
+        private void SendNotification(string title, string message, ActivitySubject subject)
         {
             var isMarkdown = false;
             var sb = new StringBuilder();
@@ -136,11 +134,11 @@ namespace NzbDrone.Core.Notifications.Gotify
                 Priority = Settings.Priority
             };
 
-            if (movie != null)
+            if (subject != null)
             {
                 if (Settings.IncludeMoviePoster)
                 {
-                    var poster = movie.MovieMetadata.Value.Images.FirstOrDefault(x => x.CoverType == MediaCoverTypes.Poster)?.RemoteUrl;
+                    var poster = subject.PosterUrl;
 
                     if (poster != null)
                     {
@@ -158,26 +156,9 @@ namespace NzbDrone.Core.Notifications.Gotify
                     foreach (var link in Settings.MetadataLinks)
                     {
                         var linkType = (MetadataLinkType)link;
-                        var linkText = "";
-                        var linkUrl = "";
-
-                        if (linkType == MetadataLinkType.Tmdb && movie.TmdbId > 0)
-                        {
-                            linkText = "TMDb";
-                            linkUrl = $"https://www.themoviedb.org/movie/{movie.TmdbId}";
-                        }
-
-                        if (linkType == MetadataLinkType.Imdb && movie.ImdbId.IsNotNullOrWhiteSpace())
-                        {
-                            linkText = "IMDb";
-                            linkUrl = $"https://www.imdb.com/title/{movie.ImdbId}";
-                        }
-
-                        if (linkType == MetadataLinkType.Trakt && movie.ImdbId.IsNotNullOrWhiteSpace())
-                        {
-                            linkText = "Trakt";
-                            linkUrl = $"https://trakt.tv/movies/{movie.ImdbId}";
-                        }
+                        var metadataLink = subject.GetLink(linkType);
+                        var linkText = metadataLink?.Label ?? "";
+                        var linkUrl = metadataLink?.Link ?? "";
 
                         sb.AppendLine($"[{linkText}]({linkUrl})");
 

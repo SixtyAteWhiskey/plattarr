@@ -11,6 +11,7 @@ using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.MovieImport;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Movies.Notifications;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 
@@ -134,7 +135,7 @@ namespace NzbDrone.Core.Movies.Import
             var grabbedHistories = GetGrabbedHistory(trackedDownload);
             var releaseInfo = grabbedHistories.Count > 0 ? new GrabbedReleaseInfo(grabbedHistories) : null;
 
-            _eventAggregator.PublishEvent(new ManualInteractionRequiredEvent(trackedDownload, releaseInfo));
+            _eventAggregator.PublishEvent(new ManualInteractionRequiredEvent(trackedDownload, new MovieNotificationData { Release = releaseInfo }));
         }
 
         private List<MovieHistory> GetGrabbedHistory(TrackedDownload trackedDownload)

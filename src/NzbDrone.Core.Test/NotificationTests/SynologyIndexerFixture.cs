@@ -1,8 +1,7 @@
 using System.Collections.Generic;
 using Moq;
 using NUnit.Framework;
-using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.Movies;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Notifications;
 using NzbDrone.Core.Notifications.Synology;
 using NzbDrone.Core.Test.Framework;
@@ -13,38 +12,31 @@ namespace NzbDrone.Core.Test.NotificationTests
     [TestFixture]
     public class SynologyIndexerFixture : CoreTest<SynologyIndexer>
     {
-        private Movie _movie;
+        private ActivitySubject _subject;
         private DownloadMessage _upgrade;
 
         [SetUp]
         public void SetUp()
         {
-            _movie = new Movie
+            _subject = new ActivitySubject
             {
-                Path = @"C:\Test\".AsOsAgnostic()
+                Kind = MediaKind.Movies,
+                ParentPath = @"C:\Test\".AsOsAgnostic()
             };
 
             _upgrade = new DownloadMessage
             {
-                Movie = _movie,
+                Subject = _subject,
 
-                MovieFile = new MovieFile
+                File = new NotificationFile
                 {
                     RelativePath = "moviefile1.mkv"
                 },
 
-                OldMovieFiles = new List<DeletedMovieFile>
+                OldFiles = new List<NotificationFile>
                 {
-                    new DeletedMovieFile(new MovieFile
-                    {
-                        RelativePath = "oldmoviefile1.mkv"
-                    },
-                        null),
-                    new DeletedMovieFile(new MovieFile
-                    {
-                        RelativePath = "oldmoviefile2.mkv"
-                    },
-                        null)
+                    new NotificationFile { RelativePath = "oldmoviefile1.mkv" },
+                    new NotificationFile { RelativePath = "oldmoviefile2.mkv" }
                 }
             };
 
@@ -62,10 +54,10 @@ namespace NzbDrone.Core.Test.NotificationTests
         {
             (Subject.Definition.Settings as SynologyIndexerSettings).UpdateLibrary = false;
 
-            Subject.OnMovieRename(_movie, new List<RenamedMovieFile>());
+            Subject.OnRename(new RenameMessage { Subject = _subject });
 
             Mocker.GetMock<ISynologyIndexerProxy>()
-                  .Verify(v => v.UpdateFolder(_movie.Path), Times.Never());
+                  .Verify(v => v.UpdateFolder(_subject.ParentPath), Times.Never());
         }
 
         [Test]
@@ -92,7 +84,7 @@ namespace NzbDrone.Core.Test.NotificationTests
         [Test]
         public void should_update_entire_movie_folder_on_rename()
         {
-            Subject.OnMovieRename(_movie, new List<RenamedMovieFile>());
+            Subject.OnRename(new RenameMessage { Subject = _subject });
 
             Mocker.GetMock<ISynologyIndexerProxy>()
                   .Verify(v => v.UpdateFolder(@"C:\Test\".AsOsAgnostic()), Times.Once());

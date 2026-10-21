@@ -5,7 +5,7 @@ using NzbDrone.Core.Languages;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 
-namespace NzbDrone.Core.Notifications.Webhook
+namespace NzbDrone.Core.Movies.Notifications
 {
     public class WebhookRelease
     {

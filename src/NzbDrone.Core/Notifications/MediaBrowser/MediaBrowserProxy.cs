@@ -4,7 +4,7 @@ using System.Linq;
 using NLog;
 using NzbDrone.Common.Http;
 using NzbDrone.Common.Serializer;
-using NzbDrone.Core.Movies;
+using NzbDrone.Core.Modules;
 
 namespace NzbDrone.Core.Notifications.Emby
 {
@@ -45,32 +45,34 @@ namespace NzbDrone.Core.Notifications.Emby
             ProcessRequest(request);
         }
 
-        public HashSet<string> GetPaths(MediaBrowserSettings settings, Movie movie)
+        public HashSet<string> GetPaths(MediaBrowserSettings settings, ActivitySubject subject)
         {
             var path = "/Items";
+            var tmdbId = int.TryParse(subject.GetExternalId(ExternalIdTypes.Tmdb), out var parsedTmdbId) ? parsedTmdbId : 0;
+            var imdbId = subject.GetExternalId(ExternalIdTypes.Imdb);
 
             var request = BuildRequest(path, settings)
                 .AddQueryParam("recursive", "true")
-                .AddQueryParam("includeItemTypes", "Movie")
+                .AddQueryParam("includeItemTypes", GetItemType(subject.Kind))
                 .AddQueryParam("fields", "Path,ProviderIds")
-                .AddQueryParam("years", movie.Year)
+                .AddQueryParam("years", subject.Year)
                 .Build();
 
             try
             {
                 var paths = ProcessGetRequest<MediaBrowserItems>(request).Items.GroupBy(item =>
                 {
-                    if (item is { ProviderIds.Tmdb: int tmdbid } && tmdbid != 0 && tmdbid == movie.TmdbId)
+                    if (item is { ProviderIds.Tmdb: int tmdbid } && tmdbid != 0 && tmdbid == tmdbId)
                     {
                         return MediaBrowserMatchQuality.Id;
                     }
 
-                    if (item is { ProviderIds.Imdb: string imdbid } && imdbid == movie.ImdbId)
+                    if (item is { ProviderIds.Imdb: string imdbid } && imdbid == imdbId)
                     {
                         return MediaBrowserMatchQuality.Id;
                     }
 
-                    if (item is { Name: var name } && name == movie.Title)
+                    if (item is { Name: var name } && name == subject.ParentTitle)
                     {
                         return MediaBrowserMatchQuality.Name;
                     }
@@ -81,21 +83,32 @@ namespace NzbDrone.Core.Notifications.Emby
 
                 if (paths.Key == MediaBrowserMatchQuality.None)
                 {
-                    _logger.Trace("Could not find movie by name");
+                    _logger.Trace("Could not find {0} by name", subject.KindLabel);
 
                     return new HashSet<string>();
                 }
 
-                _logger.Trace("Found movie by name/id: {0}", string.Join(" ", paths));
+                _logger.Trace("Found {0} by name/id: {1}", subject.KindLabel, string.Join(" ", paths));
 
                 return paths.ToHashSet();
             }
             catch (InvalidOperationException)
             {
-                _logger.Trace("Could not find movie by name.");
+                _logger.Trace("Could not find {0} by name.", subject.KindLabel);
 
                 return new HashSet<string>();
             }
+        }
+
+        private static string GetItemType(MediaKind kind)
+        {
+            return kind switch
+            {
+                MediaKind.Movies => "Movie",
+                MediaKind.Tv => "Series",
+                MediaKind.Music => "MusicArtist",
+                _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
+            };
         }
 
         public void Update(MediaBrowserSettings settings, string moviePath, string updateType)

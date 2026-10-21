@@ -3,7 +3,7 @@ using System.Linq;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
-using NzbDrone.Core.Movies;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Notifications.Xbmc;
 using NzbDrone.Core.Notifications.Xbmc.Model;
 using NzbDrone.Core.Test.Framework;
@@ -15,7 +15,7 @@ namespace NzbDrone.Core.Test.NotificationTests.Xbmc
     {
         private const string IMDB_ID = "tt67890";
         private XbmcSettings _settings;
-        private Movie _movie;
+        private ActivitySubject _movie;
         private List<XbmcMovie> _xbmcMovies;
 
         [SetUp]
@@ -37,31 +37,29 @@ namespace NzbDrone.Core.Test.NotificationTests.Xbmc
                   .Returns(_xbmcMovies);
         }
 
+        private static ActivitySubject Subject_(string imdbId, string title)
+        {
+            return new ActivitySubject
+            {
+                Kind = MediaKind.Movies,
+                ParentTitle = title,
+                ExternalIds = new() { [ExternalIdTypes.Imdb] = imdbId }
+            };
+        }
+
         private void GivenMatchingImdbId()
         {
-            _movie = new Movie
-            {
-                ImdbId = IMDB_ID,
-                Title = "Movie"
-            };
+            _movie = Subject_(IMDB_ID, "Movie");
         }
 
         private void GivenMatchingTitle()
         {
-            _movie = new Movie
-            {
-                ImdbId = "tt01000",
-                Title = _xbmcMovies.First().Label
-            };
+            _movie = Subject_("tt01000", _xbmcMovies.First().Label);
         }
 
         private void GivenMatchingMovie()
         {
-            _movie = new Movie
-            {
-                ImdbId = "tt01000",
-                Title = "Does not exist"
-            };
+            _movie = Subject_("tt01000", "Does not exist");
         }
 
         [Test]
