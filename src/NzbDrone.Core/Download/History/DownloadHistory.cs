@@ -2,13 +2,15 @@ using System;
 using System.Collections.Generic;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Download.History
 {
-    public class DownloadHistory : ModelBase
+    public class DownloadHistory : ModelBase, IMediaKindRecord
     {
         public DownloadHistoryEventType EventType { get; set; }
+        public MediaKind MediaKind { get; set; }
         public int MovieId { get; set; }
         public string DownloadId { get; set; }
         public string SourceTitle { get; set; }

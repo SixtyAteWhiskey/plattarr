@@ -1,5 +1,6 @@
 ﻿using Dapper;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Modules;
 
 namespace NzbDrone.Core.Housekeeping.Housekeepers
 {
@@ -14,13 +15,15 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
 
         public void Clean()
         {
+            // Movie rows only: other media types point at their own tables.
             using var mapper = _database.OpenConnection();
-            mapper.Execute(@"DELETE FROM ""PendingReleases""
+            mapper.Execute($@"DELETE FROM ""PendingReleases""
                              WHERE ""Id"" IN (
                              SELECT ""PendingReleases"".""Id"" FROM ""PendingReleases""
                              LEFT OUTER JOIN ""Movies_Movies""
                              ON ""PendingReleases"".""MovieId"" = ""Movies_Movies"".""Id""
-                             WHERE ""Movies_Movies"".""Id"" IS NULL)");
+                             WHERE ""PendingReleases"".""MediaKind"" = {(int)MediaKind.Movies}
+                             AND ""Movies_Movies"".""Id"" IS NULL)");
         }
     }
 }

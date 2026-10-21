@@ -99,7 +99,7 @@ namespace NzbDrone.Core.Datastore
 
         protected virtual List<TModel> QueryDistinct(SqlBuilder builder) => _database.QueryDistinct<TModel>(builder).ToList();
 
-        public int Count()
+        public virtual int Count()
         {
             using (var conn = _database.OpenConnection())
             {
@@ -165,6 +165,8 @@ namespace NzbDrone.Core.Datastore
                 throw new InvalidOperationException("Can't insert model with existing ID " + model.Id);
             }
 
+            BeforeInsert(model);
+
             using (var conn = _database.OpenConnection())
             {
                 model = Insert(conn, null, model);
@@ -225,6 +227,11 @@ namespace NzbDrone.Core.Datastore
             if (models.Any(x => x.Id != 0))
             {
                 throw new InvalidOperationException("Can't insert model with existing ID != 0");
+            }
+
+            foreach (var model in models)
+            {
+                BeforeInsert(model);
             }
 
             using (var conn = _database.OpenConnection())
@@ -323,7 +330,7 @@ namespace NzbDrone.Core.Datastore
             return model;
         }
 
-        public void Purge(bool vacuum = false)
+        public virtual void Purge(bool vacuum = false)
         {
             using (var conn = _database.OpenConnection())
             {
@@ -424,6 +431,11 @@ namespace NzbDrone.Core.Datastore
             }
 
             RetryStrategy.Execute(static (state, _) => state.connection.Execute(state.sql, state.models, transaction: state.transaction), (connection, sql, models, transaction));
+        }
+
+        // Validation hook for repositories that constrain what a row may hold.
+        protected virtual void BeforeInsert(TModel model)
+        {
         }
 
         protected virtual SqlBuilder PagedBuilder() => Builder();

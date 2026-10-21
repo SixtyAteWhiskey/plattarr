@@ -12,6 +12,7 @@ using NzbDrone.Core.Indexers;
 using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.Jobs;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Events;
 using NzbDrone.Core.Movies.Search;
@@ -356,6 +357,7 @@ namespace NzbDrone.Core.Download.Pending
         {
             var release = new PendingRelease
             {
+                MediaKind = MediaKind.Movies,
                 MovieId = decision.RemoteMovie.Movie.Id,
                 ParsedMovieInfo = decision.RemoteMovie.ParsedMovieInfo,
                 Release = decision.RemoteMovie.Release,

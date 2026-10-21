@@ -2,12 +2,13 @@ using System;
 using System.Collections.Generic;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.History
 {
-    public class MovieHistory : ModelBase
+    public class MovieHistory : ModelBase, IMediaKindRecord
     {
         public const string DOWNLOAD_CLIENT = "downloadClient";
         public const string MOVIE_MATCH_TYPE = "movieMatchType";
@@ -21,6 +22,7 @@ namespace NzbDrone.Core.History
             Data = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
 
+        public MediaKind MediaKind { get; set; }
         public int MovieId { get; set; }
         public string SourceTitle { get; set; }
         public QualityModel Quality { get; set; }

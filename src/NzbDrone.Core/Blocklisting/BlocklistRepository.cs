@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 
 namespace NzbDrone.Core.Blocklisting
@@ -14,10 +15,10 @@ namespace NzbDrone.Core.Blocklisting
         void DeleteForMovies(List<int> movieIds);
     }
 
-    public class BlocklistRepository : BasicRepository<Blocklist>, IBlocklistRepository
+    public class BlocklistRepository : MediaKindRepository<Blocklist>, IBlocklistRepository
     {
         public BlocklistRepository(IMainDatabase database, IEventAggregator eventAggregator)
-            : base(database, eventAggregator)
+            : base(database, eventAggregator, MediaKind.Movies)
         {
         }
 

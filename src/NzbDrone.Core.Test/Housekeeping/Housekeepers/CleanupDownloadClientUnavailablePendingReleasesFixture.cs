@@ -4,6 +4,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Housekeeping.Housekeepers;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 
@@ -16,6 +17,7 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
         public void should_delete_old_DownloadClientUnavailable_pending_items()
         {
             var pendingRelease = Builder<PendingRelease>.CreateNew()
+                .With(c => c.MediaKind = MediaKind.Movies)
                 .With(h => h.Reason = PendingReleaseReason.DownloadClientUnavailable)
                 .With(h => h.Added = DateTime.UtcNow.AddDays(-21))
                 .With(h => h.ParsedMovieInfo = new ParsedMovieInfo())
@@ -31,6 +33,7 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
         public void should_delete_old_Fallback_pending_items()
         {
             var pendingRelease = Builder<PendingRelease>.CreateNew()
+                .With(c => c.MediaKind = MediaKind.Movies)
                 .With(h => h.Reason = PendingReleaseReason.Fallback)
                 .With(h => h.Added = DateTime.UtcNow.AddDays(-21))
                 .With(h => h.ParsedMovieInfo = new ParsedMovieInfo())
@@ -46,6 +49,7 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
         public void should_not_delete_old_Delay_pending_items()
         {
             var pendingRelease = Builder<PendingRelease>.CreateNew()
+                .With(c => c.MediaKind = MediaKind.Movies)
                 .With(h => h.Reason = PendingReleaseReason.Delay)
                 .With(h => h.Added = DateTime.UtcNow.AddDays(-21))
                 .With(h => h.ParsedMovieInfo = new ParsedMovieInfo())

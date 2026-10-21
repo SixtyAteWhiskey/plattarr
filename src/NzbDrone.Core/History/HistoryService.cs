@@ -9,6 +9,7 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies.Events;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Qualities;
@@ -134,6 +135,7 @@ namespace NzbDrone.Core.History
         {
             var history = new MovieHistory
             {
+                MediaKind = MediaKind.Movies,
                 EventType = MovieHistoryEventType.Grabbed,
                 Date = DateTime.UtcNow,
                 Quality = message.Movie.ParsedMovieInfo.Quality,
@@ -194,6 +196,7 @@ namespace NzbDrone.Core.History
             var movie = message.MovieInfo.Movie;
             var history = new MovieHistory
             {
+                MediaKind = MediaKind.Movies,
                 EventType = MovieHistoryEventType.DownloadFolderImported,
                 Date = DateTime.UtcNow,
                 Quality = message.MovieInfo.Quality,
@@ -226,6 +229,7 @@ namespace NzbDrone.Core.History
 
             var history = new MovieHistory
             {
+                MediaKind = MediaKind.Movies,
                 EventType = MovieHistoryEventType.MovieFileDeleted,
                 Date = DateTime.UtcNow,
                 Quality = message.MovieFile.Quality,
@@ -251,6 +255,7 @@ namespace NzbDrone.Core.History
 
             var history = new MovieHistory
             {
+                MediaKind = MediaKind.Movies,
                 EventType = MovieHistoryEventType.MovieFileRenamed,
                 Date = DateTime.UtcNow,
                 Quality = message.MovieFile.Quality,
@@ -274,6 +279,7 @@ namespace NzbDrone.Core.History
         {
             var history = new MovieHistory
             {
+                MediaKind = MediaKind.Movies,
                 EventType = MovieHistoryEventType.DownloadIgnored,
                 Date = DateTime.UtcNow,
                 Quality = message.Quality,
@@ -302,6 +308,7 @@ namespace NzbDrone.Core.History
         {
             var history = new MovieHistory
             {
+                MediaKind = MediaKind.Movies,
                 EventType = MovieHistoryEventType.DownloadFailed,
                 Date = DateTime.UtcNow,
                 Quality = message.Quality,

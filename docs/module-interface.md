@@ -568,6 +568,16 @@ so the activity pages can query one place:
 Module-specific values go in the existing `Data` JSON column, as the apps do
 today. `Queue` is built in memory from tracked downloads and needs no table.
 
+As built in step 8c: the four tables carry a non-null `MediaKind` with no
+default, and their `MovieId` indexes lead with it. Each module reads and writes
+them through a `MediaKindRepository<T>`, which adds `MediaKind = <kind>` to
+every query, delete, count, and purge, and refuses to insert a row of another
+kind (including an unset 0). The orphan housekeepers only look at movie rows.
+`MovieId` keeps its name until the boundary step generalizes the models; the
+rename to `ParentId` and `ItemId`/`ItemIds` is then a column rename. Tracked
+download routing rule 1 needs a core reader of `DownloadHistory` across kinds;
+it comes with the routing work, not here.
+
 ```csharp
 public interface IActivityRenderer
 {

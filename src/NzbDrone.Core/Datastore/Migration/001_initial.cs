@@ -19,6 +19,9 @@ namespace NzbDrone.Core.Datastore.Migration
     //   shape left over from an early migration; every insert supplies the value).
     // - Index names follow their tables (IX_ImportLists_Name,
     //   IX_ImportListStatus_ProviderId, IX_QualityProfiles_Name).
+    // - History, DownloadHistory, Blocklist, and PendingReleases carry MediaKind
+    //   (step 8c, docs/module-interface.md contract 6); their MovieId indexes
+    //   lead with it.
     // - SQLite gets the column defaults and unique constraints Postgres had;
     //   upstream table rebuilds on SQLite had dropped some defaults, and SQLite
     //   kept unique constraints Postgres had dropped.
@@ -247,7 +250,10 @@ namespace NzbDrone.Core.Datastore.Migration
                 .WithColumn("Tags").AsString().WithDefaultValue("[]");
 
             // Activity
+            // Activity tables are shared by every media type (module spec, contract 6).
+            // MediaKind has no default; MediaKindRepository refuses rows without one.
             Create.TableForModel("History")
+                .WithColumn("MediaKind").AsInt32()
                 .WithColumn("SourceTitle").AsString()
                 .WithColumn("Date").AsDateTimeOffset()
                 .WithColumn("Quality").AsString()
@@ -261,9 +267,10 @@ namespace NzbDrone.Core.Datastore.Migration
 
             Create.Index("IX_History_DownloadId_Date").OnTable("History").OnColumn("DownloadId").Ascending().OnColumn("Date").Descending();
 
-            Create.Index("IX_History_MovieId_Date").OnTable("History").OnColumn("MovieId").Ascending().OnColumn("Date").Descending();
+            Create.Index("IX_History_MediaKind_MovieId_Date").OnTable("History").OnColumn("MediaKind").Ascending().OnColumn("MovieId").Ascending().OnColumn("Date").Descending();
 
             Create.TableForModel("DownloadHistory")
+                .WithColumn("MediaKind").AsInt32()
                 .WithColumn("EventType").AsInt32()
                 .WithColumn("MovieId").AsInt32()
                 .WithColumn("DownloadId").AsString()
@@ -279,9 +286,10 @@ namespace NzbDrone.Core.Datastore.Migration
 
             Create.Index("IX_DownloadHistory_EventType").OnTable("DownloadHistory").OnColumn("EventType").Ascending();
 
-            Create.Index("IX_DownloadHistory_MovieId").OnTable("DownloadHistory").OnColumn("MovieId").Ascending();
+            Create.Index("IX_DownloadHistory_MediaKind_MovieId").OnTable("DownloadHistory").OnColumn("MediaKind").Ascending().OnColumn("MovieId").Ascending();
 
             Create.TableForModel("Blocklist")
+                .WithColumn("MediaKind").AsInt32()
                 .WithColumn("SourceTitle").AsString()
                 .WithColumn("Quality").AsString()
                 .WithColumn("Date").AsDateTimeOffset()
@@ -297,9 +305,10 @@ namespace NzbDrone.Core.Datastore.Migration
 
             Create.Index("IX_Blocklist_Date").OnTable("Blocklist").OnColumn("Date").Ascending();
 
-            Create.Index("IX_Blocklist_MovieId").OnTable("Blocklist").OnColumn("MovieId").Ascending();
+            Create.Index("IX_Blocklist_MediaKind_MovieId").OnTable("Blocklist").OnColumn("MediaKind").Ascending().OnColumn("MovieId").Ascending();
 
             Create.TableForModel("PendingReleases")
+                .WithColumn("MediaKind").AsInt32()
                 .WithColumn("Title").AsString()
                 .WithColumn("Added").AsDateTimeOffset()
                 .WithColumn("Release").AsString()

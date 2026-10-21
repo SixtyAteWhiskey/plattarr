@@ -3,6 +3,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Housekeeping.Housekeepers;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
@@ -16,6 +17,7 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
         public void should_delete_orphaned_pending_items()
         {
             var pendingRelease = Builder<PendingRelease>.CreateNew()
+                .With(c => c.MediaKind = MediaKind.Movies)
                 .With(h => h.ParsedMovieInfo = new ParsedMovieInfo())
                 .With(h => h.Release = new ReleaseInfo())
                 .BuildNew();
@@ -33,6 +35,7 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
             Db.Insert(movie);
 
             var pendingRelease = Builder<PendingRelease>.CreateNew()
+                .With(c => c.MediaKind = MediaKind.Movies)
                 .With(h => h.MovieId = movie.Id)
                 .With(h => h.ParsedMovieInfo = new ParsedMovieInfo())
                 .With(h => h.Release = new ReleaseInfo())
@@ -40,6 +43,21 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
 
             Db.Insert(pendingRelease);
 
+            Subject.Clean();
+            AllStoredModels.Should().HaveCount(1);
+        }
+
+        [Test]
+        public void should_not_delete_rows_of_other_media_types()
+        {
+            // A TV row's MovieId points at Tv_ tables, never at Movies_Movies.
+            var pendingRelease = Builder<PendingRelease>.CreateNew()
+                .With(c => c.MediaKind = MediaKind.Tv)
+                .With(h => h.ParsedMovieInfo = new ParsedMovieInfo())
+                .With(h => h.Release = new ReleaseInfo())
+                .BuildNew();
+
+            Db.Insert(pendingRelease);
             Subject.Clean();
             AllStoredModels.Should().HaveCount(1);
         }

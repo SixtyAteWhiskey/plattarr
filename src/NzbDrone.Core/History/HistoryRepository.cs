@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
@@ -23,10 +24,10 @@ namespace NzbDrone.Core.History
         PagingSpec<MovieHistory> GetPaged(PagingSpec<MovieHistory> pagingSpec, int[] languages, int[] qualities);
     }
 
-    public class HistoryRepository : BasicRepository<MovieHistory>, IHistoryRepository
+    public class HistoryRepository : MediaKindRepository<MovieHistory>, IHistoryRepository
     {
         public HistoryRepository(IMainDatabase database, IEventAggregator eventAggregator)
-            : base(database, eventAggregator)
+            : base(database, eventAggregator, MediaKind.Movies)
         {
         }
 
@@ -70,7 +71,7 @@ namespace NzbDrone.Core.History
 
         public List<MovieHistory> GetByMovieId(int movieId, MovieHistoryEventType? eventType)
         {
-            var builder = new SqlBuilder(_database.DatabaseType)
+            var builder = Builder()
                 .Join<MovieHistory, Movie>((h, m) => h.MovieId == m.Id)
                 .Join<Movie, QualityProfile>((m, p) => m.QualityProfileId == p.Id)
                 .Where<MovieHistory>(h => h.MovieId == movieId);
@@ -90,7 +91,7 @@ namespace NzbDrone.Core.History
 
         public List<MovieHistory> Since(DateTime date, MovieHistoryEventType? eventType)
         {
-            var builder = new SqlBuilder(_database.DatabaseType)
+            var builder = Builder()
                 .Join<MovieHistory, Movie>((h, m) => h.MovieId == m.Id)
                 .Join<Movie, QualityProfile>((m, p) => m.QualityProfileId == p.Id)
                 .Where<MovieHistory>(x => x.Date >= date);

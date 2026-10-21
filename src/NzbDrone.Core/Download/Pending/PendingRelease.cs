@@ -1,11 +1,13 @@
 using System;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Download.Pending
 {
-    public class PendingRelease : ModelBase
+    public class PendingRelease : ModelBase, IMediaKindRecord
     {
+        public MediaKind MediaKind { get; set; }
         public int MovieId { get; set; }
         public string Title { get; set; }
         public DateTime Added { get; set; }
