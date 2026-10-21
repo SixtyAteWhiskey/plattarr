@@ -67,6 +67,16 @@ RUN apk add --no-cache \
 # UpdateMethod=Docker disables the in-app updater, which would otherwise
 # replace this build with upstream Radarr.
 COPY --from=backend /out/bin /app/bin
+
+# ffprobe arrives from the NuGet package with owner-only execute, and the app
+# runs as the unprivileged plattarr user. Without this every media info read
+# fails with "Permission denied", which breaks sample detection and imports.
+# Radarr's own pipeline does the same (azure-pipelines.yml). The test fails the
+# build if ffprobe is missing or cannot be run by another user.
+RUN find /app/bin -name ffprobe -exec chmod a+x {} + \
+ && test -x /app/bin/ffprobe \
+ && su-exec nobody /app/bin/ffprobe -version > /dev/null
+
 RUN printf 'PackageVersion=%s\nPackageAuthor=Plattarr\nUpdateMethod=Docker\nBranch=develop\n' \
       "${PLATTARR_VERSION:-dev}" > /app/package_info
 
