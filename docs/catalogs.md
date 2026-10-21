@@ -1,7 +1,8 @@
 # Quality and language catalogs (porting step 8d)
 
-Status: **proposed**, waiting for the owner's answers to the open choices
-below. No code is written against this document yet.
+Status: **decided** 2026-10-20 (session 13). The owner chose a separate
+audio catalog and left numbering to Claude; the choices are recorded in
+"Decisions" at the end.
 
 Decided earlier (2026-10-20): Plattarr owns global quality and language
 catalogs with fresh Plattarr numbering. Every importer and every
@@ -79,37 +80,38 @@ and adding a quality needs a parser change anyway. The `QualityDefinitions`
 table keeps the user-editable part (title, size limits) per catalog quality,
 and `QualityDefinitionService` adds missing rows at startup as it does today.
 
-### One quality catalog with a media domain
+### Two quality catalogs: video and audio
 
-Each catalog quality carries a `Domain`: `Video` or `Audio`. Movies and TV
-share the video qualities; Music uses the audio ones. A quality profile holds
-qualities from one domain only, enforced by validation, and its `AppliesTo`
-must name media types of that domain.
+Movies and TV share one video catalog, the existing `Quality` class. Music
+gets its own audio catalog type when the Music module arrives (Phase 4), so
+video and audio qualities never mix in one profile, one parser, or one API
+resource. Quality profiles follow the catalogs: `QualityProfiles` holds video
+profiles; Music brings its own profile table with Lidarr's shape.
 
 - Video: the union of Radarr's and Sonarr's qualities, 30 entries, keeping
   Radarr's source, resolution, and modifier attributes. The two remuxes keep
   Radarr's names in the UI.
-- Audio: Lidarr's 37 audio qualities (Lidarr `Unknown` folds into the shared
-  `Unknown`).
-- `Unknown` stays 0 and belongs to both domains.
+- Audio (Phase 4): Lidarr's 37 audio qualities.
+- `Unknown` is 0 in both catalogs.
 
-### Numbering (choice 1)
+### Numbering
 
-Recommended: ranges by domain, numbered in default weight order at birth,
-never reused.
+The two catalogs use disjoint ranges, so a quality ID found in a shared table
+(`History.Quality`, `Blocklist.Quality`) can't be read as the wrong kind of
+quality. IDs are numbered in default weight order at birth and never reused.
 
 - 0: `Unknown`
 - 1 to 199: video, in Radarr's default weight order (`WORKPRINT` 1 ...
   `Raw-HD` 30)
-- 201 to 399: audio, in Lidarr's default weight order
+- 201 to 399: audio (Phase 4), in Lidarr's default weight order
 - 1000 and up: quality groups inside profiles, as today
 
 A new quality takes the next free ID in its range. Order on screen comes
 from weights and profiles, never from IDs.
 
-### Languages (choice 2)
+### Languages
 
-Recommended: keep the three sentinels unchanged (0 `Unknown`, -1 `Any`,
+Keep the three sentinels unchanged (0 `Unknown`, -1 `Any`,
 -2 `Original`) because they mean the same in every app and the frontend and
 custom format code test for them. Number the 61 real languages (Radarr's 57 plus Sonarr's 4) from 1 in
 alphabetical order of their English names; later additions append.
@@ -117,9 +119,9 @@ alphabetical order of their English names; later additions append.
 ### Translation tables
 
 `Qualities/Upstream/RadarrQualityIds`, `SonarrQualityIds`, `LidarrQualityIds`
-and the same three for languages: static two-way maps between an upstream ID
+and the same for languages: static two-way maps between an upstream ID
 and a catalog ID, with a test that every upstream ID maps and every catalog
-entry of the right domain maps back. Users:
+entry maps back. `LidarrQualityIds` comes with the audio catalog. Users:
 
 - the migration importer (Phase 2), for every stored ID in the tables above;
 - the compatibility APIs (`/radarr/api/v3` first), on every resource field
@@ -134,7 +136,8 @@ quality or language ID other than 0.
 ### Profiles and custom formats
 
 `QualityProfiles` and `CustomFormats` gain `AppliesTo`: a JSON list of
-`MediaKind`. Empty means every media type of the profile's domain. Movies
+`MediaKind`. Empty means every media type the profile's catalog serves
+(Movies and TV for video profiles). Movies
 read only profiles and custom formats that apply to Movies. A profile in use
 by a movie can't drop Movies from `AppliesTo`.
 
@@ -145,14 +148,13 @@ by a movie can't drop Movies from `AppliesTo`.
    output catalog IDs with no parser change. Fix tests that hard-code
    upstream IDs. `001_initial` seeds no `QualityDefinitions` rows;
    `QualityDefinitionService` creates them at startup from the catalog.
-2. 8d2: `AppliesTo` on profiles and custom formats, the domain check, and
-   filtered reads in the movie code.
+2. 8d2: `AppliesTo` on profiles and custom formats and filtered reads in the
+   movie code.
 
-## Open choices for the owner
+## Decisions
 
-1. Quality numbering: domain ranges (recommended) or one contiguous
-   sequence.
-2. Language numbering: keep the sentinels and number the rest
-   alphabetically (recommended), or renumber the sentinels too.
-3. Audio qualities: in the one catalog with a `Domain` (recommended), or a
-   separate audio catalog type.
+| Choice | Decision | Reason |
+|---|---|---|
+| Audio qualities | Separate audio catalog (owner) | Owner's choice. Lidarr's qualities and profiles already differ in shape from the video ones. |
+| Quality numbering | Disjoint ranges: video 1 to 199, audio 201 to 399, groups 1000 and up (Claude, delegated) | Shared activity tables store either kind; disjoint ranges keep an ID unambiguous. |
+| Language numbering | Sentinels 0, -1, -2 unchanged; real languages from 1 alphabetically (Claude, delegated) | The sentinels mean the same in every app and code tests for them; renumbering them adds translation with no benefit. |
