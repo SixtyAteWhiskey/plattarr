@@ -5,15 +5,15 @@ using NzbDrone.Common.Exceptions;
 
 namespace NzbDrone.Core.Datastore.Migration
 {
-    // Plattarr's chain restarted at 1 in porting step 8. A database from Radarr, or
-    // from a Plattarr build before step 8, already has a version 1 (Radarr's
-    // "initial_setup"), so the runner would apply nothing and the app would start
-    // against the wrong schema. Refuse it instead. Upstream data comes in through
-    // the importer.
+    // Plattarr's chain restarted at 1 in porting step 8. A database from Radarr (or
+    // any other *arr app), or from a Plattarr build before step 8, already has a
+    // version 1 under another name (Radarr's is "InitialSetup"), so the runner would
+    // apply nothing and the app would start against the wrong schema. Refuse any
+    // version 1 that isn't Plattarr's. Upstream data comes in through the importer.
     [Maintenance(MigrationStage.BeforeAll, TransactionBehavior.None)]
     public class PreviousSchemaCheck : ForwardOnlyMigration
     {
-        public const string UpstreamInitialDescription = "initial_setup";
+        public static readonly string PlattarrInitialDescription = nameof(plattarr_initial);
 
         public override void Up()
         {
@@ -31,9 +31,9 @@ namespace NzbDrone.Core.Datastore.Migration
                 return;
             }
 
-            var upstreamRows = Count(conn, tran, $"SELECT COUNT(*) FROM \"VersionInfo\" WHERE \"Version\" = 1 AND \"Description\" = '{UpstreamInitialDescription}'");
+            var foreignRows = Count(conn, tran, $"SELECT COUNT(*) FROM \"VersionInfo\" WHERE \"Version\" = 1 AND (\"Description\" IS NULL OR \"Description\" <> '{PlattarrInitialDescription}')");
 
-            if (upstreamRows > 0)
+            if (foreignRows > 0)
             {
                 var latest = Count(conn, tran, "SELECT MAX(\"Version\") FROM \"VersionInfo\"");
 
