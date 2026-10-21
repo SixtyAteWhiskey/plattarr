@@ -4,6 +4,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.History;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
@@ -32,6 +33,7 @@ namespace NzbDrone.Core.Test.HistoryTests
         public void should_read_write_dictionary()
         {
             var history = Builder<MovieHistory>.CreateNew()
+                .With(c => c.MediaKind = MediaKind.Movies)
                 .With(c => c.Quality = new QualityModel())
                 .With(c => c.Languages = new List<Language>())
                 .BuildNew();
@@ -48,6 +50,7 @@ namespace NzbDrone.Core.Test.HistoryTests
         public void should_get_download_history()
         {
             var historyBluray = Builder<MovieHistory>.CreateNew()
+                .With(c => c.MediaKind = MediaKind.Movies)
                 .With(c => c.Quality = new QualityModel(Quality.Bluray1080p))
                 .With(c => c.Languages = new List<Language> { Language.English })
                 .With(c => c.MovieId = 12)
@@ -55,6 +58,7 @@ namespace NzbDrone.Core.Test.HistoryTests
                 .BuildNew();
 
             var historyDvd = Builder<MovieHistory>.CreateNew()
+                .With(c => c.MediaKind = MediaKind.Movies)
                 .With(c => c.Quality = new QualityModel(Quality.DVD))
                 .With(c => c.Languages = new List<Language> { Language.English })
                 .With(c => c.MovieId = 12)

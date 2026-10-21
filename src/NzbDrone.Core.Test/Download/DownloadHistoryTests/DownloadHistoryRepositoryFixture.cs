@@ -4,6 +4,7 @@ using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Download.History;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Test.Framework;
 
@@ -31,6 +32,8 @@ namespace NzbDrone.Core.Test.Download.DownloadHistoryTests
         public void should_delete_history_items_by_movieId()
         {
             var items = Builder<DownloadHistory>.CreateListOfSize(5)
+                .All()
+                .With(c => c.MediaKind = MediaKind.Movies)
                 .TheFirst(1)
                 .With(c => c.Id = 0)
                 .With(c => c.MovieId = _movie2.Id)

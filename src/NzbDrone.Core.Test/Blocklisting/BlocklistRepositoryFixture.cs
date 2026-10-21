@@ -6,6 +6,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
@@ -24,6 +25,7 @@ namespace NzbDrone.Core.Test.Blocklisting
         {
             _blocklist = new Blocklist
             {
+                MediaKind = MediaKind.Movies,
                 MovieId = 1234,
                 Quality = new QualityModel(),
                 Languages = new List<Language>(),
@@ -67,6 +69,8 @@ namespace NzbDrone.Core.Test.Blocklisting
         public void should_delete_blocklists_by_movieId()
         {
             var blocklistItems = Builder<Blocklist>.CreateListOfSize(5)
+                .All()
+                .With(c => c.MediaKind = MediaKind.Movies)
                 .TheFirst(1)
                 .With(c => c.MovieId = _movie2.Id)
                 .TheRest()

@@ -5,6 +5,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.History;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
 
@@ -26,6 +27,7 @@ namespace NzbDrone.Core.Test.Datastore
             var languages = new List<Language> { Language.English };
 
             var history = Builder<MovieHistory>.CreateNew()
+                            .With(c => c.MediaKind = MediaKind.Movies)
                             .With(c => c.Id = 0)
                             .With(c => c.Quality = quality)
                             .With(c => c.Languages = languages)
@@ -43,7 +45,9 @@ namespace NzbDrone.Core.Test.Datastore
             var languages = new List<Language> { Language.English };
 
             var history = Builder<MovieHistory>.CreateListOfSize(2)
-                            .All().With(c => c.Id = 0)
+                            .All()
+                            .With(c => c.MediaKind = MediaKind.Movies)
+                            .With(c => c.Id = 0)
                             .With(c => c.Languages = languages)
                             .Build().ToList();
 

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Modules;
 
 namespace NzbDrone.Core.Download.History
 {
@@ -11,10 +12,10 @@ namespace NzbDrone.Core.Download.History
         void DeleteByMovieIds(List<int> movieIds);
     }
 
-    public class DownloadHistoryRepository : BasicRepository<DownloadHistory>, IDownloadHistoryRepository
+    public class DownloadHistoryRepository : MediaKindRepository<DownloadHistory>, IDownloadHistoryRepository
     {
         public DownloadHistoryRepository(IMainDatabase database, IEventAggregator eventAggregator)
-            : base(database, eventAggregator)
+            : base(database, eventAggregator, MediaKind.Movies)
         {
         }
 

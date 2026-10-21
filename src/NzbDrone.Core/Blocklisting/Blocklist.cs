@@ -3,14 +3,16 @@ using System.Collections.Generic;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Blocklisting
 {
-    public class Blocklist : ModelBase
+    public class Blocklist : ModelBase, IMediaKindRecord
     {
+        public MediaKind MediaKind { get; set; }
         public int MovieId { get; set; }
         public Movie Movie { get; set; }
         public string SourceTitle { get; set; }

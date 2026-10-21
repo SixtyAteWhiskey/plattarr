@@ -5,6 +5,7 @@ using NUnit.Framework;
 using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
@@ -34,6 +35,7 @@ namespace NzbDrone.Core.Test.MediaFiles
         {
             var files = Builder<PendingRelease>.CreateListOfSize(5)
                 .All()
+                .With(c => c.MediaKind = MediaKind.Movies)
                 .With(c => c.Id = 0)
                 .With(c => c.MovieId = _movie1.Id)
                 .With(c => c.Release = new ReleaseInfo())
@@ -53,6 +55,7 @@ namespace NzbDrone.Core.Test.MediaFiles
         {
             var files = Builder<PendingRelease>.CreateListOfSize(5)
                 .All()
+                .With(c => c.MediaKind = MediaKind.Movies)
                 .With(c => c.Id = 0)
                 .With(c => c.MovieId = _movie1.Id)
                 .With(c => c.Release = new ReleaseInfo())
@@ -82,6 +85,7 @@ namespace NzbDrone.Core.Test.MediaFiles
             release.AddIndexerFlags(IndexerFlags.PTP_Golden);
 
             var pending = Builder<PendingRelease>.CreateNew()
+                .With(c => c.MediaKind = MediaKind.Movies)
                 .With(c => c.Id = 0)
                 .With(c => c.MovieId = _movie1.Id)
                 .With(c => c.Release = release)

@@ -4,6 +4,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.History;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies.Events;
 
 namespace NzbDrone.Core.Download.History
@@ -101,6 +102,7 @@ namespace NzbDrone.Core.Download.History
 
             var history = new DownloadHistory
             {
+                MediaKind = MediaKind.Movies,
                 EventType = DownloadHistoryEventType.DownloadGrabbed,
                 MovieId = message.Movie.Movie.Id,
                 DownloadId = message.DownloadId,
@@ -143,6 +145,7 @@ namespace NzbDrone.Core.Download.History
 
             var history = new DownloadHistory
             {
+                MediaKind = MediaKind.Movies,
                 EventType = DownloadHistoryEventType.FileImported,
                 MovieId = message.ImportedMovie.MovieId,
                 DownloadId = downloadId,
@@ -164,6 +167,7 @@ namespace NzbDrone.Core.Download.History
 
             var history = new DownloadHistory
             {
+                MediaKind = MediaKind.Movies,
                 EventType = DownloadHistoryEventType.DownloadImported,
                 MovieId = message.MovieId,
                 DownloadId = downloadItem.DownloadId,
@@ -189,6 +193,7 @@ namespace NzbDrone.Core.Download.History
 
             var history = new DownloadHistory
             {
+                MediaKind = MediaKind.Movies,
                 EventType = DownloadHistoryEventType.DownloadFailed,
                 MovieId = message.MovieId,
                 DownloadId = message.DownloadId,
@@ -208,6 +213,7 @@ namespace NzbDrone.Core.Download.History
         {
             var history = new DownloadHistory
             {
+                MediaKind = MediaKind.Movies,
                 EventType = DownloadHistoryEventType.DownloadIgnored,
                 MovieId = message.MovieId,
                 DownloadId = message.DownloadId,
