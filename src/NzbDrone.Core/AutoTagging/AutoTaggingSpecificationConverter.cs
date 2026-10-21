@@ -5,7 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using NzbDrone.Core.AutoTagging.Specifications;
 
-namespace NzbDrone.Core.Datastore.Converters
+namespace NzbDrone.Core.AutoTagging
 {
     public class AutoTaggingSpecificationConverter : JsonConverter<List<IAutoTaggingSpecification>>
     {

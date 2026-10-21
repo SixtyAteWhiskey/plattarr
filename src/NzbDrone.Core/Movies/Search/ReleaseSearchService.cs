@@ -23,7 +23,6 @@ namespace NzbDrone.Core.Movies.Search
     {
         private readonly IIndexerReleaseFetcher _releaseFetcher;
         private readonly ISearchTranslator<MovieSearchRequest> _searchTranslator;
-        private readonly IMovieReleaseMatcher _releaseMatcher;
         private readonly IMakeDownloadDecision _makeDownloadDecision;
         private readonly IMovieService _movieService;
         private readonly IMovieTranslationService _movieTranslationService;
@@ -32,7 +31,6 @@ namespace NzbDrone.Core.Movies.Search
 
         public ReleaseSearchService(IIndexerReleaseFetcher releaseFetcher,
                                 ISearchTranslator<MovieSearchRequest> searchTranslator,
-                                IMovieReleaseMatcher releaseMatcher,
                                 IMakeDownloadDecision makeDownloadDecision,
                                 IMovieService movieService,
                                 IMovieTranslationService movieTranslationService,
@@ -41,7 +39,6 @@ namespace NzbDrone.Core.Movies.Search
         {
             _releaseFetcher = releaseFetcher;
             _searchTranslator = searchTranslator;
-            _releaseMatcher = releaseMatcher;
             _makeDownloadDecision = makeDownloadDecision;
             _movieService = movieService;
             _movieTranslationService = movieTranslationService;
@@ -103,7 +100,7 @@ namespace NzbDrone.Core.Movies.Search
         {
             var result = await _releaseFetcher.Search(criteriaBase,
                                                       criteriaBase.Movie.Tags,
-                                                      _releaseMatcher,
+                                                      MediaKind.Movies,
                                                       _searchTranslator);
 
             // Update the last search time for movie if at least 1 indexer was searched.

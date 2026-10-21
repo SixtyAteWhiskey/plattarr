@@ -8,8 +8,6 @@ namespace NzbDrone.Core.Datastore
 {
     public class TableMapper
     {
-        public static readonly string[] ModuleTablePrefixes = { "Movies_" };
-
         private readonly HashSet<string> _allowedOrderBy = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         public TableMapper()
@@ -22,6 +20,9 @@ namespace NzbDrone.Core.Datastore
         public Dictionary<Type, List<PropertyInfo>> IgnoreList { get; set; }
         public Dictionary<Type, List<LazyLoadedProperty>> LazyLoadList { get; set; }
         public Dictionary<Type, string> TableMap { get; set; }
+
+        // Each media module's table prefix ("Movies_"), added by TableMapping.
+        public List<string> ModuleTablePrefixes { get; } = new List<string>();
 
         public ColumnMapper<TEntity> Entity<TEntity>(string tableName)
             where TEntity : ModelBase

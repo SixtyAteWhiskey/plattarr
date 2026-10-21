@@ -26,12 +26,12 @@ namespace NzbDrone.Core.IndexerSearch
     public interface IIndexerReleaseFetcher
     {
         // One RSS request per RSS-enabled indexer, for the categories of every given media type.
-        Task<List<ReleaseInfo>> FetchRss(IReadOnlyCollection<IReleaseMatcher> matchers);
+        Task<List<ReleaseInfo>> FetchRss(IReadOnlyCollection<MediaKind> kinds);
 
         // A module search. The translator turns the request into tiers of criteria per indexer.
         Task<IndexerSearchResult> Search<TRequest>(TRequest request,
                                                    IEnumerable<int> mediaTags,
-                                                   IReleaseMatcher matcher,
+                                                   MediaKind kind,
                                                    ISearchTranslator<TRequest> translator)
             where TRequest : ModuleSearchRequest;
     }
@@ -65,7 +65,7 @@ namespace NzbDrone.Core.IndexerSearch
             _logger = logger;
         }
 
-        public async Task<List<ReleaseInfo>> FetchRss(IReadOnlyCollection<IReleaseMatcher> matchers)
+        public async Task<List<ReleaseInfo>> FetchRss(IReadOnlyCollection<MediaKind> kinds)
         {
             var indexers = _indexerFactory.RssEnabled();
 
@@ -77,7 +77,7 @@ namespace NzbDrone.Core.IndexerSearch
             }
 
             var targets = indexers
-                .Select(i => (Indexer: i, Categories: matchers.SelectMany(m => _indexerCategoryService.GetCategories(i.Definition.Id, m)).Distinct().ToArray()))
+                .Select(i => (Indexer: i, Categories: kinds.SelectMany(k => _indexerCategoryService.GetCategories(i.Definition.Id, k)).Distinct().ToArray()))
                 .Where(t => SupportsCategories(t.Indexer, t.Categories))
                 .ToList();
 
@@ -94,7 +94,7 @@ namespace NzbDrone.Core.IndexerSearch
 
         public async Task<IndexerSearchResult> Search<TRequest>(TRequest request,
                                                                 IEnumerable<int> mediaTags,
-                                                                IReleaseMatcher matcher,
+                                                                MediaKind kind,
                                                                 ISearchTranslator<TRequest> translator)
             where TRequest : ModuleSearchRequest
         {
@@ -102,7 +102,7 @@ namespace NzbDrone.Core.IndexerSearch
 
             var indexers = (request.InteractiveSearch ? _indexerFactory.InteractiveSearchEnabled() : _indexerFactory.AutomaticSearchEnabled())
                 .Where(i => _indexerMediaTagService.Allows((IndexerDefinition)i.Definition, tags))
-                .Select(i => (Indexer: i, Categories: _indexerCategoryService.GetCategories(i.Definition.Id, matcher)))
+                .Select(i => (Indexer: i, Categories: _indexerCategoryService.GetCategories(i.Definition.Id, kind)))
                 .Where(t => SupportsCategories(t.Indexer, t.Categories))
                 .ToList();
 

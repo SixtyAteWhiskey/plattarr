@@ -10,10 +10,10 @@ namespace NzbDrone.Core.IndexerSearch
     {
         // The categories a media type searches and receives on one indexer: the indexer's
         // override for that media type when set, otherwise the media type's defaults.
-        int[] GetCategories(int indexerId, IReleaseMatcher matcher);
+        int[] GetCategories(int indexerId, MediaKind kind);
 
         // Whether an RSS release belongs to a media type (docs/module-interface.md, contract 2).
-        bool BelongsTo(ReleaseInfo release, IReleaseMatcher matcher);
+        bool BelongsTo(ReleaseInfo release, MediaKind kind);
     }
 
     public class IndexerCategoryService : IIndexerCategoryService
@@ -23,22 +23,24 @@ namespace NzbDrone.Core.IndexerSearch
         public const int CustomCategoryStart = 100000;
 
         private readonly IIndexerOverrideService _indexerOverrideService;
+        private readonly Dictionary<MediaKind, IMediaModule> _modules;
 
-        public IndexerCategoryService(IIndexerOverrideService indexerOverrideService)
+        public IndexerCategoryService(IIndexerOverrideService indexerOverrideService, IEnumerable<IMediaModule> modules)
         {
             _indexerOverrideService = indexerOverrideService;
+            _modules = modules.ToDictionary(m => m.Kind);
         }
 
-        public int[] GetCategories(int indexerId, IReleaseMatcher matcher)
+        public int[] GetCategories(int indexerId, MediaKind kind)
         {
-            var overridden = _indexerOverrideService.Get(indexerId, matcher.Kind).Categories;
+            var overridden = _indexerOverrideService.Get(indexerId, kind).Categories;
 
-            return overridden.Count > 0 ? overridden.ToArray() : matcher.Categories.ToArray();
+            return overridden.Count > 0 ? overridden.ToArray() : _modules[kind].DefaultCategories.ToArray();
         }
 
-        public bool BelongsTo(ReleaseInfo release, IReleaseMatcher matcher)
+        public bool BelongsTo(ReleaseInfo release, MediaKind kind)
         {
-            return Matches(release, GetCategories(release.IndexerId, matcher));
+            return Matches(release, GetCategories(release.IndexerId, kind));
         }
 
         // A release matches when one of its categories equals a wanted category or falls in

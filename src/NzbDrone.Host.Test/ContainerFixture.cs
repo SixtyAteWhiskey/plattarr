@@ -69,6 +69,7 @@ namespace NzbDrone.App.Test
         [Test]
         public void should_resolve_media_module_contracts()
         {
+            _container.GetRequiredService<IEnumerable<IMediaModule>>().Should().ContainSingle(m => m.Kind == MediaKind.Movies);
             _container.GetRequiredService<IEnumerable<IReleaseMatcher>>().Should().ContainSingle(m => m.Kind == MediaKind.Movies);
             _container.GetRequiredService<IEnumerable<IRssReleaseHandler>>().Should().ContainSingle(h => h.Kind == MediaKind.Movies);
             _container.GetRequiredService<IIndexerReleaseFetcher>().Should().NotBeNull();

@@ -2,7 +2,7 @@ namespace NzbDrone.Core.Test.Architecture
 {
     // Core types that reference module code today (ModuleBoundaryFixture). This list may only shrink:
     // remove an entry when its type stops referencing a module; never add one. Each group says how it
-    // leaves the list. Seeded in step 9a with 159 types.
+    // leaves the list. Seeded in step 9a with 159 types; 156 after 9b.
     public static class ModuleBoundaryAllowlist
     {
         public static readonly string[] Types =
@@ -28,10 +28,6 @@ namespace NzbDrone.Core.Test.Architecture
             "NzbDrone.Core.CustomFormats.ResolutionSpecification",
             "NzbDrone.Core.CustomFormats.SourceSpecification",
             "NzbDrone.Core.CustomFormats.YearSpecification",
-
-            // Datastore (2): Step 9b: modules map their own tables.
-            "NzbDrone.Core.Datastore.Converters.AutoTaggingSpecificationConverter",
-            "NzbDrone.Core.Datastore.TableMapping",
 
             // DiskSpace (1): Root folders come from each module.
             "NzbDrone.Core.DiskSpace.DiskSpaceService",
@@ -112,9 +108,6 @@ namespace NzbDrone.Core.Test.Architecture
             "NzbDrone.Core.Housekeeping.Housekeepers.DeleteBadMediaCovers",
             "NzbDrone.Core.Housekeeping.Housekeepers.FixFutureImportListStatusTimes",
             "NzbDrone.Core.Housekeeping.Housekeepers.UpdateCleanTitleForMovies",
-
-            // Jobs (1): Step 9b: modules contribute their scheduled tasks.
-            "NzbDrone.Core.Jobs.TaskManager",
 
             // Notifications (56): Contract 7, before Phase 3.
             "NzbDrone.Core.Notifications.Apprise.Apprise",
