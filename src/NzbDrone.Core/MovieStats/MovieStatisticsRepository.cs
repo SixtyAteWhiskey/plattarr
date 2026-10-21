@@ -15,8 +15,8 @@ namespace NzbDrone.Core.MovieStats
 
     public class MovieStatisticsRepository : IMovieStatisticsRepository
     {
-        private const string _selectMoviesTemplate = "SELECT /**select**/ FROM \"Movies\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
-        private const string _selectMovieFilesTemplate = "SELECT /**select**/ FROM \"MovieFiles\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
+        private const string _selectMoviesTemplate = "SELECT /**select**/ FROM \"Movies_Movies\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
+        private const string _selectMovieFilesTemplate = "SELECT /**select**/ FROM \"Movies_MovieFiles\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/ /**orderby**/";
 
         private readonly IMainDatabase _database;
 
@@ -63,7 +63,7 @@ namespace NzbDrone.Core.MovieStats
         private SqlBuilder MoviesBuilder()
         {
             return new SqlBuilder(_database.DatabaseType)
-                .Select(@"""Movies"".""Id"" AS MovieId,
+                .Select(@"""Movies_Movies"".""Id"" AS MovieId,
                         SUM(CASE WHEN ""MovieFileId"" > 0 THEN 1 ELSE 0 END) AS MovieFileCount")
                 .GroupBy<Movie>(x => x.Id);
         }

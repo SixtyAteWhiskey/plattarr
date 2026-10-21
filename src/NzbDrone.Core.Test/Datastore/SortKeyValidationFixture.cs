@@ -20,9 +20,20 @@ namespace NzbDrone.Core.Test.Datastore
         [TestCase("Id")]
         [TestCase("id")]
         [TestCase("commands.id")]
+        [TestCase("movieMetadata.sortTitle")]
+        [TestCase("movies.lastSearchTime")]
+        [TestCase("Movies_MovieMetadata.sortTitle")]
         public void should_return_true_for_valid_sort_key(string sortKey)
         {
             TableMapping.Mapper.IsValidSortKey(sortKey).Should().BeTrue();
+        }
+
+        [TestCase("movieMetadata.sortTitle", "Movies_MovieMetadata", "SortTitle")]
+        [TestCase("movies.lastSearchTime", "Movies_Movies", "LastSearchTime")]
+        [TestCase("commands.id", "Commands", "Id")]
+        public void should_resolve_upstream_table_names_to_module_tables(string sortKey, string table, string column)
+        {
+            TableMapping.Mapper.GetSortKey(sortKey).Should().Be((table, column));
         }
     }
 }

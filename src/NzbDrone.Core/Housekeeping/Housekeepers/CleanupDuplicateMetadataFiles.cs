@@ -21,9 +21,9 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
         private void DeleteDuplicateMovieMetadata()
         {
             using var mapper = _database.OpenConnection();
-            mapper.Execute(@"DELETE FROM ""MetadataFiles""
+            mapper.Execute(@"DELETE FROM ""Movies_MetadataFiles""
                              WHERE ""Id"" IN (
-                                 SELECT MIN(""Id"") FROM ""MetadataFiles""
+                                 SELECT MIN(""Id"") FROM ""Movies_MetadataFiles""
                                  WHERE ""Type"" = 1
                                  GROUP BY ""MovieId"", ""Consumer""
                                  HAVING COUNT(""MovieId"") > 1
@@ -33,9 +33,9 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
         private void DeleteDuplicateMovieFileMetadata()
         {
             using var mapper = _database.OpenConnection();
-            mapper.Execute(@"DELETE FROM ""MetadataFiles""
+            mapper.Execute(@"DELETE FROM ""Movies_MetadataFiles""
                              WHERE ""Id"" IN (
-                                 SELECT MIN(""Id"") FROM ""MetadataFiles""
+                                 SELECT MIN(""Id"") FROM ""Movies_MetadataFiles""
                                  WHERE ""Type"" = 1
                                  GROUP BY ""MovieFileId"", ""Consumer""
                                  HAVING COUNT(""MovieFileId"") > 1

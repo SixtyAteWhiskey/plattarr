@@ -308,8 +308,8 @@ namespace NzbDrone.Core.Datastore.Migration
                 .WithColumn("Reason").AsInt32().WithDefaultValue(0)
                 .WithColumn("AdditionalInfo").AsString().Nullable();
 
-            // Movies
-            Create.TableForModel("MovieMetadata")
+            // Movies: module-owned tables carry the module prefix (module spec, boundary rule 4)
+            Create.TableForModel("Movies_MovieMetadata")
                 .WithColumn("TmdbId").AsInt32().Unique()
                 .WithColumn("ImdbId").AsString().Nullable()
                 .WithColumn("Images").AsString()
@@ -340,13 +340,13 @@ namespace NzbDrone.Core.Datastore.Migration
                 .WithColumn("CollectionTitle").AsString().Nullable()
                 .WithColumn("Keywords").AsString().Nullable();
 
-            Create.Index("IX_MovieMetadata_CleanOriginalTitle").OnTable("MovieMetadata").OnColumn("CleanOriginalTitle").Ascending();
+            Create.Index("IX_Movies_MovieMetadata_CleanOriginalTitle").OnTable("Movies_MovieMetadata").OnColumn("CleanOriginalTitle").Ascending();
 
-            Create.Index("IX_MovieMetadata_CleanTitle").OnTable("MovieMetadata").OnColumn("CleanTitle").Ascending();
+            Create.Index("IX_Movies_MovieMetadata_CleanTitle").OnTable("Movies_MovieMetadata").OnColumn("CleanTitle").Ascending();
 
-            Create.Index("IX_MovieMetadata_CollectionTmdbId").OnTable("MovieMetadata").OnColumn("CollectionTmdbId").Ascending();
+            Create.Index("IX_Movies_MovieMetadata_CollectionTmdbId").OnTable("Movies_MovieMetadata").OnColumn("CollectionTmdbId").Ascending();
 
-            Create.TableForModel("Movies")
+            Create.TableForModel("Movies_Movies")
                 .WithColumn("Path").AsString()
                 .WithColumn("Monitored").AsBoolean()
                 .WithColumn("QualityProfileId").AsInt32()
@@ -358,11 +358,11 @@ namespace NzbDrone.Core.Datastore.Migration
                 .WithColumn("MovieMetadataId").AsInt32().WithDefaultValue(0).Unique()
                 .WithColumn("LastSearchTime").AsDateTimeOffset().Nullable();
 
-            Create.Index("IX_Movies_MovieFileId").OnTable("Movies").OnColumn("MovieFileId").Ascending();
+            Create.Index("IX_Movies_Movies_MovieFileId").OnTable("Movies_Movies").OnColumn("MovieFileId").Ascending();
 
-            Create.Index("IX_Movies_Path").OnTable("Movies").OnColumn("Path").Ascending();
+            Create.Index("IX_Movies_Movies_Path").OnTable("Movies_Movies").OnColumn("Path").Ascending();
 
-            Create.TableForModel("MovieFiles")
+            Create.TableForModel("Movies_MovieFiles")
                 .WithColumn("MovieId").AsInt32()
                 .WithColumn("Quality").AsString()
                 .WithColumn("Size").AsInt64()
@@ -376,32 +376,32 @@ namespace NzbDrone.Core.Datastore.Migration
                 .WithColumn("IndexerFlags").AsInt32().WithDefaultValue(0)
                 .WithColumn("OriginalFilePath").AsString().Nullable();
 
-            Create.Index("IX_MovieFiles_MovieId").OnTable("MovieFiles").OnColumn("MovieId").Ascending();
+            Create.Index("IX_Movies_MovieFiles_MovieId").OnTable("Movies_MovieFiles").OnColumn("MovieId").Ascending();
 
-            Create.TableForModel("AlternativeTitles")
+            Create.TableForModel("Movies_AlternativeTitles")
                 .WithColumn("Title").AsString()
                 .WithColumn("CleanTitle").AsString()
                 .WithColumn("SourceType").AsInt32().WithDefaultValue(0)
                 .WithColumn("MovieMetadataId").AsInt32().WithDefaultValue(0);
 
-            Create.Index("IX_AlternativeTitles_CleanTitle").OnTable("AlternativeTitles").OnColumn("CleanTitle").Ascending();
+            Create.Index("IX_Movies_AlternativeTitles_CleanTitle").OnTable("Movies_AlternativeTitles").OnColumn("CleanTitle").Ascending();
 
-            Create.Index("IX_AlternativeTitles_MovieMetadataId").OnTable("AlternativeTitles").OnColumn("MovieMetadataId").Ascending();
+            Create.Index("IX_Movies_AlternativeTitles_MovieMetadataId").OnTable("Movies_AlternativeTitles").OnColumn("MovieMetadataId").Ascending();
 
-            Create.TableForModel("MovieTranslations")
+            Create.TableForModel("Movies_MovieTranslations")
                 .WithColumn("Title").AsString().Nullable()
                 .WithColumn("CleanTitle").AsString().Nullable()
                 .WithColumn("Overview").AsString().Nullable()
                 .WithColumn("Language").AsInt32()
                 .WithColumn("MovieMetadataId").AsInt32().WithDefaultValue(0);
 
-            Create.Index("IX_MovieTranslations_CleanTitle").OnTable("MovieTranslations").OnColumn("CleanTitle").Ascending();
+            Create.Index("IX_Movies_MovieTranslations_CleanTitle").OnTable("Movies_MovieTranslations").OnColumn("CleanTitle").Ascending();
 
-            Create.Index("IX_MovieTranslations_Language").OnTable("MovieTranslations").OnColumn("Language").Ascending();
+            Create.Index("IX_Movies_MovieTranslations_Language").OnTable("Movies_MovieTranslations").OnColumn("Language").Ascending();
 
-            Create.Index("IX_MovieTranslations_MovieMetadataId").OnTable("MovieTranslations").OnColumn("MovieMetadataId").Ascending();
+            Create.Index("IX_Movies_MovieTranslations_MovieMetadataId").OnTable("Movies_MovieTranslations").OnColumn("MovieMetadataId").Ascending();
 
-            Create.TableForModel("Credits")
+            Create.TableForModel("Movies_Credits")
                 .WithColumn("CreditTmdbId").AsString().Unique()
                 .WithColumn("PersonTmdbId").AsInt32()
                 .WithColumn("Name").AsString()
@@ -413,9 +413,9 @@ namespace NzbDrone.Core.Datastore.Migration
                 .WithColumn("Type").AsInt32()
                 .WithColumn("MovieMetadataId").AsInt32().WithDefaultValue(0);
 
-            Create.Index("IX_Credits_MovieMetadataId").OnTable("Credits").OnColumn("MovieMetadataId").Ascending();
+            Create.Index("IX_Movies_Credits_MovieMetadataId").OnTable("Movies_Credits").OnColumn("MovieMetadataId").Ascending();
 
-            Create.TableForModel("Collections")
+            Create.TableForModel("Movies_Collections")
                 .WithColumn("TmdbId").AsInt32().Unique()
                 .WithColumn("QualityProfileId").AsInt32()
                 .WithColumn("RootFolderPath").AsString()
@@ -431,7 +431,7 @@ namespace NzbDrone.Core.Datastore.Migration
                 .WithColumn("Added").AsDateTimeOffset().Nullable()
                 .WithColumn("Tags").AsString().Nullable();
 
-            Create.TableForModel("ImportLists")
+            Create.TableForModel("Movies_ImportLists")
                 .WithColumn("Enabled").AsBoolean()
                 .WithColumn("Name").AsString().Unique()
                 .WithColumn("Implementation").AsString()
@@ -445,7 +445,7 @@ namespace NzbDrone.Core.Datastore.Migration
                 .WithColumn("SearchOnAdd").AsBoolean().WithDefaultValue(false)
                 .WithColumn("Monitor").AsInt32();
 
-            Create.TableForModel("ImportListStatus")
+            Create.TableForModel("Movies_ImportListStatus")
                 .WithColumn("ProviderId").AsInt32().Unique()
                 .WithColumn("InitialFailure").AsDateTimeOffset().Nullable()
                 .WithColumn("MostRecentFailure").AsDateTimeOffset().Nullable()
@@ -453,35 +453,35 @@ namespace NzbDrone.Core.Datastore.Migration
                 .WithColumn("DisabledTill").AsDateTimeOffset().Nullable()
                 .WithColumn("LastInfoSync").AsDateTimeOffset().Nullable();
 
-            Create.TableForModel("ImportListMovies")
+            Create.TableForModel("Movies_ImportListMovies")
                 .WithColumn("ListId").AsInt32()
                 .WithColumn("MovieMetadataId").AsInt32().WithDefaultValue(0);
 
-            Create.Index("IX_ImportListMovies_MovieMetadataId").OnTable("ImportListMovies").OnColumn("MovieMetadataId").Ascending();
+            Create.Index("IX_Movies_ImportListMovies_MovieMetadataId").OnTable("Movies_ImportListMovies").OnColumn("MovieMetadataId").Ascending();
 
             Create.TableForModel("ImportExclusions")
                 .WithColumn("TmdbId").AsInt32().Unique()
                 .WithColumn("MovieTitle").AsString().Nullable()
                 .WithColumn("MovieYear").AsInt32().Nullable().WithDefaultValue(0);
 
-            Create.TableForModel("RootFolders")
+            Create.TableForModel("Movies_RootFolders")
                 .WithColumn("Path").AsString().Unique();
 
-            Create.TableForModel("NamingConfig")
+            Create.TableForModel("Movies_NamingConfig")
                 .WithColumn("ReplaceIllegalCharacters").AsBoolean().WithDefaultValue(true)
                 .WithColumn("StandardMovieFormat").AsString().Nullable()
                 .WithColumn("MovieFolderFormat").AsString().Nullable()
                 .WithColumn("ColonReplacementFormat").AsInt32().WithDefaultValue(0)
                 .WithColumn("RenameMovies").AsBoolean().WithDefaultValue(false);
 
-            Create.TableForModel("Metadata")
+            Create.TableForModel("Movies_Metadata")
                 .WithColumn("Enable").AsBoolean()
                 .WithColumn("Name").AsString()
                 .WithColumn("Implementation").AsString()
                 .WithColumn("Settings").AsString()
                 .WithColumn("ConfigContract").AsString();
 
-            Create.TableForModel("MetadataFiles")
+            Create.TableForModel("Movies_MetadataFiles")
                 .WithColumn("MovieId").AsInt32()
                 .WithColumn("Consumer").AsString()
                 .WithColumn("Type").AsInt32()
@@ -492,7 +492,7 @@ namespace NzbDrone.Core.Datastore.Migration
                 .WithColumn("Added").AsDateTimeOffset().Nullable()
                 .WithColumn("Extension").AsString();
 
-            Create.TableForModel("ExtraFiles")
+            Create.TableForModel("Movies_ExtraFiles")
                 .WithColumn("MovieId").AsInt32()
                 .WithColumn("MovieFileId").AsInt32()
                 .WithColumn("RelativePath").AsString()
@@ -500,7 +500,7 @@ namespace NzbDrone.Core.Datastore.Migration
                 .WithColumn("Added").AsDateTimeOffset()
                 .WithColumn("LastUpdated").AsDateTimeOffset();
 
-            Create.TableForModel("SubtitleFiles")
+            Create.TableForModel("Movies_SubtitleFiles")
                 .WithColumn("MovieId").AsInt32()
                 .WithColumn("MovieFileId").AsInt32()
                 .WithColumn("RelativePath").AsString()

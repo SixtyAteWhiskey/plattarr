@@ -66,7 +66,7 @@ namespace NzbDrone.Core.Datastore
 
             Mapper.Entity<Config>("Config").RegisterModel();
 
-            Mapper.Entity<RootFolder>("RootFolders").RegisterModel()
+            Mapper.Entity<RootFolder>("Movies_RootFolders").RegisterModel()
                   .Ignore(r => r.Accessible)
                   .Ignore(r => r.FreeSpace)
                   .Ignore(r => r.TotalSpace);
@@ -74,7 +74,7 @@ namespace NzbDrone.Core.Datastore
             Mapper.Entity<ScheduledTask>("ScheduledTasks").RegisterModel()
                   .Ignore(i => i.Priority);
 
-            Mapper.Entity<ImportListDefinition>("ImportLists").RegisterModel()
+            Mapper.Entity<ImportListDefinition>("Movies_ImportLists").RegisterModel()
                   .Ignore(x => x.ImplementationName)
                   .Ignore(i => i.ListType)
                   .Ignore(i => i.MinRefreshInterval)
@@ -95,7 +95,7 @@ namespace NzbDrone.Core.Datastore
                   .Ignore(i => i.SupportsOnApplicationUpdate)
                   .Ignore(i => i.SupportsOnManualInteractionRequired);
 
-            Mapper.Entity<MetadataDefinition>("Metadata").RegisterModel()
+            Mapper.Entity<MetadataDefinition>("Movies_Metadata").RegisterModel()
                   .Ignore(x => x.ImplementationName)
                   .Ignore(d => d.Tags);
 
@@ -105,10 +105,10 @@ namespace NzbDrone.Core.Datastore
 
             Mapper.Entity<MovieHistory>("History").RegisterModel();
 
-            Mapper.Entity<MovieFile>("MovieFiles").RegisterModel()
+            Mapper.Entity<MovieFile>("Movies_MovieFiles").RegisterModel()
                   .Ignore(f => f.Path);
 
-            Mapper.Entity<Movie>("Movies").RegisterModel()
+            Mapper.Entity<Movie>("Movies_Movies").RegisterModel()
                   .Ignore(s => s.RootFolderPath)
                   .Ignore(s => s.Title)
                   .Ignore(s => s.Year)
@@ -116,18 +116,18 @@ namespace NzbDrone.Core.Datastore
                   .Ignore(s => s.ImdbId)
                   .HasOne(a => a.MovieMetadata, a => a.MovieMetadataId);
 
-            Mapper.Entity<ImportListMovie>("ImportListMovies").RegisterModel()
+            Mapper.Entity<ImportListMovie>("Movies_ImportListMovies").RegisterModel()
                   .Ignore(s => s.Title)
                   .Ignore(s => s.Year)
                   .Ignore(s => s.TmdbId)
                   .Ignore(s => s.ImdbId)
                   .HasOne(a => a.MovieMetadata, a => a.MovieMetadataId);
 
-            Mapper.Entity<AlternativeTitle>("AlternativeTitles").RegisterModel();
+            Mapper.Entity<AlternativeTitle>("Movies_AlternativeTitles").RegisterModel();
 
-            Mapper.Entity<MovieTranslation>("MovieTranslations").RegisterModel();
+            Mapper.Entity<MovieTranslation>("Movies_MovieTranslations").RegisterModel();
 
-            Mapper.Entity<Credit>("Credits").RegisterModel();
+            Mapper.Entity<Credit>("Movies_Credits").RegisterModel();
 
             Mapper.Entity<ImportListExclusion>("ImportExclusions").RegisterModel();
 
@@ -139,11 +139,11 @@ namespace NzbDrone.Core.Datastore
 
             Mapper.Entity<QualityProfile>("QualityProfiles").RegisterModel();
             Mapper.Entity<Log>("Logs").RegisterModel();
-            Mapper.Entity<NamingConfig>("NamingConfig").RegisterModel();
+            Mapper.Entity<NamingConfig>("Movies_NamingConfig").RegisterModel();
             Mapper.Entity<Blocklist>("Blocklist").RegisterModel();
-            Mapper.Entity<MetadataFile>("MetadataFiles").RegisterModel();
-            Mapper.Entity<SubtitleFile>("SubtitleFiles").RegisterModel();
-            Mapper.Entity<OtherExtraFile>("ExtraFiles").RegisterModel();
+            Mapper.Entity<MetadataFile>("Movies_MetadataFiles").RegisterModel();
+            Mapper.Entity<SubtitleFile>("Movies_SubtitleFiles").RegisterModel();
+            Mapper.Entity<OtherExtraFile>("Movies_ExtraFiles").RegisterModel();
 
             Mapper.Entity<PendingRelease>("PendingReleases").RegisterModel()
                   .Ignore(e => e.RemoteMovie);
@@ -158,7 +158,7 @@ namespace NzbDrone.Core.Datastore
                   .Ignore(c => c.Message);
 
             Mapper.Entity<DownloadClientStatus>("DownloadClientStatus").RegisterModel();
-            Mapper.Entity<ImportListStatus>("ImportListStatus").RegisterModel();
+            Mapper.Entity<ImportListStatus>("Movies_ImportListStatus").RegisterModel();
             Mapper.Entity<NotificationStatus>("NotificationStatus").RegisterModel();
 
             Mapper.Entity<CustomFilter>("CustomFilters").RegisterModel();
@@ -167,10 +167,10 @@ namespace NzbDrone.Core.Datastore
 
             Mapper.Entity<UpdateHistory>("UpdateHistory").RegisterModel();
 
-            Mapper.Entity<MovieMetadata>("MovieMetadata").RegisterModel()
+            Mapper.Entity<MovieMetadata>("Movies_MovieMetadata").RegisterModel()
                 .Ignore(s => s.Translations);
 
-            Mapper.Entity<MovieCollection>("Collections").RegisterModel();
+            Mapper.Entity<MovieCollection>("Movies_Collections").RegisterModel();
 
             Mapper.Entity<AutoTagging.AutoTag>("AutoTagging").RegisterModel();
 

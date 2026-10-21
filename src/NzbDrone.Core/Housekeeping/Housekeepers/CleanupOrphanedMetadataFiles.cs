@@ -22,32 +22,32 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
         private void DeleteOrphanedByMovie()
         {
             using var mapper = _database.OpenConnection();
-            mapper.Execute(@"DELETE FROM ""MetadataFiles""
+            mapper.Execute(@"DELETE FROM ""Movies_MetadataFiles""
                              WHERE ""Id"" IN (
-                             SELECT ""MetadataFiles"".""Id"" FROM ""MetadataFiles""
-                             LEFT OUTER JOIN ""Movies""
-                             ON ""MetadataFiles"".""MovieId"" = ""Movies"".""Id""
-                             WHERE ""Movies"".""Id"" IS NULL)");
+                             SELECT ""Movies_MetadataFiles"".""Id"" FROM ""Movies_MetadataFiles""
+                             LEFT OUTER JOIN ""Movies_Movies""
+                             ON ""Movies_MetadataFiles"".""MovieId"" = ""Movies_Movies"".""Id""
+                             WHERE ""Movies_Movies"".""Id"" IS NULL)");
         }
 
         private void DeleteOrphanedByMovieFile()
         {
             using var mapper = _database.OpenConnection();
-            mapper.Execute(@"DELETE FROM ""MetadataFiles""
+            mapper.Execute(@"DELETE FROM ""Movies_MetadataFiles""
                              WHERE ""Id"" IN (
-                             SELECT ""MetadataFiles"".""Id"" FROM ""MetadataFiles""
-                             LEFT OUTER JOIN ""MovieFiles""
-                             ON ""MetadataFiles"".""MovieFileId"" = ""MovieFiles"".""Id""
-                             WHERE ""MetadataFiles"".""MovieFileId"" > 0
-                             AND ""MovieFiles"".""Id"" IS NULL)");
+                             SELECT ""Movies_MetadataFiles"".""Id"" FROM ""Movies_MetadataFiles""
+                             LEFT OUTER JOIN ""Movies_MovieFiles""
+                             ON ""Movies_MetadataFiles"".""MovieFileId"" = ""Movies_MovieFiles"".""Id""
+                             WHERE ""Movies_MetadataFiles"".""MovieFileId"" > 0
+                             AND ""Movies_MovieFiles"".""Id"" IS NULL)");
         }
 
         private void DeleteWhereMovieFileIsZero()
         {
             using var mapper = _database.OpenConnection();
-            mapper.Execute(@"DELETE FROM ""MetadataFiles""
+            mapper.Execute(@"DELETE FROM ""Movies_MetadataFiles""
                              WHERE ""Id"" IN (
-                             SELECT ""Id"" FROM ""MetadataFiles""
+                             SELECT ""Id"" FROM ""Movies_MetadataFiles""
                              WHERE ""Type"" IN (1, 2)
                              AND ""MovieFileId"" = 0)");
         }

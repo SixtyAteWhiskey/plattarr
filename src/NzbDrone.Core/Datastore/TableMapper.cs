@@ -8,6 +8,8 @@ namespace NzbDrone.Core.Datastore
 {
     public class TableMapper
     {
+        public static readonly string[] ModuleTablePrefixes = { "Movies_" };
+
         private readonly HashSet<string> _allowedOrderBy = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         public TableMapper()
@@ -78,7 +80,7 @@ namespace NzbDrone.Core.Datastore
                 sortKey = split[1];
             }
 
-            if (table != null && !TableMap.Values.Contains(table, StringComparer.OrdinalIgnoreCase))
+            if (table != null && ResolveTable(table) == null)
             {
                 return false;
             }
@@ -107,12 +109,29 @@ namespace NzbDrone.Core.Datastore
 
             if (table != null)
             {
-                table = TableMap.Values.FirstOrDefault(x => x.Equals(table, StringComparison.OrdinalIgnoreCase)) ?? table;
+                table = ResolveTable(table) ?? table;
             }
 
             sortKey = _allowedOrderBy.FirstOrDefault(x => x.Equals(sortKey, StringComparison.OrdinalIgnoreCase)) ?? sortKey;
 
             return (table, sortKey);
+        }
+
+        // Sort keys name tables the way the upstream APIs do ("movieMetadata.sortTitle").
+        // Module tables carry a prefix in Plattarr (Movies_MovieMetadata), so a key's table
+        // matches either the full name or the name after a module prefix.
+        private string ResolveTable(string table)
+        {
+            var exact = TableMap.Values.FirstOrDefault(x => x.Equals(table, StringComparison.OrdinalIgnoreCase));
+
+            if (exact != null)
+            {
+                return exact;
+            }
+
+            return ModuleTablePrefixes
+                .Select(prefix => TableMap.Values.FirstOrDefault(x => x.Equals(prefix + table, StringComparison.OrdinalIgnoreCase)))
+                .FirstOrDefault(x => x != null);
         }
     }
 
