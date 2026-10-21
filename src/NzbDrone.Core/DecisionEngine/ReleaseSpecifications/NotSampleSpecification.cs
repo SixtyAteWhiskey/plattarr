@@ -1,10 +1,10 @@
 using NLog;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
 
-namespace NzbDrone.Core.DecisionEngine.Specifications
+namespace NzbDrone.Core.DecisionEngine.ReleaseSpecifications
 {
-    public class NotSampleSpecification : IDownloadDecisionEngineSpecification
+    public class NotSampleSpecification : IReleaseSpecification
     {
         private readonly Logger _logger;
 
@@ -16,7 +16,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
             _logger = logger;
         }
 
-        public DownloadSpecDecision IsSatisfiedBy(RemoteMovie subject, ReleaseDecisionInformation information)
+        public DownloadSpecDecision IsSatisfiedBy(RemoteRelease subject, ReleaseDecisionInformation information)
         {
             if (subject.Release.Title.ToLower().Contains("sample") && subject.Release.Size.GetValueOrDefault() < 70.Megabytes())
             {

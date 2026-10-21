@@ -1,11 +1,12 @@
-using NzbDrone.Core.Movies.Search;
+using NzbDrone.Core.IndexerSearch;
 
 namespace NzbDrone.Core.DecisionEngine;
 
+// Core (contract 4). SearchCriteria is the module's own request type, null for RSS and pushed releases.
 public class ReleaseDecisionInformation
 {
     public bool PushedRelease { get; set; }
-    public MovieSearchRequest SearchCriteria { get; set; }
+    public ModuleSearchRequest SearchCriteria { get; set; }
 
     public ReleaseDecisionInformation()
     {
@@ -13,7 +14,7 @@ public class ReleaseDecisionInformation
         SearchCriteria = null;
     }
 
-    public ReleaseDecisionInformation(bool pushedRelease, MovieSearchRequest searchCriteria)
+    public ReleaseDecisionInformation(bool pushedRelease, ModuleSearchRequest searchCriteria)
     {
         PushedRelease = pushedRelease;
         SearchCriteria = searchCriteria;

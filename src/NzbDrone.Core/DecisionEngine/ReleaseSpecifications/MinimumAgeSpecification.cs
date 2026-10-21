@@ -1,11 +1,11 @@
 using System;
 using NLog;
 using NzbDrone.Core.Configuration;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
 
-namespace NzbDrone.Core.DecisionEngine.Specifications
+namespace NzbDrone.Core.DecisionEngine.ReleaseSpecifications
 {
-    public class MinimumAgeSpecification : IDownloadDecisionEngineSpecification
+    public class MinimumAgeSpecification : IReleaseSpecification
     {
         private readonly IConfigService _configService;
         private readonly Logger _logger;
@@ -19,7 +19,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         public SpecificationPriority Priority => SpecificationPriority.Default;
         public RejectionType Type => RejectionType.Temporary;
 
-        public virtual DownloadSpecDecision IsSatisfiedBy(RemoteMovie subject, ReleaseDecisionInformation information)
+        public virtual DownloadSpecDecision IsSatisfiedBy(RemoteRelease subject, ReleaseDecisionInformation information)
         {
             if (subject.Release.DownloadProtocol != Indexers.DownloadProtocol.Usenet)
             {

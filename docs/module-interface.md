@@ -564,6 +564,48 @@ history.
 Download prioritization (`DownloadDecisionComparer`) stays per module. The
 comparison rules differ (Sonarr compares episode counts and season packs).
 
+As built in porting step 9d:
+
+- Shared primitives. Radarr and Sonarr (`b3d4bb8`) have byte-identical
+  `DownloadSpecDecision`, `RejectionType`, `SpecificationPriority`,
+  `Rejection<T>`, `DownloadRejection`, `IRejectWithReason`, and
+  `UpgradeableRejectReason`. The first six stay at their upstream full names
+  as core: the root namespace `NzbDrone.Core.DecisionEngine` is core, so
+  ported specifications compile against it with no edits. The movie types in
+  that namespace (`DownloadDecision`, `DownloadDecisionMaker`,
+  `DownloadDecisionComparer`, `DownloadDecisionPriorizationService`, their
+  interfaces, and `UpgradeableRejectReason`, which only the module's upgrade
+  rules use) are listed as module types in `ModuleBoundary`.
+  `DecisionEngine.Specifications` stays module code.
+- `DownloadRejectionReason` is one core enum. Radarr's and Sonarr's ordinals
+  diverge from the second value, but the value never leaves the process as
+  an integer (the API sends `Message`; pending releases store their own
+  `PendingReleaseReason`) and nothing branches on it. Sonarr's values are
+  appended in Phase 3.
+- `ReleaseDecisionInformation.SearchCriteria` is a `ModuleSearchRequest`.
+  The one specification that reads a movie member (`MovieSpecification`)
+  casts to `MovieSearchRequest`.
+- Core `IReleaseSpecification` and ten specifications live in
+  `NzbDrone.Core.DecisionEngine.ReleaseSpecifications`: `BlockedIndexer`,
+  `FreeSpace`, `MaximumSize`, `MinimumAge`, `NotSample`, `Protocol`,
+  `RawDisk`, `ReleaseRestrictions`, `Retention`, `TorrentSeeding`. They read
+  `Release`, `Kind`, and `Parent` (`Tags`, `Path`) only. `Protocol` names
+  the parent with the upstream noun for its kind ("movie", "series",
+  "artist").
+- `RequiredIndexerFlags` stays in the module until the indexer flag
+  vocabulary is global (plan, finding 21). Sonarr has no such
+  specification.
+- The module-typed interface keeps its upstream name,
+  `IDownloadDecisionEngineSpecification` (on `RemoteMovie` for Movies), in
+  place of the generic `IReleaseSpecification<TRemote>` sketched above. A
+  generic adds nothing while each module has one decision maker, and the
+  upstream name keeps ported specifications unchanged.
+- The decision maker stays per module for now (Movies' takes both sets) and
+  still returns `DownloadDecision` with `RemoteMovie`. Both sets share one
+  priority order: a priority group with any rejection stops evaluation, so a
+  movie rejection at `Default` skips the core `FreeSpace` check at `Disk`,
+  and the reverse.
+
 ### Contract 5: Download import
 
 ```csharp

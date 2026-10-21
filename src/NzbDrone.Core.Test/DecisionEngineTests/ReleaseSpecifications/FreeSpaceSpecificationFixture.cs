@@ -5,13 +5,13 @@ using NUnit.Framework;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
-using NzbDrone.Core.DecisionEngine.Specifications;
+using NzbDrone.Core.DecisionEngine.ReleaseSpecifications;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
 
-namespace NzbDrone.Core.Test.DecisionEngineTests
+namespace NzbDrone.Core.Test.DecisionEngineTests.ReleaseSpecifications
 {
     public class FreeSpaceSpecificationFixture : CoreTest<FreeSpaceSpecification>
     {
@@ -101,6 +101,20 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             Mocker.GetMock<IDiskProvider>().Setup(s => s.GetAvailableSpace(It.IsAny<string>())).Throws<DirectoryNotFoundException>();
 
             Subject.IsSatisfiedBy(_remoteMovie, new()).Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_check_the_parent_path_of_a_non_movie_release()
+        {
+            var path = @"C:\Test\TV\Series".AsOsAgnostic();
+            var release = new TvRemoteRelease { Release = new ReleaseInfo { Size = 100.Megabytes() } };
+            release.Series.Path = path;
+
+            WithMinimumFreeSpace(0);
+            WithAvailableSpace(50);
+
+            Subject.IsSatisfiedBy(release, new()).Accepted.Should().BeFalse();
+            Mocker.GetMock<IDiskProvider>().Verify(s => s.GetAvailableSpace(path), Times.Once());
         }
     }
 }

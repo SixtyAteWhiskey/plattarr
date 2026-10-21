@@ -2,11 +2,11 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using NLog;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
 
-namespace NzbDrone.Core.DecisionEngine.Specifications
+namespace NzbDrone.Core.DecisionEngine.ReleaseSpecifications
 {
-    public class RawDiskSpecification : IDownloadDecisionEngineSpecification
+    public class RawDiskSpecification : IReleaseSpecification
     {
         private static readonly Regex[] DiscRegex = new[]
                                                     {
@@ -28,7 +28,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         public SpecificationPriority Priority => SpecificationPriority.Default;
         public RejectionType Type => RejectionType.Permanent;
 
-        public virtual DownloadSpecDecision IsSatisfiedBy(RemoteMovie subject, ReleaseDecisionInformation information)
+        public virtual DownloadSpecDecision IsSatisfiedBy(RemoteRelease subject, ReleaseDecisionInformation information)
         {
             if (subject.Release == null)
             {

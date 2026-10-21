@@ -2,14 +2,14 @@ using System.Collections.Generic;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
-using NzbDrone.Core.DecisionEngine.Specifications;
+using NzbDrone.Core.DecisionEngine.ReleaseSpecifications;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Delay;
 using NzbDrone.Core.Test.Framework;
 
-namespace NzbDrone.Core.Test.DecisionEngineTests
+namespace NzbDrone.Core.Test.DecisionEngineTests.ReleaseSpecifications
 {
     [TestFixture]
     public class ProtocolSpecificationFixture : CoreTest<ProtocolSpecification>
@@ -70,6 +70,29 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _delayProfile.EnableTorrent = false;
 
             Subject.IsSatisfiedBy(_remoteMovie, new()).Accepted.Should().Be(false);
+        }
+
+        [Test]
+        public void should_name_the_movie_when_protocol_is_disabled_for_a_movie()
+        {
+            GivenProtocol(DownloadProtocol.Torrent);
+            _delayProfile.EnableTorrent = false;
+
+            Subject.IsSatisfiedBy(_remoteMovie, new()).Message.Should().Be("Torrent is not enabled for this movie");
+        }
+
+        [Test]
+        public void should_use_the_parent_tags_and_wording_of_a_non_movie_release()
+        {
+            var release = new TvRemoteRelease { Release = new ReleaseInfo { DownloadProtocol = DownloadProtocol.Usenet } };
+            release.Series.Tags = new HashSet<int> { 7 };
+            _delayProfile.EnableUsenet = false;
+
+            var result = Subject.IsSatisfiedBy(release, new());
+
+            result.Accepted.Should().BeFalse();
+            result.Message.Should().Be("Usenet is not enabled for this series");
+            Mocker.GetMock<IDelayProfileService>().Verify(s => s.BestForTags(release.Series.Tags), Times.Once());
         }
     }
 }

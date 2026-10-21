@@ -6,6 +6,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Common.Serializer;
 using NzbDrone.Core.CustomFormats;
+using NzbDrone.Core.DecisionEngine.ReleaseSpecifications;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Download.Aggregation;
 using NzbDrone.Core.Movies.Search;
@@ -22,19 +23,24 @@ namespace NzbDrone.Core.DecisionEngine
 
     public class DownloadDecisionMaker : IMakeDownloadDecision
     {
-        private readonly IEnumerable<IDownloadDecisionEngineSpecification> _specifications;
+        private readonly List<SpecificationRunner> _specifications;
         private readonly IMovieReleaseMatcher _releaseMatcher;
         private readonly ICustomFormatCalculationService _formatCalculator;
         private readonly IRemoteMovieAggregationService _aggregationService;
         private readonly Logger _logger;
 
-        public DownloadDecisionMaker(IEnumerable<IDownloadDecisionEngineSpecification> specifications,
+        public DownloadDecisionMaker(IEnumerable<IReleaseSpecification> releaseSpecifications,
+                                     IEnumerable<IDownloadDecisionEngineSpecification> specifications,
                                      IMovieReleaseMatcher releaseMatcher,
                                      ICustomFormatCalculationService formatCalculator,
                                      IRemoteMovieAggregationService aggregationService,
                                      Logger logger)
         {
-            _specifications = specifications;
+            // Contract 4: core specifications run for every media type, the movie ones only here.
+            // Both sets share one priority order; a priority group that rejects stops evaluation.
+            _specifications = releaseSpecifications.Select(s => new SpecificationRunner(s, () => s.Priority, () => s.Type, s.IsSatisfiedBy))
+                                                   .Concat(specifications.Select(s => new SpecificationRunner(s, () => s.Priority, () => s.Type, s.IsSatisfiedBy)))
+                                                   .ToList();
             _releaseMatcher = releaseMatcher;
             _formatCalculator = formatCalculator;
             _aggregationService = aggregationService;
@@ -170,11 +176,11 @@ namespace NzbDrone.Core.DecisionEngine
             return new DownloadDecision(remoteMovie, reasons.ToArray());
         }
 
-        private DownloadRejection EvaluateSpec(IDownloadDecisionEngineSpecification spec, RemoteMovie remoteMovie, ReleaseDecisionInformation information)
+        private DownloadRejection EvaluateSpec(SpecificationRunner spec, RemoteMovie remoteMovie, ReleaseDecisionInformation information)
         {
             try
             {
-                var result = spec.IsSatisfiedBy(remoteMovie, information);
+                var result = spec.Evaluate(remoteMovie, information);
 
                 if (!result.Accepted)
                 {
@@ -183,17 +189,36 @@ namespace NzbDrone.Core.DecisionEngine
             }
             catch (NotImplementedException)
             {
-                _logger.Trace("Spec " + spec.GetType().Name + " does not care about movies.");
+                _logger.Trace("Spec " + spec.Name + " does not care about movies.");
             }
             catch (Exception e)
             {
                 e.Data.Add("report", remoteMovie.Release.ToJson());
                 e.Data.Add("parsed", remoteMovie.ParsedMovieInfo.ToJson());
-                _logger.Error(e, "Couldn't evaluate decision on {0}, with spec: {1}", remoteMovie.Release.Title, spec.GetType().Name);
-                return new DownloadRejection(DownloadRejectionReason.DecisionError, $"{spec.GetType().Name}: {e.Message}");
+                _logger.Error(e, "Couldn't evaluate decision on {0}, with spec: {1}", remoteMovie.Release.Title, spec.Name);
+                return new DownloadRejection(DownloadRejectionReason.DecisionError, $"{spec.Name}: {e.Message}");
             }
 
             return null;
+        }
+
+        private sealed class SpecificationRunner
+        {
+            private readonly Func<SpecificationPriority> _priority;
+            private readonly Func<RejectionType> _type;
+
+            public SpecificationRunner(object specification, Func<SpecificationPriority> priority, Func<RejectionType> type, Func<RemoteMovie, ReleaseDecisionInformation, DownloadSpecDecision> evaluate)
+            {
+                Name = specification.GetType().Name;
+                _priority = priority;
+                _type = type;
+                Evaluate = evaluate;
+            }
+
+            public string Name { get; }
+            public SpecificationPriority Priority => _priority();
+            public RejectionType Type => _type();
+            public Func<RemoteMovie, ReleaseDecisionInformation, DownloadSpecDecision> Evaluate { get; }
         }
 
         private ReleaseSourceType GetReleaseSource(bool pushedRelease, MovieSearchRequest searchCriteria = null)

@@ -3,13 +3,13 @@ using System.Linq;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
-using NzbDrone.Core.DecisionEngine.Specifications;
+using NzbDrone.Core.DecisionEngine.ReleaseSpecifications;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Releases;
 using NzbDrone.Core.Test.Framework;
 
-namespace NzbDrone.Core.Test.DecisionEngineTests
+namespace NzbDrone.Core.Test.DecisionEngineTests.ReleaseSpecifications
 {
     [TestFixture]
     public class ReleaseRestrictionsSpecificationFixture : CoreTest<ReleaseRestrictionsSpecification>
@@ -140,6 +140,18 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             GivenRestictions(pattern.Split(',').ToList(), new List<string>());
 
             Subject.IsSatisfiedBy(_remoteMovie, new()).Accepted.Should().Be(expected);
+        }
+
+        [Test]
+        public void should_use_the_parent_tags_of_a_non_movie_release()
+        {
+            var release = new TvRemoteRelease { Release = new ReleaseInfo { Title = "Dexter.S08E01.EDITED.WEBRip.x264-KYR", IndexerId = 3 } };
+            release.Series.Tags = new HashSet<int> { 4 };
+
+            GivenRestictions(new List<string> { "PROPER" }, new List<string>());
+
+            Subject.IsSatisfiedBy(release, new()).Accepted.Should().BeFalse();
+            Mocker.GetMock<IReleaseProfileService>().Verify(s => s.EnabledForTags(release.Series.Tags, 3), Times.Once());
         }
     }
 }

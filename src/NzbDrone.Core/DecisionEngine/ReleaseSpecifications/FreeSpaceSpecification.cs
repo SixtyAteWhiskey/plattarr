@@ -3,11 +3,11 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
 
-namespace NzbDrone.Core.DecisionEngine.Specifications
+namespace NzbDrone.Core.DecisionEngine.ReleaseSpecifications
 {
-    public class FreeSpaceSpecification : IDownloadDecisionEngineSpecification
+    public class FreeSpaceSpecification : IReleaseSpecification
     {
         private readonly IConfigService _configService;
         private readonly IDiskProvider _diskProvider;
@@ -23,7 +23,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         public SpecificationPriority Priority => SpecificationPriority.Disk;
         public RejectionType Type => RejectionType.Permanent;
 
-        public DownloadSpecDecision IsSatisfiedBy(RemoteMovie subject, ReleaseDecisionInformation information)
+        public DownloadSpecDecision IsSatisfiedBy(RemoteRelease subject, ReleaseDecisionInformation information)
         {
             if (_configService.SkipFreeSpaceCheckWhenImporting)
             {
@@ -32,7 +32,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
             }
 
             var size = subject.Release.Size.GetValueOrDefault();
-            var path = subject.Movie.Path;
+            var path = subject.Parent.Path;
             long? freeSpace = null;
 
             try

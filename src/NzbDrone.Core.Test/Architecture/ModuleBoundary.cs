@@ -26,7 +26,7 @@ namespace NzbDrone.Core.Test.Architecture
         {
             "NzbDrone.Core.AutoTagging",
             "NzbDrone.Core.Blocklisting",
-            "NzbDrone.Core.DecisionEngine",
+            "NzbDrone.Core.DecisionEngine.Specifications",
             "NzbDrone.Core.Extras",
             "NzbDrone.Core.History",
             "NzbDrone.Core.ImportLists",
@@ -39,9 +39,18 @@ namespace NzbDrone.Core.Test.Architecture
             "NzbDrone.Core.RootFolders"
         };
 
-        // Movie types in namespaces the core shares (Radarr's title parser and its models).
+        // Movie types in namespaces the core shares (Radarr's title parser and its models, and the movie
+        // half of DecisionEngine: the rest of its root namespace is contract 4's core primitives, and
+        // DecisionEngine.ReleaseSpecifications holds the core specifications).
         public static readonly string[] MovieTypesNotYetMoved =
         {
+            "NzbDrone.Core.DecisionEngine.DownloadDecision",
+            "NzbDrone.Core.DecisionEngine.DownloadDecisionComparer",
+            "NzbDrone.Core.DecisionEngine.DownloadDecisionMaker",
+            "NzbDrone.Core.DecisionEngine.DownloadDecisionPriorizationService",
+            "NzbDrone.Core.DecisionEngine.IMakeDownloadDecision",
+            "NzbDrone.Core.DecisionEngine.IPrioritizeDownloadDecision",
+            "NzbDrone.Core.DecisionEngine.UpgradeableRejectReason",
             "NzbDrone.Core.Parser.IParsingService",
             "NzbDrone.Core.Parser.LanguageParser",
             "NzbDrone.Core.Parser.Parser",
