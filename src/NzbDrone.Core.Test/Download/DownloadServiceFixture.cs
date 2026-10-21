@@ -13,6 +13,7 @@ using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.Events;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
@@ -76,7 +77,7 @@ namespace NzbDrone.Core.Test.Download
         public async Task Download_report_should_publish_on_grab_event()
         {
             var mock = WithUsenetClient();
-            mock.Setup(s => s.Download(It.IsAny<RemoteMovie>(), It.IsAny<IIndexer>()));
+            mock.Setup(s => s.Download(It.IsAny<RemoteRelease>(), It.IsAny<IIndexer>()));
 
             await Subject.DownloadReport(_parseResult, null);
 
@@ -102,7 +103,7 @@ namespace NzbDrone.Core.Test.Download
         {
             var indexer = GivenReleaseFromIndexer();
             var client = WithUsenetClient();
-            client.Setup(s => s.Download(It.IsAny<RemoteMovie>(), It.IsAny<IIndexer>())).ReturnsAsync("download-id");
+            client.Setup(s => s.Download(It.IsAny<RemoteRelease>(), It.IsAny<IIndexer>())).ReturnsAsync("download-id");
 
             await Subject.DownloadReport(_parseResult, null);
 
@@ -116,7 +117,7 @@ namespace NzbDrone.Core.Test.Download
         {
             GivenReleaseFromIndexer();
             var client = WithUsenetClient();
-            client.Setup(s => s.Download(It.IsAny<RemoteMovie>(), It.IsAny<IIndexer>()))
+            client.Setup(s => s.Download(It.IsAny<RemoteRelease>(), It.IsAny<IIndexer>()))
                   .ThrowsAsync(new ReleaseDownloadException("Error", new WebException()));
 
             Assert.ThrowsAsync<ReleaseDownloadException>(async () => await Subject.DownloadReport(_parseResult, null));
@@ -141,18 +142,18 @@ namespace NzbDrone.Core.Test.Download
         public async Task Download_report_should_grab_using_client()
         {
             var mock = WithUsenetClient();
-            mock.Setup(s => s.Download(It.IsAny<RemoteMovie>(), It.IsAny<IIndexer>()));
+            mock.Setup(s => s.Download(It.IsAny<RemoteRelease>(), It.IsAny<IIndexer>()));
 
             await Subject.DownloadReport(_parseResult, null);
 
-            mock.Verify(s => s.Download(It.IsAny<RemoteMovie>(), It.IsAny<IIndexer>()), Times.Once());
+            mock.Verify(s => s.Download(It.IsAny<RemoteRelease>(), It.IsAny<IIndexer>()), Times.Once());
         }
 
         [Test]
         public void Download_report_should_not_publish_on_failed_grab_event()
         {
             var mock = WithUsenetClient();
-            mock.Setup(s => s.Download(It.IsAny<RemoteMovie>(), It.IsAny<IIndexer>()))
+            mock.Setup(s => s.Download(It.IsAny<RemoteRelease>(), It.IsAny<IIndexer>()))
                 .Throws(new WebException());
 
             Assert.ThrowsAsync<WebException>(async () => await Subject.DownloadReport(_parseResult, null));
@@ -164,8 +165,8 @@ namespace NzbDrone.Core.Test.Download
         public void Download_report_should_trigger_indexer_backoff_on_indexer_error()
         {
             var mock = WithUsenetClient();
-            mock.Setup(s => s.Download(It.IsAny<RemoteMovie>(), It.IsAny<IIndexer>()))
-                .Callback<RemoteMovie, IIndexer>((v, indexer) =>
+            mock.Setup(s => s.Download(It.IsAny<RemoteRelease>(), It.IsAny<IIndexer>()))
+                .Callback<RemoteRelease, IIndexer>((v, indexer) =>
                 {
                     throw new ReleaseDownloadException(v.Release, "Error", new WebException());
                 });
@@ -184,8 +185,8 @@ namespace NzbDrone.Core.Test.Download
             response.Headers["Retry-After"] = "300";
 
             var mock = WithUsenetClient();
-            mock.Setup(s => s.Download(It.IsAny<RemoteMovie>(), It.IsAny<IIndexer>()))
-                .Callback<RemoteMovie, IIndexer>((v, indexer) =>
+            mock.Setup(s => s.Download(It.IsAny<RemoteRelease>(), It.IsAny<IIndexer>()))
+                .Callback<RemoteRelease, IIndexer>((v, indexer) =>
                 {
                     throw new ReleaseDownloadException(v.Release, "Error", new TooManyRequestsException(request, response));
                 });
@@ -204,8 +205,8 @@ namespace NzbDrone.Core.Test.Download
             response.Headers["Retry-After"] = DateTime.UtcNow.AddSeconds(300).ToString("r");
 
             var mock = WithUsenetClient();
-            mock.Setup(s => s.Download(It.IsAny<RemoteMovie>(), It.IsAny<IIndexer>()))
-                .Callback<RemoteMovie, IIndexer>((v, indexer) =>
+            mock.Setup(s => s.Download(It.IsAny<RemoteRelease>(), It.IsAny<IIndexer>()))
+                .Callback<RemoteRelease, IIndexer>((v, indexer) =>
                 {
                     throw new ReleaseDownloadException(v.Release, "Error", new TooManyRequestsException(request, response));
                 });
@@ -222,7 +223,7 @@ namespace NzbDrone.Core.Test.Download
         public void Download_report_should_not_trigger_indexer_backoff_on_downloadclient_error()
         {
             var mock = WithUsenetClient();
-            mock.Setup(s => s.Download(It.IsAny<RemoteMovie>(), It.IsAny<IIndexer>()))
+            mock.Setup(s => s.Download(It.IsAny<RemoteRelease>(), It.IsAny<IIndexer>()))
                 .Throws(new DownloadClientException("Some Error"));
 
             Assert.ThrowsAsync<DownloadClientException>(async () => await Subject.DownloadReport(_parseResult, null));
@@ -235,8 +236,8 @@ namespace NzbDrone.Core.Test.Download
         public void Download_report_should_not_trigger_indexer_backoff_on_indexer_404_error()
         {
             var mock = WithUsenetClient();
-            mock.Setup(s => s.Download(It.IsAny<RemoteMovie>(), It.IsAny<IIndexer>()))
-                .Callback<RemoteMovie, IIndexer>((v, indexer) =>
+            mock.Setup(s => s.Download(It.IsAny<RemoteRelease>(), It.IsAny<IIndexer>()))
+                .Callback<RemoteRelease, IIndexer>((v, indexer) =>
                 {
                     throw new ReleaseUnavailableException(v.Release, "Error", new WebException());
                 });

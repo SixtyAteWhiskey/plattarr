@@ -9,7 +9,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.Validation;
 
@@ -32,9 +32,9 @@ namespace NzbDrone.Core.Download.Clients.NzbVortex
             _proxy = proxy;
         }
 
-        protected override string AddFromNzbFile(RemoteMovie remoteMovie, string filename, byte[] fileContents)
+        protected override string AddFromNzbFile(RemoteRelease remoteRelease, string filename, byte[] fileContents)
         {
-            var priority = remoteMovie.Movie.MovieMetadata.Value.IsRecentMovie ? Settings.RecentMoviePriority : Settings.OlderMoviePriority;
+            var priority = remoteRelease.IsRecent ? Settings.RecentMoviePriority : Settings.OlderMoviePriority;
 
             var response = _proxy.DownloadNzb(fileContents, filename, priority, Settings);
 

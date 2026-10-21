@@ -12,10 +12,12 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients.Blackhole;
+using NzbDrone.Core.Download.Torrents;
 using NzbDrone.Core.Exceptions;
+using NzbDrone.Core.Indexers.Settings;
 using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.MediaFiles.TorrentInfo;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Test.DecisionEngineTests.ReleaseSpecifications;
 using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.Download.DownloadClientTests.Blackhole
@@ -154,6 +156,31 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.Blackhole
             Mocker.GetMock<IHttpClient>().Verify(c => c.GetAsync(It.Is<HttpRequest>(v => v.Url.FullUri == _downloadUrl)), Times.Once());
             Mocker.GetMock<IDiskProvider>().Verify(c => c.OpenWriteStream(_filePath), Times.Once());
             Mocker.GetMock<IHttpClient>().Verify(c => c.DownloadFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never());
+        }
+
+        [Test]
+        public void Download_should_reject_a_blocklisted_hash_for_a_release_of_another_media_type()
+        {
+            var movie = CreateRemoteMovie();
+            var release = new TvRemoteRelease
+            {
+                Release = movie.Release,
+                ReleaseSource = ReleaseSourceType.Rss
+            };
+
+            var indexer = CreateIndexer();
+            indexer.Definition.Settings = new NoAuthTorrentBaseSettings
+            {
+                TorrentBaseSettings = { RejectBlocklistedTorrentHashesWhileGrabbing = true }
+            };
+
+            Mocker.GetMock<IReleaseBlocklist>()
+                .Setup(b => b.IsTorrentHashBlocklisted(release, "myhash"))
+                .Returns(true);
+
+            Assert.ThrowsAsync<ReleaseBlockedException>(async () => await Subject.Download(release, indexer));
+
+            Mocker.GetMock<IDiskProvider>().Verify(c => c.OpenWriteStream(_filePath), Times.Never());
         }
 
         [Test]

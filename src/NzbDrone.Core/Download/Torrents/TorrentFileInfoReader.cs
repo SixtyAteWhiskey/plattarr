@@ -2,7 +2,7 @@
 using MonoTorrent;
 using NLog;
 
-namespace NzbDrone.Core.MediaFiles.TorrentInfo
+namespace NzbDrone.Core.Download.Torrents
 {
     public interface ITorrentFileInfoReader
     {

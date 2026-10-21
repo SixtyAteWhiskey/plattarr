@@ -5,11 +5,10 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Download.Torrents;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.MediaFiles.TorrentInfo;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.Validation;
 
@@ -30,9 +29,9 @@ namespace NzbDrone.Core.Download.Clients.RQBit
             IRemotePathMappingService remotePathMappingService,
             IDownloadSeedConfigProvider downloadSeedConfigProvider,
             ILocalizationService localizationService,
-            IBlocklistService blocklistService,
+            IReleaseBlocklist blocklist,
             Logger logger)
-            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklistService, logger)
+            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklist, logger)
         {
             _proxy = proxy;
             _downloadSeedConfigProvider = downloadSeedConfigProvider;
@@ -198,12 +197,12 @@ namespace NzbDrone.Core.Download.Clients.RQBit
             }
         }
 
-        protected override string AddFromMagnetLink(RemoteMovie remoteMovie, string hash, string magnetLink)
+        protected override string AddFromMagnetLink(RemoteRelease remoteRelease, string hash, string magnetLink)
         {
             return _proxy.AddTorrentFromUrl(magnetLink, Settings);
         }
 
-        protected override string AddFromTorrentFile(RemoteMovie remoteMovie, string hash, string filename, byte[] fileContent)
+        protected override string AddFromTorrentFile(RemoteRelease remoteRelease, string hash, string filename, byte[] fileContent)
         {
             return _proxy.AddTorrentFromFile(filename, fileContent, Settings);
         }

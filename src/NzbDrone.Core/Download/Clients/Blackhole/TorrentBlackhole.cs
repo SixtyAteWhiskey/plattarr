@@ -7,12 +7,11 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Download.Torrents;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.MediaFiles.TorrentInfo;
-using NzbDrone.Core.Organizer;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.RemotePathMappings;
 
 namespace NzbDrone.Core.Download.Clients.Blackhole
@@ -32,25 +31,25 @@ namespace NzbDrone.Core.Download.Clients.Blackhole
                                 IDiskProvider diskProvider,
                                 IRemotePathMappingService remotePathMappingService,
                                 ILocalizationService localizationService,
-                                IBlocklistService blocklistService,
+                                IReleaseBlocklist blocklist,
                                 Logger logger)
-            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklistService, logger)
+            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklist, logger)
         {
             _scanWatchFolder = scanWatchFolder;
 
             ScanGracePeriod = TimeSpan.FromSeconds(30);
         }
 
-        protected override string AddFromMagnetLink(RemoteMovie remoteMovie, string hash, string magnetLink)
+        protected override string AddFromMagnetLink(RemoteRelease remoteRelease, string hash, string magnetLink)
         {
             if (!Settings.SaveMagnetFiles)
             {
                 throw new NotSupportedException("Blackhole does not support magnet links.");
             }
 
-            var title = remoteMovie.Release.Title;
+            var title = remoteRelease.Release.Title;
 
-            title = FileNameBuilder.CleanFileName(title);
+            title = FileNameCleaner.Clean(title);
 
             var filepath = Path.Combine(Settings.TorrentFolder, $"{title}.{Settings.MagnetFileExtension.Trim('.')}");
 
@@ -65,11 +64,11 @@ namespace NzbDrone.Core.Download.Clients.Blackhole
             return null;
         }
 
-        protected override string AddFromTorrentFile(RemoteMovie remoteMovie, string hash, string filename, byte[] fileContent)
+        protected override string AddFromTorrentFile(RemoteRelease remoteRelease, string hash, string filename, byte[] fileContent)
         {
-            var title = remoteMovie.Release.Title;
+            var title = remoteRelease.Release.Title;
 
-            title = FileNameBuilder.CleanFileName(title);
+            title = FileNameCleaner.Clean(title);
 
             var filepath = Path.Combine(Settings.TorrentFolder, string.Format("{0}.torrent", title));
 

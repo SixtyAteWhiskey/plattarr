@@ -13,6 +13,8 @@ using NzbDrone.Common.Http;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients.Blackhole;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Test.DecisionEngineTests.ReleaseSpecifications;
 using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.Download.DownloadClientTests.Blackhole
@@ -125,6 +127,25 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.Blackhole
             Mocker.GetMock<IHttpClient>().Verify(c => c.GetAsync(It.Is<HttpRequest>(v => v.Url.FullUri == _downloadUrl)), Times.Once());
             Mocker.GetMock<IDiskProvider>().Verify(c => c.OpenWriteStream(_filePath), Times.Once());
             Mocker.GetMock<IHttpClient>().Verify(c => c.DownloadFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never());
+        }
+
+        [Test]
+        public async Task Download_should_download_a_release_that_belongs_to_another_media_type()
+        {
+            var release = new TvRemoteRelease
+            {
+                Release = new ReleaseInfo
+                {
+                    Title = _title,
+                    DownloadUrl = _downloadUrl,
+                    DownloadProtocol = Subject.Protocol
+                }
+            };
+
+            await Subject.Download(release, CreateIndexer());
+
+            Mocker.GetMock<IHttpClient>().Verify(c => c.GetAsync(It.Is<HttpRequest>(v => v.Url.FullUri == _downloadUrl)), Times.Once());
+            Mocker.GetMock<IDiskProvider>().Verify(c => c.OpenWriteStream(_filePath), Times.Once());
         }
 
         [Test]

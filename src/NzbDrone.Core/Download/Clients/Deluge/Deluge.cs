@@ -7,11 +7,10 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Download.Torrents;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.MediaFiles.TorrentInfo;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.Validation;
 
@@ -29,9 +28,9 @@ namespace NzbDrone.Core.Download.Clients.Deluge
                       IDiskProvider diskProvider,
                       IRemotePathMappingService remotePathMappingService,
                       ILocalizationService localizationService,
-                      IBlocklistService blocklistService,
+                      IReleaseBlocklist blocklist,
                       Logger logger)
-            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklistService, logger)
+            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklist, logger)
         {
             _proxy = proxy;
         }
@@ -55,7 +54,7 @@ namespace NzbDrone.Core.Download.Clients.Deluge
             }
         }
 
-        protected override string AddFromMagnetLink(RemoteMovie remoteMovie, string hash, string magnetLink)
+        protected override string AddFromMagnetLink(RemoteRelease remoteRelease, string hash, string magnetLink)
         {
             var actualHash = _proxy.AddTorrentFromMagnet(magnetLink, Settings);
 
@@ -64,14 +63,14 @@ namespace NzbDrone.Core.Download.Clients.Deluge
                 throw new DownloadClientException("Deluge failed to add magnet " + magnetLink);
             }
 
-            _proxy.SetTorrentSeedingConfiguration(actualHash, remoteMovie.SeedConfiguration, Settings);
+            _proxy.SetTorrentSeedingConfiguration(actualHash, remoteRelease.SeedConfiguration, Settings);
 
             if (Settings.MovieCategory.IsNotNullOrWhiteSpace())
             {
                 _proxy.SetTorrentLabel(actualHash, Settings.MovieCategory, Settings);
             }
 
-            var isRecentMovie = remoteMovie.Movie.MovieMetadata.Value.IsRecentMovie;
+            var isRecentMovie = remoteRelease.IsRecent;
 
             if ((isRecentMovie && Settings.RecentMoviePriority == (int)DelugePriority.First) ||
                 (!isRecentMovie && Settings.OlderMoviePriority == (int)DelugePriority.First))
@@ -82,7 +81,7 @@ namespace NzbDrone.Core.Download.Clients.Deluge
             return actualHash.ToUpper();
         }
 
-        protected override string AddFromTorrentFile(RemoteMovie remoteMovie, string hash, string filename, byte[] fileContent)
+        protected override string AddFromTorrentFile(RemoteRelease remoteRelease, string hash, string filename, byte[] fileContent)
         {
             var actualHash = _proxy.AddTorrentFromFile(filename, fileContent, Settings);
 
@@ -91,14 +90,14 @@ namespace NzbDrone.Core.Download.Clients.Deluge
                 throw new DownloadClientException("Deluge failed to add torrent " + filename);
             }
 
-            _proxy.SetTorrentSeedingConfiguration(actualHash, remoteMovie.SeedConfiguration, Settings);
+            _proxy.SetTorrentSeedingConfiguration(actualHash, remoteRelease.SeedConfiguration, Settings);
 
             if (Settings.MovieCategory.IsNotNullOrWhiteSpace())
             {
                 _proxy.SetTorrentLabel(actualHash, Settings.MovieCategory, Settings);
             }
 
-            var isRecentMovie = remoteMovie.Movie.MovieMetadata.Value.IsRecentMovie;
+            var isRecentMovie = remoteRelease.IsRecent;
 
             if ((isRecentMovie && Settings.RecentMoviePriority == (int)DelugePriority.First) ||
                 (!isRecentMovie && Settings.OlderMoviePriority == (int)DelugePriority.First))

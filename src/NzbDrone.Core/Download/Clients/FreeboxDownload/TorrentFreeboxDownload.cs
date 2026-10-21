@@ -6,13 +6,12 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download.Clients.FreeboxDownload.Responses;
+using NzbDrone.Core.Download.Torrents;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.MediaFiles.TorrentInfo;
-using NzbDrone.Core.Organizer;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.RemotePathMappings;
 
 namespace NzbDrone.Core.Download.Clients.FreeboxDownload
@@ -28,9 +27,9 @@ namespace NzbDrone.Core.Download.Clients.FreeboxDownload
             IDiskProvider diskProvider,
             IRemotePathMappingService remotePathMappingService,
             ILocalizationService localizationService,
-            IBlocklistService blocklistService,
+            IReleaseBlocklist blocklist,
             Logger logger)
-            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklistService, logger)
+            : base(torrentFileInfoReader, httpClient, configService, diskProvider, remotePathMappingService, localizationService, blocklist, logger)
         {
             _proxy = proxy;
         }
@@ -128,24 +127,24 @@ namespace NzbDrone.Core.Download.Clients.FreeboxDownload
             return queueItems;
         }
 
-        protected override string AddFromMagnetLink(RemoteMovie remoteMovie, string hash, string magnetLink)
+        protected override string AddFromMagnetLink(RemoteRelease remoteRelease, string hash, string magnetLink)
         {
             return _proxy.AddTaskFromUrl(magnetLink,
-                                         GetDownloadDirectory(remoteMovie).EncodeBase64(),
+                                         GetDownloadDirectory(remoteRelease).EncodeBase64(),
                                          ToBePaused(),
-                                         ToBeQueuedFirst(remoteMovie),
-                                         GetSeedRatio(remoteMovie),
+                                         ToBeQueuedFirst(remoteRelease),
+                                         GetSeedRatio(remoteRelease),
                                          Settings);
         }
 
-        protected override string AddFromTorrentFile(RemoteMovie remoteMovie, string hash, string filename, byte[] fileContent)
+        protected override string AddFromTorrentFile(RemoteRelease remoteRelease, string hash, string filename, byte[] fileContent)
         {
             return _proxy.AddTaskFromFile(filename,
                                           fileContent,
-                                          GetDownloadDirectory(remoteMovie).EncodeBase64(),
+                                          GetDownloadDirectory(remoteRelease).EncodeBase64(),
                                           ToBePaused(),
-                                          ToBeQueuedFirst(remoteMovie),
-                                          GetSeedRatio(remoteMovie),
+                                          ToBeQueuedFirst(remoteRelease),
+                                          GetSeedRatio(remoteRelease),
                                           Settings);
         }
 
@@ -187,7 +186,7 @@ namespace NzbDrone.Core.Download.Clients.FreeboxDownload
             }
         }
 
-        private string GetDownloadDirectory(RemoteMovie remoteMovie = null)
+        private string GetDownloadDirectory(RemoteRelease remoteRelease = null)
         {
             string destDir;
 
@@ -205,9 +204,9 @@ namespace NzbDrone.Core.Download.Clients.FreeboxDownload
                 }
             }
 
-            if (remoteMovie?.Release?.Title.IsNotNullOrWhiteSpace() ?? false)
+            if (remoteRelease?.Release?.Title.IsNotNullOrWhiteSpace() ?? false)
             {
-                var folderName = FileNameBuilder.CleanFileName(remoteMovie.Release.Title);
+                var folderName = FileNameCleaner.Clean(remoteRelease.Release.Title);
                 destDir = $"{destDir}/{folderName}";
             }
 
@@ -219,9 +218,9 @@ namespace NzbDrone.Core.Download.Clients.FreeboxDownload
             return Settings.AddPaused;
         }
 
-        private bool ToBeQueuedFirst(RemoteMovie remoteMovie)
+        private bool ToBeQueuedFirst(RemoteRelease remoteRelease)
         {
-            var isRecentMovie = remoteMovie.Movie.MovieMetadata.Value.IsRecentMovie;
+            var isRecentMovie = remoteRelease.IsRecent;
 
             if ((isRecentMovie && Settings.RecentPriority == (int)FreeboxDownloadPriority.First) ||
                 (!isRecentMovie && Settings.OlderPriority == (int)FreeboxDownloadPriority.First))
@@ -232,14 +231,14 @@ namespace NzbDrone.Core.Download.Clients.FreeboxDownload
             return false;
         }
 
-        private double? GetSeedRatio(RemoteMovie remoteMovie)
+        private double? GetSeedRatio(RemoteRelease remoteRelease)
         {
-            if (remoteMovie.SeedConfiguration == null || remoteMovie.SeedConfiguration.Ratio == null)
+            if (remoteRelease.SeedConfiguration == null || remoteRelease.SeedConfiguration.Ratio == null)
             {
                 return null;
             }
 
-            return remoteMovie.SeedConfiguration.Ratio.Value * 100;
+            return remoteRelease.SeedConfiguration.Ratio.Value * 100;
         }
     }
 }

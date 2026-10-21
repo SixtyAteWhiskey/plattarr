@@ -6,7 +6,7 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients.RTorrent;
-using NzbDrone.Core.MediaFiles.TorrentInfo;
+using NzbDrone.Core.Download.Torrents;
 
 namespace NzbDrone.Core.Test.Download.DownloadClientTests.RTorrentTests
 {

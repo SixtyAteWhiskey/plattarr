@@ -8,8 +8,8 @@ using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.Organizer;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.ThingiProvider;
 
@@ -36,12 +36,12 @@ namespace NzbDrone.Core.Download
 
         public override DownloadProtocol Protocol => DownloadProtocol.Usenet;
 
-        protected abstract string AddFromNzbFile(RemoteMovie remoteMovie, string filename, byte[] fileContents);
+        protected abstract string AddFromNzbFile(RemoteRelease remoteRelease, string filename, byte[] fileContents);
 
-        public override async Task<string> Download(RemoteMovie remoteMovie, IIndexer indexer)
+        public override async Task<string> Download(RemoteRelease remoteRelease, IIndexer indexer)
         {
-            var url = remoteMovie.Release.DownloadUrl;
-            var filename = FileNameBuilder.CleanFileName(remoteMovie.Release.Title) + ".nzb";
+            var url = remoteRelease.Release.DownloadUrl;
+            var filename = FileNameCleaner.Clean(remoteRelease.Release.Title) + ".nzb";
 
             byte[] nzbData;
 
@@ -49,18 +49,18 @@ namespace NzbDrone.Core.Download
             {
                 nzbData = (await indexer.Download(new Uri(url))).Data;
 
-                _logger.Debug("Downloaded nzb for movie '{0}' through indexer {1} ({2} bytes)", remoteMovie.Release.Title, indexer.Definition.Name, nzbData.Length);
+                _logger.Debug("Downloaded nzb for release '{0}' through indexer {1} ({2} bytes)", remoteRelease.Release.Title, indexer.Definition.Name, nzbData.Length);
 
                 _nzbValidationService.Validate(filename, nzbData);
 
-                _logger.Info("Adding report [{0}] to the queue.", remoteMovie.Release.Title);
-                return AddFromNzbFile(remoteMovie, filename, nzbData);
+                _logger.Info("Adding report [{0}] to the queue.", remoteRelease.Release.Title);
+                return AddFromNzbFile(remoteRelease, filename, nzbData);
             }
 
             try
             {
                 var request = new HttpRequest(url);
-                request.RateLimitKey = remoteMovie?.Release?.IndexerId.ToString();
+                request.RateLimitKey = remoteRelease?.Release?.IndexerId.ToString();
                 request.AllowAutoRedirect = true;
 
                 var response = await RetryStrategy
@@ -69,14 +69,14 @@ namespace NzbDrone.Core.Download
 
                 nzbData = response.ResponseData;
 
-                _logger.Debug("Downloaded nzb for movie '{0}' finished ({1} bytes from {2})", remoteMovie.Release.Title, nzbData.Length, url);
+                _logger.Debug("Downloaded nzb for release '{0}' finished ({1} bytes from {2})", remoteRelease.Release.Title, nzbData.Length, url);
             }
             catch (HttpException ex)
             {
                 if (ex.Response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Gone)
                 {
-                    _logger.Error(ex, "Downloading nzb file for movie '{0}' failed since it no longer exists ({1})", remoteMovie.Release.Title, url);
-                    throw new ReleaseUnavailableException(remoteMovie.Release, "Downloading nzb failed", ex);
+                    _logger.Error(ex, "Downloading nzb file for release '{0}' failed since it no longer exists ({1})", remoteRelease.Release.Title, url);
+                    throw new ReleaseUnavailableException(remoteRelease.Release, "Downloading nzb failed", ex);
                 }
 
                 if ((int)ex.Response.StatusCode == 429)
@@ -85,22 +85,22 @@ namespace NzbDrone.Core.Download
                 }
                 else
                 {
-                    _logger.Error(ex, "Downloading nzb for movie '{0}' failed ({1})", remoteMovie.Release.Title, url);
+                    _logger.Error(ex, "Downloading nzb for release '{0}' failed ({1})", remoteRelease.Release.Title, url);
                 }
 
-                throw new ReleaseDownloadException(remoteMovie.Release, "Downloading nzb failed", ex);
+                throw new ReleaseDownloadException(remoteRelease.Release, "Downloading nzb failed", ex);
             }
             catch (WebException ex)
             {
-                _logger.Error(ex, "Downloading nzb for movie '{0}' failed ({1})", remoteMovie.Release.Title, url);
+                _logger.Error(ex, "Downloading nzb for release '{0}' failed ({1})", remoteRelease.Release.Title, url);
 
-                throw new ReleaseDownloadException(remoteMovie.Release, "Downloading nzb failed", ex);
+                throw new ReleaseDownloadException(remoteRelease.Release, "Downloading nzb failed", ex);
             }
 
             _nzbValidationService.Validate(filename, nzbData);
 
-            _logger.Info("Adding report [{0}] to the queue.", remoteMovie.Release.Title);
-            return AddFromNzbFile(remoteMovie, filename, nzbData);
+            _logger.Info("Adding report [{0}] to the queue.", remoteRelease.Release.Title);
+            return AddFromNzbFile(remoteRelease, filename, nzbData);
         }
     }
 }

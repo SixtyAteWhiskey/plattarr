@@ -28,6 +28,18 @@ namespace NzbDrone.Core.Parser.Model
 
         [JsonIgnore]
         public override QualityModel Quality => ParsedMovieInfo?.Quality ?? new QualityModel(Qualities.Quality.Unknown);
+
+        [JsonIgnore]
+        public override string ReleaseGroup => ParsedMovieInfo?.ReleaseGroup;
+
+        [JsonIgnore]
+        public override int? Year => Movie?.Year;
+
+        [JsonIgnore]
+        public override string Collection => Movie?.MovieMetadata?.Value?.CollectionTitle;
+
+        [JsonIgnore]
+        public override string Studio => Movie?.MovieMetadata?.Value?.Studio;
     }
 
     public enum ReleaseSourceType

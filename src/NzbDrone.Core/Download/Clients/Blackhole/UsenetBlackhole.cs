@@ -8,8 +8,8 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.Organizer;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.RemotePathMappings;
 
 namespace NzbDrone.Core.Download.Clients.Blackhole
@@ -35,11 +35,11 @@ namespace NzbDrone.Core.Download.Clients.Blackhole
             ScanGracePeriod = TimeSpan.FromSeconds(30);
         }
 
-        protected override string AddFromNzbFile(RemoteMovie remoteMovie, string filename, byte[] fileContent)
+        protected override string AddFromNzbFile(RemoteRelease remoteRelease, string filename, byte[] fileContent)
         {
-            var title = remoteMovie.Release.Title;
+            var title = remoteRelease.Release.Title;
 
-            title = FileNameBuilder.CleanFileName(title);
+            title = FileNameCleaner.Clean(title);
 
             var filepath = Path.Combine(Settings.NzbFolder, title + ".nzb");
 

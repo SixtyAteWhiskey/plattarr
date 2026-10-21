@@ -10,8 +10,8 @@ using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.Organizer;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.RemotePathMappings;
 
 namespace NzbDrone.Core.Download.Clients.Pneumatic
@@ -35,17 +35,17 @@ namespace NzbDrone.Core.Download.Clients.Pneumatic
 
         public override DownloadProtocol Protocol => DownloadProtocol.Usenet;
 
-        public override async Task<string> Download(RemoteMovie remoteMovie, IIndexer indexer)
+        public override async Task<string> Download(RemoteRelease remoteRelease, IIndexer indexer)
         {
-            var url = remoteMovie.Release.DownloadUrl;
-            var title = remoteMovie.Release.Title;
+            var url = remoteRelease.Release.DownloadUrl;
+            var title = remoteRelease.Release.Title;
 
             // We don't have full seasons in movies.
-            // if (remoteMovie.ParsedEpisodeInfo.FullSeason)
+            // if (remoteRelease.ParsedEpisodeInfo.FullSeason)
             // {
             //    throw new NotSupportedException("Full season releases are not supported with Pneumatic.");
             // }
-            title = FileNameBuilder.CleanFileName(title);
+            title = FileNameCleaner.Clean(title);
 
             // Save to the Pneumatic directory (The user will need to ensure its accessible by XBMC)
             var nzbFile = Path.Combine(Settings.NzbFolder, title + ".nzb");
@@ -82,7 +82,7 @@ namespace NzbDrone.Core.Download.Clients.Pneumatic
                     continue;
                 }
 
-                var title = FileNameBuilder.CleanFileName(Path.GetFileName(file));
+                var title = FileNameCleaner.Clean(Path.GetFileName(file));
 
                 var historyItem = new DownloadClientItem
                 {

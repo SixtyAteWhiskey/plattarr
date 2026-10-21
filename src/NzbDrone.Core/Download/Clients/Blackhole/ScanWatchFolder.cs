@@ -9,7 +9,7 @@ using NzbDrone.Common.Crypto;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.Organizer;
+using NzbDrone.Core.Parser;
 
 namespace NzbDrone.Core.Download.Clients.Blackhole
 {
@@ -53,7 +53,7 @@ namespace NzbDrone.Core.Download.Clients.Blackhole
             foreach (var folder in _diskScanService.FilterPaths(watchFolder, _diskProvider.GetDirectories(watchFolder)))
             {
                 var folderName = Path.GetFileName(folder);
-                var title = FileNameBuilder.CleanFileName(folderName);
+                var title = FileNameCleaner.Clean(folderName);
 
                 if (SpecialFolders.IsSpecialFolder(folderName))
                 {
@@ -94,7 +94,7 @@ namespace NzbDrone.Core.Download.Clients.Blackhole
 
             foreach (var videoFile in _diskScanService.FilterPaths(watchFolder, _diskScanService.GetVideoFiles(watchFolder, false)))
             {
-                var title = FileNameBuilder.CleanFileName(Path.GetFileName(videoFile));
+                var title = FileNameCleaner.Clean(Path.GetFileName(videoFile));
 
                 var newWatchItem = new WatchFolderItem
                 {
