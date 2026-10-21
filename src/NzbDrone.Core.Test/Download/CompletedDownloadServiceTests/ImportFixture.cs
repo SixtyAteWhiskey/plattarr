@@ -10,7 +10,9 @@ using NzbDrone.Core.History;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.MovieImport;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Import;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
@@ -38,6 +40,7 @@ namespace NzbDrone.Core.Test.Download
                     .With(c => c.State = TrackedDownloadState.Downloading)
                     .With(c => c.DownloadItem = completed)
                     .With(c => c.RemoteMovie = remoteMovie)
+                    .With(c => c.Kind = MediaKind.Movies)
                     .Build();
 
             Mocker.GetMock<IDownloadClient>()
@@ -63,6 +66,8 @@ namespace NzbDrone.Core.Test.Download
             Mocker.GetMock<IProvideImportItemService>()
                   .Setup(s => s.ProvideImportItem(It.IsAny<DownloadClientItem>(), It.IsAny<DownloadClientItem>()))
                   .Returns<DownloadClientItem, DownloadClientItem>((i, p) => i);
+
+            Mocker.SetConstant<IEnumerable<IDownloadImporter>>(new[] { Mocker.Resolve<MovieDownloadImporter>() });
         }
 
         private RemoteMovie BuildRemoteMovie()

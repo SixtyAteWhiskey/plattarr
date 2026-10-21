@@ -1,14 +1,13 @@
-using System.Linq;
 using NLog;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.MediaFiles.MovieImport;
+using NzbDrone.Core.Modules;
 
 namespace NzbDrone.Core.Download;
 
 public interface IRejectedImportService
 {
-    bool Process(TrackedDownload trackedDownload, ImportResult importResult);
+    bool Process(TrackedDownload trackedDownload, IImportResult importResult);
 }
 
 public class RejectedImportService : IRejectedImportService
@@ -22,15 +21,14 @@ public class RejectedImportService : IRejectedImportService
         _logger = logger;
     }
 
-    public bool Process(TrackedDownload trackedDownload, ImportResult importResult)
+    public bool Process(TrackedDownload trackedDownload, IImportResult importResult)
     {
-        if (importResult.Result != ImportResultType.Rejected || trackedDownload.RemoteMovie?.Release == null)
+        if (importResult.Result != ImportResultType.Rejected || trackedDownload.RemoteRelease?.Release == null)
         {
             return false;
         }
 
-        var indexerSettings = _cachedIndexerSettingsProvider.GetSettings(trackedDownload.RemoteMovie.Release.IndexerId);
-        var rejectionReason = importResult.ImportDecision.Rejections.FirstOrDefault()?.Reason;
+        var indexerSettings = _cachedIndexerSettingsProvider.GetSettings(trackedDownload.RemoteRelease.Release.IndexerId);
 
         if (indexerSettings == null)
         {
@@ -38,16 +36,11 @@ public class RejectedImportService : IRejectedImportService
             return true;
         }
 
-        if (rejectionReason == ImportRejectionReason.DangerousFile &&
-            indexerSettings.FailDownloads.Contains(FailDownloads.PotentiallyDangerous))
+        var failsDownloadAs = importResult.FailsDownloadAs;
+
+        if (failsDownloadAs.HasValue && indexerSettings.FailDownloads.Contains(failsDownloadAs.Value))
         {
-            _logger.Trace("Download '{0}' contains potentially dangerous file, marking as failed", trackedDownload.DownloadItem.Title);
-            trackedDownload.Fail();
-        }
-        else if (rejectionReason == ImportRejectionReason.ExecutableFile &&
-            indexerSettings.FailDownloads.Contains(FailDownloads.Executables))
-        {
-            _logger.Trace("Download '{0}' contains executable file, marking as failed", trackedDownload.DownloadItem.Title);
+            _logger.Trace("Download '{0}' contains a file rejected as {1}, marking as failed", trackedDownload.DownloadItem.Title, failsDownloadAs.Value);
             trackedDownload.Fail();
         }
         else

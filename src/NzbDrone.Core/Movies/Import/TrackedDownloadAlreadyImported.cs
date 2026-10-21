@@ -2,9 +2,10 @@ using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.History;
 
-namespace NzbDrone.Core.Download.TrackedDownloads
+namespace NzbDrone.Core.Movies.Import
 {
     public interface ITrackedDownloadAlreadyImported
     {

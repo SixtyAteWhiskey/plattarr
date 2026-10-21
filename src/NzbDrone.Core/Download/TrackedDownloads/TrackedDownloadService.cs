@@ -9,6 +9,7 @@ using NzbDrone.Core.Download.Aggregation;
 using NzbDrone.Core.Download.History;
 using NzbDrone.Core.History;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Events;
 using NzbDrone.Core.Parser;
@@ -111,7 +112,12 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                 DownloadItem = downloadItem,
                 Protocol = downloadClient.Protocol,
                 IsTrackable = true,
-                HasNotifiedManualInteractionRequired = existingItem?.HasNotifiedManualInteractionRequired ?? false
+                HasNotifiedManualInteractionRequired = existingItem?.HasNotifiedManualInteractionRequired ?? false,
+
+                // Contract 5 routing. Movies is the only media type, and this service tracks downloads
+                // for it alone. The spec's routing rules (download history, client category, title)
+                // come with the TV module, when tracking stops being movie code.
+                Kind = MediaKind.Movies
             };
 
             try
