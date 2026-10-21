@@ -2,8 +2,8 @@ using System.Collections.Generic;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.HealthCheck.Checks;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.Movies.Indexers.Legacy;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.HealthCheck.Checks
@@ -12,21 +12,28 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
     public class IndexerSearchCheckFixture : CoreTest<IndexerSearchCheck>
     {
         private Mock<IIndexer> _indexerMock;
+        private IndexerDefinition _definition;
+        private bool _blocked;
 
         [SetUp]
         public void SetUp()
         {
+            // NUnit reuses the fixture instance across tests.
+            _indexerMock = null;
+            _definition = null;
+            _blocked = false;
+
             Mocker.GetMock<IIndexerFactory>()
                   .Setup(s => s.GetAvailableProviders())
                   .Returns(new List<IIndexer>());
 
+            // RssEnabled, AutomaticSearchEnabled, and InteractiveSearchEnabled are extension
+            // methods over Enabled(); the indexer's definition flags decide what they return.
             Mocker.GetMock<IIndexerFactory>()
-                  .Setup(s => s.AutomaticSearchEnabled(It.IsAny<bool>()))
-                  .Returns(new List<IIndexer>());
-
-            Mocker.GetMock<IIndexerFactory>()
-                  .Setup(s => s.InteractiveSearchEnabled(It.IsAny<bool>()))
-                  .Returns(new List<IIndexer>());
+                  .Setup(s => s.Enabled(It.IsAny<bool>()))
+                  .Returns<bool>(filterBlocked => _indexerMock == null || (filterBlocked && _blocked)
+                      ? new List<IIndexer>()
+                      : new List<IIndexer> { _indexerMock.Object });
 
             Mocker.GetMock<ILocalizationService>()
                   .Setup(s => s.GetLocalizedString(It.IsAny<string>()))
@@ -35,7 +42,15 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
 
         private void GivenIndexer(bool supportsRss, bool supportsSearch)
         {
+            _definition = new IndexerDefinition
+            {
+                EnableRss = false,
+                EnableAutomaticSearch = false,
+                EnableInteractiveSearch = false
+            };
+
             _indexerMock = Mocker.GetMock<IIndexer>();
+            _indexerMock.SetupGet(s => s.Definition).Returns(_definition);
             _indexerMock.SetupGet(s => s.SupportsRss).Returns(supportsRss);
             _indexerMock.SetupGet(s => s.SupportsSearch).Returns(supportsSearch);
 
@@ -46,27 +61,19 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
 
         private void GivenAutomaticSearchEnabled()
         {
-            Mocker.GetMock<IIndexerFactory>()
-                  .Setup(s => s.AutomaticSearchEnabled(It.IsAny<bool>()))
-                  .Returns(new List<IIndexer> { _indexerMock.Object });
+            _definition.EnableAutomaticSearch = true;
         }
 
         private void GivenInteractiveSearchEnabled()
         {
-            Mocker.GetMock<IIndexerFactory>()
-                  .Setup(s => s.InteractiveSearchEnabled(It.IsAny<bool>()))
-                  .Returns(new List<IIndexer> { _indexerMock.Object });
+            _definition.EnableInteractiveSearch = true;
         }
 
         private void GivenSearchFiltered()
         {
-            Mocker.GetMock<IIndexerFactory>()
-                  .Setup(s => s.AutomaticSearchEnabled(false))
-                  .Returns(new List<IIndexer> { _indexerMock.Object });
-
-            Mocker.GetMock<IIndexerFactory>()
-                  .Setup(s => s.InteractiveSearchEnabled(false))
-                  .Returns(new List<IIndexer> { _indexerMock.Object });
+            _definition.EnableAutomaticSearch = true;
+            _definition.EnableInteractiveSearch = true;
+            _blocked = true;
 
             Mocker.GetMock<ILocalizationService>()
                   .Setup(s => s.GetLocalizedString(It.IsAny<string>()))

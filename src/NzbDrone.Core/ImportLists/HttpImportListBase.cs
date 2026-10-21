@@ -14,7 +14,6 @@ using NzbDrone.Core.Indexers.Exceptions;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.ThingiProvider;
 using NzbDrone.Core.Validation;
-using RequestLimitReachedException = NzbDrone.Core.Movies.Indexers.Legacy.Exceptions.RequestLimitReachedException;
 
 namespace NzbDrone.Core.ImportLists
 {
@@ -128,6 +127,15 @@ namespace NzbDrone.Core.ImportLists
 
                 _logger.Warn("API Request Limit reached for {0}", this);
             }
+            catch (HttpException ex) when (CloudFlareDetectionService.IsCloudflareProtected(ex.Response))
+            {
+                // Radarr's CloudFlareHttpInterceptor raised a CAPTCHA exception for the pre-2020
+                // challenge page only, and before indexer proxies could see the response. It was
+                // removed with the move to Prowlarr's indexer layer (porting step 7).
+                _importListStatusService.RecordFailure(Definition.Id);
+                ex.WithData("FeedUrl", url);
+                _logger.Error(ex, "{0} is protected by CloudFlare and could not be fetched. {1}", this, url);
+            }
             catch (HttpException ex)
             {
                 _importListStatusService.RecordFailure(Definition.Id);
@@ -137,19 +145,6 @@ namespace NzbDrone.Core.ImportLists
             {
                 _importListStatusService.RecordFailure(Definition.Id, TimeSpan.FromHours(1));
                 _logger.Warn("API Request Limit reached for {0}", this);
-            }
-            catch (CloudFlareCaptchaException ex)
-            {
-                _importListStatusService.RecordFailure(Definition.Id);
-                ex.WithData("FeedUrl", url);
-                if (ex.IsExpired)
-                {
-                    _logger.Error(ex, "Expired CAPTCHA token for {0}, please refresh in import list settings.", this);
-                }
-                else
-                {
-                    _logger.Error(ex, "CAPTCHA token required for {0}, check import list settings.", this);
-                }
             }
             catch (ImportListException ex)
             {

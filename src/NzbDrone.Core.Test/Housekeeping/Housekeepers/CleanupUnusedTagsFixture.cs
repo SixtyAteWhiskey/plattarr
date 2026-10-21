@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using FizzWare.NBuilder;
 using FluentAssertions;
@@ -5,6 +6,10 @@ using NUnit.Framework;
 using NzbDrone.Core.AutoTagging;
 using NzbDrone.Core.AutoTagging.Specifications;
 using NzbDrone.Core.Housekeeping.Housekeepers;
+using NzbDrone.Core.IndexerProxies;
+using NzbDrone.Core.IndexerProxies.Http;
+using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.Newznab;
 using NzbDrone.Core.Profiles.Releases;
 using NzbDrone.Core.Tags;
 using NzbDrone.Core.Test.Framework;
@@ -45,6 +50,40 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
 
             Subject.Clean();
             AllStoredModels.Should().HaveCount(1);
+        }
+
+        [Test]
+        public void should_not_delete_tags_used_by_prowlarr_indexers_or_indexer_proxies()
+        {
+            var tags = Builder<Tag>.CreateListOfSize(3)
+                .All()
+                .With(x => x.Id = 0)
+                .BuildList();
+            Db.InsertMany(tags);
+
+            Db.Insert(new IndexerDefinition
+            {
+                Name = "Indexer",
+                Implementation = "Newznab",
+                ConfigContract = nameof(NewznabSettings),
+                Settings = new NewznabSettings { BaseUrl = "https://indexer.example" },
+                Added = DateTime.UtcNow,
+                Tags = new HashSet<int> { tags[0].Id }
+            });
+
+            Db.Insert(new IndexerProxyDefinition
+            {
+                Name = "Proxy",
+                Implementation = "Http",
+                ConfigContract = nameof(HttpSettings),
+                Settings = new HttpSettings { Host = "proxy.example", Port = 8080 },
+                Tags = new HashSet<int> { tags[1].Id }
+            });
+
+            Subject.Clean();
+
+            AllStoredModels.Should().HaveCount(2);
+            AllStoredModels.Should().NotContain(t => t.Id == tags[2].Id);
         }
 
         [Test]

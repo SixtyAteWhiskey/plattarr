@@ -13,6 +13,7 @@ namespace Radarr.Api.V3.Tags
         public List<int> NotificationIds { get; set; }
         public List<int> ReleaseProfileIds { get; set; }
         public List<int> IndexerIds { get; set; }
+        public List<int> IndexerProxyIds { get; set; }
         public List<int> DownloadClientIds { get; set; }
         public List<int> AutoTagIds { get; set; }
         public List<int> MovieIds { get; set; }
@@ -36,6 +37,7 @@ namespace Radarr.Api.V3.Tags
                 NotificationIds = model.NotificationIds,
                 ReleaseProfileIds = model.ReleaseProfileIds,
                 IndexerIds = model.IndexerIds,
+                IndexerProxyIds = model.IndexerProxyIds,
                 DownloadClientIds = model.DownloadClientIds,
                 AutoTagIds = model.AutoTagIds,
                 MovieIds = model.MovieIds,

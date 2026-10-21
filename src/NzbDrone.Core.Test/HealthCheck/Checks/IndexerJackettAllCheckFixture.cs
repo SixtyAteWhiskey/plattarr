@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.HealthCheck.Checks;
+using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.Torznab;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.Movies.Indexers.Legacy;
-using NzbDrone.Core.Movies.Indexers.Legacy.Torznab;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.HealthCheck.Checks
@@ -38,6 +38,9 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
             _definition = new IndexerDefinition
             {
                 Name = "Indexer",
+
+                // Prowlarr's Enable is a stored master switch; Radarr's was derived from the flags.
+                Enable = true,
                 EnableRss = true,
                 ConfigContract = "TorznabSettings",
                 Settings = torznabSettings

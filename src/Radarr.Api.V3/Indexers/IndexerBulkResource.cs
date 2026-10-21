@@ -1,10 +1,11 @@
 using System.Collections.Generic;
-using NzbDrone.Core.Movies.Indexers.Legacy;
+using NzbDrone.Core.Indexers;
 
 namespace Radarr.Api.V3.Indexers
 {
     public class IndexerBulkResource : ProviderBulkResource<IndexerBulkResource>
     {
+        public bool? Enable { get; set; }
         public bool? EnableRss { get; set; }
         public bool? EnableAutomaticSearch { get; set; }
         public bool? EnableInteractiveSearch { get; set; }
@@ -22,6 +23,7 @@ namespace Radarr.Api.V3.Indexers
 
             existingDefinitions.ForEach(existing =>
             {
+                existing.Enable = resource.Enable ?? existing.Enable;
                 existing.EnableRss = resource.EnableRss ?? existing.EnableRss;
                 existing.EnableAutomaticSearch = resource.EnableAutomaticSearch ?? existing.EnableAutomaticSearch;
                 existing.EnableInteractiveSearch = resource.EnableInteractiveSearch ?? existing.EnableInteractiveSearch;
