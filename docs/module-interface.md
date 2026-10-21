@@ -398,6 +398,42 @@ Routing for RSS results:
 Title parsing, scene mapping, and entity lookup stay inside `Map`. The core
 does not parse titles.
 
+As built in porting step 7 (`ba4cb87`, `61fd6e7`):
+
+```csharp
+public interface IReleaseMatcher
+{
+    MediaKind Kind { get; }
+    IReadOnlyList<int> Categories { get; }   // moves to IMediaModule.DefaultCategories
+    RemoteRelease Map(ReleaseInfo release, ModuleSearchRequest request);
+}
+
+public interface IRssReleaseHandler
+{
+    MediaKind Kind { get; }
+    Task Process(IReadOnlyList<ReleaseInfo> releases);
+}
+```
+
+- `Map` takes the module's request (null for RSS) because Radarr matches
+  search results against the movie that was searched. It returns null when
+  the title doesn't parse, and a release with a null `Parent` when it parses
+  but matches nothing, so the decision engine can report "Unknown Movie".
+  `MovieReleaseMatcher` is Radarr's parse and map, moved out of
+  `DownloadDecisionMaker` unchanged.
+- `MapFromHistory` and `MapFromTitle` wait for contract 5 (tracked download
+  routing, step 9); nothing in the core calls them yet.
+- `IRssReleaseHandler` receives the releases routed to its media type. The
+  core `RssSyncService` fetches once per indexer, routes, and hands each
+  handler its share; the module makes the decisions.
+- Routing (`IndexerCategoryService`): a release belongs to a media type when
+  one of its categories equals a wanted category or falls in a wanted
+  top-level category's 1000 range. A release with no categories, or only
+  indexer-specific ones (100000 and up) that nobody asked for, goes to every
+  media type. The wanted categories are per indexer: the media type's
+  defaults, or the indexer's override.
+- Rule 3 (two modules both match) needs a second module and is not built.
+
 ### Contract 3: Search translation
 
 Prowlarr's criteria types (`MovieSearchCriteria`, `TvSearchCriteria`,
@@ -408,17 +444,35 @@ module: Radarr's `MovieSearchCriteria` becomes
 become `Tv.Search.*Request`, and so on.
 
 ```csharp
-public interface ISearchTranslator<TRequest>
+public interface ISearchTranslator<in TRequest>
     where TRequest : ModuleSearchRequest
 {
-    // One request can fan out (scene titles, alternate IDs, anime absolute numbers).
-    IEnumerable<SearchCriteriaBase> Translate(TRequest request, IndexerDefinition indexer);
+    // Ordered tiers. The next tier runs only when the previous one found nothing on that indexer.
+    IEnumerable<IReadOnlyList<SearchCriteriaBase>> Translate(TRequest request, IndexerDefinition indexer, int[] categories);
 }
 ```
 
-The core runs the translated criteria through Prowlarr's indexer layer,
-applies rate limits and stats, then passes results back through the module's
-`IReleaseMatcher.Map`. This is the in-process adapter in Phase 1 step 4.
+Amended in porting step 7 (`ba4cb87`, `61fd6e7`) from a flat
+`IEnumerable<SearchCriteriaBase>`:
+
+- **Tiers.** Radarr searches by ID first and by title only when the ID
+  search returns nothing from that indexer; Sonarr does the same with scene
+  titles. A flat list can't express the fallback.
+- **Categories.** The core resolves them per indexer (defaults or
+  override) and passes them in, so translators decide query shape only.
+
+The core (`IndexerReleaseFetcher`) picks indexers by the enable flags, media
+tags, and category support, runs each tier through Prowlarr's
+`ReleaseSearchService` (query limits, `IndexerHistory`, stats), and returns
+the releases to the module, which maps them with `IReleaseMatcher.Map`.
+`MovieSearchTranslator` sends the IDs the indexer's capabilities support
+(TMDb, IMDb) in tier 1 and each scene title with the year (without it when
+the override's `RemoveYear` is set) in tier 2.
+
+Indexer tags mean two things after the merge: a media restriction (Radarr,
+Sonarr, Lidarr) and a proxy selector (Prowlarr). A tag that any indexer proxy
+uses never restricts media (`IndexerMediaTagService`); search and the RSS tag
+specification use the same rule.
 
 Open item for Phase 3: Sonarr's daily and anime searches must fit
 `TvSearchCriteria.Episode` (a string) without losing Sonarr's request
@@ -620,6 +674,14 @@ the master switch. `FailDownloads` is in `IndexerBaseSettings`.
 `IndexerTorrentBaseSettings`, next to the seed ratio and times. Settings
 blocks render as indexer form fields, so they need no API or UI work of their
 own. `IndexerOverrides` waits for step 7, its first reader.
+
+As built in step 7 (`61fd6e7`, `ac24a75`): migration 244 creates
+`IndexerOverrides` (unique per indexer and media type; rows go with their
+indexer). Fields with readers today: `MultiLanguages`, `RequiredFlags`
+(torrent releases, as in Radarr), `RemoveYear`, and `Categories` (exact IDs,
+replacing the media type's defaults on that indexer for search and RSS).
+Sonarr's and Lidarr's fields come with their modules. The API is
+`/api/v3/indexeroverride`; there is no UI section yet.
 
 Some upstream per-app fields have no global equivalent: `MultiLanguages`,
 `RequiredFlags`, `RemoveYear` (Radarr), `AnimeStandardFormatSearch` (Sonarr),
