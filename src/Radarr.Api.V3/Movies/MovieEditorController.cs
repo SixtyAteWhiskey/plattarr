@@ -10,8 +10,8 @@ using NzbDrone.Core.Languages;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Commands;
+using NzbDrone.Core.Movies.Covers;
 using NzbDrone.Core.Movies.DecisionEngine.Specifications;
-using NzbDrone.Core.Movies.MediaCover;
 using NzbDrone.Core.Movies.Translations;
 using Radarr.Http;
 

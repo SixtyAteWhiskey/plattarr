@@ -7,7 +7,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
 
-namespace NzbDrone.Core.Movies.MediaCover
+namespace NzbDrone.Core.Movies.Covers
 {
     public interface IMediaCoverProxy
     {

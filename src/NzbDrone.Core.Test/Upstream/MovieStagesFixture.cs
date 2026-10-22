@@ -195,7 +195,7 @@ namespace NzbDrone.Core.Test.Upstream
 
             var metadata = _metadata.All().Single();
 
-            metadata.Images.Select(i => i.CoverType).Should().Equal(Movies.MediaCover.MediaCoverTypes.Poster, Movies.MediaCover.MediaCoverTypes.Fanart);
+            metadata.Images.Select(i => i.CoverType).Should().Equal(MediaCover.MediaCoverTypes.Poster, MediaCover.MediaCoverTypes.Fanart);
             metadata.Images[0].RemoteUrl.Should().Be("https://img.example/p.jpg");
             metadata.Ratings.Imdb.Value.Should().Be(8.3m);
             metadata.Ratings.Imdb.Votes.Should().Be(1234);

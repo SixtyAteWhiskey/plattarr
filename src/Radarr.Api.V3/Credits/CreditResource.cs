@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
+using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Movies.Credits;
-using NzbDrone.Core.Movies.MediaCover;
 using Radarr.Http.REST;
 
 namespace Radarr.Api.V3.Credits

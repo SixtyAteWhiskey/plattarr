@@ -15,10 +15,10 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Events;
-using NzbDrone.Core.Movies.MediaCover;
 using NzbDrone.Core.Movies.MediaFiles;
 using NzbDrone.Core.Movies.MediaFiles.Events;
 using NzbDrone.Core.Movies.MediaFiles.MediaInfo;
@@ -60,10 +60,10 @@ namespace NzbDrone.Core.Test.NotificationTests
                 YouTubeTrailerId = "zSWdZVtXT7E",
                 Website = "http://www.interstellarmovie.net",
                 OriginalLanguage = Language.English,
-                Images = new List<Movies.MediaCover.MediaCover>
+                Images = new List<MediaCover.MediaCover>
                 {
-                    new Movies.MediaCover.MediaCover(MediaCoverTypes.Poster, "https://img.example/poster.jpg"),
-                    new Movies.MediaCover.MediaCover(MediaCoverTypes.Fanart, "https://img.example/fanart.jpg")
+                    new MediaCover.MediaCover(MediaCoverTypes.Poster, "https://img.example/poster.jpg"),
+                    new MediaCover.MediaCover(MediaCoverTypes.Fanart, "https://img.example/fanart.jpg")
                 },
                 Ratings = new Ratings { Tmdb = new RatingChild { Votes = 100, Value = 8.4m, Type = RatingType.User } }
             };

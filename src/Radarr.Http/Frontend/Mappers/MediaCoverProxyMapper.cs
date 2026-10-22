@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
-using NzbDrone.Core.Movies.MediaCover;
+using NzbDrone.Core.Movies.Covers;
 
 namespace Radarr.Http.Frontend.Mappers
 {

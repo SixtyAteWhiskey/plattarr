@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Covers;
 using NzbDrone.Core.Movies.Credits;
-using NzbDrone.Core.Movies.MediaCover;
 using Radarr.Http;
 using Radarr.Http.REST;
 

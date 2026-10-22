@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Processing;
 
-namespace NzbDrone.Core.Movies.MediaCover
+namespace NzbDrone.Core.Movies.Covers
 {
     public interface IImageResizer
     {

@@ -1,7 +1,7 @@
 using Equ;
 using NzbDrone.Core.Datastore;
 
-namespace NzbDrone.Core.Movies.MediaCover
+namespace NzbDrone.Core.MediaCover
 {
     public enum MediaCoverTypes
     {
