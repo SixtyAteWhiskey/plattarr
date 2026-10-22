@@ -122,12 +122,12 @@ namespace NzbDrone.Core.Movies.History
 
             if (languages is { Length: > 0 })
             {
-                builder.Where($"({BuildLanguageWhereClause(languages)})");
+                builder.Where($"({ActivityFilterSql.LanguageClause(_database.DatabaseType, TableMapping.Mapper.TableNameMapping(typeof(MovieHistory)), languages)})");
             }
 
             if (qualities is { Length: > 0 })
             {
-                builder.Where($"({BuildQualityWhereClause(qualities)})");
+                builder.Where($"({ActivityFilterSql.QualityClause(TableMapping.Mapper.TableNameMapping(typeof(MovieHistory)), qualities)})");
             }
 
             return builder;
@@ -140,37 +140,5 @@ namespace NzbDrone.Core.Movies.History
                 hist.Movie.QualityProfile = profile;
                 return hist;
             });
-
-        private string BuildLanguageWhereClause(int[] languages)
-        {
-            var clauses = new List<string>();
-
-            foreach (var language in languages)
-            {
-                // There are 4 different types of values we should see:
-                // - Not the last value in the array
-                // - When it's the last value in the array and on different OSes
-                // - When it was converted from a single language
-
-                clauses.Add($"\"{TableMapping.Mapper.TableNameMapping(typeof(MovieHistory))}\".\"Languages\" LIKE '[% {language},%]'");
-                clauses.Add($"\"{TableMapping.Mapper.TableNameMapping(typeof(MovieHistory))}\".\"Languages\" LIKE '[% {language}' || CHAR(13) || '%]'");
-                clauses.Add($"\"{TableMapping.Mapper.TableNameMapping(typeof(MovieHistory))}\".\"Languages\" LIKE '[% {language}' || CHAR(10) || '%]'");
-                clauses.Add($"\"{TableMapping.Mapper.TableNameMapping(typeof(MovieHistory))}\".\"Languages\" LIKE '[{language}]'");
-            }
-
-            return $"({string.Join(" OR ", clauses)})";
-        }
-
-        private string BuildQualityWhereClause(int[] qualities)
-        {
-            var clauses = new List<string>();
-
-            foreach (var quality in qualities)
-            {
-                clauses.Add($"\"{TableMapping.Mapper.TableNameMapping(typeof(MovieHistory))}\".\"Quality\" LIKE '%_quality_: {quality},%'");
-            }
-
-            return $"({string.Join(" OR ", clauses)})";
-        }
     }
 }

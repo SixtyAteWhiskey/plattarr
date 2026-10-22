@@ -1337,6 +1337,63 @@ types, `MediaInfo`) move to core once, and the episode and movie specific ones l
 **Namespace.** `NzbDrone.Core.Tv.*`, which `ModuleBoundary` already treats as a module. Types that
 share a full name with a core or Movies type take the module name (`Tv.Parser.Parser`).
 
+### TV step 1: as built
+
+Built in session 36. Compared with Sonarr `b3d4bb8`. Migration 004 (`004_tv_module_tables`)
+adds `History.ItemId`, `Blocklist.ItemIds`, `Blocklist.ReleaseType`, the index
+`IX_History_MediaKind_ItemId_Date` and the seven `Tv_` tables of the design. It changes no
+existing row. `ModuleBoundaryAllowlist` is unchanged at 27 and migrations 001 to 003 are
+untouched. Calls made while building (each is reversible):
+
+- **`MediaCover` moved to core** (`NzbDrone.Core.MediaCover`, `be15834`). Both modules need it and
+  a module may not reference another. The Movies cover code is now `Movies.Covers`.
+- **`TvModule`**: `Name` is `"Tv"` (the table prefix check requires `Name + "_" == TablePrefix`),
+  `Kind` is `MediaKind.Tv`, `DefaultCategories` is `{5000}`, and `ScheduledTasks` is empty until
+  the steps that own a task.
+- **Entities and repositories ported**: `Series`, `Episode`, `Season`, `SeriesTranslation`,
+  `Actor`, `Ratings`, `SceneMapping`, `EpisodeFile`, `RootFolder`, `NamingConfig`,
+  `EpisodeHistory`, `Blocklist` and the enums. `EpisodeHistory` and `Blocklist` are
+  `MediaKindRepository` views of the shared tables (`ParentId` is the series, `ItemId` and
+  `ItemIds` are episodes).
+- **Dropped from Sonarr**: `Blocklist.Source` (Radarr never stored it and the core failed
+  download event has no such field) and the quality-rank sort on History and Blocklist pages
+  (Sonarr's `QualityProfileQualityRanks` table does not exist here).
+- **`Tv_Episodes.TvdbId` is `NOT NULL` default 0.** Sonarr's column is nullable. The importer maps
+  null to 0.
+- **Copies kept per module for now**: Tv has its own `MediaInfoModel` (Sonarr's shape; it differs
+  from Radarr's), `ColonReplacementFormat` (it has `Custom`), `MultiEpisodeStyle` and
+  `ReleaseType` (`Tv.Parser.Model`). Unify the media info models at step 5 with the media file
+  move.
+- **`BasicRepository.ModelUpdated` and `PublishModelEvent` take `forceEvent`.** The Sonarr episode
+  repository publishes a model event from `SetFileId` and `ClearFileId` although the repository
+  does not publish events by default.
+- **`TagUsage.Tables` includes `Tv_Series`**, so `CleanupUnusedTags` keeps tags that only a series
+  uses. Tag detail (`TagService`) does not list series until the Tv services exist.
+- **Shared history filter SQL** (`ActivityFilterSql`): the language and quality `LIKE` filters of
+  the History page moved out of the Movies repository and the Tv repository into one helper.
+  This fixes a bug the Tv tests found on PostgreSQL: the language filter used `CHAR(13)`, which
+  PostgreSQL rejects (`CHR(13)`), so the Movies History page failed whenever a language filter was
+  set on a PostgreSQL database. The helper chooses the function by database type and is tested on
+  both.
+
+**Visible effect.** The download client schema gains a "Category (Tv)" field next to the movie
+category, and the existing field is labelled "Category (Movies)". The core builds one category
+field per registered module. A Tv download client category has no effect until the Tv grab step
+(step 4) reads it. The two Tv priority help texts were missing from `en.json` (the UI shows the raw
+key for a missing one); they are added, and `ModuleLocalizationFixture` fails when a registered
+module lacks them.
+
+**Gaps left on purpose.** No Tv service calls a metadata source, parser, indexer or the disk. The
+`IMediaModule` comment still says `Name` is the table prefix; it is the prefix without the
+underscore. The Tv types repeat the simple names of Movies types (`Ratings`, `MonitorTypes`,
+`MonitoringOptions`, `NamingConfig`, `RootFolder`, `Blocklist` and others) in separate
+namespaces. Nothing keyed by type name collides yet; the OpenAPI schema ids will at step 7, so the
+Tv API resources need distinct names.
+
+**Tests.** `TvModuleTablesFixture` (migration test with old-shape History and Blocklist rows),
+the repository fixtures under `NzbDrone.Core.Test/TvTests`, and `ActivityFilterSqlFixture` run on
+SQLite and PostgreSQL. Each was checked by breaking the code under test and seeing the test fail.
+
 ## Decision record
 
 Owner answers, 2026-10-20, to the six questions in revision 1:

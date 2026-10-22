@@ -14,6 +14,7 @@ namespace NzbDrone.Core.Tags
         public static readonly IReadOnlyList<string> Tables = new[]
         {
             "Movies_Movies",
+            "Tv_Series",
             "Notifications",
             "DelayProfiles",
             "ReleaseProfiles",
