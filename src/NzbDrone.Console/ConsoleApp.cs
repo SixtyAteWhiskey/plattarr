@@ -41,6 +41,13 @@ namespace NzbDrone.Console
                 }
 
                 Bootstrap.Start(args);
+
+                // /import reports its result through the exit code (0 done, 1 failed, 2 strict mode stopped it).
+                if (Bootstrap.UtilityExitCode != 0)
+                {
+                    LogManager.Shutdown();
+                    Environment.Exit(Bootstrap.UtilityExitCode);
+                }
             }
             catch (RadarrStartupException ex)
             {

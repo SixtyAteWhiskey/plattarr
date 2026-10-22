@@ -7,6 +7,7 @@
         InstallService,
         UninstallService,
         Service,
-        RegisterUrl
+        RegisterUrl,
+        Import
     }
 }

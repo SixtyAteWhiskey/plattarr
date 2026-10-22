@@ -26,6 +26,7 @@ using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Common.Options;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Datastore.Extensions;
+using NzbDrone.Core.Upstream;
 using PostgresOptions = NzbDrone.Core.Datastore.PostgresOptions;
 
 namespace NzbDrone.Host
@@ -33,6 +34,9 @@ namespace NzbDrone.Host
     public static class Bootstrap
     {
         private static readonly Logger Logger = NzbDroneLogger.GetLogger(typeof(Bootstrap));
+
+        // What the process exits with after a utility mode that reports a result (/import). 0 for every other mode.
+        public static int UtilityExitCode { get; private set; }
 
         public static readonly List<string> ASSEMBLIES = new()
         {
@@ -92,12 +96,20 @@ namespace NzbDrone.Host
                 .UseServiceProviderFactory(new DryIocServiceProviderFactory(new Container(rules => rules.WithNzbDroneRules())))
                 .ConfigureContainer<IContainer>(c =>
                 {
-                    c.AutoAddServices(ASSEMBLIES)
+                    var container = c.AutoAddServices(ASSEMBLIES)
                         .AddNzbDroneLogger()
                         .AddDatabase()
-                        .AddStartupContext(startupContext)
-                        .Resolve<UtilityModeRouter>()
-                        .Route(appMode);
+                        .AddStartupContext(startupContext);
+
+                    if (appMode == ApplicationModes.Import)
+                    {
+                        // Resolved only here: it needs the database, which runs the migrations.
+                        UtilityExitCode = container.Resolve<ImportCommand>().Run();
+                    }
+                    else
+                    {
+                        container.Resolve<UtilityModeRouter>().Route(appMode);
+                    }
 
                     if (config.GetValue(nameof(ConfigFileProvider.LogDbEnabled), true))
                     {
@@ -224,6 +236,11 @@ namespace NzbDrone.Host
             if (startupContext.Help)
             {
                 return ApplicationModes.Help;
+            }
+
+            if (startupContext.Flags.Contains(ImportRequest.ImportFlag))
+            {
+                return ApplicationModes.Import;
             }
 
             if (OsInfo.IsWindows && startupContext.RegisterUrl)
