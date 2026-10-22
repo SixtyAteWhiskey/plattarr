@@ -9,7 +9,7 @@ namespace NzbDrone.Core.Upstream
     // matched case-insensitively and may be absent: an older upstream schema has
     // fewer columns, and the adapter reads the columns it finds.
     //
-    // Reading rules: GetString, GetNullableInt, GetNullableLong and GetJson return
+    // Reading rules: GetString, GetNullableInt, GetNullableLong, GetNullableDouble and GetJson return
     // null for an absent or NULL column. GetInt, GetLong and GetBool throw for
     // both, so a mandatory column that is missing is loud. Exception messages name
     // the column and never the value (rows hold secrets).
@@ -67,6 +67,23 @@ namespace NzbDrone.Core.Upstream
             catch (Exception ex) when (ex is FormatException or InvalidCastException or OverflowException)
             {
                 throw new UpstreamImportException($"Column {column} does not hold an integer", ex);
+            }
+        }
+
+        public double? GetNullableDouble(string column)
+        {
+            if (IsNull(column))
+            {
+                return null;
+            }
+
+            try
+            {
+                return Convert.ToDouble(_values[column], CultureInfo.InvariantCulture);
+            }
+            catch (Exception ex) when (ex is FormatException or InvalidCastException or OverflowException)
+            {
+                throw new UpstreamImportException($"Column {column} does not hold a number", ex);
             }
         }
 

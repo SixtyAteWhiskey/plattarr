@@ -1,7 +1,7 @@
 # Importer for `radarr.db` and `prowlarr.db`
 
 Status: **design note; built so far: the adapter read layer, the pure building blocks,
-the engine with its stage contract, and the Tags and root folder stages** (see
+the engine with its stage contract, and the Tags, root folder and profile stages** (see
 [Read layer](#read-layer-built), [Building blocks](#building-blocks-built) and
 [Engine and stages](#engine-and-stages-built)). The remaining stages, the `/import` command
 and the boot test are not (roadmap Phase 2, item 1). Decisions marked
@@ -265,6 +265,7 @@ code the rest of the stages plug into.
 | `ImportReconciliation` | Rows read = imported + skipped for every table a stage claims, per app. A table counted but not read (instance and runtime state) is reported by its reason and never checked. An unbalanced table throws `ImportVerificationException`, which names tables and counts and no value. |
 | `UpstreamImporter` (`IUpstreamImporter`) | Refuses two databases of one app and a target that already holds data (`Movies_Movies`, `Indexers`, `DownloadClients`, `Notifications`, `QualityProfiles`, `CustomFormats`, `Tags`) or an earlier import (Config key `importedfrom`). Runs the stages by `Order`, reconciles, then commits, or rolls back for a dry run or for strict mode with a skipped row. Any exception rolls back. `ImportResult` carries the outcome, per-table accounts, unread tables, skips, warnings and the `IdMap`. |
 | `TagsStage` (core) | Writes the label union (`TagMerger`) and fills the tag `IdMap`. |
+| `ProfilesStage` (core) | Radarr `CustomFormats`, `QualityProfiles`, `QualityDefinitions` and `DelayProfiles` in that order inside one stage (each reads the `IdMap` the one before filled). Documents are rewritten as JSON and parsed by the same converters the repositories use, so a shape the target cannot read skips that one row as `CORRUPT`; the report names the table, ID and column, never a value. Language conditions, quality items, cutoffs and profile languages go through the app's catalog; group IDs (1000 and up) are profile-local and kept; a score for a custom format that was not imported is dropped with one warning per profile; delay profile tags go through the tag map. The target's default delay profile (the one row migration 001 inserts) is updated in place by the source's default row; all other delay profiles are inserted. `AppliesTo` is `["Movies"]`. |
 | `RootFoldersStage` (Movies module, `NzbDrone.Core.Movies.Upstream`) | Radarr `RootFolders` to `Movies_RootFolders` through the path map. Two folders that map onto one path become one row (both counted as imported). A folder with no path is skipped as `CORRUPT`. Nothing refers to a root folder by ID, so its `IdMap` entries serve the report only. |
 
 **The module seam is a stage.** Movie-vocabulary mapping lives in stages in the Movies module;
@@ -385,6 +386,11 @@ Order: custom formats first (profiles reference them), then profiles.
   by a planner test with two synthetic sources.
 - **Name collisions** (same name, different content, from different sources) are
   written with the source appended (`HD-1080p (Sonarr)`) and reported.
+- **Not built, on purpose *(reversible)*.** The merge and collision rules above need a second
+  source of profiles or custom formats. Radarr is the only one, names are unique inside it, and
+  the target is empty, so code for them could not run and could not be tested against a real
+  case. They arrive with the first adapter that has profiles of its own (Sonarr), together
+  with their two-source tests. The stage's `AppliesTo` is fixed at Movies for the same reason.
 
 ### Download clients
 
@@ -703,6 +709,56 @@ this data (the rule stays for other users). `Prowlarr.History` is not imported.
    dev stack and reading its `Settings` column, then remove it. Not needed for the
    adapter: the importer writes `moduleCategories` itself.
 
+### Live row shapes (session 30)
+
+Read-only through the scrubbed row printer on the owner's Radarr copy (version 242, 6
+profiles, 1 custom format, 30 quality definitions, 87 movies). Nothing below is a value; it is
+what the stored JSON and constraints look like.
+
+1. **`Tags` is pretty-printed JSON**, not compact: `[]` and `"[\n  1\n]"`. Anything that reads a
+   `Tags` column parses it (`TagRemapper` does); a string match or a regex would miss tagged rows.
+2. **`QualityProfiles.Items`** holds 26 entries in two shapes. A leaf is
+   `{"quality": id, "items": [], "allowed": bool}`; a group is
+   `{"id": 1000+, "name": "...", "items": [leaf, ...], "allowed": bool}` with no `quality` key
+   (the live data has four groups, ids 1000 to 1003). Group IDs are profile-local, so the same
+   ID in two profiles is a different group. No live profile has a group as its cutoff, so the
+   group-cutoff path is covered by a synthetic row only.
+3. **`QualityProfiles.FormatItems`** is `[{"format": <CustomFormats.Id>, "score": n}]`, one entry
+   per custom format. `Language` is an integer in the live data (1 = English), nullable in the schema.
+4. **`QualityDefinitions` sizes are nullable.** 9 of 30 rows have `MaxSize` and `PreferredSize` NULL
+   (Bluray-1080p, Remux-1080p, the four 2160p qualities, BR-DISK and Raw-HD) and `MinSize` 0. The target
+   column is `double?`, so NULL is kept, not defaulted.
+5. **`CustomFormats.Specifications`** is `[{"type": "<Name>Specification", "body": {order,
+   implementationName, infoLink, name, negate, required, value, ...}}]`, the same wrapper the
+   target's converter reads, so a type the target lacks fails the parse and skips that row.
+6. **`DelayProfiles`**: one row, the default (`Order` 2147483647, `Tags` `[]`, `MinimumCustomFormatScore`
+   NULL).
+7. **`Movies.MovieFileId` is 0 for 12 of 87 movies** (monitored, no file yet). All other IDs in
+   the copy resolve: no dangling `MovieFileId`, profile, metadata, credit, alternative title,
+   translation, history, blocklist, subtitle or download-history row. The planner still treats a
+   dangling reference as corrupt data and skips the row, but the real data will not exercise it.
+8. **26 `MovieMetadata` rows have no movie** (113 metadata, 87 movies); 60 metadata rows name a
+   collection and 21 `Collections` rows exist. Metadata is a catalog of known titles, not a
+   library, so all 113 are imported *(reversible: it is a per-table filter in one stage)*.
+   `ImdbId` is NULL or empty for 6.
+9. **`MovieFiles.MediaInfo`** is a large embedded document (up to 123 KB per row, mostly
+   `rawStreamData` and `rawFrameData` text). It is copied as is; 75 rows, so about 5 MB.
+   `Quality` is `{"quality": id, "revision": {"version", "real", "isRepack"}}`, `Languages` an
+   array of language IDs, `IndexerFlags` an integer.
+10. **`AlternativeTitles.CleanTitle` is UNIQUE in the source schema.** If the target's table has the
+    same constraint, two movies sharing an alternative title cannot both keep it. Check the target
+    schema before writing that stage.
+11. **Event types.** `History`: 1 (grabbed) 141, 3 (downloaded) 79, 4 (failed) 53, 6 (file deleted) 4.
+    `DownloadHistory`: 1: 141, 2: 79, 3: 53, 5: 79. Every one of these is in `RadarrEventTypes`.
+12. **`History.Data` for a grab carries a `downloadUrl` with the Prowlarr API key in its query
+    string**, like `DownloadHistory.Release`. The activity stage must not log it, and should decide
+    whether to strip the `apikey` parameter on import: a stored key is a secret in the new database
+    that nothing needs, because a download link is not reused after the grab. Open (item 8).
+13. **`Config`** holds 8 keys: `autounmonitorpreviouslydownloadedmovies`, `cleanupmetadataimages`,
+    `maximumsize`, `plexclientidentifier` and four secrets (`hmacpassphrase`, `hmacsalt`,
+    `rijndaelpassphrase`, `rijndaelsalt`). The four secrets are instance keys and are not carried.
+14. **`Metadata` (consumers)**: 5 rows, all disabled (Kodi, WDTV, Roksbox, MediaBrowser, Kometa).
+
 ## Known costs
 
 - **Cover images** are not copied. IDs differ, and `MediaCover` is a cache that
@@ -746,12 +802,15 @@ this data (the rule stays for other users). `Prowlarr.History` is not imported.
    mapping table should drop its Prowlarr `Config` rows when the settings stage is built.
 7. Scrubbed row fixtures: the building blocks have theirs (`UpstreamFixtureTest`:
    tags, a qBittorrent client, five indexers, a grab row, Prowlarr applications and
-   sync records). Still to write: a movie with a file, history chains, blocklist,
-   profiles and custom formats.
+   sync records), and the profile stage has its own (`ProfilesStageFixture`, rows shaped like the
+   live ones). Still to write: a movie with a file, history chains, blocklist.
+8. Strip the `apikey` query parameter from `downloadUrl` in `History.Data` and
+   `DownloadHistory.Release` when importing? Leaning yes *(reversible)*; decide with the activity
+   stage (Live row shapes, item 12).
 
 Implementation order: adapter read layer (done), building blocks (done), engine and the
-Tags and root folder stages (done), then the remaining stages for the movie tables (profiles
-and custom formats, movies, movie files, extras), then the activity tables (highest risk, most
+Tags, root folder and profile stages (done), then the remaining stages for the movie tables
+(movies, movie files, extras), then the activity tables (highest risk, most
 real-row tests; design the module seam here), then settings and providers (including
 the Prowlarr indexer settings translation), then the verifier, the `/import` command,
 and the boot test.

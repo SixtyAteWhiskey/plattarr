@@ -15,6 +15,7 @@ namespace NzbDrone.Core.Upstream
     public static class ImportOrder
     {
         public const int Tags = 100;
+        public const int Profiles = 200;
         public const int RootFolders = 500;
     }
 
