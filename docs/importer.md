@@ -752,8 +752,8 @@ what the stored JSON and constraints look like.
     `DownloadHistory`: 1: 141, 2: 79, 3: 53, 5: 79. Every one of these is in `RadarrEventTypes`.
 12. **`History.Data` for a grab carries a `downloadUrl` with the Prowlarr API key in its query
     string**, like `DownloadHistory.Release`. The activity stage must not log it, and should decide
-    whether to strip the `apikey` parameter on import: a stored key is a secret in the new database
-    that nothing needs, because a download link is not reused after the grab. Open (item 8).
+    strip the `apikey` parameter on import: a stored key is a secret in the new database that
+    nothing needs, because a download link is not reused after the grab. Decided: strip (item 8).
 13. **`Config`** holds 8 keys: `autounmonitorpreviouslydownloadedmovies`, `cleanupmetadataimages`,
     `maximumsize`, `plexclientidentifier` and four secrets (`hmacpassphrase`, `hmacsalt`,
     `rijndaelpassphrase`, `rijndaelsalt`). The four secrets are instance keys and are not carried.
@@ -804,9 +804,11 @@ what the stored JSON and constraints look like.
    tags, a qBittorrent client, five indexers, a grab row, Prowlarr applications and
    sync records), and the profile stage has its own (`ProfilesStageFixture`, rows shaped like the
    live ones). Still to write: a movie with a file, history chains, blocklist.
-8. Strip the `apikey` query parameter from `downloadUrl` in `History.Data` and
-   `DownloadHistory.Release` when importing? Leaning yes *(reversible)*; decide with the activity
-   stage (Live row shapes, item 12).
+8. ~~Strip the `apikey` query parameter from `downloadUrl` in `History.Data` and
+   `DownloadHistory.Release`?~~ Decided by the owner 2026-10-22: **yes, strip it.** The
+   activity stage removes the `apikey` query parameter (any case) from `downloadUrl` and keeps
+   the rest of the URL; the report counts the rows changed and never prints a URL. The
+   building block is a pure function with its own tests, written with the activity stage.
 
 Implementation order: adapter read layer (done), building blocks (done), engine and the
 Tags, root folder and profile stages (done), then the remaining stages for the movie tables
