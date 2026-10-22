@@ -11,6 +11,7 @@ using NzbDrone.Core.Movies.History;
 using NzbDrone.Core.Movies.MediaFiles;
 using NzbDrone.Core.Movies.Parser;
 using NzbDrone.Core.Movies.Parser.Model;
+using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.CustomFormats
 {

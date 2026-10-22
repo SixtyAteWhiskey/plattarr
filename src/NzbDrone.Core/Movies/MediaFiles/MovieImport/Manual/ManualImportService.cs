@@ -17,6 +17,7 @@ using NzbDrone.Core.Movies.MediaFiles.MovieImport.Aggregation;
 using NzbDrone.Core.Movies.Parser;
 using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Parser;
+using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Movies.MediaFiles.MovieImport.Manual

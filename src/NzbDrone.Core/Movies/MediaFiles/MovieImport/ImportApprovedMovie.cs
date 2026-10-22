@@ -14,6 +14,7 @@ using NzbDrone.Core.Movies.History;
 using NzbDrone.Core.Movies.MediaFiles.Commands;
 using NzbDrone.Core.Movies.MediaFiles.Events;
 using NzbDrone.Core.Movies.Parser.Model;
+using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Movies.MediaFiles.MovieImport

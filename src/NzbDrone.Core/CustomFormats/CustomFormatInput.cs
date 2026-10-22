@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Parser.Model;
+using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.CustomFormats
 {

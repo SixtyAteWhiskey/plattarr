@@ -1,15 +1,15 @@
 using System;
 using System.Collections.Generic;
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.Parser.Model;
 
-namespace NzbDrone.Core.Movies.Parser.Model
+namespace NzbDrone.Core.Parser.Model
 {
     // Translates between the shared release model's flags (Prowlarr's named
-    // IndexerFlag set plus torrent volume factors) and Radarr's IndexerFlags
-    // enum. The enum stays the movie vocabulary because custom formats,
-    // required-flag settings, movie files, blocklist rows, history data, and
-    // the Radarr v3 API store its integer values.
+    // IndexerFlag set plus torrent volume factors) and the IndexerFlags enum.
+    // The enum is Plattarr's global flag vocabulary: custom formats, required-flag
+    // overrides, file and blocklist rows, history data, and the compatibility APIs
+    // store its integer values, and the values are never renumbered. Its names are
+    // a superset of Sonarr's (SonarrIndexerFlags translates Sonarr's integers).
     public static class IndexerFlagsMapper
     {
         // Named flags for enum values with no Prowlarr equivalent. "golden"

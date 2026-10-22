@@ -1,13 +1,11 @@
 using NLog;
-using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Indexers.Overrides;
 using NzbDrone.Core.Modules;
-using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Parser.Model;
 
-namespace NzbDrone.Core.Movies.DecisionEngine.Specifications
+namespace NzbDrone.Core.DecisionEngine.ReleaseSpecifications
 {
-    public class RequiredIndexerFlagsSpecification : IDownloadDecisionEngineSpecification
+    public class RequiredIndexerFlagsSpecification : IReleaseSpecification
     {
         private readonly IIndexerOverrideService _indexerOverrideService;
         private readonly Logger _logger;
@@ -21,7 +19,7 @@ namespace NzbDrone.Core.Movies.DecisionEngine.Specifications
         public SpecificationPriority Priority => SpecificationPriority.Default;
         public RejectionType Type => RejectionType.Permanent;
 
-        public DownloadSpecDecision IsSatisfiedBy(RemoteMovie subject, ReleaseDecisionInformation information)
+        public DownloadSpecDecision IsSatisfiedBy(RemoteRelease subject, ReleaseDecisionInformation information)
         {
             // Radarr kept RequiredFlags on torrent indexers only; the override keeps that scope.
             if (subject.Release is not TorrentInfo torrentInfo || torrentInfo.IndexerId == 0)
@@ -29,7 +27,7 @@ namespace NzbDrone.Core.Movies.DecisionEngine.Specifications
                 return DownloadSpecDecision.Accept();
             }
 
-            var requiredFlags = _indexerOverrideService.Get(torrentInfo.IndexerId, MediaKind.Movies).RequiredFlags;
+            var requiredFlags = _indexerOverrideService.Get(torrentInfo.IndexerId, subject.Kind).RequiredFlags;
 
             if (requiredFlags.Count == 0)
             {

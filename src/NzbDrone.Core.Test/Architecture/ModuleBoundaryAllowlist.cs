@@ -2,7 +2,7 @@ namespace NzbDrone.Core.Test.Architecture
 {
     // Core types that reference module code today (ModuleBoundaryFixture). This list may only shrink:
     // remove an entry when its type stops referencing a module; never add one. Each group says how it
-    // leaves the list. Seeded in step 9a with 159 types; 156 after 9b, 141 after 9c and 9d, 135 after 9e, 129 after 9f, 72 after contract 7 (notifications), 48 after 9h (download clients; 9i changed nothing), 42 after 9j (grab and decision processing).
+    // leaves the list. Seeded in step 9a with 159 types; 156 after 9b, 141 after 9c and 9d, 135 after 9e, 129 after 9f, 72 after contract 7 (notifications), 48 after 9h (download clients; 9i changed nothing), 42 after 9j (grab and decision processing), 30 after step 12 (the allowlist stood at 32 after step 11).
     public static class ModuleBoundaryAllowlist
     {
         public static readonly string[] Types =
@@ -14,13 +14,11 @@ namespace NzbDrone.Core.Test.Architecture
             "NzbDrone.Core.Configuration.ConfigService",
             "NzbDrone.Core.Configuration.IConfigService",
 
-            // CustomFormats (13): Global custom formats read movie input. Generalize CustomFormatInput before Phase 3 (finding 21: IndexerFlags values collide with Sonarr).
+            // CustomFormats (11): Global custom formats read movie input. Generalize CustomFormatInput before Phase 3. IndexerFlagSpecification left in step 12 (IndexerFlags is the global vocabulary).
             "NzbDrone.Core.CustomFormats.CustomFormatCalculationService",
             "NzbDrone.Core.CustomFormats.CustomFormatInput",
             "NzbDrone.Core.CustomFormats.EditionSpecification",
             "NzbDrone.Core.CustomFormats.ICustomFormatCalculationService",
-            "NzbDrone.Core.CustomFormats.IndexerFlagSpecification",
-            "NzbDrone.Core.CustomFormats.IndexerFlagSpecificationValidator",
             "NzbDrone.Core.CustomFormats.LanguageSpecification",
             "NzbDrone.Core.CustomFormats.QualityModifierSpecification",
             "NzbDrone.Core.CustomFormats.ReleaseGroupSpecification",
