@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using NLog;
-using NzbDrone.Core.Download.Aggregation.Aggregators;
+using NzbDrone.Core.Movies.Aggregation.Aggregators;
 using NzbDrone.Core.Parser.Model;
 
-namespace NzbDrone.Core.Download.Aggregation
+namespace NzbDrone.Core.Movies.Aggregation
 {
     public interface IRemoteMovieAggregationService
     {

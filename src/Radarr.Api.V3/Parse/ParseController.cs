@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.CustomFormats;
-using NzbDrone.Core.Download.Aggregation;
+using NzbDrone.Core.Movies.Aggregation;
 using NzbDrone.Core.Parser;
 using Radarr.Api.V3.CustomFormats;
 using Radarr.Api.V3.Movies;
