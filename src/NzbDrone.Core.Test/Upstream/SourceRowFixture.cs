@@ -135,6 +135,9 @@ namespace NzbDrone.Core.Test.Upstream
 
         [TestCase("2024-03-01 12:30:45")]
         [TestCase("2024-03-01 12:30:45.1234567")]
+        [TestCase("2024-03-01 12:30:45Z")]
+        [TestCase("2024-03-01 12:30:45.1234567Z")]
+        [TestCase("2024-03-01 12:30:45.12345Z")]
         [TestCase("2024-03-01T12:30:45Z")]
         [TestCase("2024-03-01T12:30:45+00:00")]
         public void should_read_date_text_as_utc(string text)

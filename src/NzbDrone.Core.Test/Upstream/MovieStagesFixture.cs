@@ -11,6 +11,7 @@ using NzbDrone.Core.Extras.Subtitles;
 using NzbDrone.Core.ImportLists.ImportExclusions;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.MediaFiles.MediaInfo;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.AlternativeTitles;
 using NzbDrone.Core.Movies.Collections;
@@ -35,7 +36,7 @@ namespace NzbDrone.Core.Test.Upstream
         private const string Quality1080 = "{\"quality\":7,\"revision\":{\"version\":1,\"real\":0,\"isRepack\":false}}";
 
         // Radarr writes seven fractional digits; Postgres keeps six, so compare to the millisecond.
-        private const string Stamp = "2024-03-01 12:30:45.1234567";
+        private const string Stamp = "2024-03-01 12:30:45.1234567Z";
         private static readonly DateTime StampUtc = new DateTime(2024, 3, 1, 12, 30, 45, DateTimeKind.Utc).AddTicks(1234567);
 
         private MovieRepository _movies;
@@ -174,6 +175,42 @@ namespace NzbDrone.Core.Test.Upstream
             metadata.CollectionTmdbId.Should().Be(0);
             metadata.Popularity.Should().Be(12.5f);
             result.IdMap.Resolve("Radarr", "MovieMetadata", 1).Should().Be(metadata.Id);
+        }
+
+        // Shapes read from the owner's Radarr 242 database (session 31), values replaced.
+        [Test]
+        public void should_read_the_document_shapes_a_live_radarr_database_holds()
+        {
+            const string images = "[{\"coverType\":\"poster\",\"remoteUrl\":\"https://img.example/p.jpg\"},{\"coverType\":\"fanart\",\"remoteUrl\":\"https://img.example/f.jpg\"}]";
+            const string ratings = "{\"imdb\":{\"votes\":1234,\"type\":\"user\",\"value\":8.3},\"rottenTomatoes\":{\"votes\":0,\"type\":\"user\",\"value\":93}}";
+            const string mediaInfo = "{\"containerFormat\":\"matroska,webm\",\"videoFormat\":\"hevc\",\"videoCodecID\":\"V_MPEGH/ISO/HEVC\",\"videoBitDepth\":10,\"videoBitrate\":8000000,\"videoColourPrimaries\":\"bt2020\",\"videoTransferCharacteristics\":\"smpte2084\",\"videoHdrFormat\":\"dolbyVisionHdr10\",\"videoFps\":23.976,\"height\":2160,\"width\":3840,\"scanType\":\"Progressive\",\"runTime\":\"01:42:10.1234567\",\"audioFormat\":\"truehd\",\"audioChannels\":8,\"audioLanguages\":[\"eng\"],\"subtitles\":[\"eng\"],\"schemaRevision\":8,\"rawStreamData\":\"{}\"}";
+
+            var result = Run(
+                UpstreamFixtureTest.Insert(
+                    "MovieMetadata",
+                    "Id, TmdbId, Images, Ratings, Title, CleanTitle, OriginalLanguage, Status, Runtime, Recommendations, Year",
+                    $"1, 949, {UpstreamFixtureTest.Sql(images)}, {UpstreamFixtureTest.Sql(ratings)}, 'Heat', 'heat', 1, 3, 170, '[]', 1995"),
+                MovieRow(1, 1, fileId: 5),
+                FileRow(5, 1, mediaInfo: UpstreamFixtureTest.Sql(mediaInfo)));
+
+            var metadata = _metadata.All().Single();
+
+            metadata.Images.Select(i => i.CoverType).Should().Equal(MediaCover.MediaCoverTypes.Poster, MediaCover.MediaCoverTypes.Fanart);
+            metadata.Images[0].RemoteUrl.Should().Be("https://img.example/p.jpg");
+            metadata.Ratings.Imdb.Value.Should().Be(8.3m);
+            metadata.Ratings.Imdb.Votes.Should().Be(1234);
+            metadata.Ratings.RottenTomatoes.Value.Should().Be(93m);
+            metadata.Ratings.Tmdb.Should().BeNull();
+
+            var info = _files.All().Single().MediaInfo;
+
+            info.VideoHdrFormat.Should().Be(HdrFormat.DolbyVisionHdr10);
+            info.VideoFormat.Should().Be("hevc");
+            info.RunTime.Should().Be(new TimeSpan(1, 42, 10).Add(TimeSpan.FromTicks(1234567)));
+            info.Height.Should().Be(2160);
+            info.VideoFps.Should().Be(23.976m);
+            info.AudioChannels.Should().Be(8);
+            result.Skips.Should().BeEmpty();
         }
 
         [Test]
