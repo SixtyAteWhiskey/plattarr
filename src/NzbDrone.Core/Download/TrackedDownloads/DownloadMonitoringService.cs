@@ -7,14 +7,13 @@ using NzbDrone.Common.TPL;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
-using NzbDrone.Core.Movies.MediaFiles.Events;
 
 namespace NzbDrone.Core.Download.TrackedDownloads
 {
     public class DownloadMonitoringService : IExecute<RefreshMonitoredDownloadsCommand>,
                                              IExecute<CheckForFinishedDownloadCommand>,
                                              IHandle<ReleaseGrabbedEvent>,
-                                             IHandle<MovieFileImportedEvent>,
+                                             IHandle<RefreshDownloadsRequestedEvent>,
                                              IHandle<ManualInteractionRequiredEvent>,
                                              IHandle<DownloadsProcessedEvent>,
                                              IHandle<TrackedDownloadsRemovedEvent>
@@ -175,7 +174,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
             _refreshDebounce.Execute();
         }
 
-        public void Handle(MovieFileImportedEvent message)
+        public void Handle(RefreshDownloadsRequestedEvent message)
         {
             _refreshDebounce.Execute();
         }

@@ -91,7 +91,7 @@ namespace NzbDrone.Core.Movies.Import
         {
             return _downloadedMovieImportService.ProcessPath(outputPath,
                 ImportMode.Auto,
-                trackedDownload.RemoteMovie.Movie,
+                trackedDownload.GetRemoteMovie().Movie,
                 trackedDownload.ImportItem);
         }
 
@@ -121,7 +121,7 @@ namespace NzbDrone.Core.Movies.Import
             // The download is complete, but nothing was just imported, which points at incomplete download history.
             _logger.ForDebugEvent()
                    .Message("No Movies were just imported, but all movies were previously imported, possible issue with download history.")
-                   .Property("MovieId", trackedDownload.RemoteMovie.Movie.Id)
+                   .Property("MovieId", trackedDownload.GetRemoteMovie().Movie.Id)
                    .Property("DownloadId", trackedDownload.DownloadItem.DownloadId)
                    .Property("Title", trackedDownload.DownloadItem.Title)
                    .Property("Path", trackedDownload.ImportItem.OutputPath.ToString())

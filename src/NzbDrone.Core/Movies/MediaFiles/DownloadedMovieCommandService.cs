@@ -54,7 +54,7 @@ namespace NzbDrone.Core.Movies.MediaFiles
                 {
                     _logger.Debug("External directory scan request for known download {0}. [{1}]", message.DownloadClientId, message.Path);
 
-                    var importResults = _downloadedMovieImportService.ProcessPath(message.Path, message.ImportMode, trackedDownload.RemoteMovie.Movie, trackedDownload.DownloadItem);
+                    var importResults = _downloadedMovieImportService.ProcessPath(message.Path, message.ImportMode, trackedDownload.GetRemoteMovie().Movie, trackedDownload.DownloadItem);
 
                     _completedDownloadService.VerifyImport(trackedDownload, importResults);
 

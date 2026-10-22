@@ -4,16 +4,10 @@ using System.Linq;
 using NLog;
 using NzbDrone.Common.Cache;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.CustomFormats;
+using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Download.History;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
-using NzbDrone.Core.Movies;
-using NzbDrone.Core.Movies.Aggregation;
-using NzbDrone.Core.Movies.Events;
-using NzbDrone.Core.Movies.History;
-using NzbDrone.Core.Movies.Parser;
-using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Download.TrackedDownloads
 {
@@ -25,39 +19,31 @@ namespace NzbDrone.Core.Download.TrackedDownloads
         TrackedDownload TrackDownload(DownloadClientDefinition downloadClient, DownloadClientItem downloadItem);
         List<TrackedDownload> GetTrackedDownloads();
         void UpdateTrackable(List<TrackedDownload> trackedDownloads);
+
+        // Ask each download's media type to match it again, after its library changed.
+        void Rematch(List<TrackedDownload> trackedDownloads);
     }
 
+    // Contract 5 routing. The service owns the cache of tracked downloads and decides which media type
+    // each one belongs to; the media type's ITrackedDownloadMatcher attributes it to a library entity.
     public class TrackedDownloadService : ITrackedDownloadService,
-                                          IHandle<ReleaseGrabbedEvent>,
-                                          IHandle<MovieAddedEvent>,
-                                          IHandle<MovieEditedEvent>,
-                                          IHandle<MoviesBulkEditedEvent>,
-                                          IHandle<MoviesDeletedEvent>
+                                          IHandle<ReleaseGrabbedEvent>
     {
-        private readonly IParsingService _parsingService;
-        private readonly IHistoryService _historyService;
         private readonly IDownloadHistoryService _downloadHistoryService;
-        private readonly IRemoteMovieAggregationService _aggregationService;
-        private readonly ICustomFormatCalculationService _formatCalculator;
         private readonly IEventAggregator _eventAggregator;
+        private readonly List<ITrackedDownloadMatcher> _matchers;
         private readonly Logger _logger;
 
         private readonly ICached<TrackedDownload> _cache;
 
-        public TrackedDownloadService(IParsingService parsingService,
-                                      IHistoryService historyService,
-                                      IDownloadHistoryService downloadHistoryService,
-                                      IRemoteMovieAggregationService aggregationService,
-                                      ICustomFormatCalculationService formatCalculator,
+        public TrackedDownloadService(IDownloadHistoryService downloadHistoryService,
+                                      IEnumerable<ITrackedDownloadMatcher> matchers,
                                       IEventAggregator eventAggregator,
                                       ICacheManager cacheManager,
                                       Logger logger)
         {
-            _parsingService = parsingService;
-            _historyService = historyService;
             _downloadHistoryService = downloadHistoryService;
-            _aggregationService = aggregationService;
-            _formatCalculator = formatCalculator;
+            _matchers = matchers.ToList();
             _eventAggregator = eventAggregator;
             _logger = logger;
 
@@ -112,100 +98,25 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                 DownloadItem = downloadItem,
                 Protocol = downloadClient.Protocol,
                 IsTrackable = true,
-                HasNotifiedManualInteractionRequired = existingItem?.HasNotifiedManualInteractionRequired ?? false,
-
-                // Contract 5 routing. Movies is the only media type, and this service tracks downloads
-                // for it alone. The spec's routing rules (download history, client category, title)
-                // come with the TV module, when tracking stops being movie code.
-                Kind = MediaKind.Movies
+                HasNotifiedManualInteractionRequired = existingItem?.HasNotifiedManualInteractionRequired ?? false
             };
 
-            try
+            var downloadHistory = _downloadHistoryService.GetLatestDownloadHistoryItem(downloadItem.DownloadId);
+
+            if (downloadHistory != null)
             {
-                var downloadHistory = _downloadHistoryService.GetLatestDownloadHistoryItem(downloadItem.DownloadId);
-
-                if (downloadHistory != null)
-                {
-                    var state = GetStateFromHistory(downloadHistory.EventType);
-                    trackedDownload.State = state;
-                }
-
-                var parsedMovieInfo = Movies.Parser.Parser.ParseMovieTitle(trackedDownload.DownloadItem.Title);
-
-                if (parsedMovieInfo != null)
-                {
-                    trackedDownload.RemoteMovie = downloadHistory is { EventType: DownloadHistoryEventType.DownloadImported }
-                        ? _parsingService.Map(parsedMovieInfo, downloadHistory.ParentId)
-                        : _parsingService.Map(parsedMovieInfo, "", 0, null);
-                }
-
-                var historyItems = _historyService.FindByDownloadId(downloadItem.DownloadId)
-                    .OrderByDescending(h => h.Date)
-                    .ToList();
-
-                if (historyItems.Any())
-                {
-                    var firstHistoryItem = historyItems.First();
-                    var grabbedEvent = historyItems.FirstOrDefault(v => v.EventType == MovieHistoryEventType.Grabbed);
-
-                    trackedDownload.Indexer = grabbedEvent?.Data?.GetValueOrDefault("indexer");
-                    trackedDownload.Added = grabbedEvent?.Date;
-
-                    if (parsedMovieInfo == null ||
-                        trackedDownload.RemoteMovie?.Movie == null)
-                    {
-                        parsedMovieInfo = Movies.Parser.Parser.ParseMovieTitle(firstHistoryItem.SourceTitle);
-
-                        if (parsedMovieInfo != null)
-                        {
-                            trackedDownload.RemoteMovie = _parsingService.Map(parsedMovieInfo,
-                                firstHistoryItem.ParentId);
-                        }
-                    }
-
-                    if (trackedDownload.RemoteMovie != null)
-                    {
-                        trackedDownload.RemoteMovie.Release ??= new ReleaseInfo();
-                        trackedDownload.RemoteMovie.Release.Indexer = trackedDownload.Indexer;
-                        trackedDownload.RemoteMovie.Release.Title = trackedDownload.RemoteMovie.ParsedMovieInfo?.ReleaseTitle;
-
-                        if (Enum.TryParse(grabbedEvent?.Data?.GetValueOrDefault("indexerFlags"), true, out IndexerFlags flags))
-                        {
-                            trackedDownload.RemoteMovie.Release.AddIndexerFlags(flags);
-                        }
-
-                        if (downloadHistory != null)
-                        {
-                            trackedDownload.RemoteMovie.Release.IndexerId = downloadHistory.IndexerId;
-                        }
-                    }
-                }
-
-                if (trackedDownload.RemoteMovie != null)
-                {
-                    _aggregationService.Augment(trackedDownload.RemoteMovie);
-
-                    // Calculate custom formats
-                    trackedDownload.RemoteMovie.CustomFormats = _formatCalculator.ParseCustomFormat(trackedDownload.RemoteMovie, downloadItem.TotalSize);
-                }
-
-                // Track it so it can be displayed in the queue even though we can't determine which movie it is for
-                if (trackedDownload.RemoteMovie == null)
-                {
-                    _logger.Trace("No Movie found for download '{0}'", trackedDownload.DownloadItem.Title);
-                }
+                trackedDownload.State = GetStateFromHistory(downloadHistory.EventType);
             }
-            catch (MultipleMoviesFoundException e)
-            {
-                _logger.Debug(e, "Found multiple movies for " + downloadItem.Title);
 
-                trackedDownload.Warn("Unable to import automatically, found multiple movies: {0}", string.Join(", ", e.Movies));
+            trackedDownload.Kind = Route(downloadClient, downloadItem, downloadHistory);
+
+            if (trackedDownload.Kind.HasValue)
+            {
+                GetMatcher(trackedDownload.Kind.Value).Match(trackedDownload, downloadHistory);
             }
-            catch (Exception e)
+            else
             {
-                _logger.Debug(e, "Failed to find movie for " + downloadItem.Title);
-
-                trackedDownload.Warn("Unable to parse movie from title");
+                _logger.Debug("No media type found for download '{0}'", downloadItem.Title);
             }
 
             LogItemChange(trackedDownload, existingItem?.DownloadItem, trackedDownload.DownloadItem);
@@ -229,46 +140,22 @@ namespace NzbDrone.Core.Download.TrackedDownloads
             }
         }
 
-        private void LogItemChange(TrackedDownload trackedDownload, DownloadClientItem existingItem, DownloadClientItem downloadItem)
+        public void Rematch(List<TrackedDownload> trackedDownloads)
         {
-            if (existingItem == null ||
-                existingItem.Status != downloadItem.Status ||
-                existingItem.CanBeRemoved != downloadItem.CanBeRemoved ||
-                existingItem.CanMoveFiles != downloadItem.CanMoveFiles)
+            if (trackedDownloads.Empty())
             {
-                _logger.Debug("Tracking '{0}:{1}': ClientState={2}{3} RadarrStage={4} Movie='{5}' OutputPath={6}.",
-                    downloadItem.DownloadClientInfo.Name,
-                    downloadItem.Title,
-                    downloadItem.Status,
-                    downloadItem.CanBeRemoved ? "" : downloadItem.CanMoveFiles ? " (busy)" : " (readonly)",
-                    trackedDownload.State,
-                    trackedDownload.RemoteMovie?.ParsedMovieInfo,
-                    downloadItem.OutputPath);
+                return;
             }
-        }
 
-        private void UpdateCachedItem(TrackedDownload trackedDownload)
-        {
-            var parsedMovieInfo = Movies.Parser.Parser.ParseMovieTitle(trackedDownload.DownloadItem.Title);
-
-            trackedDownload.RemoteMovie = parsedMovieInfo == null ? null : _parsingService.Map(parsedMovieInfo, "", 0, null);
-
-            _aggregationService.Augment(trackedDownload.RemoteMovie);
-        }
-
-        private static TrackedDownloadState GetStateFromHistory(DownloadHistoryEventType eventType)
-        {
-            switch (eventType)
+            foreach (var trackedDownload in trackedDownloads)
             {
-                case DownloadHistoryEventType.DownloadImported:
-                    return TrackedDownloadState.Imported;
-                case DownloadHistoryEventType.DownloadFailed:
-                    return TrackedDownloadState.Failed;
-                case DownloadHistoryEventType.DownloadIgnored:
-                    return TrackedDownloadState.Ignored;
-                default:
-                    return TrackedDownloadState.Downloading;
+                if (trackedDownload.Kind.HasValue)
+                {
+                    GetMatcher(trackedDownload.Kind.Value).Rematch(trackedDownload);
+                }
             }
+
+            _eventAggregator.PublishEvent(new TrackedDownloadRefreshedEvent(GetTrackedDownloads()));
         }
 
         public void Handle(ReleaseGrabbedEvent message)
@@ -288,67 +175,87 @@ namespace NzbDrone.Core.Download.TrackedDownloads
             }
         }
 
-        public void Handle(MovieAddedEvent message)
+        // The media type that owns a download, or null when none can be told.
+        //
+        // 1. The download history row records the media type of whatever Plattarr grabbed.
+        // 2. The category the download sits in, when the client routes by category.
+        // 3. Each media type is asked whether the title parses as its own. One yes wins. With no
+        //    yes, a lone media type owns what no rule attributed (nothing to choose between). Several
+        //    yes, or no yes with several media types, leave the download without a kind, and the
+        //    completed download service blocks it with a warning.
+        private MediaKind? Route(DownloadClientDefinition downloadClient, DownloadClientItem downloadItem, DownloadHistory downloadHistory)
         {
-            var cachedItems = _cache.Values
-                .Where(t =>
-                    t.RemoteMovie?.Movie == null ||
-                    message.Movie?.TmdbId == t.RemoteMovie.Movie.TmdbId)
-                .ToList();
-
-            if (cachedItems.Any())
+            if (downloadHistory != null && HasMatcher(downloadHistory.MediaKind))
             {
-                cachedItems.ForEach(UpdateCachedItem);
+                return downloadHistory.MediaKind;
+            }
 
-                _eventAggregator.PublishEvent(new TrackedDownloadRefreshedEvent(GetTrackedDownloads()));
+            if (downloadClient.Settings is IModuleCategorySettings settings)
+            {
+                var kind = settings.KindForCategory(downloadItem.Category);
+
+                if (kind.HasValue && HasMatcher(kind.Value))
+                {
+                    return kind;
+                }
+            }
+
+            var matching = _matchers.Where(m => m.MatchesTitle(downloadItem.Title)).ToList();
+
+            if (matching.Count == 1)
+            {
+                return matching[0].Kind;
+            }
+
+            if (matching.Count == 0 && _matchers.Count == 1)
+            {
+                return _matchers[0].Kind;
+            }
+
+            return null;
+        }
+
+        private bool HasMatcher(MediaKind kind)
+        {
+            return _matchers.Any(m => m.Kind == kind);
+        }
+
+        private ITrackedDownloadMatcher GetMatcher(MediaKind kind)
+        {
+            return _matchers.Single(m => m.Kind == kind);
+        }
+
+        private void LogItemChange(TrackedDownload trackedDownload, DownloadClientItem existingItem, DownloadClientItem downloadItem)
+        {
+            if (existingItem == null ||
+                existingItem.Status != downloadItem.Status ||
+                existingItem.CanBeRemoved != downloadItem.CanBeRemoved ||
+                existingItem.CanMoveFiles != downloadItem.CanMoveFiles)
+            {
+                _logger.Debug("Tracking '{0}:{1}': ClientState={2}{3} RadarrStage={4} Kind={5} Match='{6}' OutputPath={7}.",
+                    downloadItem.DownloadClientInfo.Name,
+                    downloadItem.Title,
+                    downloadItem.Status,
+                    downloadItem.CanBeRemoved ? "" : downloadItem.CanMoveFiles ? " (busy)" : " (readonly)",
+                    trackedDownload.State,
+                    trackedDownload.Kind,
+                    trackedDownload.RemoteRelease?.Parent?.Title,
+                    downloadItem.OutputPath);
             }
         }
 
-        public void Handle(MovieEditedEvent message)
+        private static TrackedDownloadState GetStateFromHistory(DownloadHistoryEventType eventType)
         {
-            var cachedItems = _cache.Values
-                .Where(t =>
-                    t.RemoteMovie?.Movie != null &&
-                    (t.RemoteMovie.Movie.Id == message.Movie?.Id || t.RemoteMovie.Movie.TmdbId == message.Movie?.TmdbId))
-                .ToList();
-
-            if (cachedItems.Any())
+            switch (eventType)
             {
-                cachedItems.ForEach(UpdateCachedItem);
-
-                _eventAggregator.PublishEvent(new TrackedDownloadRefreshedEvent(GetTrackedDownloads()));
-            }
-        }
-
-        public void Handle(MoviesBulkEditedEvent message)
-        {
-            var cachedItems = _cache.Values
-                .Where(t =>
-                    t.RemoteMovie?.Movie != null &&
-                    message.Movies.Any(m => m.Id == t.RemoteMovie.Movie.Id || m.TmdbId == t.RemoteMovie.Movie.TmdbId))
-                .ToList();
-
-            if (cachedItems.Any())
-            {
-                cachedItems.ForEach(UpdateCachedItem);
-
-                _eventAggregator.PublishEvent(new TrackedDownloadRefreshedEvent(GetTrackedDownloads()));
-            }
-        }
-
-        public void Handle(MoviesDeletedEvent message)
-        {
-            var cachedItems = _cache.Values
-                .Where(t =>
-                    t.RemoteMovie?.Movie != null &&
-                    message.Movies.Any(m => m.Id == t.RemoteMovie.Movie.Id || m.TmdbId == t.RemoteMovie.Movie.TmdbId))
-                .ToList();
-
-            if (cachedItems.Any())
-            {
-                cachedItems.ForEach(UpdateCachedItem);
-
-                _eventAggregator.PublishEvent(new TrackedDownloadRefreshedEvent(GetTrackedDownloads()));
+                case DownloadHistoryEventType.DownloadImported:
+                    return TrackedDownloadState.Imported;
+                case DownloadHistoryEventType.DownloadFailed:
+                    return TrackedDownloadState.Failed;
+                case DownloadHistoryEventType.DownloadIgnored:
+                    return TrackedDownloadState.Ignored;
+                default:
+                    return TrackedDownloadState.Downloading;
             }
         }
     }

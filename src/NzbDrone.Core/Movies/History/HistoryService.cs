@@ -303,9 +303,9 @@ namespace NzbDrone.Core.Movies.History
             history.Data.Add("DownloadClient", message.DownloadClientInfo.Type);
             history.Data.Add("DownloadClientName", message.DownloadClientInfo.Name);
             history.Data.Add("Message", message.Message);
-            history.Data.Add("ReleaseGroup", message.TrackedDownload?.RemoteMovie?.ParsedMovieInfo?.ReleaseGroup);
+            history.Data.Add("ReleaseGroup", message.TrackedDownload?.GetRemoteMovie()?.ParsedMovieInfo?.ReleaseGroup);
             history.Data.Add("Size", message.TrackedDownload?.DownloadItem.TotalSize.ToString());
-            history.Data.Add("Indexer", message.TrackedDownload?.RemoteMovie?.Release?.Indexer);
+            history.Data.Add("Indexer", message.TrackedDownload?.GetRemoteMovie()?.Release?.Indexer);
 
             _historyRepository.Insert(history);
         }
@@ -337,9 +337,9 @@ namespace NzbDrone.Core.Movies.History
             history.Data.Add("DownloadClient", message.DownloadClient);
             history.Data.Add("DownloadClientName", message.TrackedDownload?.DownloadItem.DownloadClientInfo.Name);
             history.Data.Add("Message", message.Message);
-            history.Data.Add("ReleaseGroup", message.TrackedDownload?.RemoteMovie?.ParsedMovieInfo?.ReleaseGroup ?? message.Data.GetValueOrDefault(MovieHistory.RELEASE_GROUP));
+            history.Data.Add("ReleaseGroup", message.TrackedDownload?.GetRemoteMovie()?.ParsedMovieInfo?.ReleaseGroup ?? message.Data.GetValueOrDefault(MovieHistory.RELEASE_GROUP));
             history.Data.Add("Size", message.TrackedDownload?.DownloadItem.TotalSize.ToString() ?? message.Data.GetValueOrDefault(MovieHistory.SIZE));
-            history.Data.Add("Indexer", message.TrackedDownload?.RemoteMovie?.Release?.Indexer ?? message.Data.GetValueOrDefault(MovieHistory.INDEXER));
+            history.Data.Add("Indexer", message.TrackedDownload?.GetRemoteMovie()?.Release?.Indexer ?? message.Data.GetValueOrDefault(MovieHistory.INDEXER));
 
             _historyRepository.Insert(history);
         }

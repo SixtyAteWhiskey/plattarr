@@ -1,7 +1,6 @@
 using System;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Modules;
-using NzbDrone.Core.Movies.Parser.Model;
 
 namespace NzbDrone.Core.Download.TrackedDownloads
 {
@@ -16,14 +15,9 @@ namespace NzbDrone.Core.Download.TrackedDownloads
         // The media type that imports this download (contract 5). Set when the download is tracked.
         public MediaKind? Kind { get; set; }
 
-        // The module's match for the download. Core code reads this; movie code reads RemoteMovie.
+        // The module's match for the download, set by its ITrackedDownloadMatcher. A module reads it as its
+        // own RemoteRelease subclass (GetRemoteMovie).
         public RemoteRelease RemoteRelease { get; set; }
-
-        public RemoteMovie RemoteMovie
-        {
-            get => RemoteRelease as RemoteMovie;
-            set => RemoteRelease = value;
-        }
 
         public TrackedDownloadStatusMessage[] StatusMessages { get; private set; }
         public DownloadProtocol Protocol { get; set; }

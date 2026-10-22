@@ -43,7 +43,7 @@ namespace NzbDrone.Core.Test.Download.FailedDownloadServiceTests
                     .With(c => c.State = TrackedDownloadState.FailedPending)
                     .With(c => c.DownloadItem = completed)
                     .With(c => c.Kind = MediaKind.Movies)
-                    .With(c => c.RemoteMovie = remoteMovie)
+                    .With(c => c.RemoteRelease = remoteMovie)
                     .Build();
 
             Mocker.GetMock<IHistoryService>()
