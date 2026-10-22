@@ -6,17 +6,8 @@ using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Datastore.Converters;
 using NzbDrone.Core.Datastore.Migration;
 using NzbDrone.Core.Download.Clients;
-using NzbDrone.Core.Download.Clients.Deluge;
-using NzbDrone.Core.Download.Clients.DownloadStation;
-using NzbDrone.Core.Download.Clients.FreeboxDownload;
-using NzbDrone.Core.Download.Clients.Hadouken;
-using NzbDrone.Core.Download.Clients.Nzbget;
-using NzbDrone.Core.Download.Clients.NzbVortex;
 using NzbDrone.Core.Download.Clients.QBittorrent;
-using NzbDrone.Core.Download.Clients.RTorrent;
 using NzbDrone.Core.Download.Clients.Sabnzbd;
-using NzbDrone.Core.Download.Clients.Transmission;
-using NzbDrone.Core.Download.Clients.UTorrent;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Test.Framework;
 
@@ -72,6 +63,25 @@ namespace NzbDrone.Core.Test.Datastore.Migration
             return settings.ModuleCategories.Single();
         }
 
+        // For clients that no longer exist in the code the stored row can only be read as JSON.
+        private static ModuleCategorySettings MoviesEntry(string json)
+        {
+            var entries = JsonNode.Parse(json)["moduleCategories"].AsArray();
+
+            entries.Should().ContainSingle();
+
+            var entry = entries[0].AsObject();
+
+            return new ModuleCategorySettings
+            {
+                Kind = entry["kind"].GetValue<string>() == "movies" ? MediaKind.Movies : MediaKind.Tv,
+                Category = (string)entry["category"],
+                ImportedCategory = (string)entry["importedCategory"],
+                RecentPriority = (int?)entry["recentPriority"] ?? 0,
+                OlderPriority = (int?)entry["olderPriority"] ?? 0
+            };
+        }
+
         [TestCase("QBittorrent", MovieKeys)]
         [TestCase("Deluge", MovieKeys)]
         [TestCase("RTorrent", MovieKeys)]
@@ -112,12 +122,8 @@ namespace NzbDrone.Core.Test.Datastore.Migration
             var entry = implementation switch
             {
                 "QBittorrent" => Movies<QBittorrentSettings>(json),
-                "Deluge" => Movies<DelugeSettings>(json),
-                "RTorrent" => Movies<RTorrentSettings>(json),
-                "UTorrent" => Movies<UTorrentSettings>(json),
-                "Transmission" or "Vuze" => Movies<TransmissionSettings>(json),
                 "Sabnzbd" => Movies<SabnzbdSettings>(json),
-                _ => Movies<NzbgetSettings>(json)
+                _ => MoviesEntry(json)
             };
 
             entry.Kind.Should().Be(MediaKind.Movies);
@@ -130,7 +136,7 @@ namespace NzbDrone.Core.Test.Datastore.Migration
         [Test]
         public void should_move_the_tv_category_of_nzbvortex()
         {
-            var entry = Movies<NzbVortexSettings>(StoredSettings(GivenClient("NzbVortex", TvCategoryKeys)));
+            var entry = MoviesEntry(StoredSettings(GivenClient("NzbVortex", TvCategoryKeys)));
 
             entry.Kind.Should().Be(MediaKind.Movies);
             entry.Category.Should().Be("radarr");
@@ -142,7 +148,7 @@ namespace NzbDrone.Core.Test.Datastore.Migration
         [TestCase("UsenetDownloadStation")]
         public void should_move_the_tv_category_of_download_station(string implementation)
         {
-            var entry = Movies<DownloadStationSettings>(StoredSettings(GivenClient(implementation, CategoryOnly)));
+            var entry = MoviesEntry(StoredSettings(GivenClient(implementation, CategoryOnly)));
 
             entry.Kind.Should().Be(MediaKind.Movies);
             entry.Category.Should().Be("radarr");
@@ -151,7 +157,7 @@ namespace NzbDrone.Core.Test.Datastore.Migration
         [Test]
         public void should_move_the_category_and_priorities_of_freebox_download()
         {
-            var entry = Movies<FreeboxDownloadSettings>(StoredSettings(GivenClient("TorrentFreeboxDownload", FreeboxKeys)));
+            var entry = MoviesEntry(StoredSettings(GivenClient("TorrentFreeboxDownload", FreeboxKeys)));
 
             entry.Kind.Should().Be(MediaKind.Movies);
             entry.Category.Should().Be("radarr");
@@ -162,7 +168,7 @@ namespace NzbDrone.Core.Test.Datastore.Migration
         [Test]
         public void should_move_the_category_of_hadouken()
         {
-            var entry = Movies<HadoukenSettings>(StoredSettings(GivenClient("Hadouken", HadoukenKeys)));
+            var entry = MoviesEntry(StoredSettings(GivenClient("Hadouken", HadoukenKeys)));
 
             entry.Kind.Should().Be(MediaKind.Movies);
             entry.Category.Should().Be("radarr");

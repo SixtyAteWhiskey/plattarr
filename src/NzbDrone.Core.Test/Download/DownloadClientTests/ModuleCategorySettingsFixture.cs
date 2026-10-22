@@ -5,10 +5,8 @@ using FluentValidation;
 using NUnit.Framework;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients;
-using NzbDrone.Core.Download.Clients.Deluge;
 using NzbDrone.Core.Download.Clients.QBittorrent;
-using NzbDrone.Core.Download.Clients.Transmission;
-using NzbDrone.Core.Download.Clients.UTorrent;
+using NzbDrone.Core.Download.Clients.Sabnzbd;
 using NzbDrone.Core.Modules;
 using NzbDrone.Test.Common;
 
@@ -40,7 +38,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests
         public void a_new_client_starts_with_the_priority_its_class_declares()
         {
             new QBittorrentSettings().Movies().RecentPriority.Should().Be((int)QBittorrentPriority.Last);
-            new TransmissionSettings().Movies().OlderPriority.Should().Be((int)TransmissionPriority.Last);
+            new SabnzbdSettings().Movies().OlderPriority.Should().Be((int)SabnzbdPriority.Default);
         }
 
         [TestCase(MediaKind.Movies, "plattarr-movies")]
@@ -220,9 +218,9 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests
         [Test]
         public void a_client_validator_should_name_the_field_of_the_entry_that_is_wrong()
         {
-            var settings = new DelugeSettings { Host = "localhost" };
-            settings.Movies().Category = "ok-label";
-            settings.AddTv("Not A Label!");
+            var settings = new QBittorrentSettings { Host = "localhost" };
+            settings.Movies().Category = "ok-category";
+            settings.AddTv("/not/valid/");
 
             var result = settings.Validate();
 
@@ -233,30 +231,30 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests
         [Test]
         public void a_client_validator_should_accept_every_entry_when_all_are_right()
         {
-            var settings = new DelugeSettings { Host = "localhost" };
-            settings.Movies().Category = "ok-label";
-            settings.AddTv("tv-label");
+            var settings = new QBittorrentSettings { Host = "localhost" };
+            settings.Movies().Category = "ok-category";
+            settings.AddTv("tv-category");
 
             settings.Validate().IsValid.Should().BeTrue();
         }
 
         [Test]
-        public void a_client_that_requires_a_category_should_require_one_per_entry()
+        public void a_client_that_recommends_a_category_should_warn_once_per_entry_without_one()
         {
-            var settings = new UTorrentSettings { Host = "localhost" };
+            var settings = new SabnzbdSettings { Host = "localhost", ApiKey = "key" };
             settings.Movies().Category = "movies";
             settings.AddTv("");
 
             var result = settings.Validate();
 
-            result.IsValid.Should().BeFalse();
-            result.Errors.Select(e => e.PropertyName).Should().Equal("TvCategory");
+            result.IsValid.Should().BeTrue();
+            result.Warnings.Select(w => w.PropertyName).Should().Equal("TvCategory");
         }
 
         [Test]
         public void a_client_should_refuse_the_same_category_for_two_media_types()
         {
-            var settings = new UTorrentSettings { Host = "localhost" };
+            var settings = new QBittorrentSettings { Host = "localhost" };
             settings.Movies().Category = "shared";
             settings.AddTv("shared");
 
