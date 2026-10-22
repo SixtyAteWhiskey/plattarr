@@ -2,7 +2,7 @@
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Http;
 
-namespace NzbDrone.Core.Movies.MediaCover
+namespace NzbDrone.Core.Movies.Covers
 {
     public interface ICoverExistsSpecification
     {

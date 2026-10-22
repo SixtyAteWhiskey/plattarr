@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Modules;
-using NzbDrone.Core.Movies.MediaCover;
+using NzbDrone.Core.Movies.Covers;
 using NzbDrone.Core.Notifications;
 using NzbDrone.Core.Notifications.Webhook;
 using NzbDrone.Core.Tags;

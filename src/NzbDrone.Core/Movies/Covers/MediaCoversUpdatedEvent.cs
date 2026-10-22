@@ -1,6 +1,6 @@
 using NzbDrone.Common.Messaging;
 
-namespace NzbDrone.Core.Movies.MediaCover
+namespace NzbDrone.Core.Movies.Covers
 {
     public class MediaCoversUpdatedEvent : IEvent
     {

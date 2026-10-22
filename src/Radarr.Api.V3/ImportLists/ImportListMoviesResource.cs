@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Collections;
 using NzbDrone.Core.Movies.ImportLists.ImportListMovies;
-using NzbDrone.Core.Movies.MediaCover;
 using Radarr.Http.REST;
 
 namespace Radarr.Api.V3.ImportLists

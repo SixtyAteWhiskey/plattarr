@@ -10,14 +10,15 @@ using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Movies.Events;
 
-namespace NzbDrone.Core.Movies.MediaCover
+namespace NzbDrone.Core.Movies.Covers
 {
     public interface IMapCoversToLocal
     {
-        void ConvertToLocalUrls(int movieId, IEnumerable<MediaCover> covers, DateTime? added = null);
+        void ConvertToLocalUrls(int movieId, IEnumerable<MediaCover.MediaCover> covers, DateTime? added = null);
         string GetCoverPath(int movieId, MediaCoverTypes coverType, int? height = null);
     }
 
@@ -75,7 +76,7 @@ namespace NzbDrone.Core.Movies.MediaCover
             return Path.Combine(GetMovieCoverPath(movieId), coverType.ToString().ToLowerInvariant() + heightSuffix + GetExtension(coverType));
         }
 
-        public void ConvertToLocalUrls(int movieId, IEnumerable<MediaCover> covers, DateTime? added = null)
+        public void ConvertToLocalUrls(int movieId, IEnumerable<MediaCover.MediaCover> covers, DateTime? added = null)
         {
             if (movieId == 0)
             {
@@ -137,7 +138,7 @@ namespace NzbDrone.Core.Movies.MediaCover
         private bool EnsureCovers(Movie movie)
         {
             var updated = false;
-            var toResize = new List<Tuple<MediaCover, bool>>();
+            var toResize = new List<Tuple<MediaCover.MediaCover, bool>>();
 
             foreach (var cover in movie.MovieMetadata.Value.Images)
             {
@@ -197,7 +198,7 @@ namespace NzbDrone.Core.Movies.MediaCover
             return updated;
         }
 
-        private void DownloadCover(Movie movie, MediaCover cover)
+        private void DownloadCover(Movie movie, MediaCover.MediaCover cover)
         {
             var fileName = GetCoverPath(movie.Id, cover.CoverType);
 
@@ -205,7 +206,7 @@ namespace NzbDrone.Core.Movies.MediaCover
             _httpClient.DownloadFile(cover.RemoteUrl, fileName);
         }
 
-        private void EnsureResizedCovers(Movie movie, MediaCover cover, bool forceResize)
+        private void EnsureResizedCovers(Movie movie, MediaCover.MediaCover cover, bool forceResize)
         {
             int[] heights;
 

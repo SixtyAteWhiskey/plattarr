@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Net;
 using Newtonsoft.Json;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Movies.ImportLists.Exceptions;
 using NzbDrone.Core.Movies.ImportLists.ImportListMovies;
-using NzbDrone.Core.Movies.MediaCover;
 
 namespace NzbDrone.Core.Movies.ImportLists.TMDb
 {

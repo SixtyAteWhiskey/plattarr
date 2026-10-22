@@ -102,7 +102,7 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
                 CleanTitle = "collection",
                 TmdbId = 10,
                 RootFolderPath = "/movies",
-                Images = new List<NzbDrone.Core.Movies.MediaCover.MediaCover>(),
+                Images = new List<NzbDrone.Core.MediaCover.MediaCover>(),
                 Added = DateTime.UtcNow,
                 Tags = new HashSet<int> { tags[0].Id }
             });
