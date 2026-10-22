@@ -45,6 +45,10 @@ that no test exercises).
    already how the code in the parent is written.
 4. Remember `ModuleBoundaryFixture`: a restored type that reaches into module code needs the
    same generalization the others got; never add an allowlist entry.
+5. For a download client, also add its row to `DownloadClientSettingsConverter` (the importer's
+   copy of migration 003's key map; only the clients that exist are listed) and a case to
+   `UpstreamClientSettingsMigrationFixture`, so a Radarr client of that kind imports with the
+   same settings migration 003 gave an in-place client.
 
 ## Things that still know the removed names
 
@@ -52,6 +56,7 @@ that no test exercises).
   client that existed. It is a shipped migration and stays as it is. Its fixture now reads
   the removed clients' rows as JSON.
 - The importer for `radarr.db` and `prowlarr.db` must skip a provider whose implementation no
-  longer exists (and say so), not fail.
+  longer exists (and say so), not fail. `DownloadClientSettingsConverter.Handles` is false for
+  the removed clients, which is how the planner will tell them apart.
 - Other languages' `Localization/Core/*.json` still hold keys for the removed providers; they
   are harmless and synced from `en.json` by the translation tool.

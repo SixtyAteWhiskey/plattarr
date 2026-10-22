@@ -111,8 +111,15 @@ docker compose run --rm plattarr /import /radarr=/import/radarr.db /prowlarr=/im
 - **Adapter** (one per source app): opens the copy, checks the version, reads each
   table into typed source rows. No remapping, no writes.
 - **Planner** (shared): builds the target rows. Owns the `IdMap` (source table and ID
-  to target ID), the merge rules, and the skip list. Pure function of the snapshots and
-  options, so it is unit-testable without a database.
+  to target ID), the merge rules, and the skip list. The pure parts (path mapping, tag
+  merge, catalog remap, client and indexer matching, event types, release conversion)
+  are unit-testable without a database; see [Building blocks](#building-blocks-built).
+  **The planner is staged, not one pure function.** Repositories reject a row with a
+  non-zero ID and assign IDs themselves, so a target ID for tags, profiles, clients,
+  indexers and movies exists only after the writer inserts them. Each stage plans its
+  rows from the `IdMap` the earlier stages filled, the writer inserts them and records
+  the new IDs (`IdMap.Record`), and the next stage plans. Nothing is written outside the
+  one transaction, so a failed stage still rolls everything back.
 - **Writer**: inserts through the existing repositories (`InsertMany`), so the table
   mapper and its converters (`QualityIntConverter`, `LanguageIntConverter`) apply and
   Postgres behaves the same as SQLite. Order is fixed by dependencies (see
@@ -186,6 +193,46 @@ in `logs.db`). Other findings from the schemas:
 - **Prowlarr `Notifications` has no per-movie event columns** and adds
   `IncludeManualGrabs`, which Radarr's table lacks.
 
+## Building blocks (built)
+
+Pure pieces the planner stages are made of. None of them touches a database. Each was
+shown to fail its tests when its rule is broken (mutation checks).
+
+Core, `NzbDrone.Core.Upstream`:
+
+| Type | Rule |
+|---|---|
+| `IdMap` | `Record(app, table, sourceId, targetId)` throws if a source row is already mapped to a different target. Several sources may share one target (merged tags). `Resolve` throws `UpstreamImportException` for an unmapped row; `TryResolve` does not. `ToCsv()` is the report's map. |
+| `PathMapper` | Longest prefix wins, whole path segments only, case-sensitive. Separators are restyled to the target's. A duplicate prefix throws. |
+| `TagMerger`, `TagRemapper` | Merge by trimmed label, case-insensitive; the first-seen spelling is kept. `Remap` drops a tag ID with no imported row and reports the count; a non-array or non-integer value is `CorruptSourceDataException`. |
+| `CatalogRemapper`, `IUpstreamCatalog` | Rewrites the integer `quality` and the language ID arrays to catalog IDs. An ID the app never had is corrupt data. |
+| `DownloadClientSettingsConverter` | Migration 003's key map for the clients that exist (qBittorrent, SABnzbd). An import and an in-place migration give the same text; `UpstreamClientSettingsMigrationFixture` compares them. |
+| `DownloadClientMatcher` | Same client = implementation, host, port, SSL flag and URL base. |
+| `IndexerMatcher` | A Torznab or Newznab URL ending in a Prowlarr indexer ID, plus a Radarr application in Prowlarr, plus, when Prowlarr has sync records for Radarr, a record pairing the two indexers (`Confirmed`). Another app's sync record never confirms a match. |
+| `ImportSkip`, `CorruptSourceDataException` | Skip entry for the report; bad source data. Messages name the column or table, never a value. |
+
+Movies module, `NzbDrone.Core.Movies.Upstream` (these use movie vocabulary, so they
+are module code; `ModuleBoundaryFixture` fails if a core type references them):
+
+| Type | Rule |
+|---|---|
+| `RadarrEventTypes` | Explicit maps from Radarr's `History.EventType` and `DownloadHistory.EventType` integers to Plattarr's enums, pinned to Radarr 56f6168. An unknown value is not mapped. |
+| `ReleaseInfoConverter` | Converts `DownloadHistory.Release` JSON: remaps `indexerId` through a callback, converts languages to names, converts the removed `indexerFlags` number into the flag list. In the owner's rows `languages` is always empty and `indexerFlags` is absent; the other shapes are handled because the code can produce them. |
+
+**Module seam.** The planner for the activity tables is core code but needs the
+Radarr-specific, movie-vocabulary pieces above. The contract the Movies module
+registers for the core planner is not designed yet. Design it together with the
+activity planner against its real caller, not ahead of it.
+
+Gaps found while building these, to close before the writer:
+
+- `CleanupUnusedTags` holds its tag-table list inline. Extract it to a shared list so a
+  completeness test can compare the importer's tag remap against it.
+- `AutoTagging.Specifications` holds tag IDs inside `TagSpecification` and needs the same
+  remap as a `Tags` column.
+- Fixtures are written by hand from documented shapes until `tools/upstream-fixtures`
+  exists.
+
 ## Mapping
 
 "Remap" means every quality or language ID goes through the upstream maps, including
@@ -254,7 +301,10 @@ Tags merge across sources by label, compared case-insensitively. The union is wr
 once; `IdMap` records source tag ID to target tag ID. Every `Tags` JSON array in every
 table passes through it (the list of tag-using tables is the same one
 `CleanupUnusedTags` keeps; the importer reuses that list so a new tag-using table
-cannot be missed). Unused tags are still imported (a user may tag ahead).
+cannot be missed). `CleanupUnusedTags` runs on a schedule and deletes tags no row
+uses, so importing an unused tag only keeps it until the next cleanup; the importer
+does not special-case it. `AutoTagging.Specifications` also holds tag IDs (see
+[Building blocks](#building-blocks-built)).
 
 ### Profiles and custom formats
 
@@ -609,15 +659,18 @@ this data (the rule stays for other users). `Prowlarr.History` is not imported.
 
 1. ~~Dump the owner's two databases.~~ Done 2026-10-21 (see
    [Dump findings](#dump-findings)). Supported versions are Radarr 242 and Prowlarr 44.
-   Fixtures still have to be written from scrubbed copies of the shapes above.
+   Fixtures for the pure building blocks are written (hand-made, fake secrets); row
+   extraction from the real databases is `tools/upstream-fixtures`, not built.
 2. ~~Confirm the `Release` JSON shape.~~ Done: camelCase `ReleaseInfo`, grabbed rows
    only, integer `imdbId`, `downloadUrl` carries an API key. The conversion to
    Prowlarr's `ReleaseInfo` shape is still required (the sample is Radarr's shape);
-   its fixtures can now be built from a real row.
+   `ReleaseInfoConverter` is built and tested; its real-row fixture is the grab row in
+   `UpstreamFixtureTest`.
 3. ~~Confirm the synchronized `baseUrl` form.~~ Done: `.../<prowlarrIndexerId>/`, 13 of
    13. **`appMinimumSeeders` is not confirmed**: no row in the owner's data sets it.
    Look for one in another Prowlarr database before relying on the rename, or keep the
-   adapter tolerant of both `appMinimumSeeders` and `minimumSeeders`.
+   adapter tolerant of both `appMinimumSeeders` and `minimumSeeders`. Still open; the
+   Prowlarr indexer settings translation is not built.
 4. Decide, with the owner, the two reversible calls most likely to matter in practice:
    Prowlarr-only download clients (skipped; none exist in the owner's data, so this
    one only matters for other users) and instance keys such as the API key (not
@@ -628,11 +681,13 @@ this data (the rule stays for other users). `Prowlarr.History` is not imported.
    findings say it holds secrets under unreadable keys and is never read. The adapter
    follows the findings (counted only). Decide which keys, if any, are wanted, and read
    exactly those.
-7. Scrubbed row fixtures for the planner (a movie with a file, the `DownloadHistory`
-   `Release` JSON, a qBittorrent client in the old shape) are still to be written. Only
-   schemas and two synthetic indexer rows exist so far.
+7. Scrubbed row fixtures: the building blocks have theirs (`UpstreamFixtureTest`:
+   tags, a qBittorrent client, five indexers, a grab row, Prowlarr applications and
+   sync records). Still to write: a movie with a file, history chains, blocklist,
+   profiles and custom formats.
 
-Implementation order once the dump is in: adapter read layer and fixtures, then the
-planner with its unit tests, then the writer for the movie tables, then the activity
-tables (highest risk, most real-row tests), then settings and providers, then the
-verifier, the command, and the boot test.
+Implementation order: adapter read layer (done), building blocks (done), then the staged
+planner and writer for the movie tables, then the activity tables (highest risk, most
+real-row tests; design the module seam here), then settings and providers (including
+the Prowlarr indexer settings translation), then the verifier, the `/import` command,
+and the boot test.
