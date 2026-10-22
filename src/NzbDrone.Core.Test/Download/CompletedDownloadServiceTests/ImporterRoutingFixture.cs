@@ -139,7 +139,7 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
             _trackedDownload.State.Should().Be(TrackedDownloadState.Imported);
 
             Mocker.GetMock<IEventAggregator>()
-                  .Verify(v => v.PublishEvent(It.Is<DownloadCompletedEvent>(e => e.MovieId == 12)), Times.Once());
+                  .Verify(v => v.PublishEvent(It.Is<DownloadCompletedEvent>(e => e.ParentId == 12)), Times.Once());
         }
 
         [Test]

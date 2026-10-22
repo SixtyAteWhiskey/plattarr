@@ -5,7 +5,6 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Download.History;
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Download
 {
@@ -23,7 +22,6 @@ namespace NzbDrone.Core.Download
         private class CachedSeedConfiguration
         {
             public int IndexerId { get; set; }
-            public bool Movie { get; set; }
         }
 
         private readonly ICached<CachedSeedConfiguration> _cacheDownloads;
@@ -68,15 +66,9 @@ namespace NzbDrone.Core.Download
                 return null;
             }
 
-            ParsedMovieInfo parsedMovieInfo = null;
-            if (historyItem.Release != null)
+            if (historyItem.Release == null)
             {
-                parsedMovieInfo = Parser.Parser.ParseMovieTitle(historyItem.Release.Title);
-            }
-
-            if (parsedMovieInfo == null)
-            {
-                _logger.Debug("No parsed title in download history item for infohash {0}, unable to provide seed configuration", infoHash);
+                _logger.Debug("No release in download history item for infohash {0}, unable to provide seed configuration", infoHash);
                 return null;
             }
 

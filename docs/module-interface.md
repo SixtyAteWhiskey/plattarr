@@ -722,6 +722,68 @@ public interface IImportResult
 - The "not imported or missing" status names the items by kind ("movies",
   "episodes", "tracks").
 
+As built in porting step 9k (failure, ignore, redownload, download history,
+seed configuration; compared with Sonarr `b3d4bb8`). Two small core contracts,
+chosen by `Kind`, in `NzbDrone.Core.Modules`:
+
+```csharp
+public interface IFailedDownloadSource
+{
+    MediaKind Kind { get; }
+    bool WasGrabbed(string downloadId);
+    DownloadFailedEvent Describe(string downloadId, string message, TrackedDownload trackedDownload, bool skipRedownload);   // null without a grab
+    DownloadFailedEvent Describe(int historyId, string message, bool skipRedownload);
+}
+
+public interface IRedownloadSearcher
+{
+    MediaKind Kind { get; }
+    void Search(DownloadFailedEvent failure);
+}
+```
+
+- `FailedDownloadService` is core. It runs the state machine (`Check`,
+  `ProcessFailed`, `MarkAsFailed`) and asks the source for the tracked
+  download's `Kind` whether the module grabbed the download and what the
+  failure is about. `MarkAsFailed(int historyId)` became
+  `MarkAsFailed(MediaKind kind, int historyId)`; the history controller passes
+  Movies. A download with no kind, or a kind with no source, counts as not
+  grabbed: the queue shows the existing warning and nothing is failed. A
+  history-id request for a kind with no source throws.
+- `RedownloadFailedDownloadService` is core. It applies the user's settings
+  (skip requested, auto redownload, interactive search) and hands the failure to
+  the module's searcher. Movies: `MovieRedownloadSearcher` pushes a movie
+  search. Sonarr's version (episode, season or multi-episode search) is the
+  TV module's searcher.
+- `IgnoredDownloadService` is core and needs no contract: it reads the neutral
+  `RemoteRelease` (`Parent`, `Quality`, `Languages`).
+- `DownloadFailedEvent` and `DownloadIgnoredEvent` carry `Kind` (no default;
+  the publisher sets it) and `ParentId` (was `MovieId`).
+  `DownloadCompletedEvent.MovieId` is `ParentId`; its media type is
+  `TrackedDownload.Kind`. No `ItemIds` yet: Sonarr's events carry `EpisodeIds`
+  and the TV module adds them when it is their first reader. Movie-only
+  handlers (`BlocklistService`, `HistoryService`) ignore another kind.
+- `DownloadHistoryService` is core and records failed, ignored and completed
+  downloads for the kind the event names. Its two movie-only handlers
+  (`MovieFileImportedEvent`, `MoviesDeletedEvent`) moved to
+  `Movies.Downloads.MovieDownloadHistoryHandler`. `DownloadHistoryRepository`
+  is no longer scoped to Movies: a download id belongs to one download whatever
+  its media type, so lookups by download id see every row, and the delete is
+  `DeleteByParentIds(kind, ids)` because movie, series and artist ids overlap.
+  It refuses a row with no media kind.
+- `DownloadSeedConfigProvider` is core and reads no media type. The old code
+  also required the grabbed title to parse as a movie, which no value used;
+  the indexer is known from the grab, so its seed settings now apply to any
+  title. Sonarr's season pack seeding (`ISeedConfigProvider` with a
+  `fullSeason` flag) is not in Prowlarr's shared seed settings yet; it comes
+  with the TV module.
+- Movies: `MovieFailedDownloadSource` reads the movie history,
+  `MovieRedownloadSearcher`, `MovieDownloadHistoryHandler`, all in
+  `NzbDrone.Core.Movies.Downloads`.
+- Upstream behavior kept: for a history row that has a download id,
+  `MarkAsFailed(historyId)` drops the skip-redownload flag (Sonarr is the
+  same).
+
 #### Tracked download routing
 
 A download in the client must be attributed to one module before import:

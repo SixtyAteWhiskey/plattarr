@@ -3,55 +3,51 @@ using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download.TrackedDownloads;
-using NzbDrone.Core.History;
 using NzbDrone.Core.Messaging.Events;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
 
 namespace NzbDrone.Core.Download
 {
     public interface IFailedDownloadService
     {
-        void MarkAsFailed(int historyId, bool skipRedownload = false);
+        void MarkAsFailed(MediaKind kind, int historyId, bool skipRedownload = false);
         void MarkAsFailed(TrackedDownload trackedDownload, bool skipRedownload = false);
         void Check(TrackedDownload trackedDownload);
         void ProcessFailed(TrackedDownload trackedDownload);
     }
 
+    // Runs the failed half of the tracked download state machine for every media type. What a
+    // failure is about (the grab, the library entry) comes from the media type's
+    // IFailedDownloadSource, picked by TrackedDownload.Kind.
     public class FailedDownloadService : IFailedDownloadService
     {
-        private readonly IHistoryService _historyService;
+        private readonly Dictionary<MediaKind, IFailedDownloadSource> _sources;
         private readonly IEventAggregator _eventAggregator;
 
-        public FailedDownloadService(IHistoryService historyService,
+        public FailedDownloadService(IEnumerable<IFailedDownloadSource> sources,
                                      IEventAggregator eventAggregator)
         {
-            _historyService = historyService;
+            _sources = sources.ToDictionary(s => s.Kind);
             _eventAggregator = eventAggregator;
         }
 
-        public void MarkAsFailed(int historyId, bool skipRedownload = false)
+        public void MarkAsFailed(MediaKind kind, int historyId, bool skipRedownload = false)
         {
-            var history = _historyService.Get(historyId);
-
-            var downloadId = history.DownloadId;
-
-            if (downloadId.IsNullOrWhiteSpace())
+            if (!_sources.TryGetValue(kind, out var source))
             {
-                PublishDownloadFailedEvent(history, "Manually marked as failed", skipRedownload: skipRedownload);
-
-                return;
+                throw new InvalidOperationException($"No failed download source is registered for {kind}");
             }
 
-            PublishDownloadFailedEvent(history, "Manually marked as failed");
+            _eventAggregator.PublishEvent(source.Describe(historyId, "Manually marked as failed", skipRedownload));
         }
 
         public void MarkAsFailed(TrackedDownload trackedDownload, bool skipRedownload = false)
         {
-            var history = GetGrabbedHistory(trackedDownload.DownloadItem.DownloadId);
+            var failure = FindSource(trackedDownload)?.Describe(trackedDownload.DownloadItem.DownloadId, "Manually marked as failed", trackedDownload, skipRedownload);
 
-            if (history.Any())
+            if (failure != null)
             {
-                PublishDownloadFailedEvent(history.First(), "Manually marked as failed", trackedDownload, skipRedownload: skipRedownload);
+                _eventAggregator.PublishEvent(failure);
             }
         }
 
@@ -66,9 +62,7 @@ namespace NzbDrone.Core.Download
             if (trackedDownload.DownloadItem.IsEncrypted ||
                 trackedDownload.DownloadItem.Status == DownloadItemStatus.Failed)
             {
-                var grabbedItems = GetGrabbedHistory(trackedDownload.DownloadItem.DownloadId);
-
-                if (grabbedItems.Empty())
+                if (!WasGrabbed(trackedDownload))
                 {
                     trackedDownload.Warn(trackedDownload.DownloadItem.IsEncrypted ? "Download is encrypted and wasn't grabbed by Radarr, skipping automatic download handling" : "Download has failed wasn't grabbed by Radarr, skipping automatic download handling");
                     return;
@@ -85,13 +79,6 @@ namespace NzbDrone.Core.Download
                 return;
             }
 
-            var grabbedItems = GetGrabbedHistory(trackedDownload.DownloadItem.DownloadId);
-
-            if (grabbedItems.Empty())
-            {
-                return;
-            }
-
             var failure = "Failed download detected";
 
             if (trackedDownload.DownloadItem.IsEncrypted)
@@ -103,38 +90,29 @@ namespace NzbDrone.Core.Download
                 failure = trackedDownload.DownloadItem.Message;
             }
 
-            trackedDownload.State = TrackedDownloadState.Failed;
-            PublishDownloadFailedEvent(grabbedItems.First(), failure, trackedDownload);
-        }
+            var failedEvent = FindSource(trackedDownload)?.Describe(trackedDownload.DownloadItem.DownloadId, failure, trackedDownload, false);
 
-        private void PublishDownloadFailedEvent(MovieHistory historyItem, string message, TrackedDownload trackedDownload = null, bool skipRedownload = false)
-        {
-            Enum.TryParse(historyItem.Data.GetValueOrDefault(MovieHistory.RELEASE_SOURCE, ReleaseSourceType.Unknown.ToString()), out ReleaseSourceType releaseSource);
-
-            var downloadFailedEvent = new DownloadFailedEvent
+            if (failedEvent == null)
             {
-                MovieId = historyItem.ParentId,
-                Quality = historyItem.Quality,
-                SourceTitle = historyItem.SourceTitle,
-                DownloadClient = historyItem.Data.GetValueOrDefault(MovieHistory.DOWNLOAD_CLIENT),
-                DownloadId = historyItem.DownloadId,
-                Message = message,
-                Data = historyItem.Data,
-                TrackedDownload = trackedDownload,
-                Languages = historyItem.Languages,
-                SkipRedownload = skipRedownload,
-                ReleaseSource = releaseSource,
-            };
+                return;
+            }
 
-            _eventAggregator.PublishEvent(downloadFailedEvent);
+            trackedDownload.State = TrackedDownloadState.Failed;
+            _eventAggregator.PublishEvent(failedEvent);
         }
 
-        private List<MovieHistory> GetGrabbedHistory(string downloadId)
+        // A download whose media type is unknown, or has no source, was not grabbed by any module
+        // as far as the core can tell. The queue shows the warning; nothing is failed.
+        private IFailedDownloadSource FindSource(TrackedDownload trackedDownload)
         {
-            // Sort by date so items are always in the same order
-            return _historyService.Find(downloadId, MovieHistoryEventType.Grabbed)
-                .OrderByDescending(h => h.Date)
-                .ToList();
+            return trackedDownload.Kind.HasValue && _sources.TryGetValue(trackedDownload.Kind.Value, out var source)
+                ? source
+                : null;
+        }
+
+        private bool WasGrabbed(TrackedDownload trackedDownload)
+        {
+            return FindSource(trackedDownload)?.WasGrabbed(trackedDownload.DownloadItem.DownloadId) ?? false;
         }
     }
 }

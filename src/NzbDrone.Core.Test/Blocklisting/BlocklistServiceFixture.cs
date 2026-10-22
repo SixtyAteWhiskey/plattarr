@@ -3,6 +3,7 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
 
@@ -18,7 +19,8 @@ namespace NzbDrone.Core.Test.Blocklisting
         {
             _event = new DownloadFailedEvent
             {
-                MovieId = 69,
+                Kind = MediaKind.Movies,
+                ParentId = 69,
                 Quality = new QualityModel(),
                 SourceTitle = "series.title.s01e01",
                 DownloadClient = "SabnzbdClient",
@@ -38,7 +40,7 @@ namespace NzbDrone.Core.Test.Blocklisting
             Subject.Handle(_event);
 
             Mocker.GetMock<IBlocklistRepository>()
-                .Verify(v => v.Insert(It.Is<Blocklist>(b => b.ParentId == _event.MovieId)), Times.Once());
+                .Verify(v => v.Insert(It.Is<Blocklist>(b => b.ParentId == _event.ParentId)), Times.Once());
         }
 
         [Test]
@@ -50,7 +52,18 @@ namespace NzbDrone.Core.Test.Blocklisting
             _event.Data.Remove("protocol");
 
             Mocker.GetMock<IBlocklistRepository>()
-                .Verify(v => v.Insert(It.Is<Blocklist>(b => b.ParentId == _event.MovieId)), Times.Once());
+                .Verify(v => v.Insert(It.Is<Blocklist>(b => b.ParentId == _event.ParentId)), Times.Once());
+        }
+
+        [Test]
+        public void should_not_add_a_failure_of_another_media_type_to_the_movie_blocklist()
+        {
+            _event.Kind = MediaKind.Tv;
+
+            Subject.Handle(_event);
+
+            Mocker.GetMock<IBlocklistRepository>()
+                .Verify(v => v.Insert(It.IsAny<Blocklist>()), Times.Never());
         }
     }
 }

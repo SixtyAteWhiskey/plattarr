@@ -8,7 +8,9 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.History;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Downloads;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
@@ -40,12 +42,15 @@ namespace NzbDrone.Core.Test.Download.FailedDownloadServiceTests
             _trackedDownload = Builder<TrackedDownload>.CreateNew()
                     .With(c => c.State = TrackedDownloadState.Downloading)
                     .With(c => c.DownloadItem = completed)
+                    .With(c => c.Kind = MediaKind.Movies)
                     .With(c => c.RemoteMovie = remoteMovie)
                     .Build();
 
             Mocker.GetMock<IHistoryService>()
                   .Setup(s => s.Find(_trackedDownload.DownloadItem.DownloadId, MovieHistoryEventType.Grabbed))
                   .Returns(_grabHistory);
+
+            Mocker.SetConstant<IEnumerable<IFailedDownloadSource>>(new[] { Mocker.Resolve<MovieFailedDownloadSource>() });
         }
 
         private void GivenNoGrabbedHistory()

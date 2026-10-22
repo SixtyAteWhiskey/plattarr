@@ -284,6 +284,11 @@ namespace NzbDrone.Core.History
 
         public void Handle(DownloadIgnoredEvent message)
         {
+            if (message.Kind != MediaKind.Movies)
+            {
+                return;
+            }
+
             var history = new MovieHistory
             {
                 MediaKind = MediaKind.Movies,
@@ -291,7 +296,7 @@ namespace NzbDrone.Core.History
                 Date = DateTime.UtcNow,
                 Quality = message.Quality,
                 SourceTitle = message.SourceTitle,
-                ParentId = message.MovieId,
+                ParentId = message.ParentId,
                 DownloadId = message.DownloadId,
                 Languages = message.Languages
             };
@@ -313,6 +318,11 @@ namespace NzbDrone.Core.History
 
         public void Handle(DownloadFailedEvent message)
         {
+            if (message.Kind != MediaKind.Movies)
+            {
+                return;
+            }
+
             var history = new MovieHistory
             {
                 MediaKind = MediaKind.Movies,
@@ -321,7 +331,7 @@ namespace NzbDrone.Core.History
                 Quality = message.Quality,
                 Languages = message.Languages,
                 SourceTitle = message.SourceTitle,
-                ParentId = message.MovieId,
+                ParentId = message.ParentId,
                 DownloadId = message.DownloadId
             };
 

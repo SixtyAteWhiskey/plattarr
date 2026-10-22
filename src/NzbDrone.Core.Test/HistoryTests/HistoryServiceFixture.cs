@@ -9,6 +9,7 @@ using NzbDrone.Core.History;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.Events;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Qualities;
@@ -104,6 +105,61 @@ namespace NzbDrone.Core.Test.HistoryTests
             var tv = new TvRemoteRelease { Series = new TvParent { Id = 5, Title = "A Series" }, Release = new ReleaseInfo { Title = "A.Series.S01E01" } };
 
             Subject.Handle(new ReleaseGrabbedEvent(tv) { DownloadId = "HASH" });
+
+            Mocker.GetMock<IHistoryRepository>().Verify(r => r.Insert(It.IsAny<MovieHistory>()), Times.Never());
+        }
+
+        [Test]
+        public void should_write_movie_history_for_a_movie_download_failure()
+        {
+            Subject.Handle(new DownloadFailedEvent
+            {
+                Kind = MediaKind.Movies,
+                ParentId = 9,
+                DownloadId = "HASH",
+                SourceTitle = "Movie.2020.1080p",
+                Quality = new QualityModel(Quality.Bluray1080p)
+            });
+
+            Mocker.GetMock<IHistoryRepository>()
+                .Verify(r => r.Insert(It.Is<MovieHistory>(h => h.ParentId == 9 && h.EventType == MovieHistoryEventType.DownloadFailed && h.MediaKind == MediaKind.Movies)), Times.Once());
+        }
+
+        [Test]
+        public void should_not_write_movie_history_for_a_download_failure_of_another_media_type()
+        {
+            Subject.Handle(new DownloadFailedEvent { Kind = MediaKind.Tv, ParentId = 5, DownloadId = "HASH", SourceTitle = "A.Series.S01E01" });
+
+            Mocker.GetMock<IHistoryRepository>().Verify(r => r.Insert(It.IsAny<MovieHistory>()), Times.Never());
+        }
+
+        [Test]
+        public void should_write_movie_history_for_an_ignored_movie_download()
+        {
+            Subject.Handle(new DownloadIgnoredEvent
+            {
+                Kind = MediaKind.Movies,
+                ParentId = 9,
+                DownloadId = "HASH",
+                SourceTitle = "Movie.2020.1080p",
+                Quality = new QualityModel(Quality.Bluray1080p),
+                DownloadClientInfo = new DownloadClientItemClientInfo { Id = 1, Name = "sab", Type = "Sabnzbd" }
+            });
+
+            Mocker.GetMock<IHistoryRepository>()
+                .Verify(r => r.Insert(It.Is<MovieHistory>(h => h.ParentId == 9 && h.EventType == MovieHistoryEventType.DownloadIgnored)), Times.Once());
+        }
+
+        [Test]
+        public void should_not_write_movie_history_for_an_ignored_download_of_another_media_type()
+        {
+            Subject.Handle(new DownloadIgnoredEvent
+            {
+                Kind = MediaKind.Tv,
+                ParentId = 5,
+                DownloadId = "HASH",
+                DownloadClientInfo = new DownloadClientItemClientInfo { Id = 1, Name = "sab", Type = "Sabnzbd" }
+            });
 
             Mocker.GetMock<IHistoryRepository>().Verify(r => r.Insert(It.IsAny<MovieHistory>()), Times.Never());
         }

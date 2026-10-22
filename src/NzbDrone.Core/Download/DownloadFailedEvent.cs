@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using NzbDrone.Common.Messaging;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 
@@ -14,7 +15,12 @@ namespace NzbDrone.Core.Download
             Data = new Dictionary<string, string>();
         }
 
-        public int MovieId { get; set; }
+        // The media type that grabbed the download. Handlers that write a module's own rows
+        // ignore an event of another kind. No default: the publisher sets it.
+        public MediaKind Kind { get; set; }
+
+        // The movie, series or artist the download was for.
+        public int ParentId { get; set; }
         public QualityModel Quality { get; set; }
         public string SourceTitle { get; set; }
         public string DownloadClient { get; set; }

@@ -1,11 +1,7 @@
 using System;
 using System.Linq;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.History;
-using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
-using NzbDrone.Core.Modules;
-using NzbDrone.Core.Movies.Events;
 
 namespace NzbDrone.Core.Download.History
 {
@@ -18,19 +14,15 @@ namespace NzbDrone.Core.Download.History
 
     public class DownloadHistoryService : IDownloadHistoryService,
                                           IHandle<ReleaseGrabbedEvent>,
-                                          IHandle<MovieFileImportedEvent>,
                                           IHandle<DownloadCompletedEvent>,
                                           IHandle<DownloadFailedEvent>,
-                                          IHandle<DownloadIgnoredEvent>,
-                                          IHandle<MoviesDeletedEvent>
+                                          IHandle<DownloadIgnoredEvent>
     {
         private readonly IDownloadHistoryRepository _repository;
-        private readonly IHistoryService _historyService;
 
-        public DownloadHistoryService(IDownloadHistoryRepository repository, IHistoryService historyService)
+        public DownloadHistoryService(IDownloadHistoryRepository repository)
         {
             _repository = repository;
-            _historyService = historyService;
         }
 
         public bool DownloadAlreadyImported(string downloadId)
@@ -122,54 +114,15 @@ namespace NzbDrone.Core.Download.History
             _repository.Insert(history);
         }
 
-        public void Handle(MovieFileImportedEvent message)
-        {
-            if (!message.NewDownload)
-            {
-                return;
-            }
-
-            var downloadId = message.DownloadId;
-
-            // Try to find the downloadId if the user used manual import (from wanted: missing) or the
-            // API to import and downloadId wasn't provided.
-            if (downloadId.IsNullOrWhiteSpace())
-            {
-                downloadId = _historyService.FindDownloadId(message);
-            }
-
-            if (downloadId.IsNullOrWhiteSpace())
-            {
-                return;
-            }
-
-            var history = new DownloadHistory
-            {
-                MediaKind = MediaKind.Movies,
-                EventType = DownloadHistoryEventType.FileImported,
-                ParentId = message.ImportedMovie.MovieId,
-                DownloadId = downloadId,
-                SourceTitle = message.MovieInfo.Path,
-                Date = DateTime.UtcNow,
-                Protocol = message.DownloadClientInfo.Protocol,
-                DownloadClientId = message.DownloadClientInfo.Id
-            };
-
-            history.Data.Add("DownloadClient", message.DownloadClientInfo.Type);
-            history.Data.Add("DownloadClientName", message.DownloadClientInfo.Name);
-
-            _repository.Insert(history);
-        }
-
         public void Handle(DownloadCompletedEvent message)
         {
             var downloadItem = message.TrackedDownload.DownloadItem;
 
             var history = new DownloadHistory
             {
-                MediaKind = MediaKind.Movies,
+                MediaKind = message.TrackedDownload.Kind.GetValueOrDefault(),
                 EventType = DownloadHistoryEventType.DownloadImported,
-                ParentId = message.MovieId,
+                ParentId = message.ParentId,
                 DownloadId = downloadItem.DownloadId,
                 SourceTitle = downloadItem.Title,
                 Date = DateTime.UtcNow,
@@ -193,9 +146,9 @@ namespace NzbDrone.Core.Download.History
 
             var history = new DownloadHistory
             {
-                MediaKind = MediaKind.Movies,
+                MediaKind = message.Kind,
                 EventType = DownloadHistoryEventType.DownloadFailed,
-                ParentId = message.MovieId,
+                ParentId = message.ParentId,
                 DownloadId = message.DownloadId,
                 SourceTitle = message.SourceTitle,
                 Date = DateTime.UtcNow,
@@ -213,9 +166,9 @@ namespace NzbDrone.Core.Download.History
         {
             var history = new DownloadHistory
             {
-                MediaKind = MediaKind.Movies,
+                MediaKind = message.Kind,
                 EventType = DownloadHistoryEventType.DownloadIgnored,
-                ParentId = message.MovieId,
+                ParentId = message.ParentId,
                 DownloadId = message.DownloadId,
                 SourceTitle = message.SourceTitle,
                 Date = DateTime.UtcNow,
@@ -227,11 +180,6 @@ namespace NzbDrone.Core.Download.History
             history.Data.Add("DownloadClientName", message.DownloadClientInfo.Name);
 
             _repository.Insert(history);
-        }
-
-        public void Handle(MoviesDeletedEvent message)
-        {
-            _repository.DeleteByMovieIds(message.Movies.Select(m => m.Id).ToList());
         }
     }
 }

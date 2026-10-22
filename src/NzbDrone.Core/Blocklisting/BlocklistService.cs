@@ -132,10 +132,15 @@ namespace NzbDrone.Core.Blocklisting
 
         public void Handle(DownloadFailedEvent message)
         {
+            if (message.Kind != MediaKind.Movies)
+            {
+                return;
+            }
+
             var blocklist = new Blocklist
             {
                 MediaKind = MediaKind.Movies,
-                ParentId = message.MovieId,
+                ParentId = message.ParentId,
                 SourceTitle = message.SourceTitle,
                 Quality = message.Quality,
                 Date = DateTime.UtcNow,
