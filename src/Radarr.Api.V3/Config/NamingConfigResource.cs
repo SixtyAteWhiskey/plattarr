@@ -1,4 +1,4 @@
-using NzbDrone.Core.Organizer;
+using NzbDrone.Core.Movies.Organizer;
 using Radarr.Http.REST;
 
 namespace Radarr.Api.V3.Config

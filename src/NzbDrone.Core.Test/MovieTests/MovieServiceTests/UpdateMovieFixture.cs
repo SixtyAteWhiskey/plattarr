@@ -3,8 +3,8 @@ using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
-using NzbDrone.Core.AutoTagging;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.AutoTagging;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.MovieTests.MovieServiceTests

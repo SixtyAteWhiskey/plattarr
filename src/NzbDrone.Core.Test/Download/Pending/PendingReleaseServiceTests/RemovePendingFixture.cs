@@ -5,8 +5,9 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Crypto;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Parser;
+using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Movies.Pending;
-using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 

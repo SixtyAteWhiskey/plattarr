@@ -6,15 +6,15 @@ using NUnit.Framework;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.History;
 using NzbDrone.Core.Download.TrackedDownloads;
-using NzbDrone.Core.History;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.Overrides;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Events;
-using NzbDrone.Core.Parser;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Movies.History;
+using NzbDrone.Core.Movies.Parser;
+using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.Download.TrackedDownloads

@@ -1,6 +1,6 @@
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Movies.Parser.Model;
 
 namespace NzbDrone.Core.Movies
 {

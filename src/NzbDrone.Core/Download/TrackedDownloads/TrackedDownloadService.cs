@@ -6,13 +6,14 @@ using NzbDrone.Common.Cache;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Download.History;
-using NzbDrone.Core.History;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Aggregation;
 using NzbDrone.Core.Movies.Events;
-using NzbDrone.Core.Parser;
+using NzbDrone.Core.Movies.History;
+using NzbDrone.Core.Movies.Parser;
+using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Download.TrackedDownloads
@@ -130,7 +131,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                     trackedDownload.State = state;
                 }
 
-                var parsedMovieInfo = Parser.Parser.ParseMovieTitle(trackedDownload.DownloadItem.Title);
+                var parsedMovieInfo = Movies.Parser.Parser.ParseMovieTitle(trackedDownload.DownloadItem.Title);
 
                 if (parsedMovieInfo != null)
                 {
@@ -154,7 +155,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                     if (parsedMovieInfo == null ||
                         trackedDownload.RemoteMovie?.Movie == null)
                     {
-                        parsedMovieInfo = Parser.Parser.ParseMovieTitle(firstHistoryItem.SourceTitle);
+                        parsedMovieInfo = Movies.Parser.Parser.ParseMovieTitle(firstHistoryItem.SourceTitle);
 
                         if (parsedMovieInfo != null)
                         {
@@ -249,7 +250,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
 
         private void UpdateCachedItem(TrackedDownload trackedDownload)
         {
-            var parsedMovieInfo = Parser.Parser.ParseMovieTitle(trackedDownload.DownloadItem.Title);
+            var parsedMovieInfo = Movies.Parser.Parser.ParseMovieTitle(trackedDownload.DownloadItem.Title);
 
             trackedDownload.RemoteMovie = parsedMovieInfo == null ? null : _parsingService.Map(parsedMovieInfo, "", 0, null);
 

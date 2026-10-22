@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using NzbDrone.Core.ImportLists.ImportListMovies;
+using NzbDrone.Core.Movies.ImportLists.ImportListMovies;
 
 namespace NzbDrone.Core.Movies
 {

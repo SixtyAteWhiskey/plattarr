@@ -5,12 +5,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Core.Configuration;
-using NzbDrone.Core.ImportLists.ImportExclusions;
 using NzbDrone.Core.Languages;
-using NzbDrone.Core.MediaCover;
-using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Organizer;
+using NzbDrone.Core.Movies.ImportLists.ImportExclusions;
+using NzbDrone.Core.Movies.MediaCover;
+using NzbDrone.Core.Movies.MetadataSource;
+using NzbDrone.Core.Movies.Organizer;
 using Radarr.Http;
 using Radarr.Http.REST;
 

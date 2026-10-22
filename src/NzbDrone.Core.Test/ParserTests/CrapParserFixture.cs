@@ -33,7 +33,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("abc.xyz.af6021c37f7852")]
         public void should_not_parse_crap(string title)
         {
-            Parser.Parser.ParseMovieTitle(title).Should().BeNull();
+            Movies.Parser.Parser.ParseMovieTitle(title).Should().BeNull();
             ExceptionVerification.IgnoreWarns();
         }
 
@@ -52,7 +52,7 @@ namespace NzbDrone.Core.Test.ParserTests
 
                 hash = BitConverter.ToString(hashData).Replace("-", "");
 
-                if (Parser.Parser.ParseMovieTitle(hash) == null)
+                if (Movies.Parser.Parser.ParseMovieTitle(hash) == null)
                 {
                     success++;
                 }
@@ -80,7 +80,7 @@ namespace NzbDrone.Core.Test.ParserTests
                     hash.Append(charset[hashAlgo.Next() % charset.Length]);
                 }
 
-                if (Parser.Parser.ParseMovieTitle(hash.ToString()) == null)
+                if (Movies.Parser.Parser.ParseMovieTitle(hash.ToString()) == null)
                 {
                     success++;
                 }
@@ -92,13 +92,13 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("thebiggestmovie1618finale")]
         public void should_not_parse_file_name_without_proper_spacing(string fileName)
         {
-            Parser.Parser.ParseMovieTitle(fileName).Should().BeNull();
+            Movies.Parser.Parser.ParseMovieTitle(fileName).Should().BeNull();
         }
 
         [TestCase("Big Movie (S01E18) Complete 360p HDTV AAC H.264-NEXT")]
         public void should_not_parse_invalid_release_name(string fileName)
         {
-            Parser.Parser.ParseMovieTitle(fileName).Should().BeNull();
+            Movies.Parser.Parser.ParseMovieTitle(fileName).Should().BeNull();
         }
     }
 }

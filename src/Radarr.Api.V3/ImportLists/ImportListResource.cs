@@ -1,6 +1,6 @@
 using System;
-using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.ImportLists;
 
 namespace Radarr.Api.V3.ImportLists
 {

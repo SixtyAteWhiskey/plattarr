@@ -1,5 +1,5 @@
 using FluentValidation.Validators;
-using NzbDrone.Core.ImportLists.ImportExclusions;
+using NzbDrone.Core.Movies.ImportLists.ImportExclusions;
 
 namespace Radarr.Api.V3.ImportLists
 {

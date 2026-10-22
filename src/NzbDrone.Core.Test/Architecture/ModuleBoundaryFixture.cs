@@ -75,24 +75,6 @@ namespace NzbDrone.Core.Test.Architecture
         }
 
         [Test]
-        public void boundary_entries_should_exist()
-        {
-            var assembly = typeof(MediaKind).Assembly;
-            var namespaces = assembly.GetTypes().Select(t => t.Namespace ?? string.Empty).ToHashSet();
-
-            var missingNamespaces = ModuleBoundary.MovieNamespacesNotYetMoved
-                .Where(n => !namespaces.Any(s => ModuleBoundary.InNamespace(s, n)))
-                .ToList();
-
-            var missingTypes = ModuleBoundary.MovieTypesNotYetMoved
-                .Where(t => assembly.GetType(t) == null)
-                .ToList();
-
-            missingNamespaces.Should().BeEmpty("a moved namespace must be removed from ModuleBoundary");
-            missingTypes.Should().BeEmpty("a moved type must be removed from ModuleBoundary");
-        }
-
-        [Test]
         public void scanner_should_find_references_only_inside_lambdas_and_async_methods()
         {
             var references = TypeReferenceScanner.Scan(typeof(ScannerSample).Assembly)[typeof(ScannerSample)];

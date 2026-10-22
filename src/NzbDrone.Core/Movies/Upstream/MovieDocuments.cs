@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using NzbDrone.Core.Datastore.Converters;
 using NzbDrone.Core.Languages;
-using NzbDrone.Core.MediaFiles.MediaInfo;
+using NzbDrone.Core.Movies.MediaFiles.MediaInfo;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Upstream;
 

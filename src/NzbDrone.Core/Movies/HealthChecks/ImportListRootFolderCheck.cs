@@ -4,11 +4,11 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Datastore.Events;
 using NzbDrone.Core.HealthCheck;
-using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Movies.Events;
-using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Movies.ImportLists;
+using NzbDrone.Core.Movies.MediaFiles.Events;
+using NzbDrone.Core.Movies.RootFolders;
 using NzbDrone.Core.ThingiProvider.Events;
 
 namespace NzbDrone.Core.Movies.HealthChecks

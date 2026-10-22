@@ -8,6 +8,7 @@ using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Movies.DecisionEngine;
 using NzbDrone.Core.Movies.Translations;
 using NzbDrone.Core.Profiles.Qualities;
 

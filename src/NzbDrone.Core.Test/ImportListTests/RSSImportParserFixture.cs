@@ -3,8 +3,8 @@ using System.Text;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.ImportLists;
-using NzbDrone.Core.ImportLists.RSSImport;
+using NzbDrone.Core.Movies.ImportLists;
+using NzbDrone.Core.Movies.ImportLists.RSSImport;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.ImportList

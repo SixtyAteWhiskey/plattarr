@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Movies.RootFolders;
 using Radarr.Http.REST;
 
 namespace Radarr.Api.V3.RootFolders

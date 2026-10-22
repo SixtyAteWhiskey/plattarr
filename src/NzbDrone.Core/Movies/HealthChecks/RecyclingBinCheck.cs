@@ -4,7 +4,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.MediaFiles.Events;
+using NzbDrone.Core.Movies.MediaFiles.Events;
 
 namespace NzbDrone.Core.Movies.HealthChecks
 {

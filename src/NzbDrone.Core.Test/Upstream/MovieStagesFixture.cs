@@ -4,18 +4,18 @@ using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.CustomFormats;
-using NzbDrone.Core.Extras.Metadata;
-using NzbDrone.Core.Extras.Metadata.Files;
-using NzbDrone.Core.Extras.Others;
-using NzbDrone.Core.Extras.Subtitles;
-using NzbDrone.Core.ImportLists.ImportExclusions;
 using NzbDrone.Core.Languages;
-using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.MediaFiles.MediaInfo;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.AlternativeTitles;
 using NzbDrone.Core.Movies.Collections;
 using NzbDrone.Core.Movies.Credits;
+using NzbDrone.Core.Movies.Extras.Metadata;
+using NzbDrone.Core.Movies.Extras.Metadata.Files;
+using NzbDrone.Core.Movies.Extras.Others;
+using NzbDrone.Core.Movies.Extras.Subtitles;
+using NzbDrone.Core.Movies.ImportLists.ImportExclusions;
+using NzbDrone.Core.Movies.MediaFiles;
+using NzbDrone.Core.Movies.MediaFiles.MediaInfo;
 using NzbDrone.Core.Movies.Translations;
 using NzbDrone.Core.Movies.Upstream;
 using NzbDrone.Core.Profiles.Delay;
@@ -195,7 +195,7 @@ namespace NzbDrone.Core.Test.Upstream
 
             var metadata = _metadata.All().Single();
 
-            metadata.Images.Select(i => i.CoverType).Should().Equal(MediaCover.MediaCoverTypes.Poster, MediaCover.MediaCoverTypes.Fanart);
+            metadata.Images.Select(i => i.CoverType).Should().Equal(Movies.MediaCover.MediaCoverTypes.Poster, Movies.MediaCover.MediaCoverTypes.Fanart);
             metadata.Images[0].RemoteUrl.Should().Be("https://img.example/p.jpg");
             metadata.Ratings.Imdb.Value.Should().Be(8.3m);
             metadata.Ratings.Imdb.Votes.Should().Be(1234);

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using NzbDrone.Core.Languages;
-using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.Movies.MediaFiles;
 
 namespace NzbDrone.Core.Movies.Notifications
 {

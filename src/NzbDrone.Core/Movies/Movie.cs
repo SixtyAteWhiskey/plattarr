@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Datastore;
-using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Movies.MediaFiles;
 using NzbDrone.Core.Profiles.Qualities;
 
 namespace NzbDrone.Core.Movies

@@ -12,6 +12,8 @@ using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.DecisionEngine;
+using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Delay;
 using NzbDrone.Core.Profiles.Qualities;

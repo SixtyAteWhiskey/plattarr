@@ -4,14 +4,14 @@ using FizzWare.NBuilder;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.AutoTagging;
 using NzbDrone.Core.Exceptions;
-using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.AutoTagging;
 using NzbDrone.Core.Movies.Collections;
 using NzbDrone.Core.Movies.Commands;
 using NzbDrone.Core.Movies.Credits;
-using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Movies.MetadataSource;
+using NzbDrone.Core.Movies.RootFolders;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
 

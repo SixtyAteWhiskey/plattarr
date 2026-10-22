@@ -1,14 +1,14 @@
 using System.Collections.Generic;
 using System.Linq;
-using NzbDrone.Core.AutoTagging;
-using NzbDrone.Core.AutoTagging.Specifications;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Download;
-using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.IndexerProxies;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.AutoTagging;
+using NzbDrone.Core.Movies.AutoTagging.Specifications;
+using NzbDrone.Core.Movies.ImportLists;
 using NzbDrone.Core.Notifications;
 using NzbDrone.Core.Profiles.Delay;
 using NzbDrone.Core.Profiles.Releases;

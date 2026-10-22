@@ -8,7 +8,7 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Queue;
 using NzbDrone.Core.Test.DecisionEngineTests.ReleaseSpecifications;

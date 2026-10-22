@@ -4,9 +4,9 @@ using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.CustomFormats;
-using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Organizer;
+using NzbDrone.Core.Movies.MediaFiles;
+using NzbDrone.Core.Movies.Organizer;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
 

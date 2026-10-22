@@ -1,5 +1,5 @@
 using FluentValidation;
-using NzbDrone.Core.ImportLists;
+using NzbDrone.Core.Movies.ImportLists;
 using NzbDrone.Core.Validation;
 using NzbDrone.Core.Validation.Paths;
 using NzbDrone.SignalR;

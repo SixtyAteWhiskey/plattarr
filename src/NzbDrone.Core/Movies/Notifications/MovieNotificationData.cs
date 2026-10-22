@@ -1,8 +1,8 @@
 using System.Collections.Generic;
-using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Movies.MediaFiles;
+using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Notifications;
-using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Movies.Notifications

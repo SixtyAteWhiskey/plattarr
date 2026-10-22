@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NzbDrone.Core.Datastore.Converters;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Upstream;
 

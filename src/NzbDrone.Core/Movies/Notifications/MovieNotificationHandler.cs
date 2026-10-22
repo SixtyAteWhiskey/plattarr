@@ -2,10 +2,10 @@ using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download;
-using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies.Events;
+using NzbDrone.Core.Movies.MediaFiles.Events;
 using NzbDrone.Core.Notifications;
 using NzbDrone.Core.Qualities;
 

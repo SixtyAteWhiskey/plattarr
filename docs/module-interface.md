@@ -205,12 +205,49 @@ As built in porting step 9a (`ModuleBoundaryFixture` in `NzbDrone.Core.Test`):
 - The allowlist holds type names, not files: 159 core types at 9a, 156 after
   9b. It must match the violations exactly, so a new reference fails and so
   does an entry that no longer violates.
-- The boundary is declared in its final shape now (`ModuleBoundary`): the
-  Radarr namespaces that are movie code (`MediaFiles`, `DecisionEngine`,
+- Until step 11 the boundary was declared in its final shape (`ModuleBoundary`):
+  the Radarr namespaces that are movie code (`MediaFiles`, `DecisionEngine`,
   `History`, `Blocklisting`, `ImportLists`, `Extras`, `Organizer`, and others)
-  and Radarr's title parser types count as Movies before they move under
-  `NzbDrone.Core.Movies`. Moving them changes nothing the test reports.
+  and Radarr's title parser types counted as Movies before they moved under
+  `NzbDrone.Core.Movies`. Moving them changed nothing the test reports (step 11).
 - Rule 3 (no module references another) is checked with no allowlist.
+
+As built in porting step 11 (Radarr code moved under `NzbDrone.Core.Movies`):
+
+- The lists of "movie code not yet moved" are gone: `ModuleBoundary` is the
+  namespace rule only. The allowlist stayed at 32 and the test report did not
+  change, which is the check that the move was boundary-neutral.
+- Thirteen namespaces moved whole, `NzbDrone.Core.<X>` to
+  `NzbDrone.Core.Movies.<X>` with their folders: `AutoTagging`, `Blocklisting`,
+  `DecisionEngine.Specifications`, `Extras`, `History`, `ImportLists`,
+  `MediaCover`, `MediaFiles`, `MetadataSource`, `MovieStats`, `Organizer`,
+  `Parser.RomanNumerals`, `RootFolders` (322 files with the type-level moves). Movie types in the shared
+  `Parser`, `Parser.Model` and `DecisionEngine` namespaces moved to
+  `Movies.Parser`, `Movies.Parser.Model` and `Movies.DecisionEngine`
+  (`Parser`, `QualityParser`, `LanguageParser`, `SceneChecker`, `ParsingService`,
+  `ReleaseComparer`, `ParsedMovieInfo`, `LocalMovie`, `RemoteMovie`,
+  `IndexerFlags` and its mapper, and the download decision types).
+- `Resolution` and `ReleaseSourceType` shared a file with a moved type but are
+  used by core code, so each got its own file and stays in `NzbDrone.Core.Parser`
+  and `NzbDrone.Core.Parser.Model`.
+- Types that look shared (identical to Sonarr, or no movie reference) moved
+  too. Many are subclasses over a base that differs between the apps, so
+  identical text proves nothing. A type is promoted back to core when TV code
+  needs it, designed against both modules.
+- Name resolution traps. Members of an enclosing namespace win over `using`
+  imports, so outside `NzbDrone.Core.Movies` the class `Parser` must be written
+  `Movies.Parser.Parser` (a bare `Parser.Parser` binds to the core namespace and
+  fails to compile); inside the module `Parser.Parser` still works. The same
+  holds for `Movies.MediaCover.MediaCover`. Extension methods that moved
+  (`CleanMovieTitle`, `SimplifyReleaseTitle`, `ToIndexerFlags`,
+  `ToIndexerFlagSet`, `AddIndexerFlags`) need `using NzbDrone.Core.Movies.Parser`
+  or `.Parser.Model` at the call site.
+- Persisted full type names change in one place: `ScheduledTasks.TypeName` for
+  `CleanUpRecycleBinCommand` and `ImportListSyncCommand`. `TaskManager` deletes
+  rows it does not know and recreates them, so each of those two tasks restarts
+  its interval once after the upgrade. Provider settings are stored by class
+  name and the auto-tagging converter builds its type name from the new
+  namespace; neither changed meaning.
 
 ### Shared types
 
@@ -497,7 +534,8 @@ As built in porting step 9d:
   that namespace (`DownloadDecision`, `DownloadDecisionMaker`,
   `DownloadDecisionComparer`, `DownloadDecisionPriorizationService`, their
   interfaces, and `UpgradeableRejectReason`, which only the module's upgrade
-  rules use) are listed as module types in `ModuleBoundary`.
+  rules use) were listed as module types in `ModuleBoundary` and now live in
+  `NzbDrone.Core.Movies.DecisionEngine` (step 11).
   `DecisionEngine.Specifications` stays module code.
 - `DownloadRejectionReason` is one core enum. Radarr's and Sonarr's ordinals
   diverge from the second value, but the value never leaves the process as

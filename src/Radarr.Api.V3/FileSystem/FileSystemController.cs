@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.Movies.MediaFiles;
 using Radarr.Http;
 
 namespace Radarr.Api.V3.FileSystem

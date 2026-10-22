@@ -8,10 +8,10 @@ using FluentValidation.Results;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Exceptions;
-using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Credits;
-using NzbDrone.Core.Organizer;
+using NzbDrone.Core.Movies.MetadataSource;
+using NzbDrone.Core.Movies.Organizer;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
 

@@ -1,6 +1,6 @@
 using FluentAssertions;
 using NUnit.Framework;
-using NzbDrone.Core.Parser;
+using NzbDrone.Core.Movies.Parser;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.ParserTests
@@ -25,7 +25,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("(movieawake.com) Movie Title 2023 [720p] [English Subbed]", "Movie Title")]
         public void should_not_parse_url_in_name(string postTitle, string title)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle).MovieTitle.CleanMovieTitle();
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle).MovieTitle.CleanMovieTitle();
             result.Should().Be(title.CleanMovieTitle());
         }
 

@@ -6,13 +6,14 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
-using NzbDrone.Core.History;
-using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.MediaFiles.MovieImport;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Movies.History;
+using NzbDrone.Core.Movies.MediaFiles;
+using NzbDrone.Core.Movies.MediaFiles.MovieImport;
 using NzbDrone.Core.Movies.Notifications;
-using NzbDrone.Core.Parser;
+using NzbDrone.Core.Movies.Parser;
+using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Movies.Import

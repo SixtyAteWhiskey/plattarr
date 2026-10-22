@@ -7,6 +7,7 @@ using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 using Radarr.Api.V3.CustomFormats;

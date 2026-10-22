@@ -5,8 +5,8 @@ using NUnit.Framework;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Notifications;
+using NzbDrone.Core.Movies.RootFolders;
 using NzbDrone.Core.Notifications;
-using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.NotificationTests

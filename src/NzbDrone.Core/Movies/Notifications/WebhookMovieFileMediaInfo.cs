@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
-using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.MediaFiles.MediaInfo;
+using NzbDrone.Core.Movies.MediaFiles;
+using NzbDrone.Core.Movies.MediaFiles.MediaInfo;
 
 namespace NzbDrone.Core.Movies.Notifications
 {

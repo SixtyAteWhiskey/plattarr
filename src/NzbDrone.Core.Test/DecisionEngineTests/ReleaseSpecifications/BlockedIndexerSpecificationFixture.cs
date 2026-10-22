@@ -5,6 +5,7 @@ using NUnit.Framework;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.DecisionEngine.ReleaseSpecifications;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 

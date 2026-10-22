@@ -2,8 +2,8 @@ using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Housekeeping.Housekeepers;
-using NzbDrone.Core.ImportLists.ImportListMovies;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.ImportLists.ImportListMovies;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.Housekeeping.Housekeepers

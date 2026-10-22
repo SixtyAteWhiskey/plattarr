@@ -4,10 +4,10 @@ using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Movies.Blocklisting;
 using Radarr.Http;
 using Radarr.Http.Extensions;
 using Radarr.Http.REST.Attributes;
@@ -32,7 +32,7 @@ namespace Radarr.Api.V3.Blocklist
         public Ok<PagingResource<BlocklistResource>> GetBlocklist([FromQuery] PagingRequestResource paging, [FromQuery] int[] movieIds = null, [FromQuery] DownloadProtocol[] protocols = null)
         {
             var pagingResource = new PagingResource<BlocklistResource>(paging);
-            var pagingSpec = pagingResource.MapToPagingSpec<BlocklistResource, NzbDrone.Core.Blocklisting.Blocklist>(
+            var pagingSpec = pagingResource.MapToPagingSpec<BlocklistResource, NzbDrone.Core.Movies.Blocklisting.Blocklist>(
                 new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
                     "date",

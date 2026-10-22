@@ -7,12 +7,12 @@ using NUnit.Framework;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
-using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.MediaFiles.Events;
-using NzbDrone.Core.MediaFiles.MovieImport;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Movies.MediaFiles;
+using NzbDrone.Core.Movies.MediaFiles.Events;
+using NzbDrone.Core.Movies.MediaFiles.MovieImport;
+using NzbDrone.Core.Movies.RootFolders;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
 

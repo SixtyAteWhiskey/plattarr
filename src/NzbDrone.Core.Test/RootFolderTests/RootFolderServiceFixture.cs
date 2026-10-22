@@ -10,8 +10,8 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Organizer;
-using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Movies.Organizer;
+using NzbDrone.Core.Movies.RootFolders;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
 

@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using FluentAssertions;
 using NUnit.Framework;
-using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.Overrides;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Movies.DecisionEngine.Specifications;
+using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 

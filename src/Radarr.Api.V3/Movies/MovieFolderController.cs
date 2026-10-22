@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Organizer;
+using NzbDrone.Core.Movies.Organizer;
 using Radarr.Http;
 
 namespace Radarr.Api.V3.Movies;

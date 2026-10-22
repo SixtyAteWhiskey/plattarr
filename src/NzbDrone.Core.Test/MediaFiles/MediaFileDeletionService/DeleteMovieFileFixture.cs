@@ -4,16 +4,16 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
 using NzbDrone.Core.Exceptions;
-using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.MediaFiles;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.MediaFiles.MediaFileDeletionService
 {
     [TestFixture]
-    public class DeleteMovieFileFixture : CoreTest<Core.MediaFiles.MediaFileDeletionService>
+    public class DeleteMovieFileFixture : CoreTest<Core.Movies.MediaFiles.MediaFileDeletionService>
     {
         private const string RootFolder = @"C:\Test\Movies";
         private Movie _movie;

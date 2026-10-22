@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using NzbDrone.Core.Extras.Metadata;
+using NzbDrone.Core.Movies.Extras.Metadata;
 using NzbDrone.SignalR;
 using Radarr.Http;
 

@@ -3,10 +3,10 @@ using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using NzbDrone.Core.Extras.Files;
-using NzbDrone.Core.Extras.Metadata.Files;
-using NzbDrone.Core.Extras.Others;
-using NzbDrone.Core.Extras.Subtitles;
+using NzbDrone.Core.Movies.Extras.Files;
+using NzbDrone.Core.Movies.Extras.Metadata.Files;
+using NzbDrone.Core.Movies.Extras.Others;
+using NzbDrone.Core.Movies.Extras.Subtitles;
 using Radarr.Http;
 
 namespace Radarr.Api.V3.ExtraFiles

@@ -1,6 +1,6 @@
 using System.Linq;
 using System.Text.RegularExpressions;
-using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.Movies.MediaFiles;
 
 namespace NzbDrone.Core.Parser;
 

@@ -2,10 +2,10 @@ using System.Collections.Generic;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
-using NzbDrone.Core.History;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.History;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
 

@@ -1,10 +1,10 @@
 using System.Collections.Generic;
-using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Jobs;
-using NzbDrone.Core.MediaFiles.Commands;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies.Commands;
+using NzbDrone.Core.Movies.ImportLists;
+using NzbDrone.Core.Movies.MediaFiles.Commands;
 
 namespace NzbDrone.Core.Movies
 {

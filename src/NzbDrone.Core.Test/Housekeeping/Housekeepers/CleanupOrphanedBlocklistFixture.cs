@@ -2,11 +2,11 @@ using System.Collections.Generic;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
-using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Housekeeping.Housekeepers;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Blocklisting;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
 

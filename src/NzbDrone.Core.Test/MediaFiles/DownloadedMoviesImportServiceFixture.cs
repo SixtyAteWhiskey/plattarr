@@ -9,12 +9,12 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
-using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.MediaFiles.MovieImport;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Parser;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Movies.MediaFiles;
+using NzbDrone.Core.Movies.MediaFiles.MovieImport;
+using NzbDrone.Core.Movies.Parser;
+using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
 

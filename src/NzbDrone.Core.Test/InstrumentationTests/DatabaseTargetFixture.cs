@@ -6,7 +6,7 @@ using NUnit.Framework;
 using NzbDrone.Common.Instrumentation;
 using NzbDrone.Core.Datastore.Migration.Framework;
 using NzbDrone.Core.Instrumentation;
-using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.Movies.MediaFiles;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
 

@@ -4,8 +4,8 @@ using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
-using NzbDrone.Core.History;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Movies.History;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Movies.Downloads

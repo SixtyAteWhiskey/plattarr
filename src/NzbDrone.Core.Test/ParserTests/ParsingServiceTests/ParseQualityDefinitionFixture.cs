@@ -1,5 +1,5 @@
 using NUnit.Framework;
-using NzbDrone.Core.Parser;
+using NzbDrone.Core.Movies.Parser;
 using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests

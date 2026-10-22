@@ -2,8 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.HealthCheck;
-using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.Localization;
+using NzbDrone.Core.Movies.ImportLists;
 using NzbDrone.Core.ThingiProvider.Events;
 
 namespace NzbDrone.Core.Movies.HealthChecks

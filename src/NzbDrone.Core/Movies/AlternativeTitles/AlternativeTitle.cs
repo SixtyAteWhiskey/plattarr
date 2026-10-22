@@ -1,4 +1,4 @@
-using NzbDrone.Core.Parser;
+using NzbDrone.Core.Movies.Parser;
 
 namespace NzbDrone.Core.Movies.AlternativeTitles
 {

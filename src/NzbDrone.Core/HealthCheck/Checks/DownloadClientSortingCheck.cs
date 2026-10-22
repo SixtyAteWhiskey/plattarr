@@ -6,8 +6,8 @@ using NzbDrone.Core.Datastore.Events;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Localization;
+using NzbDrone.Core.Movies.RootFolders;
 using NzbDrone.Core.RemotePathMappings;
-using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.ThingiProvider.Events;
 
 namespace NzbDrone.Core.HealthCheck.Checks

@@ -1,7 +1,7 @@
 using System;
 using FluentValidation;
 using NzbDrone.Core.Annotations;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.CustomFormats

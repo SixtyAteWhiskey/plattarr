@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
 using NUnit.Framework;
-using NzbDrone.Core.Parser.RomanNumerals;
+using NzbDrone.Core.Movies.Parser.RomanNumerals;
 
 namespace NzbDrone.Core.Test.ParserTests.RomanNumeralTests
 {

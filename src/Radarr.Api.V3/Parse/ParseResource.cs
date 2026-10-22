@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using NzbDrone.Core.Languages;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Movies.Parser.Model;
 using Radarr.Api.V3.CustomFormats;
 using Radarr.Api.V3.Movies;
 using Radarr.Http.REST;

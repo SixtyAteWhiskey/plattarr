@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using NzbDrone.Core.Extras.Files;
-using NzbDrone.Core.Extras.Metadata;
-using NzbDrone.Core.Extras.Metadata.Files;
-using NzbDrone.Core.Extras.Others;
-using NzbDrone.Core.Extras.Subtitles;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Movies.Extras.Files;
+using NzbDrone.Core.Movies.Extras.Metadata;
+using NzbDrone.Core.Movies.Extras.Metadata.Files;
+using NzbDrone.Core.Movies.Extras.Others;
+using NzbDrone.Core.Movies.Extras.Subtitles;
 using NzbDrone.Core.Upstream;
 
 namespace NzbDrone.Core.Movies.Upstream

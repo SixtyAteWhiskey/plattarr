@@ -3,7 +3,7 @@ using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Download.History;
-using NzbDrone.Core.History;
+using NzbDrone.Core.Movies.History;
 using NzbDrone.Core.Movies.Upstream;
 using NzbDrone.Core.Test.Framework;
 

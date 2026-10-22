@@ -3,7 +3,7 @@ using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download.TrackedDownloads;
-using NzbDrone.Core.History;
+using NzbDrone.Core.Movies.History;
 
 namespace NzbDrone.Core.Movies.Import
 {

@@ -1,4 +1,4 @@
-using NzbDrone.Core.Extras.Metadata;
+using NzbDrone.Core.Movies.Extras.Metadata;
 
 namespace Radarr.Api.V3.Metadata
 {

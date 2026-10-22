@@ -1,10 +1,10 @@
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
-using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Movies.Blocklisting;
+using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.Blocklisting

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using NzbDrone.Core.ImportLists.ImportExclusions;
+using NzbDrone.Core.Movies.ImportLists.ImportExclusions;
 
 namespace Radarr.Api.V3.ImportLists
 {

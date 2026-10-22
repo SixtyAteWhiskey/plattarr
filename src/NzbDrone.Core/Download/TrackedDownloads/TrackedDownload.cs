@@ -1,7 +1,7 @@
 using System;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Modules;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Movies.Parser.Model;
 
 namespace NzbDrone.Core.Download.TrackedDownloads
 {

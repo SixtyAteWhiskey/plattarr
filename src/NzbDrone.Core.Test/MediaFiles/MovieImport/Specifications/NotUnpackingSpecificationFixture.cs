@@ -5,9 +5,9 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
 using NzbDrone.Core.Configuration;
-using NzbDrone.Core.MediaFiles.MovieImport.Specifications;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Movies.MediaFiles.MovieImport.Specifications;
+using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
 
