@@ -490,8 +490,9 @@ Dependencies decide it; the order is a list in code with a test that every table
 adapter reads has a position.
 
 1. Tags
-2. Custom formats, then quality profiles, quality definitions, delay profiles, release profiles (needs the indexer match)
-3. Indexer proxies, indexers, indexer overrides
+2. Custom formats, then quality profiles, quality definitions, delay profiles
+3. Indexer proxies, indexers, indexer overrides, then release profiles (their `IndexerId` is a
+   target indexer ID, which exists only after the indexers are written)
 4. Download clients, remote path mappings, notifications, auto tagging, custom filters
 5. Root folders, naming config, import exclusions, metadata consumers, import lists
 6. Movie metadata, alternative titles, translations, credits, collections
