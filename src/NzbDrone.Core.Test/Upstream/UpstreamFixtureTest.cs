@@ -21,7 +21,7 @@ namespace NzbDrone.Core.Test.Upstream
 
         // A grab row's Release as the database holds it: camelCase ReleaseInfo, integer imdbId,
         // empty languages, the Prowlarr API key inside downloadUrl, no indexerFlags.
-        protected const string GrabbedRelease =
+        public const string GrabbedRelease =
             "{\"guid\":\"https://tracker.invalid/details/1001\",\"title\":\"Sintel.2010.1080p.WEB-DL.x264-BLENDER\","
             + "\"size\":3221225472,\"downloadUrl\":\"http://prowlarr.invalid:9696/13/download?apikey=" + FakeApiKey + "&link=ABC&file=Sintel\","
             + "\"infoUrl\":\"https://tracker.invalid/details/1001\",\"commentUrl\":\"https://tracker.invalid/details/1001#comments\","
@@ -41,7 +41,7 @@ namespace NzbDrone.Core.Test.Upstream
         // The Radarr side of one small library. Radarr indexer 1 and 2 were synchronized
         // from Prowlarr indexers 13 and 37; 3 points at a Prowlarr indexer that only
         // Sonarr received; 4 points at an indexer Prowlarr does not have; 5 was added by hand.
-        protected static readonly string[] RadarrRows =
+        public static readonly string[] RadarrRows =
         {
             Insert("Tags", "Id, Label", "1, 'Kids'"),
 
@@ -66,7 +66,7 @@ namespace NzbDrone.Core.Test.Upstream
         // Sonarr only. Applications are Radarr (1), Sonarr (2), LazyLibrarian (3), Lidarr (4);
         // the sync records pair Prowlarr 13 and 37 with Radarr's indexers 1 and 2, and Prowlarr
         // 13 and 41 with Sonarr's. Sonarr's indexer 1 is not Radarr's indexer 1.
-        protected static readonly string[] ProwlarrRows =
+        public static readonly string[] ProwlarrRows =
         {
             Insert("Tags", "Id, Label", "1, 'flaresolverr'"),
             Insert("Tags", "Id, Label", "2, 'kids'"),
@@ -103,22 +103,22 @@ namespace NzbDrone.Core.Test.Upstream
             return Read(new ProwlarrAdapter(), "prowlarr-44.schema.sql", 44, statements);
         }
 
-        protected static SourceRow Row(params (string Column, object Value)[] values)
+        public static SourceRow Row(params (string Column, object Value)[] values)
         {
             return new SourceRow(values.ToDictionary(v => v.Column, v => v.Value));
         }
 
-        protected static string Insert(string table, string columns, string values)
+        public static string Insert(string table, string columns, string values)
         {
             return $"INSERT INTO \"{table}\" ({columns}) VALUES ({values})";
         }
 
-        protected static string Sql(string text)
+        public static string Sql(string text)
         {
             return "'" + text.Replace("'", "''") + "'";
         }
 
-        protected static string TorznabIndexer(int id, string name, string baseUrl)
+        public static string TorznabIndexer(int id, string name, string baseUrl)
         {
             var settings = "{\"baseUrl\":\"" + baseUrl + "\",\"apiPath\":\"/api\",\"apiKey\":\"" + FakeApiKey + "\",\"minimumSeeders\":1,"
                 + "\"seedCriteria\":{},\"rejectBlocklistedTorrentHashesWhileGrabbing\":false,\"requiredFlags\":[],"
@@ -130,7 +130,7 @@ namespace NzbDrone.Core.Test.Upstream
                 $"{id}, {Sql(name)}, 'Torznab', {Sql(settings)}, 'TorznabSettings', 1, 1, 1, 25, '[]', 0");
         }
 
-        protected static string ProwlarrIndexer(int id, string name, string implementation, string contract)
+        public static string ProwlarrIndexer(int id, string name, string implementation, string contract)
         {
             var settings = "{\"definitionFile\":\"tracker\",\"baseSettings\":{\"limitsUnit\":0},\"torrentBaseSettings\":{\"preferMagnetUrl\":false}}";
 
@@ -140,7 +140,7 @@ namespace NzbDrone.Core.Test.Upstream
                 $"{id}, {Sql(name)}, {Sql(implementation)}, {Sql(settings)}, {Sql(contract)}, 1, 25, '2026-01-01 00:00:00', 0, 1, '[]', 0");
         }
 
-        protected static string Application(int id, string name, string implementation)
+        public static string Application(int id, string name, string implementation)
         {
             var settings = "{\"prowlarrUrl\":\"http://prowlarr.invalid:9696\",\"baseUrl\":\"http://" + name.ToLowerInvariant() + ".invalid\",\"apiKey\":\"" + FakeApiKey + "\"}";
 
@@ -150,7 +150,7 @@ namespace NzbDrone.Core.Test.Upstream
                 $"{id}, {Sql(name)}, {Sql(implementation)}, {Sql(settings)}, {Sql(implementation + "Settings")}, 2, '[]'");
         }
 
-        protected static string Mapping(int id, int indexerId, int appId, int remoteIndexerId)
+        public static string Mapping(int id, int indexerId, int appId, int remoteIndexerId)
         {
             return Insert(
                 "ApplicationIndexerMapping",
@@ -160,14 +160,22 @@ namespace NzbDrone.Core.Test.Upstream
 
         private SourceSnapshot Read(IUpstreamAdapter adapter, string schemaFile, long version, IEnumerable<string> rows)
         {
-            var scratch = Path.Combine(TempFolder, "scratch");
+            return ReadSnapshot(adapter, GetTestPath("Files/Upstream/" + schemaFile), version, rows, TempFolder);
+        }
+
+        // Builds a database from the real schema file plus the rows, copies it the way the importer
+        // does and reads it back through the adapter. Public so a database-backed fixture (which
+        // cannot also derive from this class) can use the same rows.
+        public static SourceSnapshot ReadSnapshot(IUpstreamAdapter adapter, string schemaPath, long version, IEnumerable<string> rows, string tempFolder)
+        {
+            var scratch = Path.Combine(tempFolder, "scratch");
             Directory.CreateDirectory(scratch);
 
-            var source = Path.Combine(TempFolder, adapter.DatabaseFileName);
+            var source = Path.Combine(tempFolder, adapter.DatabaseFileName);
 
             UpstreamTestDatabase.CreateFromSchema(
                 source,
-                GetTestPath("Files/Upstream/" + schemaFile),
+                schemaPath,
                 new[] { $"INSERT INTO VersionInfo (Version, AppliedOn, Description) VALUES ({version}, '2026-10-21 00:00:00', 'test')" }
                     .Concat(rows).ToArray());
 
