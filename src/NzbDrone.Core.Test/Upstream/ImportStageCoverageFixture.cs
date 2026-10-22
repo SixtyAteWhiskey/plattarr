@@ -19,7 +19,7 @@ namespace NzbDrone.Core.Test.Upstream
     {
         private static readonly string[] RadarrNotYetClaimed =
         {
-            "CustomFormats", "QualityProfiles", "QualityDefinitions", "DelayProfiles", "ReleaseProfiles",
+            "ReleaseProfiles",
             "Indexers", "DownloadClients", "RemotePathMappings", "Notifications", "AutoTagging",
             "CustomFilters", "NamingConfig", "ImportExclusions", "Metadata", "ImportLists",
             "MovieMetadata", "AlternativeTitles", "MovieTranslations", "Credits", "Collections",
