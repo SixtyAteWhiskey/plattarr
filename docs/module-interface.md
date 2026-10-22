@@ -1279,6 +1279,64 @@ module keeps its upstream code:
 - The quality and language parsers (output is global, see above).
 - The module's compatibility API controllers.
 
+## TV module: step 1 design
+
+Written in session 35 against Sonarr `develop` at `b3d4bb8c18f7feb6744a6cd3231279a45351bb5e`,
+read from its table mapping, `Tv` folder and activity entities. Each point is a call made by
+Claude (delegated, reversible until migration 004 ships).
+
+**Tables.** All owned tables start with `Tv_`, mirroring Movies:
+
+| Table | From Sonarr | Note |
+|---|---|---|
+| `Tv_Series` | `Series` | `QualityProfileId` references the global profile; `RootFolderPath` and `Translations` are not stored. |
+| `Tv_SeriesTranslations` | `SeriesTranslations` | |
+| `Tv_Episodes` | `Episodes` | `EpisodeFileId` points at `Tv_EpisodeFiles`. |
+| `Tv_EpisodeFiles` | `EpisodeFiles` | `Quality` and `Languages` use the global catalogs through the same two converters. Includes Sonarr's `ReleaseType` column (int, 0 unknown). |
+| `Tv_SceneMappings` | `SceneMappings` | TV only (XEM and TheTVDB scene data). |
+| `Tv_RootFolders` | `RootFolders` | One table per module, as in Movies. |
+| `Tv_NamingConfig` | `NamingConfig` | Standard, daily and anime episode formats; series, season and specials folder formats; multi-episode style and colon replacement. |
+
+**Not a table.** The direction note's "SeasonStatistics" is a computed query over `Episodes` and
+`EpisodeFiles` (Sonarr's `SeriesStats` folder), not a table. It is ported as a repository query
+in step 3.
+
+**Deferred tables.** `Tv_MetadataFiles`, `Tv_SubtitleFiles`, `Tv_ExtraFiles` and `Tv_Metadata`
+arrive with the import step (extras). `Tv_ImportLists`, `ImportListItems` and the list status
+table wait for the import list decision (plan section 6, pruning candidates): the feature is
+not carried per module twice.
+
+**Shared tables.** `History`, `Blocklist`, `PendingReleases` and `DownloadHistory` already carry
+`MediaKind` and `ParentId` (`ParentId` is the series). What TV needs that they lack, added by
+migration 004 and read first by the TV module (the "no ItemId columns until TV reads them" rule):
+
+| Table | Added | Why |
+|---|---|---|
+| `History` | `ItemId` (int, default 0) | Sonarr writes one history row per episode (`EpisodeId`). |
+| `Blocklist` | `ItemIds` (JSON list, default `[]`) | Sonarr's `EpisodeIds`. |
+| `Blocklist` | `ReleaseType` (int, default 0) | Sonarr's single-episode, multi-episode, season pack. Movies rows keep 0. |
+
+`DownloadHistory` and `PendingReleases` need nothing: Sonarr keeps `SeriesId` only, and
+`PendingReleases.ParsedInfo` already holds any module's parsed document through its own type
+handler. Migration 004 upgrades in place, is proven on a copy of the dev config first, and gets a
+`MigrationTest<T>` with old-shape rows.
+
+**What step 1 ports.** Entities and repositories only: `Series`, `Episode`, `Season`,
+`SeriesTranslation`, `Actor`, `Ratings`, `SceneMapping`, the status and type enums, `EpisodeFile`
+and their repositories, plus `TvModule` and `TvTableMap` (prefix `Tv_`, `MediaKind.Tv`). No
+services that call a metadata source, parser or indexer: those come with their steps. The Sonarr
+`Tv` folder is 47 files; none shares a path with a Plattarr file.
+
+**Media file code is not shared yet.** Radarr's disk scan, file moving, rename, recycle bin and
+script import code sits under `Movies.MediaFiles`; Sonarr has the same set at its `MediaFiles`
+root. Steps 1 to 4 do not touch it. At step 5 the files that are identical in both apps
+(`FileDateType`, `FileExtensions`, `MediaFileExtensions`, `RecycleBinProvider`, the `Script*`
+types, `MediaInfo`) move to core once, and the episode and movie specific ones live in
+`Tv.MediaFiles` and `Movies.MediaFiles`. Do that move as one commit before the TV import code.
+
+**Namespace.** `NzbDrone.Core.Tv.*`, which `ModuleBoundary` already treats as a module. Types that
+share a full name with a core or Movies type take the module name (`Tv.Parser.Parser`).
+
 ## Decision record
 
 Owner answers, 2026-10-20, to the six questions in revision 1:
