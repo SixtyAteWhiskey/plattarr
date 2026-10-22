@@ -124,5 +124,67 @@ namespace NzbDrone.Core.Test.Upstream
             act.Should().Throw<UpstreamImportException>()
                 .Which.Message.Should().Contain("Settings").And.NotContain("hunter2");
         }
+
+        [Test]
+        public void should_mark_malformed_json_as_corrupt_source_data_so_a_stage_can_skip_the_row()
+        {
+            Action act = () => Row(("Images", "{not json")).GetJson("Images");
+
+            act.Should().Throw<CorruptSourceDataException>();
+        }
+
+        [TestCase("2024-03-01 12:30:45")]
+        [TestCase("2024-03-01 12:30:45.1234567")]
+        [TestCase("2024-03-01T12:30:45Z")]
+        [TestCase("2024-03-01T12:30:45+00:00")]
+        public void should_read_date_text_as_utc(string text)
+        {
+            var date = Row(("Added", text)).GetNullableDateTime("Added");
+
+            date.Should().NotBeNull();
+            date.Value.Kind.Should().Be(DateTimeKind.Utc);
+            date.Value.Date.Should().Be(new DateTime(2024, 3, 1));
+            date.Value.TimeOfDay.Should().BeCloseTo(new TimeSpan(12, 30, 45), TimeSpan.FromSeconds(1));
+        }
+
+        [Test]
+        public void should_convert_an_offset_to_utc()
+        {
+            var date = Row(("Added", "2024-03-01T12:30:45+02:00")).GetNullableDateTime("Added");
+
+            date.Value.Hour.Should().Be(10);
+            date.Value.Kind.Should().Be(DateTimeKind.Utc);
+        }
+
+        [Test]
+        public void should_treat_an_unspecified_date_value_as_utc()
+        {
+            var date = Row(("Added", new DateTime(2024, 3, 1, 12, 0, 0, DateTimeKind.Unspecified))).GetNullableDateTime("Added");
+
+            date.Value.Should().Be(new DateTime(2024, 3, 1, 12, 0, 0, DateTimeKind.Utc));
+        }
+
+        [Test]
+        public void should_read_null_and_blank_dates_as_null()
+        {
+            Row(("Added", null)).GetNullableDateTime("Added").Should().BeNull();
+            Row(("Added", "  ")).GetNullableDateTime("Added").Should().BeNull();
+        }
+
+        [Test]
+        public void should_throw_for_date_text_it_cannot_read_without_echoing_it()
+        {
+            Action act = () => Row(("Added", "yesterday-ish-secret")).GetNullableDateTime("Added");
+
+            act.Should().Throw<UpstreamImportException>().Which.Message.Should().Contain("Added").And.NotContain("secret");
+        }
+
+        [Test]
+        public void should_throw_for_a_missing_mandatory_date()
+        {
+            Action act = () => Row(("Added", null)).GetDateTime("Added");
+
+            act.Should().Throw<UpstreamImportException>().Which.Message.Should().Contain("Added");
+        }
     }
 }

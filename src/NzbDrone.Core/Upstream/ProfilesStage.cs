@@ -88,7 +88,7 @@ namespace NzbDrone.Core.Upstream
                 return;
             }
 
-            var catalog = _catalogs.Single(c => string.Equals(c.AppName, UpstreamApps.Radarr, StringComparison.OrdinalIgnoreCase));
+            var catalog = _catalogs.For(UpstreamApps.Radarr);
 
             ImportCustomFormats(session, snapshot, catalog);
             ImportQualityProfiles(session, snapshot, catalog);
@@ -119,9 +119,9 @@ namespace NzbDrone.Core.Upstream
                     });
                     sourceIds.Add(id);
                 }
-                catch (Exception ex) when (IsBadDocument(ex))
+                catch (Exception ex) when (SourceDocuments.IsBad(ex))
                 {
-                    session.Skip(new ImportSkip(UpstreamApps.Radarr, CustomFormatsTable, id, name, SkipReason.Corrupt, "Specifications could not be read: " + Describe(ex)));
+                    session.Skip(new ImportSkip(UpstreamApps.Radarr, CustomFormatsTable, id, name, SkipReason.Corrupt, "Specifications could not be read: " + SourceDocuments.Describe(ex)));
                 }
             }
 
@@ -194,9 +194,9 @@ namespace NzbDrone.Core.Upstream
                     });
                     sourceIds.Add(id);
                 }
-                catch (Exception ex) when (IsBadDocument(ex))
+                catch (Exception ex) when (SourceDocuments.IsBad(ex))
                 {
-                    session.Skip(new ImportSkip(UpstreamApps.Radarr, QualityProfilesTable, id, name, SkipReason.Corrupt, "Profile could not be read: " + Describe(ex)));
+                    session.Skip(new ImportSkip(UpstreamApps.Radarr, QualityProfilesTable, id, name, SkipReason.Corrupt, "Profile could not be read: " + SourceDocuments.Describe(ex)));
                 }
             }
 
@@ -351,9 +351,9 @@ namespace NzbDrone.Core.Upstream
                     });
                     sourceIds.Add(id);
                 }
-                catch (Exception ex) when (IsBadDocument(ex))
+                catch (Exception ex) when (SourceDocuments.IsBad(ex))
                 {
-                    session.Skip(new ImportSkip(UpstreamApps.Radarr, QualityDefinitionsTable, id, title, SkipReason.Corrupt, "Quality definition could not be read: " + Describe(ex)));
+                    session.Skip(new ImportSkip(UpstreamApps.Radarr, QualityDefinitionsTable, id, title, SkipReason.Corrupt, "Quality definition could not be read: " + SourceDocuments.Describe(ex)));
                 }
             }
 
@@ -414,9 +414,9 @@ namespace NzbDrone.Core.Upstream
                         insertSourceIds.Add(id);
                     }
                 }
-                catch (Exception ex) when (IsBadDocument(ex))
+                catch (Exception ex) when (SourceDocuments.IsBad(ex))
                 {
-                    session.Skip(new ImportSkip(UpstreamApps.Radarr, DelayProfilesTable, id, null, SkipReason.Corrupt, "Delay profile could not be read: " + Describe(ex)));
+                    session.Skip(new ImportSkip(UpstreamApps.Radarr, DelayProfilesTable, id, null, SkipReason.Corrupt, "Delay profile could not be read: " + SourceDocuments.Describe(ex)));
                 }
             }
 
@@ -436,18 +436,6 @@ namespace NzbDrone.Core.Upstream
                 "SELECT \"Id\" FROM \"DelayProfiles\" WHERE \"Order\" = @Order ORDER BY \"Id\"",
                 new { Order = DefaultDelayOrder },
                 transaction);
-        }
-
-        private static bool IsBadDocument(Exception ex)
-        {
-            return ex is CorruptSourceDataException or System.Text.Json.JsonException or TypeLoadException or InvalidCastException or FormatException or OverflowException;
-        }
-
-        // The exception type and its message name a column or a JSON path, never a stored value;
-        // the report is shared.
-        private static string Describe(Exception ex)
-        {
-            return ex is CorruptSourceDataException ? ex.Message : ex.GetType().Name;
         }
     }
 }

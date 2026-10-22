@@ -33,6 +33,10 @@ namespace NzbDrone.Core.Upstream
         public IReadOnlyList<ImportSkip> Skips => _skips;
         public IReadOnlyList<string> Warnings => _warnings;
 
+        // One moment for the whole run. A required date the source row does not have (a movie
+        // with no Added date) gets this one: it is when the row entered this database.
+        public DateTime ImportedAt { get; } = DateTime.UtcNow;
+
         // Null when that app's database was not given.
         public SourceSnapshot Snapshot(string app)
         {
@@ -42,6 +46,13 @@ namespace NzbDrone.Core.Upstream
         public void Skip(ImportSkip skip)
         {
             _skips.Add(skip);
+        }
+
+        // The row cannot be written as it is: a document the target cannot read, or a reference
+        // to a row that was not imported. The detail names a column or a table, never a value.
+        public void SkipCorrupt(string app, string table, long? sourceId, string name, string detail)
+        {
+            _skips.Add(new ImportSkip(app, table, sourceId, name, SkipReason.Corrupt, detail));
         }
 
         public void Warn(string warning)

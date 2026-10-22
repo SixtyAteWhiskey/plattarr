@@ -198,6 +198,15 @@ namespace NzbDrone.Core.Test.Upstream
         }
 
         [Test]
+        public void should_skip_a_profile_whose_items_are_not_valid_json_and_import_the_next()
+        {
+            var result = Run(Profile(1, "Broken", 7, "{not json"), Profile(2, "Fine", 7, Leaf(7, true)));
+
+            result.Skips.Should().ContainSingle(s => s.Table == "QualityProfiles" && s.SourceId == 1 && s.Reason == SkipReason.Corrupt);
+            _profiles.All().Select(p => p.Name).Should().Equal("Fine");
+        }
+
+        [Test]
         public void should_skip_a_profile_with_a_quality_radarr_never_had()
         {
             var result = Run(Profile(1, "Bad quality", 7, Leaf(7, true) + "," + Leaf(11, true)));
