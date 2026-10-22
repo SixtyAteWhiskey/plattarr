@@ -9,6 +9,8 @@ namespace NzbDrone.Core.Download
         bool IgnoreDownload(TrackedDownload trackedDownload);
     }
 
+    // Reads only the neutral release (parent, quality, languages), so it serves every media type
+    // with no module contract.
     public class IgnoredDownloadService : IIgnoredDownloadService
     {
         private readonly IEventAggregator _eventAggregator;
@@ -23,19 +25,20 @@ namespace NzbDrone.Core.Download
 
         public bool IgnoreDownload(TrackedDownload trackedDownload)
         {
-            var movie = trackedDownload.RemoteMovie.Movie;
+            var release = trackedDownload.RemoteRelease;
 
-            if (movie == null)
+            if (release?.Parent == null)
             {
-                _logger.Warn("Unable to ignore download for unknown movie");
+                _logger.Warn("Unable to ignore download for unknown {0}", release?.Kind.ToString().ToLowerInvariant() ?? "media");
                 return false;
             }
 
             var downloadIgnoredEvent = new DownloadIgnoredEvent
             {
-                MovieId = movie.Id,
-                Languages = trackedDownload.RemoteMovie.Languages,
-                Quality = trackedDownload.RemoteMovie.ParsedMovieInfo.Quality,
+                Kind = release.Kind,
+                ParentId = release.Parent.Id,
+                Languages = release.Languages,
+                Quality = release.Quality,
                 SourceTitle = trackedDownload.DownloadItem.Title,
                 DownloadClientInfo = trackedDownload.DownloadItem.DownloadClientInfo,
                 DownloadId = trackedDownload.DownloadItem.DownloadId,

@@ -17,13 +17,16 @@ using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Datastore.Extensions;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.Download.History;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.Lifecycle;
+using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Movies.Downloads;
 using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Movies.Search;
 using NzbDrone.Host;
@@ -155,6 +158,38 @@ namespace NzbDrone.App.Test
         public void should_resolve_the_core_decision_prioritizer()
         {
             _container.GetRequiredService<IPrioritizeDownloadDecision>().Should().BeOfType<PrioritizeDownloadDecision>();
+        }
+
+        [Test]
+        public void should_resolve_the_movie_failed_download_source_by_kind()
+        {
+            var sources = _container.GetServices<IFailedDownloadSource>().ToList();
+
+            sources.Should().ContainSingle(s => s.Kind == MediaKind.Movies);
+            sources.Single(s => s.Kind == MediaKind.Movies).Should().BeOfType<MovieFailedDownloadSource>();
+        }
+
+        [Test]
+        public void should_resolve_the_movie_redownload_searcher_by_kind()
+        {
+            var searchers = _container.GetServices<IRedownloadSearcher>().ToList();
+
+            searchers.Should().ContainSingle(s => s.Kind == MediaKind.Movies);
+            searchers.Single(s => s.Kind == MediaKind.Movies).Should().BeOfType<MovieRedownloadSearcher>();
+        }
+
+        [Test]
+        public void should_resolve_the_core_failed_download_service_with_its_sources()
+        {
+            _container.GetRequiredService<IFailedDownloadService>().Should().BeOfType<FailedDownloadService>();
+            _container.GetServices<IHandle<DownloadFailedEvent>>().OfType<RedownloadFailedDownloadService>().Should().ContainSingle();
+        }
+
+        [Test]
+        public void should_handle_the_movie_import_events_that_write_download_history_in_the_movie_module()
+        {
+            _container.GetServices<IHandle<MovieFileImportedEvent>>().OfType<MovieDownloadHistoryHandler>().Should().ContainSingle();
+            _container.GetServices<IHandle<MovieFileImportedEvent>>().OfType<DownloadHistoryService>().Should().BeEmpty();
         }
     }
 }

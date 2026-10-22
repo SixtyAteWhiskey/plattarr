@@ -10,6 +10,7 @@ using NzbDrone.Core.Datastore;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.History;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using Radarr.Api.V3.Movies;
 using Radarr.Http;
@@ -112,7 +113,7 @@ namespace Radarr.Api.V3.History
         [HttpPost("failed/{id}")]
         public Ok<object> MarkAsFailed([FromRoute] int id)
         {
-            _failedDownloadService.MarkAsFailed(id);
+            _failedDownloadService.MarkAsFailed(MediaKind.Movies, id);
             return TypedResults.Ok<object>(new { });
         }
     }

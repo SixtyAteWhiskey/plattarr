@@ -1,26 +1,28 @@
 using System.Collections.Generic;
+using System.Linq;
 using NLog;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Messaging;
-using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
-using NzbDrone.Core.Movies.Search;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Download
 {
+    // Applies the user's redownload settings to every media type. What a new search looks like
+    // is the module's IRedownloadSearcher.
     public class RedownloadFailedDownloadService : IHandle<DownloadFailedEvent>
     {
         private readonly IConfigService _configService;
-        private readonly IManageCommandQueue _commandQueueManager;
+        private readonly Dictionary<MediaKind, IRedownloadSearcher> _searchers;
         private readonly Logger _logger;
 
         public RedownloadFailedDownloadService(IConfigService configService,
-                                               IManageCommandQueue commandQueueManager,
+                                               IEnumerable<IRedownloadSearcher> searchers,
                                                Logger logger)
         {
             _configService = configService;
-            _commandQueueManager = commandQueueManager;
+            _searchers = searchers.ToDictionary(s => s.Kind);
             _logger = logger;
         }
 
@@ -35,21 +37,23 @@ namespace NzbDrone.Core.Download
 
             if (!_configService.AutoRedownloadFailed)
             {
-                _logger.Debug("Auto redownloading failed movies is disabled");
+                _logger.Debug("Auto redownloading failed downloads is disabled");
                 return;
             }
 
             if (message.ReleaseSource == ReleaseSourceType.InteractiveSearch && !_configService.AutoRedownloadFailedFromInteractiveSearch)
             {
-                _logger.Debug("Auto redownloading failed movies from interactive search is disabled");
+                _logger.Debug("Auto redownloading failed downloads from interactive search is disabled");
                 return;
             }
 
-            if (message.MovieId != 0)
+            if (!_searchers.TryGetValue(message.Kind, out var searcher))
             {
-                _logger.Debug("Failed download contains a movie, searching again.");
-                _commandQueueManager.Push(new MoviesSearchCommand { MovieIds = new List<int> { message.MovieId } });
+                _logger.Debug("No redownload search is registered for {0}", message.Kind);
+                return;
             }
+
+            searcher.Search(message);
         }
     }
 }

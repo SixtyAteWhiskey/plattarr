@@ -6,12 +6,15 @@ namespace NzbDrone.Core.Download
     public class DownloadCompletedEvent : IEvent
     {
         public TrackedDownload TrackedDownload { get; private set; }
-        public int MovieId { get; set; }
 
-        public DownloadCompletedEvent(TrackedDownload trackedDownload, int movieId)
+        // The movie, series or artist the download was imported for. The media type is
+        // TrackedDownload.Kind.
+        public int ParentId { get; set; }
+
+        public DownloadCompletedEvent(TrackedDownload trackedDownload, int parentId)
         {
             TrackedDownload = trackedDownload;
-            MovieId = movieId;
+            ParentId = parentId;
         }
     }
 }
