@@ -4,8 +4,8 @@ using System.Linq;
 using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Core.Configuration;
-using NzbDrone.Core.Extras.Metadata.Files;
 using NzbDrone.Core.Housekeeping;
+using NzbDrone.Core.Movies.Extras.Metadata.Files;
 
 namespace NzbDrone.Core.Movies.Housekeepers
 {

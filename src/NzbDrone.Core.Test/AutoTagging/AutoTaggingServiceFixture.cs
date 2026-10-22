@@ -3,9 +3,9 @@ using System.Linq;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
-using NzbDrone.Core.AutoTagging;
-using NzbDrone.Core.AutoTagging.Specifications;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.AutoTagging;
+using NzbDrone.Core.Movies.AutoTagging.Specifications;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.AutoTagging

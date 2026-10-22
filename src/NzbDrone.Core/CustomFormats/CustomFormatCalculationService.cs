@@ -4,13 +4,13 @@ using System.IO;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.Blocklisting;
-using NzbDrone.Core.History;
-using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Parser;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Movies.Blocklisting;
+using NzbDrone.Core.Movies.History;
+using NzbDrone.Core.Movies.MediaFiles;
+using NzbDrone.Core.Movies.Parser;
+using NzbDrone.Core.Movies.Parser.Model;
 
 namespace NzbDrone.Core.CustomFormats
 {
@@ -61,7 +61,7 @@ namespace NzbDrone.Core.CustomFormats
 
         public List<CustomFormat> ParseCustomFormat(Blocklist blocklist, Movie movie)
         {
-            var parsed = Parser.Parser.ParseMovieTitle(blocklist.SourceTitle);
+            var parsed = Movies.Parser.Parser.ParseMovieTitle(blocklist.SourceTitle);
 
             var movieInfo = new ParsedMovieInfo
             {
@@ -89,7 +89,7 @@ namespace NzbDrone.Core.CustomFormats
 
         public List<CustomFormat> ParseCustomFormat(MovieHistory history, Movie movie)
         {
-            var parsed = Parser.Parser.ParseMovieTitle(history.SourceTitle);
+            var parsed = Movies.Parser.Parser.ParseMovieTitle(history.SourceTitle);
 
             long.TryParse(history.Data.GetValueOrDefault("size"), out var size);
             Enum.TryParse(history.Data.GetValueOrDefault("indexerFlags"), true, out IndexerFlags indexerFlags);

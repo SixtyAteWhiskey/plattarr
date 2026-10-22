@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.AutoTagging;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Datastore;
-using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Movies.AutoTagging;
 using NzbDrone.Core.Movies.Events;
-using NzbDrone.Core.Parser;
-using NzbDrone.Core.Parser.RomanNumerals;
+using NzbDrone.Core.Movies.MediaFiles.Events;
+using NzbDrone.Core.Movies.Parser;
+using NzbDrone.Core.Movies.Parser.RomanNumerals;
 
 namespace NzbDrone.Core.Movies
 {

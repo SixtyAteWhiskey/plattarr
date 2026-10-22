@@ -2,7 +2,7 @@ using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Languages;
-using NzbDrone.Core.Parser;
+using NzbDrone.Core.Movies.Parser;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.ParserTests
@@ -15,7 +15,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie Title 1994 EN 1080p XviD-GROUP")]
         public void should_parse_language_english(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.English);
         }
@@ -27,7 +27,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.2010.En.1080p.WEB.x264-GROUP")]
         public void should_parse_language_unknown(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Unknown);
         }
@@ -61,7 +61,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie Title 2016 (BDrip 1080p ENG-ITA-FRE) Multisub x264")]
         public void should_parse_language_french(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.French);
         }
@@ -71,7 +71,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Foreign-Words-Here-Movie-(1990)-[DVDRip]-H264-Fra-Ac3-2-0-Eng-5-1")]
         public void should_parse_language_french_english(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.French);
             result.Languages.Should().Contain(Language.English);
@@ -88,7 +88,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Name.2022.BluRay.1080p.H264.DTS[EN+ES].[EN+ES+IT]")]
         public void should_parse_language_spanish(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Spanish);
         }
@@ -104,7 +104,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.2016.SwissGerman.WEB-DL.h264-RlsGrp")]
         public void should_parse_language_german(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.German);
         }
@@ -114,7 +114,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie Title 2016 (BDrip 1080p ENG-FRE-ITA) Multisub x264")]
         public void should_parse_language_italian(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Italian);
         }
@@ -122,7 +122,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.Danish.1080p.XviD-LOL")]
         public void should_parse_language_danish(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Danish);
         }
@@ -130,7 +130,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.Dutch.1080p.XviD-LOL")]
         public void should_parse_language_dutch(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Dutch);
         }
@@ -140,7 +140,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie Title (1985) (1080p.AC3 ITA-ENG-JAP)")]
         public void should_parse_language_japanese(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Japanese);
         }
@@ -148,7 +148,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.Icelandic.1080p.XviD-LOL")]
         public void should_parse_language_icelandic(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Icelandic);
         }
@@ -156,7 +156,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.Chinese.1080p.XviD-LOL")]
         public void should_parse_language_chinese(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Chinese);
         }
@@ -166,7 +166,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie Title (2020) WEB-DL (720p) Rus-Eng")]
         public void should_parse_language_russian(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Russian);
         }
@@ -175,7 +175,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.1080p.XviD.RoDubbed-LOL")]
         public void should_parse_language_romanian(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Romanian);
         }
@@ -183,7 +183,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.Hindi.1080p.XviD-LOL")]
         public void should_parse_language_hindi(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Hindi);
         }
@@ -191,7 +191,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.Thai.1080p.XviD-LOL")]
         public void should_parse_language_thai(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Thai);
         }
@@ -201,7 +201,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.BG.AUDIO.1080p.XviD-LOL")]
         public void should_parse_language_bulgarian(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Bulgarian);
         }
@@ -212,7 +212,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.2014.1080p.AMZN.WEB-DL.DDP2.0.H.264.pt-BR.ENG-LCD")]
         public void should_parse_language_brazilian_portuguese(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.PortugueseBR);
         }
@@ -228,7 +228,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.PL-LEK.1080p.XviD-LOL")]
         public void should_parse_language_polish(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Polish);
         }
@@ -238,7 +238,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.SUB-PL.1080p.XviD-LOL")]
         public void should_parse_language_polish_subbed(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Unknown);
         }
@@ -247,7 +247,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.VIE.1080p.XviD-LOL")]
         public void should_parse_language_vietnamese(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Vietnamese);
         }
@@ -255,7 +255,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.Swedish.1080p.XviD-LOL")]
         public void should_parse_language_swedish(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Swedish);
         }
@@ -263,7 +263,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.Norwegian.1080p.XviD-LOL")]
         public void should_parse_language_norwegian(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Norwegian);
         }
@@ -271,7 +271,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.Finnish.1080p.XviD-LOL")]
         public void should_parse_language_finnish(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Finnish);
         }
@@ -279,7 +279,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.Turkish.1080p.XviD-LOL")]
         public void should_parse_language_turkish(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Turkish);
         }
@@ -287,7 +287,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.Portuguese.1080p.XviD-LOL")]
         public void should_parse_language_portuguese(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Portuguese);
         }
@@ -295,7 +295,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.Flemish.1080p.XviD-LOL")]
         public void should_parse_language_flemish(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Flemish);
         }
@@ -303,7 +303,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.Greek.1080p.XviD-LOL")]
         public void should_parse_language_greek(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Greek);
         }
@@ -313,7 +313,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.2019.KOR.1080p.HDRip.H264.AAC-GROUP")]
         public void should_parse_language_korean(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Korean);
         }
@@ -321,7 +321,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.Hungarian.1080p.XviD-LOL")]
         public void should_parse_language_hungarian(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Hungarian);
         }
@@ -330,7 +330,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.1080p.BluRay.HebDubbed.Also.English.x264-P2P")]
         public void should_parse_language_hebrew(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Hebrew);
         }
@@ -338,7 +338,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.AC3.LT.EN-CNN")]
         public void should_parse_language_lithuanian(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Lithuanian);
         }
@@ -346,7 +346,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1994.CZ.1080p.XviD-LOL")]
         public void should_parse_language_czech(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Czech);
         }
@@ -354,7 +354,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.2019.ARABIC.WEBRip.x264-VXT")]
         public void should_parse_language_arabic(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle);
             result.Languages.Should().Contain(Language.Arabic);
         }
 
@@ -364,7 +364,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.2019.UKRAINIAN.WEBRip.x264-VXT")]
         public void should_parse_language_ukrainian(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Ukrainian);
         }
@@ -373,7 +373,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.[2003.BDRemux.1080p].Dub.MVO.(2xUkr/Fra).Sub.(Rus/Fra)")]
         public void should_parse_language_ukrainian_multi(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Ukrainian);
         }
@@ -381,14 +381,14 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.2019.PERSIAN.WEBRip.x264-VXT")]
         public void should_parse_language_persian(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle);
             result.Languages.Should().Contain(Language.Persian);
         }
 
         [TestCase("Movie.Title.2019.BENGALI.WEBRip.x264-VXT")]
         public void should_parse_language_bengali(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle);
             result.Languages.Should().Contain(Language.Bengali);
         }
 
@@ -397,7 +397,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie Title (2019) Proper HDRip - 720p - x264 - HQ Line Auds - [Telugu + Tamil + Hindi + English] - 1.1GB")]
         public void should_parse_language_telugu(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle);
             result.Languages.Should().Contain(Language.Telugu);
         }
 
@@ -407,7 +407,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.1990.SLOVAK.HDTV.x264-iCZi")]
         public void should_parse_language_slovak(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle);
             result.Languages.Should().Contain(Language.Slovak);
         }
 
@@ -419,7 +419,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.Title.2022.1080p.WEB-DL.LAV.RUS-NPPK")]
         public void should_parse_language_latvian(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle);
             result.Languages.Should().Contain(Language.Latvian);
         }
 
@@ -442,7 +442,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie Title [2024] [BDrip 1080p-x264-AC3 5.1 català-español-english+sub]")]
         public void should_parse_language_catalan(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             result.Languages.Should().Contain(Language.Catalan);
         }
@@ -551,7 +551,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("The.Movie.Name.2016.German.DTS.DL.720p.BluRay.x264-RlsGrp")]
         public void should_add_original_language_to_german_release_with_dl_tag(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle);
             result.Languages.Count.Should().Be(2);
             result.Languages.Should().Contain(Language.German);
             result.Languages.Should().Contain(Language.Original);
@@ -563,7 +563,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("The.Movie.Name.2016.GERMAN.WEBDL.h264-RlsGrp")]
         public void should_not_add_original_language_to_german_release_when_title_contains_web_dl(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle);
             result.Languages.Count.Should().Be(1);
             result.Languages.Should().Contain(Language.German);
         }
@@ -573,7 +573,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie Title 2025 [HEVC, HDR10, Dolby Vision, WEB-DL 2160p] [Hybrid] 3 XX + Original")]
         public void should_parse_original_title_from_release_name(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle);
             result.Languages.Count.Should().Be(1);
             result.Languages.Should().Contain(Language.Original);
         }
@@ -581,7 +581,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("The.Movie.Name.2023.German.ML.EAC3.720p.NF.WEB.H264-RlsGrp")]
         public void should_add_original_language_and_english_to_german_release_with_ml_tag(string postTitle)
         {
-            var result = Parser.Parser.ParseMovieTitle(postTitle);
+            var result = Movies.Parser.Parser.ParseMovieTitle(postTitle);
             result.Languages.Count.Should().Be(3);
             result.Languages.Should().Contain(Language.German);
             result.Languages.Should().Contain(Language.Original);

@@ -8,9 +8,9 @@ using NLog;
 using NzbDrone.Common.EnsureThat;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Exceptions;
-using NzbDrone.Core.MetadataSource;
-using NzbDrone.Core.Organizer;
-using NzbDrone.Core.Parser;
+using NzbDrone.Core.Movies.MetadataSource;
+using NzbDrone.Core.Movies.Organizer;
+using NzbDrone.Core.Movies.Parser;
 
 namespace NzbDrone.Core.Movies
 {

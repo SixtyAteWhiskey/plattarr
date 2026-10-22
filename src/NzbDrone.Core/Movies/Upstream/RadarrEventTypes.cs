@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using NzbDrone.Core.Download.History;
-using NzbDrone.Core.History;
+using NzbDrone.Core.Movies.History;
 
 namespace NzbDrone.Core.Movies.Upstream
 {

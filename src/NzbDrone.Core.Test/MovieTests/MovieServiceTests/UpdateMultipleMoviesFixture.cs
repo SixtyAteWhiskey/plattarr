@@ -5,9 +5,9 @@ using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
-using NzbDrone.Core.AutoTagging;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Organizer;
+using NzbDrone.Core.Movies.AutoTagging;
+using NzbDrone.Core.Movies.Organizer;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
 

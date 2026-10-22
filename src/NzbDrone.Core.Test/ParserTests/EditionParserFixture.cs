@@ -52,7 +52,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie.1997.Open.Matte.1080p.BluRay.x264.DTS-FGT", "Open Matte")]
         public void should_parse_edition(string postTitle, string edition)
         {
-            var parsed = Parser.Parser.ParseMovieTitle(postTitle);
+            var parsed = Movies.Parser.Parser.ParseMovieTitle(postTitle);
             parsed.Edition.Should().Be(edition);
         }
 
@@ -64,7 +64,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("The.Christmas.Edition.1941.720p.HDTV.x264-CRiMSON")]
         public void should_not_parse_edition(string postTitle)
         {
-            var parsed = Parser.Parser.ParseMovieTitle(postTitle);
+            var parsed = Movies.Parser.Parser.ParseMovieTitle(postTitle);
             parsed.Edition.Should().Be("");
         }
     }

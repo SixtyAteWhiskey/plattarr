@@ -7,7 +7,7 @@ using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Movies.Commands;
 using NzbDrone.Core.Movies.Events;
-using NzbDrone.Core.Organizer;
+using NzbDrone.Core.Movies.Organizer;
 
 namespace NzbDrone.Core.Movies
 {

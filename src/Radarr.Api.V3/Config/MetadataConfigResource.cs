@@ -1,5 +1,5 @@
 using NzbDrone.Core.Configuration;
-using NzbDrone.Core.MetadataSource.SkyHook.Resource;
+using NzbDrone.Core.Movies.MetadataSource.SkyHook.Resource;
 using Radarr.Http.REST;
 
 namespace Radarr.Api.V3.Config

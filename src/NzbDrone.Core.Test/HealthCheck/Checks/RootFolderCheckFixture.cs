@@ -7,7 +7,7 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Core.Localization;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.HealthChecks;
-using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Movies.RootFolders;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
 

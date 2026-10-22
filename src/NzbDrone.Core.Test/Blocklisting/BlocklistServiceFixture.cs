@@ -1,9 +1,9 @@
 using System;
 using Moq;
 using NUnit.Framework;
-using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Movies.Blocklisting;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
 

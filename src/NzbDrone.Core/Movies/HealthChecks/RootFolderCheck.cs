@@ -4,9 +4,9 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.Localization;
-using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Movies.Events;
-using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Movies.MediaFiles.Events;
+using NzbDrone.Core.Movies.RootFolders;
 
 namespace NzbDrone.Core.Movies.HealthChecks
 {

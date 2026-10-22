@@ -5,10 +5,10 @@ using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
-using NzbDrone.Core.ImportLists;
-using NzbDrone.Core.ImportLists.ImportListMovies;
-using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.ImportLists;
+using NzbDrone.Core.Movies.ImportLists.ImportListMovies;
+using NzbDrone.Core.Movies.MetadataSource;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.ImportListTests

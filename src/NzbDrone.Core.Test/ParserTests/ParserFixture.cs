@@ -3,7 +3,7 @@ using FluentAssertions;
 using FluentAssertions.Execution;
 using NUnit.Framework;
 using NzbDrone.Core.Languages;
-using NzbDrone.Core.Parser;
+using NzbDrone.Core.Movies.Parser;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.ParserTests
@@ -65,7 +65,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("The.Good.German.2006.720p.BluRay.x264-RlsGrp", "The Good German", Description = "Hardcoded to exclude from German regex")]
         public void should_parse_movie_title(string postTitle, string title)
         {
-            Parser.Parser.ParseMovieTitle(postTitle).PrimaryMovieTitle.Should().Be(title);
+            Movies.Parser.Parser.ParseMovieTitle(postTitle).PrimaryMovieTitle.Should().Be(title);
         }
 
         [TestCase("[MTBB] Kimi no Na wa. (2016) v2 [97681524].mkv", "Kimi no Na wa", "MTBB", 2016)]
@@ -73,7 +73,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("[Inka-Subs] Rokudenashi Blues 1993 (1993) [VHS]", "Rokudenashi Blues 1993", "Inka-Subs", 1993)]
         public void should_parse_anime_movie_title(string postTitle, string title, string releaseGroup, int year)
         {
-            var movie = Parser.Parser.ParseMovieTitle(postTitle);
+            var movie = Movies.Parser.Parser.ParseMovieTitle(postTitle);
             using (new AssertionScope())
             {
                 movie.PrimaryMovieTitle.Should().Be(title);
@@ -90,7 +90,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("[Kulot] Violet Evergarden Gaiden Eien to Jidou Shuki Ningyou [Dual-Audio][BDRip 1920x804 HEVC FLACx2] [91FC62A8].mkv", "Violet Evergarden Gaiden Eien to Jidou Shuki Ningyou", "Kulot")]
         public void should_parse_anime_movie_title_without_year(string postTitle, string title, string releaseGroup)
         {
-            var movie = Parser.Parser.ParseMovieTitle(postTitle);
+            var movie = Movies.Parser.Parser.ParseMovieTitle(postTitle);
             using (new AssertionScope())
             {
                 movie.PrimaryMovieTitle.Should().Be(title);
@@ -129,7 +129,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("The.Good.German.2006.GERMAN.720p.HDTV.x264-RLsGrp", "The Good German", "", 2006, Description = "German in the title")]
         public void should_parse_german_movie(string postTitle, string title, string edition, int year)
         {
-            var movie = Parser.Parser.ParseMovieTitle(postTitle);
+            var movie = Movies.Parser.Parser.ParseMovieTitle(postTitle);
             using (new AssertionScope())
             {
                 movie.PrimaryMovieTitle.Should().Be(title);
@@ -218,7 +218,7 @@ namespace NzbDrone.Core.Test.ParserTests
             })]
         public void should_parse_movie_alternative_titles(string postTitle, string[] parsedTitles)
         {
-            var movieInfo = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var movieInfo = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
 
             movieInfo.MovieTitles.Count.Should().Be(parsedTitles.Length);
 
@@ -231,7 +231,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("(1995) Movie Name", "Movie Name")]
         public void should_parse_movie_folder_name(string postTitle, string title)
         {
-            Parser.Parser.ParseMovieTitle(postTitle, true).PrimaryMovieTitle.Should().Be(title);
+            Movies.Parser.Parser.ParseMovieTitle(postTitle, true).PrimaryMovieTitle.Should().Be(title);
         }
 
         [TestCase("1776.1979.EXTENDED.720p.BluRay.X264-AMIABLE", 1979)]
@@ -241,7 +241,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("World Movie Z Movie [2023]", 2023)]
         public void should_parse_movie_year(string postTitle, int year)
         {
-            Parser.Parser.ParseMovieTitle(postTitle).Year.Should().Be(year);
+            Movies.Parser.Parser.ParseMovieTitle(postTitle).Year.Should().Be(year);
         }
 
         [TestCase("Movie Name (2016) {tmdbid-43074}", 43074)]
@@ -250,7 +250,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie Name (2016) {tmdb-2020}", 2020)]
         public void should_parse_tmdb_id(string postTitle, int tmdbId)
         {
-            Parser.Parser.ParseMovieTitle(postTitle).TmdbId.Should().Be(tmdbId);
+            Movies.Parser.Parser.ParseMovieTitle(postTitle).TmdbId.Should().Be(tmdbId);
         }
 
         [TestCase("The.Italian.Movie.2025.720p.BluRay.X264-AMIABLE")]
@@ -262,7 +262,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie Name (2016) BluRay 1080p DTS-ES AC3 x264-3Li", Description = "DTS-ES should not match ES (Spanish)")]
         public void should_not_parse_wrong_language_in_title(string postTitle)
         {
-            var parsed = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var parsed = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
             parsed.Languages.Count.Should().Be(1);
             parsed.Languages.First().Should().Be(Language.Unknown);
         }
@@ -277,14 +277,14 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Movie Title! 2024 [Web][x265][1080p][EAC3][MultiSubs]", null)]
         public void should_parse_hardcoded_subs(string postTitle, string sub)
         {
-            Parser.Parser.ParseMovieTitle(postTitle).HardcodedSubs.Should().Be(sub);
+            Movies.Parser.Parser.ParseMovieTitle(postTitle).HardcodedSubs.Should().Be(sub);
         }
 
         [TestCase("That Italian Movie 2008 [tt1234567] 720p BluRay X264", "tt1234567")]
         [TestCase("That Italian Movie 2008 [tt12345678] 720p BluRay X264", "tt12345678")]
         public void should_parse_imdb_in_title(string postTitle, string imdb)
         {
-            var parsed = Parser.Parser.ParseMovieTitle(postTitle, true);
+            var parsed = Movies.Parser.Parser.ParseMovieTitle(postTitle, true);
             parsed.ImdbId.Should().Be(imdb);
         }
 
@@ -296,7 +296,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("12345678", "tt12345678")]
         public void should_normalize_imdbid(string imdbid, string normalized)
         {
-            Parser.Parser.NormalizeImdbId(imdbid).Should().BeEquivalentTo(normalized);
+            Movies.Parser.Parser.NormalizeImdbId(imdbid).Should().BeEquivalentTo(normalized);
         }
     }
 }

@@ -11,7 +11,7 @@ using SixLabors.ImageSharp;
 namespace NzbDrone.Core.Test.MediaCoverTests
 {
     [TestFixture]
-    public class ImageResizerFixture : CoreTest<MediaCover.ImageResizer>
+    public class ImageResizerFixture : CoreTest<Movies.MediaCover.ImageResizer>
     {
         [SetUp]
         public void SetUp()

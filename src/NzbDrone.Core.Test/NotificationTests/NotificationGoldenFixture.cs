@@ -15,14 +15,16 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
-using NzbDrone.Core.MediaCover;
-using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.MediaFiles.Events;
-using NzbDrone.Core.MediaFiles.MediaInfo;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Events;
+using NzbDrone.Core.Movies.MediaCover;
+using NzbDrone.Core.Movies.MediaFiles;
+using NzbDrone.Core.Movies.MediaFiles.Events;
+using NzbDrone.Core.Movies.MediaFiles.MediaInfo;
 using NzbDrone.Core.Movies.Notifications;
+using NzbDrone.Core.Movies.Parser.Model;
+using NzbDrone.Core.Movies.RootFolders;
 using NzbDrone.Core.Notifications;
 using NzbDrone.Core.Notifications.CustomScript;
 using NzbDrone.Core.Notifications.Discord;
@@ -30,7 +32,6 @@ using NzbDrone.Core.Notifications.Discord.Payloads;
 using NzbDrone.Core.Notifications.Webhook;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
-using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Tags;
 using NzbDrone.Core.Test.Framework;
 
@@ -59,10 +60,10 @@ namespace NzbDrone.Core.Test.NotificationTests
                 YouTubeTrailerId = "zSWdZVtXT7E",
                 Website = "http://www.interstellarmovie.net",
                 OriginalLanguage = Language.English,
-                Images = new List<MediaCover.MediaCover>
+                Images = new List<Movies.MediaCover.MediaCover>
                 {
-                    new MediaCover.MediaCover(MediaCoverTypes.Poster, "https://img.example/poster.jpg"),
-                    new MediaCover.MediaCover(MediaCoverTypes.Fanart, "https://img.example/fanart.jpg")
+                    new Movies.MediaCover.MediaCover(MediaCoverTypes.Poster, "https://img.example/poster.jpg"),
+                    new Movies.MediaCover.MediaCover(MediaCoverTypes.Fanart, "https://img.example/fanart.jpg")
                 },
                 Ratings = new Ratings { Tmdb = new RatingChild { Votes = 100, Value = 8.4m, Type = RatingType.User } }
             };
@@ -159,9 +160,9 @@ namespace NzbDrone.Core.Test.NotificationTests
 
         public static GrabbedReleaseInfo Grabbed()
         {
-            return new GrabbedReleaseInfo(new List<NzbDrone.Core.History.MovieHistory>
+            return new GrabbedReleaseInfo(new List<NzbDrone.Core.Movies.History.MovieHistory>
             {
-                new NzbDrone.Core.History.MovieHistory
+                new NzbDrone.Core.Movies.History.MovieHistory
                 {
                     Date = new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc),
                     SourceTitle = "Interstellar.2014.1080p.BluRay.x264-GRP",

@@ -1,5 +1,5 @@
 using NzbDrone.Core.Configuration;
-using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.Movies.MediaFiles;
 using NzbDrone.Core.Qualities;
 using Radarr.Http.REST;
 

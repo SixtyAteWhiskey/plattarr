@@ -7,9 +7,9 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnvironmentInfo;
-using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Events;
+using NzbDrone.Core.Movies.MediaCover;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.MediaCoverTests
@@ -27,14 +27,14 @@ namespace NzbDrone.Core.Test.MediaCoverTests
             _movie = Builder<Movie>.CreateNew()
                 .With(v => v.Id = 2)
                 .With(v => v.Added = DateTime.UtcNow)
-                .With(v => v.MovieMetadata.Value.Images = new List<MediaCover.MediaCover> { new(MediaCoverTypes.Poster, "") })
+                .With(v => v.MovieMetadata.Value.Images = new List<Movies.MediaCover.MediaCover> { new(MediaCoverTypes.Poster, "") })
                 .Build();
         }
 
         [Test]
         public void should_convert_cover_urls_to_local()
         {
-            var covers = new List<MediaCover.MediaCover>
+            var covers = new List<Movies.MediaCover.MediaCover>
             {
                 new() { CoverType = MediaCoverTypes.Banner, RemoteUrl = "https://artworks.examples.com/banners/1.jpg" }
             };
@@ -51,7 +51,7 @@ namespace NzbDrone.Core.Test.MediaCoverTests
         [Test]
         public void should_convert_cover_urls_to_local_without_hash_if_cover_has_not_been_downloaded()
         {
-            var covers = new List<MediaCover.MediaCover>
+            var covers = new List<Movies.MediaCover.MediaCover>
             {
                 new() { CoverType = MediaCoverTypes.Banner, RemoteUrl = "https://artworks.examples.com/banners/1.jpg" }
             };
@@ -68,7 +68,7 @@ namespace NzbDrone.Core.Test.MediaCoverTests
         [Test]
         public void should_only_check_if_cover_exists_on_disk_once()
         {
-            var covers = new List<MediaCover.MediaCover>
+            var covers = new List<Movies.MediaCover.MediaCover>
             {
                 new() { CoverType = MediaCoverTypes.Banner, RemoteUrl = "https://artworks.examples.com/banners/1.jpg" }
             };
@@ -87,7 +87,7 @@ namespace NzbDrone.Core.Test.MediaCoverTests
         [Test]
         public void should_add_hash_to_cover_url_once_cover_exists()
         {
-            var covers = new List<MediaCover.MediaCover>
+            var covers = new List<Movies.MediaCover.MediaCover>
             {
                 new() { CoverType = MediaCoverTypes.Poster, RemoteUrl = "https://artworks.examples.com/posters/1.jpg" }
             };
@@ -113,7 +113,7 @@ namespace NzbDrone.Core.Test.MediaCoverTests
         [Test]
         public void should_convert_media_urls_to_local_without_hash_if_remote_url_is_empty()
         {
-            var covers = new List<MediaCover.MediaCover>
+            var covers = new List<Movies.MediaCover.MediaCover>
                 {
                     new() { CoverType = MediaCoverTypes.Banner }
                 };
@@ -126,7 +126,7 @@ namespace NzbDrone.Core.Test.MediaCoverTests
         [Test]
         public void should_not_check_if_cover_exists_for_movie_added_more_than_a_day_ago()
         {
-            var covers = new List<MediaCover.MediaCover>
+            var covers = new List<Movies.MediaCover.MediaCover>
             {
                 new() { CoverType = MediaCoverTypes.Banner, RemoteUrl = "https://artworks.examples.com/banners/1.jpg" }
             };

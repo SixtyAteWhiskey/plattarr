@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using NLog;
 using NzbDrone.Core.Movies.Aggregation.Aggregators;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Movies.Parser.Model;
 
 namespace NzbDrone.Core.Movies.Aggregation
 {

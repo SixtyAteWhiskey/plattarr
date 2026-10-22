@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Movies.Parser.Model;
 
 namespace NzbDrone.Core.CustomFormats
 {

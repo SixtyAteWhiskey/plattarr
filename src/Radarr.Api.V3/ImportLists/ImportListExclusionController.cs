@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Core.Datastore;
-using NzbDrone.Core.ImportLists.ImportExclusions;
+using NzbDrone.Core.Movies.ImportLists.ImportExclusions;
 using Radarr.Http;
 using Radarr.Http.Extensions;
 using Radarr.Http.REST;

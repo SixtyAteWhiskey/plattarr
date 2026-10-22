@@ -1,4 +1,4 @@
-using NzbDrone.Core.Organizer;
+using NzbDrone.Core.Movies.Organizer;
 
 namespace Radarr.Api.V3.Config
 {

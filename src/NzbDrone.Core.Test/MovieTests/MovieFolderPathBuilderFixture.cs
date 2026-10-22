@@ -4,8 +4,8 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Organizer;
-using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Movies.Organizer;
+using NzbDrone.Core.Movies.RootFolders;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
 

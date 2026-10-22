@@ -3,9 +3,9 @@ using System.Data;
 using System.Linq;
 using Dapper;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.AutoTagging;
-using NzbDrone.Core.AutoTagging.Specifications;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Movies.AutoTagging;
+using NzbDrone.Core.Movies.AutoTagging.Specifications;
 using NzbDrone.Core.Tags;
 
 namespace NzbDrone.Core.Housekeeping.Housekeepers

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Parser;
+using NzbDrone.Core.Movies.Parser;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests
@@ -29,14 +29,14 @@ namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests
             Subject.GetMovie(title);
 
             Mocker.GetMock<IMovieService>()
-                .Verify(s => s.FindByTitle(Parser.Parser.ParseMovieTitle(title, false).MovieTitles, It.IsAny<int>(), It.IsAny<List<string>>(), null), Times.Once());
+                .Verify(s => s.FindByTitle(Movies.Parser.Parser.ParseMovieTitle(title, false).MovieTitles, It.IsAny<int>(), It.IsAny<List<string>>(), null), Times.Once());
         }
 
         /*[Test]
         public void should_fallback_to_title_without_year_and_year_when_title_lookup_fails()
         {
             const string title = "Movie.2004.S01E01.720p.hdtv";
-            var parsedEpisodeInfo = Parser.Parser.ParseMovieTitle(title,false,false);
+            var parsedEpisodeInfo = Movies.Parser.Parser.ParseMovieTitle(title,false,false);
 
             Subject.GetMovie(title);
 

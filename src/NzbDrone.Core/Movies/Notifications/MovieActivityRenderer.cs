@@ -2,14 +2,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.MediaCover;
-using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.MediaFiles.MediaInfo;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Movies.MediaCover;
+using NzbDrone.Core.Movies.MediaFiles;
+using NzbDrone.Core.Movies.MediaFiles.MediaInfo;
+using NzbDrone.Core.Movies.Parser.Model;
+using NzbDrone.Core.Movies.RootFolders;
 using NzbDrone.Core.Notifications;
-using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
-using NzbDrone.Core.RootFolders;
 
 namespace NzbDrone.Core.Movies.Notifications
 {

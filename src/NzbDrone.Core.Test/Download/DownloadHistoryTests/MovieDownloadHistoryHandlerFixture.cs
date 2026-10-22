@@ -4,15 +4,15 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.History;
-using NzbDrone.Core.History;
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Downloads;
 using NzbDrone.Core.Movies.Events;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Movies.History;
+using NzbDrone.Core.Movies.MediaFiles;
+using NzbDrone.Core.Movies.MediaFiles.Events;
+using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.Download.DownloadHistoryTests

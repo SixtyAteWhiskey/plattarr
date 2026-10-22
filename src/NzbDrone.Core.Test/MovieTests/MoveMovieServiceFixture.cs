@@ -7,7 +7,7 @@ using NUnit.Framework;
 using NzbDrone.Common.Disk;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Commands;
-using NzbDrone.Core.Organizer;
+using NzbDrone.Core.Movies.Organizer;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
 

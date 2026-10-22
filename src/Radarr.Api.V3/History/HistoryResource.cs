@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using NzbDrone.Core.CustomFormats;
-using NzbDrone.Core.History;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Movies.History;
 using NzbDrone.Core.Qualities;
 using Radarr.Api.V3.CustomFormats;
 using Radarr.Api.V3.Movies;

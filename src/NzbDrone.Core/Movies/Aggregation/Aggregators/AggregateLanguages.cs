@@ -7,8 +7,8 @@ using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.Overrides;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Modules;
-using NzbDrone.Core.Parser;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Movies.Parser;
+using NzbDrone.Core.Movies.Parser.Model;
 
 namespace NzbDrone.Core.Movies.Aggregation.Aggregators
 {

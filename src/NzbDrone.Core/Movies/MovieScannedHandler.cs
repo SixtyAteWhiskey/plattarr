@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using NLog;
-using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Movies.Collections;
+using NzbDrone.Core.Movies.MediaFiles.Events;
 using NzbDrone.Core.Movies.Search;
 
 namespace NzbDrone.Core.Movies

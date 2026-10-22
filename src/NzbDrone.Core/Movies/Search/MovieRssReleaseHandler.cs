@@ -3,10 +3,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using NLog;
 using NzbDrone.Common.Instrumentation.Extensions;
-using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Movies.DecisionEngine;
 using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Parser.Model;
 

@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using NzbDrone.Core.ImportLists.ImportExclusions;
+using NzbDrone.Core.Movies.ImportLists.ImportExclusions;
 using NzbDrone.Core.Upstream;
 
 namespace NzbDrone.Core.Movies.Upstream

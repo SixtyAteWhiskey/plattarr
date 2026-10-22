@@ -2,9 +2,9 @@ using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Download;
-using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Movies.Commands;
+using NzbDrone.Core.Movies.ImportLists;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Update.Commands;
 

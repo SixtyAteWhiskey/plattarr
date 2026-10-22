@@ -2,7 +2,7 @@
 using System.IO;
 using FluentValidation.Validators;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.Organizer;
+using NzbDrone.Core.Movies.Organizer;
 
 namespace Radarr.Api.V3.Movies
 {

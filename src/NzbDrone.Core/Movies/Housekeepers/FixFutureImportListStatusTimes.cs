@@ -1,6 +1,6 @@
 using NzbDrone.Core.Housekeeping;
 using NzbDrone.Core.Housekeeping.Housekeepers;
-using NzbDrone.Core.ImportLists;
+using NzbDrone.Core.Movies.ImportLists;
 
 namespace NzbDrone.Core.Movies.Housekeepers
 {

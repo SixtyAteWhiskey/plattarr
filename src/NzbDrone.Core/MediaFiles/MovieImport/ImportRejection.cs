@@ -1,6 +1,6 @@
 using NzbDrone.Core.DecisionEngine;
 
-namespace NzbDrone.Core.MediaFiles.MovieImport;
+namespace NzbDrone.Core.Movies.MediaFiles.MovieImport;
 
 public class ImportRejection : Rejection<ImportRejectionReason>
 {

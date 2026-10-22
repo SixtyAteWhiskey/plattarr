@@ -1,4 +1,4 @@
-using NzbDrone.Core.MediaCover;
+using NzbDrone.Core.Movies.MediaCover;
 
 namespace NzbDrone.Core.Movies.Notifications
 {

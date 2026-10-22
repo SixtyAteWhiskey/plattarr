@@ -6,12 +6,12 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
-using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Languages;
-using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Commands;
+using NzbDrone.Core.Movies.DecisionEngine.Specifications;
+using NzbDrone.Core.Movies.MediaCover;
 using NzbDrone.Core.Movies.Translations;
 using Radarr.Http;
 

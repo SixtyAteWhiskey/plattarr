@@ -1,5 +1,6 @@
 using FluentAssertions;
 using NUnit.Framework;
+using NzbDrone.Core.Movies.Parser;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Test.Framework;
 

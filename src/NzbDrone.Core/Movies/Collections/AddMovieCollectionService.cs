@@ -2,8 +2,8 @@ using System;
 using NLog;
 using NzbDrone.Common.EnsureThat;
 using NzbDrone.Core.Exceptions;
-using NzbDrone.Core.MetadataSource;
-using NzbDrone.Core.Parser;
+using NzbDrone.Core.Movies.MetadataSource;
+using NzbDrone.Core.Movies.Parser;
 
 namespace NzbDrone.Core.Movies.Collections
 {

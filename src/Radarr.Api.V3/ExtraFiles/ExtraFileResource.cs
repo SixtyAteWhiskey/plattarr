@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
-using NzbDrone.Core.Extras.Files;
-using NzbDrone.Core.Extras.Metadata.Files;
-using NzbDrone.Core.Extras.Others;
-using NzbDrone.Core.Extras.Subtitles;
+using NzbDrone.Core.Movies.Extras.Files;
+using NzbDrone.Core.Movies.Extras.Metadata.Files;
+using NzbDrone.Core.Movies.Extras.Others;
+using NzbDrone.Core.Movies.Extras.Subtitles;
 using Radarr.Http.REST;
 
 namespace Radarr.Api.V3.ExtraFiles

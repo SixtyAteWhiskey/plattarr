@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Dapper;
-using NzbDrone.Core.MediaFiles;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Movies.MediaFiles;
+using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Upstream;
 
 namespace NzbDrone.Core.Movies.Upstream

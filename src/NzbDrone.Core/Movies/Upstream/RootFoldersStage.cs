@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Movies.RootFolders;
 using NzbDrone.Core.Upstream;
 
 namespace NzbDrone.Core.Movies.Upstream

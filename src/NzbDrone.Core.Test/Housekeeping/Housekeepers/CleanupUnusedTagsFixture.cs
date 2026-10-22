@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
-using NzbDrone.Core.AutoTagging;
-using NzbDrone.Core.AutoTagging.Specifications;
 using NzbDrone.Core.Housekeeping.Housekeepers;
 using NzbDrone.Core.IndexerProxies;
 using NzbDrone.Core.IndexerProxies.Http;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.Newznab;
+using NzbDrone.Core.Movies.AutoTagging;
+using NzbDrone.Core.Movies.AutoTagging.Specifications;
 using NzbDrone.Core.Movies.Collections;
 using NzbDrone.Core.Profiles.Releases;
 using NzbDrone.Core.Tags;
@@ -102,7 +102,7 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
                 CleanTitle = "collection",
                 TmdbId = 10,
                 RootFolderPath = "/movies",
-                Images = new List<NzbDrone.Core.MediaCover.MediaCover>(),
+                Images = new List<NzbDrone.Core.Movies.MediaCover.MediaCover>(),
                 Added = DateTime.UtcNow,
                 Tags = new HashSet<int> { tags[0].Id }
             });

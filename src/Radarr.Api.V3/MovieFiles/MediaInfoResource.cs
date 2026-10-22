@@ -1,6 +1,6 @@
 using System;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.MediaFiles.MediaInfo;
+using NzbDrone.Core.Movies.MediaFiles.MediaInfo;
 using Radarr.Http.REST;
 
 namespace Radarr.Api.V3.MovieFiles

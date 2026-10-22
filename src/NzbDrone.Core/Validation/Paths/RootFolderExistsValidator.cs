@@ -1,7 +1,7 @@
 ﻿using FluentValidation.Validators;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Movies.RootFolders;
 
 namespace NzbDrone.Core.Validation.Paths
 {

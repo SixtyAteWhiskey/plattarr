@@ -3,9 +3,9 @@ using NUnit.Framework;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Notifications;
+using NzbDrone.Core.Movies.RootFolders;
 using NzbDrone.Core.Notifications;
 using NzbDrone.Core.Parser.Model;
-using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Test.DecisionEngineTests.ReleaseSpecifications;
 using NzbDrone.Test.Common;
 

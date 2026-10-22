@@ -2,8 +2,8 @@
 using System.IO;
 using NLog;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.Organizer;
-using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Movies.Organizer;
+using NzbDrone.Core.Movies.RootFolders;
 
 namespace NzbDrone.Core.Movies
 {

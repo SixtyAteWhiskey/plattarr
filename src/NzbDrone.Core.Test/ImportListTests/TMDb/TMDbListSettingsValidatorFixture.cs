@@ -1,6 +1,6 @@
 using FluentAssertions;
 using NUnit.Framework;
-using NzbDrone.Core.ImportLists.TMDb.List;
+using NzbDrone.Core.Movies.ImportLists.TMDb.List;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.ImportListTests.TMDb

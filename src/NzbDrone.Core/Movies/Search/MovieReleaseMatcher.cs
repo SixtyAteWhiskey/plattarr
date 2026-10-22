@@ -1,7 +1,8 @@
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.Modules;
-using NzbDrone.Core.Parser;
+using NzbDrone.Core.Movies.Parser;
+using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Movies.Search

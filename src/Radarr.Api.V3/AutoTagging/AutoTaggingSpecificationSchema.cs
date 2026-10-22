@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using NzbDrone.Core.AutoTagging.Specifications;
+using NzbDrone.Core.Movies.AutoTagging.Specifications;
 using Radarr.Http.ClientSchema;
 using Radarr.Http.REST;
 

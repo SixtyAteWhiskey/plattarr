@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
-using NzbDrone.Core.AutoTagging;
-using NzbDrone.Core.AutoTagging.Specifications;
+using NzbDrone.Core.Movies.AutoTagging;
+using NzbDrone.Core.Movies.AutoTagging.Specifications;
 using Radarr.Http.ClientSchema;
 using Radarr.Http.REST;
 

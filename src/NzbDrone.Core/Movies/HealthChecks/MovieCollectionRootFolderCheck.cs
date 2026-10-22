@@ -7,7 +7,7 @@ using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.Localization;
 using NzbDrone.Core.Movies.Collections;
 using NzbDrone.Core.Movies.Events;
-using NzbDrone.Core.RootFolders;
+using NzbDrone.Core.Movies.RootFolders;
 
 namespace NzbDrone.Core.Movies.HealthChecks
 {

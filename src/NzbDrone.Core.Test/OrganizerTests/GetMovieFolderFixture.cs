@@ -2,7 +2,7 @@ using System.IO;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Organizer;
+using NzbDrone.Core.Movies.Organizer;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.OrganizerTests

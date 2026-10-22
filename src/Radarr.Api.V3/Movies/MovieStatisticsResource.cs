@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using NzbDrone.Core.MovieStats;
+using NzbDrone.Core.Movies.MovieStats;
 using NzbDrone.Core.Qualities;
 
 namespace Radarr.Api.V3.Movies

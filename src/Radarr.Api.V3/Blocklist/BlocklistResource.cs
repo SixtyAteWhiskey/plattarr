@@ -27,7 +27,7 @@ namespace Radarr.Api.V3.Blocklist
 
     public static class BlocklistResourceMapper
     {
-        public static BlocklistResource MapToResource(this NzbDrone.Core.Blocklisting.Blocklist model, ICustomFormatCalculationService formatCalculator)
+        public static BlocklistResource MapToResource(this NzbDrone.Core.Movies.Blocklisting.Blocklist model, ICustomFormatCalculationService formatCalculator)
         {
             if (model == null)
             {

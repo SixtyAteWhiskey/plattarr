@@ -4,7 +4,7 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.EnvironmentInfo;
-using NzbDrone.Core.ImportLists;
+using NzbDrone.Core.Movies.ImportLists;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.ImportList

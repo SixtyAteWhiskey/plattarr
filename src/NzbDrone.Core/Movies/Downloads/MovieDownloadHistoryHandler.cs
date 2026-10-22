@@ -2,11 +2,11 @@ using System;
 using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download.History;
-using NzbDrone.Core.History;
-using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies.Events;
+using NzbDrone.Core.Movies.History;
+using NzbDrone.Core.Movies.MediaFiles.Events;
 
 namespace NzbDrone.Core.Movies.Downloads
 {
