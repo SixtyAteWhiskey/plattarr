@@ -1394,6 +1394,68 @@ Tv API resources need distinct names.
 the repository fixtures under `NzbDrone.Core.Test/TvTests`, and `ActivityFilterSqlFixture` run on
 SQLite and PostgreSQL. Each was checked by breaking the code under test and seeing the test fail.
 
+### TV step 2: as built
+
+Built in session 37 against Sonarr `b3d4bb8`. No migration, no table change. Calls made while
+building (each is reversible):
+
+- **Ported into `NzbDrone.Core.Tv.Parser`**: `Parser` (`Tv.Parser.Parser`), `QualityParser`,
+  `LanguageParser`, `ReleaseGroupParser`, `ParserCommon`, `ReleaseComparer`, `SceneChecker`,
+  `ValidateParsedEpisodeInfo`, `InvalidSeasonException`, and in `Tv.Parser.Model`
+  `ParsedEpisodeInfo`, `SeriesTitleInfo`, `SubtitleTitleInfo`, `ReleaseComparerModel`,
+  `FindSeriesResult` (`ReleaseType` came with step 1). Quality and language output is the global
+  catalog; the ID maps (`SonarrQualityIds`, `SonarrLanguageIds`) already existed from the catalog work.
+- **`ReleaseGroupParser` and `ParserCommon` are Tv copies, not merged into core.** The core versions
+  are Radarr's and differ in content, not just names: Sonarr's release group regex handles HDTV and
+  non-ASCII groups and its cleanup strips an `S01E01` prefix, Radarr's handles `tmdbid`/`imdbid`
+  tags; the exception lists and their precedence differ; Sonarr's `PreSubstitutionRegex` (Chinese
+  and Korean release rewrites) and `PathPreSubstitutionRegex` are empty in Radarr. A union would
+  change Movies parsing. Merging is optional later work.
+- **`MediaFileExtensions` and `FileExtensions` are Tv copies and must NOT move to core at step 5.**
+  The s36 note listed `MediaFileExtensions` among the files identical in both apps. They are not:
+  Radarr maps `.mkv` to WEBDL-720p, adds `.mk3d`, and maps `.ts` and `.wtv` to SDTV; Sonarr maps
+  `.mkv`, `.ts` and `.wtv` to HDTV-720p. `FileExtensions.RemoveFileExtension` reads the matching
+  `MediaFileExtensions`, so it follows. The extension guess feeds the parser (the Raw-HD branch of
+  `QualityParser`). Step 5 moves only files that diff clean.
+- **Sonarr's source vocabulary stays inside the TV module.** The catalog uses Radarr's (source plus
+  modifier). Sonarr's `QualityParser` reasons in `Television`, `TelevisionRaw`, `Web`, `WebRip`,
+  `DVD`, `Bluray`, `BlurayRaw` and compares them with `>=`, so `TvQualityFinder` holds Sonarr's 22
+  qualities as a table of (catalog quality, Sonarr source, resolution) and runs Sonarr's
+  `QualityFinder` over it. A test requires the table to hold exactly the IDs of `SonarrQualityIds`,
+  so the TV parser cannot return a quality Sonarr never had. Remuxes are `BlurayRaw`, so a 720p
+  remux finds nothing and returns Unknown, as in Sonarr.
+- **Two deliberate differences from Sonarr's parser tests.** (1) `RemuxRegex` accepts a leading `[`
+  (Radarr's regex already does). The catalog names are `Remux-1080p` and `Remux-2160p`, which the
+  file namer writes; Sonarr's regex only knew `Bluray-1080p Remux`, so a renamed remux re-parsed as
+  HDTV-1080p. `parsing_our_own_quality_enum_name` caught it. (2) `Ríkið` cleans to `rikið`, not
+  `rikid`: Sonarr's test expects the second with the same Diacritical.Net 1.0.5 and the same code,
+  but the library does not transliterate the eth (checked in isolation). The cause of the upstream
+  difference is not known. The clean title is built the same way on both sides of a match, so the
+  matching is consistent; the test records the observed value.
+- **Scene mappings ported** to `Tv.DataAugmentation.Scene`: `SceneMappingService`,
+  `ISceneMappingProvider`, `ServicesProvider`, `SceneMappingProxy`, `UpdateSceneMappingCommand`,
+  `SceneMappingsUpdatedEvent`, `InvalidSceneMappingException`. The entity, repository and
+  `SearchMode` came with step 1. `ISonarrCloudRequestBuilder.Services` (`NzbDrone.Common.Cloud`)
+  points at `https://services.sonarr.tv/v1/`; it has no metadata endpoint yet (step 3).
+- **Visible effect.** `TvModule` now schedules the scene mapping update every 3 hours (Sonarr's
+  interval), so a Plattarr instance fetches the mapping list from the Sonarr project's data service
+  and fills `Tv_SceneMappings`. Nothing reads the table until step 4. This is the plan's decision to
+  use Sonarr's data services for TV; the task can be removed from `TvModule.ScheduledTasks`.
+- **Events added without a publisher.** `SeriesRefreshStartingEvent`, `SeriesAddedEvent` and
+  `SeriesImportedEvent` (`Tv.Events`) exist because `SceneMappingService` handles them. Until
+  step 3 publishes them the scheduled task is the only trigger.
+- **Deferred on purpose.** `ParsingService` (needs the series and episode services, step 3),
+  `LocalEpisode` (import, step 5), `RemoteEpisode` and `GrabbedReleaseInfo` (decisions, step 4),
+  `ImportListItemInfo` (import lists), and `XemService`, `XemProxy` and `DailySeries*` (they read
+  and write series and episodes; step 3).
+
+**Tests.** All of Sonarr's `ParserTests` except `IsoLanguagesFixture` (core code shared with Movies,
+which has its own fixture) and `ParsingServiceTests` (deferred) run under
+`NzbDrone.Core.Test/TvTests/ParserTests`: 1,670 cases, plus `SceneMappingServiceFixture`,
+`SceneMappingProxyFixture` (integration, live service), `TvQualityFinderFixture` and
+`TvModuleFixture`. Mutation checks, each killed: removing the `[` from `RemuxRegex`, removing the
+sub-720p rule in `TvQualityFinder`, changing the task interval.
+
 ## Decision record
 
 Owner answers, 2026-10-20, to the six questions in revision 1:
