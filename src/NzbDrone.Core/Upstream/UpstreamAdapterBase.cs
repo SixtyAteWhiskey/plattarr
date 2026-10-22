@@ -138,6 +138,13 @@ namespace NzbDrone.Core.Upstream
             using var reader = command.ExecuteReader();
 
             var columns = Enumerable.Range(0, reader.FieldCount).Select(reader.GetName).ToList();
+
+            // The SQLite driver turns a DATETIME column into a DateTime itself and, for text with a
+            // trailing Z (what Radarr writes), shifts it to the machine's local time without saying
+            // so. Dates are read as the stored text instead, and SourceRow reads them as UTC.
+            var dateColumns = Enumerable.Range(0, reader.FieldCount)
+                .Where(i => string.Equals(reader.GetDataTypeName(i), "DATETIME", StringComparison.OrdinalIgnoreCase))
+                .ToHashSet();
             var rows = new List<SourceRow>();
 
             while (reader.Read())
@@ -146,7 +153,7 @@ namespace NzbDrone.Core.Upstream
 
                 for (var i = 0; i < columns.Count; i++)
                 {
-                    values[columns[i]] = reader.GetValue(i);
+                    values[columns[i]] = dateColumns.Contains(i) && !reader.IsDBNull(i) ? reader.GetString(i) : reader.GetValue(i);
                 }
 
                 rows.Add(new SourceRow(values));

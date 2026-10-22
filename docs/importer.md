@@ -321,15 +321,22 @@ mandatory column still fails the run, and messages name the column, never the va
 `DateTimeOffset` or text and always return UTC: a value with no zone is taken as UTC (Radarr
 writes UTC), a value with an offset is converted. Text that is not a date throws without
 echoing it. The target keeps microseconds on Postgres, so the seventh fractional digit Radarr
-writes is dropped there.
+writes is dropped there. **The adapter reads `DATETIME` columns as the stored text.** The SQLite
+driver otherwise converts them itself and, for text ending in `Z`, shifts the value to the
+machine's local time without a zone; on a server not set to UTC every date would have moved by
+the offset. Radarr 242 writes `YYYY-MM-DD HH:MM:SS.fffffffZ` (five to seven fractional digits,
+or none for release dates).
 
 **Deferred.** `ImportListMovies` waits for the import list stage, which needs the settings
 and provider work.
 
-**Not yet confirmed against real rows.** The fixtures are hand-built from the Radarr 242
-schema and the session 30 dump. The date text format and the JSON of `Images`, `Ratings` and
-`MediaInfo` in the owner's database have not been read directly; the readers are tolerant,
-and the cutover rehearsal is the real test.
+**Checked against the owner's database (session 31, read-only, shapes only).** Dates, `Images`
+(`coverType` string, `remoteUrl`), `Ratings` (`type` `user`, 1 to 5 providers), `MediaInfo` (22
+key-set variants, `runTime` as `hh:mm:ss.fffffff`, `videoHdrFormat` as camel-case names such as
+`dolbyVisionHdr10`), `Quality`, `Languages`, `Genres`, `Keywords`, `Recommendations`, `Tags` and
+`LanguageTags` all parse; none was malformed. `MovieStagesFixture` has a test with those shapes
+(values replaced). Not yet run: the stages over a copy of the real database, which is the
+cutover rehearsal.
 
 Tests (`MovieStagesFixture`, `SourceRowFixture`, `ProfilesStageFixture`; SQLite and
 Postgres): each rule above, with a read-back through the target repositories. One test pins
