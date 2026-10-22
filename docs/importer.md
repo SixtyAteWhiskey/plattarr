@@ -1,6 +1,8 @@
 # Importer for `radarr.db` and `prowlarr.db`
 
-Status: **design note, not built** (roadmap Phase 2, item 1). Decisions marked
+Status: **design note; the adapter read layer is built** (see
+[Read layer](#read-layer-built)). The planner, writer, verifier and command are not
+(roadmap Phase 2, item 1). Decisions marked
 *(reversible)* were made by Claude under the owner's standing delegation
 ("least technical debt later, most efficient") and can change without rework
 elsewhere.
@@ -144,6 +146,45 @@ treat a source as one of N.
 `SupportedVersions.Min` or above `Max` it fails with the version it found, unless
 `allowNewerSource` is set (then it warns). The range is filled in from the real
 databases (see [Facts](#facts-this-design-relies-on)), not guessed.
+
+## Read layer (built)
+
+`NzbDrone.Core.Upstream`: `IUpstreamAdapter`, `UpstreamAdapterBase` (version gate,
+tolerant table reader, counts), `RadarrAdapter`, `ProwlarrAdapter`,
+`UpstreamSourceCopy` (private read-only copy, WAL files, backup zips), `SourceRow`,
+`SourceSnapshot`, `ImportOptions`, `SkipReason`.
+
+Where it differs from the sketch above:
+
+- **Rows are `SourceRow`, not one class per table.** A row is keyed by column name
+  (case-insensitive) and an absent column is not an error, so an older schema reads with
+  the columns it has. Typed rows are the planner's job, table by table. Mandatory
+  columns throw (`GetInt`, `GetBool`), optional ones return null. Error messages name
+  the column, never the value.
+- **`IUpstreamAdapter.DatabaseFileName`** was added so a backup zip can be searched for
+  `radarr.db` or `prowlarr.db`. Only the entry's name is used, never its stored path.
+- **Tables that are not read are counted.** `SourceSnapshot.SkippedTables` holds the row
+  count and reason code per table, so the reconciliation (rows read = written + skipped)
+  covers every table. A counted table the source lacks is not listed.
+- **Version range** is `1` to the dumped version (Radarr 242, Prowlarr 44). The floor is
+  not a tested lower bound.
+- **Prowlarr `Config` is counted, not read** (reason `INSTANCE`). See open item 6.
+
+Checked against the real schemas (`src/NzbDrone.Core.Test/Files/Upstream/`, DDL only,
+no rows, byte-identical to the dump): every table in `radarr.db` (41) and `prowlarr.db`
+(20) is either read or counted, and a test fails when one is neither. Two tables the
+note lists do not exist in these databases: Radarr `Logs` and `UpdateHistory` (logs live
+in `logs.db`). Other findings from the schemas:
+
+- **Prowlarr `DownloadClients` has a different column set** from Radarr's: `Categories`
+  (JSON, default `[]`, Prowlarr's mapping of indexer categories to client categories)
+  and no `Tags`, `RemoveCompletedDownloads` or `RemoveFailedDownloads`. The copy list in
+  [Download clients](#download-clients) holds for Radarr clients only; a Prowlarr-only
+  client has no tags or removal flags to carry.
+- **Radarr `Indexers.EnableRss` and `EnableAutomaticSearch` are nullable**
+  (`EnableInteractiveSearch` is not). The planner must treat NULL as "not set".
+- **Prowlarr `Notifications` has no per-movie event columns** and adds
+  `IncludeManualGrabs`, which Radarr's table lacks.
 
 ## Mapping
 
@@ -583,6 +624,13 @@ this data (the rule stays for other users). `Prowlarr.History` is not imported.
    carried).
 5. Confirm that `moduleCategories` is stored for a client created through the API
    (Finding 5).
+6. **Prowlarr `Config`.** The mapping table imports global settings from it; the dump
+   findings say it holds secrets under unreadable keys and is never read. The adapter
+   follows the findings (counted only). Decide which keys, if any, are wanted, and read
+   exactly those.
+7. Scrubbed row fixtures for the planner (a movie with a file, the `DownloadHistory`
+   `Release` JSON, a qBittorrent client in the old shape) are still to be written. Only
+   schemas and two synthetic indexer rows exist so far.
 
 Implementation order once the dump is in: adapter read layer and fixtures, then the
 planner with its unit tests, then the writer for the movie tables, then the activity
