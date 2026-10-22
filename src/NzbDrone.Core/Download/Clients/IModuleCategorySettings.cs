@@ -29,9 +29,23 @@ namespace NzbDrone.Core.Download.Clients
             return entry;
         }
 
-        // The entry a download belongs to: the one whose category it sits in. Tracked downloads do
-        // not route by category yet (with TV), so a download that matches no entry belongs to
-        // Movies, as it does everywhere else.
+        // The media type a download in this category belongs to: the one whose entry carries the
+        // category. Null for an empty category or one no entry uses. Tracked download routing rule 2.
+        public static MediaKind? KindForCategory(this IModuleCategorySettings settings, string category)
+        {
+            if (category.IsNullOrWhiteSpace())
+            {
+                return null;
+            }
+
+            return settings.ModuleCategories?
+                .FirstOrDefault(c => c.Category.IsNotNullOrWhiteSpace() && string.Equals(c.Category, category, StringComparison.OrdinalIgnoreCase))?
+                .Kind;
+        }
+
+        // The entry a download belongs to: the one whose category it sits in. A download that
+        // matches no entry gets Movies' (the category lookup the clients use to read their own
+        // items; tracked download routing does not use this fallback, see KindForCategory).
         public static ModuleCategorySettings ForCategory(this IModuleCategorySettings settings, string category)
         {
             var entry = category.IsNullOrWhiteSpace()

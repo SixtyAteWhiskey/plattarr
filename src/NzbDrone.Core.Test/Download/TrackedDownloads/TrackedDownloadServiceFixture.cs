@@ -1,398 +1,254 @@
 using System.Collections.Generic;
-using System.Linq;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Download.History;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Indexers;
-using NzbDrone.Core.Indexers.Overrides;
-using NzbDrone.Core.Languages;
+using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
-using NzbDrone.Core.Movies;
-using NzbDrone.Core.Movies.Events;
-using NzbDrone.Core.Movies.History;
-using NzbDrone.Core.Movies.Parser;
-using NzbDrone.Core.Movies.Parser.Model;
+using NzbDrone.Core.Test.DecisionEngineTests.ReleaseSpecifications;
 using NzbDrone.Core.Test.Framework;
+using NzbDrone.Core.ThingiProvider;
+using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Test.Download.TrackedDownloads
 {
+    // Contract 5 routing: the service decides the media type of a download (grab history, then the
+    // client category, then the title) and hands it to that media type's matcher. A movie matcher and
+    // a TV matcher stand in for two modules.
     [TestFixture]
     public class TrackedDownloadServiceFixture : CoreTest<TrackedDownloadService>
     {
+        private Mock<ITrackedDownloadMatcher> _movieMatcher;
+        private Mock<ITrackedDownloadMatcher> _tvMatcher;
+
+        private class CategorySettings : IProviderConfig, IModuleCategorySettings
+        {
+            public List<ModuleCategorySettings> ModuleCategories { get; set; } = new();
+
+            public NzbDroneValidationResult Validate()
+            {
+                return new NzbDroneValidationResult();
+            }
+        }
+
         [SetUp]
         public void Setup()
         {
+            _movieMatcher = GivenMatcher(MediaKind.Movies, false);
+            _tvMatcher = GivenMatcher(MediaKind.Tv, false);
+
+            Mocker.SetConstant<IEnumerable<ITrackedDownloadMatcher>>(new[] { _movieMatcher.Object, _tvMatcher.Object });
         }
 
-        private void GivenDownloadHistory()
+        private static Mock<ITrackedDownloadMatcher> GivenMatcher(MediaKind kind, bool matchesTitle)
         {
-            Mocker.GetMock<IHistoryService>()
-                .Setup(s => s.FindByDownloadId(It.Is<string>(sr => sr == "35238")))
-                .Returns(new List<MovieHistory>()
-                {
-                    new MovieHistory()
-                    {
-                        DownloadId = "35238",
-                        SourceTitle = "TV Series S01",
-                        ParentId = 3,
-                    }
-                });
+            var matcher = new Mock<ITrackedDownloadMatcher>();
+            matcher.SetupGet(m => m.Kind).Returns(kind);
+            matcher.Setup(m => m.MatchesTitle(It.IsAny<string>())).Returns(matchesTitle);
+            matcher.Setup(m => m.Match(It.IsAny<TrackedDownload>(), It.IsAny<DownloadHistory>()))
+                   .Callback<TrackedDownload, DownloadHistory>((t, h) => t.RemoteRelease = new TvRemoteRelease());
+
+            return matcher;
         }
 
-        [Test]
-        public void should_track_downloads_using_the_source_title_if_it_cannot_be_found_using_the_download_title()
+        private void GivenSingleMatcher(Mock<ITrackedDownloadMatcher> matcher)
         {
-            GivenDownloadHistory();
+            Mocker.SetConstant<IEnumerable<ITrackedDownloadMatcher>>(new[] { matcher.Object });
+        }
 
-            var remoteMovie = new RemoteMovie
+        private static DownloadClientDefinition Client(params (MediaKind Kind, string Category)[] categories)
+        {
+            var settings = new CategorySettings();
+
+            foreach (var (kind, category) in categories)
             {
-                Movie = new Movie() { Id = 3 },
+                settings.ModuleCategories.Add(new ModuleCategorySettings { Kind = kind, Category = category });
+            }
 
-                ParsedMovieInfo = new ParsedMovieInfo()
-                {
-                    MovieTitles = new List<string> { "A Movie" },
-                    Year = 1998
-                }
-            };
+            return new DownloadClientDefinition { Id = 1, Protocol = DownloadProtocol.Torrent, Settings = settings };
+        }
 
-            Mocker.GetMock<IParsingService>()
-                  .Setup(s => s.Map(It.Is<ParsedMovieInfo>(i => i.PrimaryMovieTitle == "A Movie"), It.IsAny<string>(), It.IsAny<int>(), null))
-                  .Returns(remoteMovie);
-
-            var client = new DownloadClientDefinition()
+        private static DownloadClientItem Item(string title = "Something 2020", string category = null, string downloadId = "35238")
+        {
+            return new DownloadClientItem
             {
-                Id = 1,
-                Protocol = DownloadProtocol.Torrent
-            };
-
-            var item = new DownloadClientItem()
-            {
-                Title = "A Movie 1998",
-                DownloadId = "35238",
+                Title = title,
+                Category = category,
+                DownloadId = downloadId,
                 DownloadClientInfo = new DownloadClientItemClientInfo
                 {
-                    Protocol = client.Protocol,
-                    Id = client.Id,
-                    Name = client.Name
-                }
-            };
-
-            var trackedDownload = Subject.TrackDownload(client, item);
-
-            trackedDownload.Should().NotBeNull();
-            trackedDownload.RemoteMovie.Should().NotBeNull();
-            trackedDownload.RemoteMovie.Movie.Should().NotBeNull();
-            trackedDownload.RemoteMovie.Movie.Id.Should().Be(3);
-        }
-
-        [Test]
-        public void should_set_indexer()
-        {
-            var episodeHistory = new MovieHistory()
-            {
-                DownloadId = "35238",
-                SourceTitle = "TV Series S01",
-                ParentId = 3,
-                EventType = MovieHistoryEventType.Grabbed,
-            };
-            episodeHistory.Data.Add("indexer", "MyIndexer (Prowlarr)");
-            Mocker.GetMock<IHistoryService>()
-                .Setup(s => s.FindByDownloadId(It.Is<string>(sr => sr == "35238")))
-                .Returns(new List<MovieHistory>()
-                {
-                    episodeHistory
-                });
-
-            var indexerDefinition = new IndexerDefinition
-            {
-                Id = 1,
-                Name = "MyIndexer (Prowlarr)"
-            };
-            Mocker.GetMock<IIndexerOverrideService>()
-                .Setup(v => v.Get(indexerDefinition.Id, MediaKind.Movies))
-                .Returns(new IndexerOverride { IndexerId = indexerDefinition.Id, MediaKind = MediaKind.Movies, MultiLanguages = new List<int> { Language.Original.Id, Language.French.Id } });
-            Mocker.GetMock<IIndexerFactory>()
-                .Setup(v => v.Get(indexerDefinition.Id))
-                .Returns(indexerDefinition);
-            Mocker.GetMock<IIndexerFactory>()
-                .Setup(v => v.All())
-                .Returns(new List<IndexerDefinition>() { indexerDefinition });
-
-            var remoteEpisode = new RemoteMovie
-            {
-                Movie = new Movie() { Id = 3 },
-                ParsedMovieInfo = new ParsedMovieInfo()
-                {
-                    MovieTitles = new List<string> { "A Movie" },
-                    Year = 1998
-                }
-            };
-
-            Mocker.GetMock<IParsingService>()
-                .Setup(s => s.Map(It.IsAny<ParsedMovieInfo>(), It.IsAny<string>(), It.IsAny<int>(), null))
-                .Returns(remoteEpisode);
-
-            var client = new DownloadClientDefinition()
-            {
-                Id = 1,
-                Protocol = DownloadProtocol.Torrent
-            };
-
-            var item = new DownloadClientItem()
-            {
-                Title = "A Movie 1998",
-                DownloadId = "35238",
-                DownloadClientInfo = new DownloadClientItemClientInfo
-                {
-                    Protocol = client.Protocol,
-                    Id = client.Id,
-                    Name = client.Name
-                }
-            };
-
-            var trackedDownload = Subject.TrackDownload(client, item);
-
-            trackedDownload.Should().NotBeNull();
-            trackedDownload.RemoteMovie.Should().NotBeNull();
-            trackedDownload.RemoteMovie.Release.Should().NotBeNull();
-            trackedDownload.RemoteMovie.Release.Indexer.Should().Be("MyIndexer (Prowlarr)");
-        }
-
-        [Test]
-        public void should_unmap_tracked_download_if_movie_deleted()
-        {
-            GivenDownloadHistory();
-
-            var remoteMovie = new RemoteMovie
-            {
-                Movie = new Movie() { Id = 3 },
-
-                ParsedMovieInfo = new ParsedMovieInfo()
-                {
-                    MovieTitles = { "A Movie" },
-                    Year = 1998
-                }
-            };
-
-            Mocker.GetMock<IParsingService>()
-                  .Setup(s => s.Map(It.IsAny<ParsedMovieInfo>(), It.IsAny<string>(), It.IsAny<int>(), null))
-                  .Returns(remoteMovie);
-
-            Mocker.GetMock<IHistoryService>()
-                  .Setup(s => s.FindByDownloadId(It.IsAny<string>()))
-                  .Returns(new List<MovieHistory>());
-
-            var client = new DownloadClientDefinition()
-            {
-                Id = 1,
-                Protocol = DownloadProtocol.Torrent
-            };
-
-            var item = new DownloadClientItem()
-            {
-                Title = "A Movie 1998",
-                DownloadId = "12345",
-                DownloadClientInfo = new DownloadClientItemClientInfo
-                {
+                    Protocol = DownloadProtocol.Torrent,
                     Id = 1,
-                    Type = "Blackhole",
-                    Name = "Blackhole Client",
-                    Protocol = DownloadProtocol.Torrent
+                    Name = "Client"
                 }
             };
+        }
 
-            Subject.TrackDownload(client, item);
-            Subject.GetTrackedDownloads().Should().HaveCount(1);
-
-            Mocker.GetMock<IParsingService>()
-                  .Setup(s => s.Map(It.IsAny<ParsedMovieInfo>(), It.IsAny<string>(), It.IsAny<int>(), null))
-                  .Returns(default(RemoteMovie));
-
-            Subject.Handle(new MoviesDeletedEvent(new List<Movie> { remoteMovie.Movie }, false, false));
-
-            var trackedDownloads = Subject.GetTrackedDownloads();
-            trackedDownloads.Should().HaveCount(1);
-            trackedDownloads.First().RemoteMovie.Should().BeNull();
+        private void GivenDownloadHistory(MediaKind kind, DownloadHistoryEventType eventType = DownloadHistoryEventType.DownloadGrabbed)
+        {
+            Mocker.GetMock<IDownloadHistoryService>()
+                  .Setup(s => s.GetLatestDownloadHistoryItem("35238"))
+                  .Returns(new DownloadHistory { MediaKind = kind, EventType = eventType, ParentId = 5 });
         }
 
         [Test]
-        public void should_not_throw_when_processing_deleted_movie()
+        public void should_route_by_the_download_history_first()
         {
-            GivenDownloadHistory();
+            GivenDownloadHistory(MediaKind.Tv);
 
-            var remoteMovie = new RemoteMovie
-            {
-                Movie = new Movie() { Id = 3 },
+            // The category and the title both say movies; the grab history wins.
+            _movieMatcher.Setup(m => m.MatchesTitle(It.IsAny<string>())).Returns(true);
 
-                ParsedMovieInfo = new ParsedMovieInfo()
-                {
-                    MovieTitles = { "A Movie" },
-                    Year = 1998
-                }
-            };
+            var tracked = Subject.TrackDownload(Client((MediaKind.Movies, "movies")), Item(category: "movies"));
 
-            Mocker.GetMock<IParsingService>()
-                  .Setup(s => s.Map(It.IsAny<ParsedMovieInfo>(), It.IsAny<string>(), It.IsAny<int>(), null))
-                  .Returns(default(RemoteMovie));
+            tracked.Kind.Should().Be(MediaKind.Tv);
+            _tvMatcher.Verify(m => m.Match(tracked, It.IsAny<DownloadHistory>()), Times.Once());
+            _movieMatcher.Verify(m => m.Match(It.IsAny<TrackedDownload>(), It.IsAny<DownloadHistory>()), Times.Never());
+        }
 
-            Mocker.GetMock<IHistoryService>()
-                  .Setup(s => s.FindByDownloadId(It.IsAny<string>()))
-                  .Returns(new List<MovieHistory>());
+        [Test]
+        public void should_pass_the_download_history_to_the_matcher()
+        {
+            GivenDownloadHistory(MediaKind.Movies, DownloadHistoryEventType.DownloadImported);
 
-            var client = new DownloadClientDefinition()
-            {
-                Id = 1,
-                Protocol = DownloadProtocol.Torrent
-            };
+            var tracked = Subject.TrackDownload(Client(), Item());
 
-            var item = new DownloadClientItem()
-            {
-                Title = "A Movie 1998",
-                DownloadId = "12345",
-                DownloadClientInfo = new DownloadClientItemClientInfo
-                {
-                    Id = 1,
-                    Type = "Blackhole",
-                    Name = "Blackhole Client",
-                    Protocol = DownloadProtocol.Torrent
-                }
-            };
+            _movieMatcher.Verify(m => m.Match(tracked, It.Is<DownloadHistory>(h => h.EventType == DownloadHistoryEventType.DownloadImported && h.ParentId == 5)), Times.Once());
+            tracked.State.Should().Be(TrackedDownloadState.Imported);
+        }
 
-            Subject.TrackDownload(client, item);
-            Subject.GetTrackedDownloads().Should().HaveCount(1);
+        [Test]
+        public void should_route_by_the_client_category_without_history()
+        {
+            var tracked = Subject.TrackDownload(Client((MediaKind.Movies, "plattarr-movies"), (MediaKind.Tv, "plattarr-tv")), Item(category: "PLATTARR-TV"));
 
-            Mocker.GetMock<IParsingService>()
-                  .Setup(s => s.Map(It.IsAny<ParsedMovieInfo>(), It.IsAny<string>(), It.IsAny<int>(), null))
-                  .Returns(default(RemoteMovie));
+            tracked.Kind.Should().Be(MediaKind.Tv);
+            _tvMatcher.Verify(m => m.Match(tracked, null), Times.Once());
+        }
 
-            Subject.Handle(new MoviesDeletedEvent(new List<Movie> { remoteMovie.Movie }, false, false));
+        [Test]
+        public void should_prefer_the_category_over_the_title()
+        {
+            _movieMatcher.Setup(m => m.MatchesTitle(It.IsAny<string>())).Returns(true);
 
-            var trackedDownloads = Subject.GetTrackedDownloads();
-            trackedDownloads.Should().HaveCount(1);
-            trackedDownloads.First().RemoteMovie.Should().BeNull();
+            var tracked = Subject.TrackDownload(Client((MediaKind.Tv, "tv")), Item(category: "tv"));
+
+            tracked.Kind.Should().Be(MediaKind.Tv);
+        }
+
+        [Test]
+        public void should_route_by_the_title_when_exactly_one_media_type_matches_it()
+        {
+            _tvMatcher.Setup(m => m.MatchesTitle("Some Show S01E02")).Returns(true);
+
+            var tracked = Subject.TrackDownload(Client((MediaKind.Movies, "movies")), Item("Some Show S01E02", category: "unrelated"));
+
+            tracked.Kind.Should().Be(MediaKind.Tv);
+        }
+
+        [Test]
+        public void should_leave_the_kind_empty_when_several_media_types_match_the_title()
+        {
+            _movieMatcher.Setup(m => m.MatchesTitle(It.IsAny<string>())).Returns(true);
+            _tvMatcher.Setup(m => m.MatchesTitle(It.IsAny<string>())).Returns(true);
+
+            var tracked = Subject.TrackDownload(Client(), Item());
+
+            tracked.Kind.Should().BeNull();
+            tracked.RemoteRelease.Should().BeNull();
+            tracked.IsTrackable.Should().BeTrue();
+            _movieMatcher.Verify(m => m.Match(It.IsAny<TrackedDownload>(), It.IsAny<DownloadHistory>()), Times.Never());
+            _tvMatcher.Verify(m => m.Match(It.IsAny<TrackedDownload>(), It.IsAny<DownloadHistory>()), Times.Never());
+        }
+
+        [Test]
+        public void should_leave_the_kind_empty_when_nothing_matches_and_there_is_more_than_one_media_type()
+        {
+            var tracked = Subject.TrackDownload(Client(), Item());
+
+            tracked.Kind.Should().BeNull();
+            Subject.GetTrackedDownloads().Should().Contain(tracked);
+        }
+
+        [Test]
+        public void should_give_an_unattributed_download_to_the_only_media_type()
+        {
+            GivenSingleMatcher(_movieMatcher);
+
+            var tracked = Subject.TrackDownload(Client(), Item());
+
+            tracked.Kind.Should().Be(MediaKind.Movies);
+            _movieMatcher.Verify(m => m.Match(tracked, null), Times.Once());
+        }
+
+        [Test]
+        public void should_ignore_a_category_whose_media_type_is_not_installed()
+        {
+            GivenSingleMatcher(_movieMatcher);
+
+            var tracked = Subject.TrackDownload(Client((MediaKind.Music, "music")), Item(category: "music"));
+
+            tracked.Kind.Should().Be(MediaKind.Movies);
+        }
+
+        [Test]
+        public void should_not_match_again_a_download_that_is_already_past_downloading()
+        {
+            GivenDownloadHistory(MediaKind.Movies);
+
+            var first = Subject.TrackDownload(Client(), Item());
+            first.State = TrackedDownloadState.Imported;
+
+            var second = Subject.TrackDownload(Client(), Item());
+
+            second.Should().BeSameAs(first);
+            _movieMatcher.Verify(m => m.Match(It.IsAny<TrackedDownload>(), It.IsAny<DownloadHistory>()), Times.Once());
         }
 
         [Test]
         public void should_retrack_as_downloading_when_grabbed_again_after_being_imported()
         {
-            Mocker.GetMock<IHistoryService>()
-                .Setup(s => s.FindByDownloadId(It.Is<string>(sr => sr == "35238")))
-                .Returns([]);
+            GivenDownloadHistory(MediaKind.Movies, DownloadHistoryEventType.DownloadImported);
 
-            Mocker.GetMock<IDownloadHistoryService>()
-                .Setup(s => s.GetLatestDownloadHistoryItem(It.Is<string>(sr => sr == "35238")))
-                .Returns(new DownloadHistory
-                {
-                    ParentId = 5,
-                    EventType = DownloadHistoryEventType.DownloadImported,
-                });
-
-            var remoteMovie = new RemoteMovie
-            {
-                Movie = new Movie { Id = 5 },
-                ParsedMovieInfo = new ParsedMovieInfo
-                {
-                    MovieTitles = { "A Movie" },
-                    Year = 1998
-                },
-            };
-
-            Mocker.GetMock<IParsingService>()
-                .Setup(s => s.Map(It.Is<ParsedMovieInfo>(i => i.Year == 1998 && i.MovieTitle == "A Movie"), It.IsAny<int>()))
-                .Returns(remoteMovie);
-
-            var client = new DownloadClientDefinition
-            {
-                Id = 1,
-                Protocol = DownloadProtocol.Torrent
-            };
-
-            var item = new DownloadClientItem
-            {
-                Title = "A Movie 1998",
-                DownloadId = "35238",
-                DownloadClientInfo = new DownloadClientItemClientInfo
-                {
-                    Protocol = client.Protocol,
-                    Id = client.Id,
-                    Name = client.Name
-                }
-            };
-
-            var imported = Subject.TrackDownload(client, item);
+            var imported = Subject.TrackDownload(Client(), Item());
             imported.State.Should().Be(TrackedDownloadState.Imported);
 
-            Subject.Handle(new ReleaseGrabbedEvent(remoteMovie) { DownloadId = "35238" });
+            Subject.Handle(new ReleaseGrabbedEvent(new TvRemoteRelease()) { DownloadId = "35238" });
 
-            Mocker.GetMock<IDownloadHistoryService>()
-                .Setup(s => s.GetLatestDownloadHistoryItem(It.Is<string>(sr => sr == "35238")))
-                .Returns(new DownloadHistory
-                {
-                    ParentId = 5,
-                    EventType = DownloadHistoryEventType.DownloadGrabbed,
-                });
+            GivenDownloadHistory(MediaKind.Movies);
 
-            var regrabbed = Subject.TrackDownload(client, item);
+            var regrabbed = Subject.TrackDownload(Client(), Item());
             regrabbed.State.Should().Be(TrackedDownloadState.Downloading);
         }
 
         [Test]
-        public void should_track_downloads_using_the_movie_id_for_already_imported_downloads()
+        public void rematch_should_ask_the_media_type_of_each_download_and_publish_the_refresh()
         {
-            Mocker.GetMock<IHistoryService>()
-                .Setup(s => s.FindByDownloadId(It.Is<string>(sr => sr == "35238")))
-                .Returns([]);
+            GivenDownloadHistory(MediaKind.Tv);
 
-            Mocker.GetMock<IDownloadHistoryService>()
-                .Setup(s => s.GetLatestDownloadHistoryItem(It.Is<string>(sr => sr == "35238")))
-                .Returns(new DownloadHistory
-                {
-                    ParentId = 5,
-                    EventType = DownloadHistoryEventType.DownloadImported,
-                });
+            var tv = Subject.TrackDownload(Client(), Item());
+            var movie = Subject.TrackDownload(Client((MediaKind.Movies, "movies")), Item(category: "movies", downloadId: "999"));
 
-            var remoteMovie = new RemoteMovie
-            {
-                Movie = new Movie { Id = 5 },
-                ParsedMovieInfo = new ParsedMovieInfo
-                {
-                    MovieTitles = { "A Movie" },
-                    Year = 1998
-                },
-            };
+            Subject.Rematch(new List<TrackedDownload> { tv });
 
-            Mocker.GetMock<IParsingService>()
-                .Setup(s => s.Map(It.Is<ParsedMovieInfo>(i => i.Year == 1998 && i.MovieTitle == "A Movie"), It.IsAny<int>()))
-                .Returns(remoteMovie);
+            _tvMatcher.Verify(m => m.Rematch(tv), Times.Once());
+            _movieMatcher.Verify(m => m.Rematch(It.IsAny<TrackedDownload>()), Times.Never());
+            movie.Kind.Should().Be(MediaKind.Movies);
+            Mocker.GetMock<IEventAggregator>()
+                  .Verify(e => e.PublishEvent(It.IsAny<TrackedDownloadRefreshedEvent>()), Times.Once());
+        }
 
-            var client = new DownloadClientDefinition
-            {
-                Id = 1,
-                Protocol = DownloadProtocol.Torrent
-            };
+        [Test]
+        public void rematch_should_do_nothing_for_an_empty_list()
+        {
+            Subject.Rematch(new List<TrackedDownload>());
 
-            var item = new DownloadClientItem
-            {
-                Title = "A Movie 1998",
-                DownloadId = "35238",
-                DownloadClientInfo = new DownloadClientItemClientInfo
-                {
-                    Protocol = client.Protocol,
-                    Id = client.Id,
-                    Name = client.Name
-                }
-            };
-
-            var trackedDownload = Subject.TrackDownload(client, item);
-
-            trackedDownload.Should().NotBeNull();
-            trackedDownload.RemoteMovie.Should().NotBeNull();
-            trackedDownload.RemoteMovie.Movie.Should().NotBeNull();
-            trackedDownload.RemoteMovie.Movie.Id.Should().Be(5);
-            trackedDownload.RemoteMovie.ParsedMovieInfo.Year.Should().Be(1998);
+            Mocker.GetMock<IEventAggregator>()
+                  .Verify(e => e.PublishEvent(It.IsAny<TrackedDownloadRefreshedEvent>()), Times.Never());
         }
     }
 }

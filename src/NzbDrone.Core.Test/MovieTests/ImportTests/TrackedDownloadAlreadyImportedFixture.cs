@@ -32,7 +32,7 @@ namespace NzbDrone.Core.Test.MovieTests.ImportTests
                                                          .Build();
 
             _trackedDownload = Builder<TrackedDownload>.CreateNew()
-                                                       .With(t => t.RemoteMovie = remoteMovie)
+                                                       .With(t => t.RemoteRelease = remoteMovie)
                                                        .With(t => t.DownloadItem = downloadItem)
                                                        .Build();
 

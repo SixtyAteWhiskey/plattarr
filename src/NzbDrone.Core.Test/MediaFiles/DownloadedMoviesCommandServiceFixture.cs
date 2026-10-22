@@ -47,7 +47,7 @@ namespace NzbDrone.Core.Test.MediaFiles
             _trackedDownload = new TrackedDownload
             {
                 DownloadItem = downloadItem,
-                RemoteMovie = remoteMovie,
+                RemoteRelease = remoteMovie,
                 State = TrackedDownloadState.Downloading
             };
         }
@@ -99,7 +99,7 @@ namespace NzbDrone.Core.Test.MediaFiles
 
             Subject.Execute(new DownloadedMoviesScanCommand() { Path = _downloadFolder, DownloadClientId = "sab1" });
 
-            Mocker.GetMock<IDownloadedMovieImportService>().Verify(c => c.ProcessPath(_downloadFolder, ImportMode.Auto, _trackedDownload.RemoteMovie.Movie, _trackedDownload.DownloadItem), Times.Once());
+            Mocker.GetMock<IDownloadedMovieImportService>().Verify(c => c.ProcessPath(_downloadFolder, ImportMode.Auto, _trackedDownload.GetRemoteMovie().Movie, _trackedDownload.DownloadItem), Times.Once());
         }
 
         [Test]

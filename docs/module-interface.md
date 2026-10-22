@@ -759,6 +759,46 @@ A download in the client must be attributed to one module before import:
    module's `MapFromTitle`. Exactly one match wins. Zero or several matches
    leave the download in the queue with a `ManualInteractionRequired` warning.
 
+As built in TV porting step 0, item 3 (tracked download routing). Contract 5
+gains `ITrackedDownloadMatcher` (`NzbDrone.Core.Modules`): `Kind`,
+`MatchesTitle(title)`, `Match(trackedDownload, downloadHistory)` and
+`Rematch(trackedDownload)`. `TrackedDownloadService` no longer parses titles or
+reads movie history. It takes every matcher, picks the media type of a new
+download, stores it in `TrackedDownload.Kind`, and calls that matcher's `Match`:
+
+1. The latest `DownloadHistory` row for the download id, when its `MediaKind`
+   has a matcher.
+2. The client category: `IModuleCategorySettings.KindForCategory` returns the
+   media type whose entry holds the category (case-insensitive, empty and
+   unknown categories give none). Only clients with category settings take
+   part.
+3. The title: each matcher's `MatchesTitle`. Exactly one yes wins. With no yes
+   and a single matcher installed, that matcher owns the download (this is
+   the Movies-only behavior of every earlier step, kept so a one-module
+   install is unchanged). With several yes, or no yes and several matchers,
+   `Kind` stays empty, the download is still tracked and shown in the queue,
+   and `CompletedDownloadService` blocks it with "No media type claims this
+   download" (a deliberate difference from the text above, which warns with
+   `ManualInteractionRequired`: with no kind there is no module to send that
+   notification).
+
+`TrackedDownload.RemoteMovie` is gone. Movie code reads
+`trackedDownload.GetRemoteMovie()` / `GetMovie()` (`MovieTrackedDownloadExtensions`,
+like `MovieQueueExtensions` for the queue). The movie logic moved unchanged to
+`Movies.Downloads.MovieTrackedDownloadMatcher`: parse the title, map it (by
+`ParentId` when the history row is `DownloadImported`), fall back to the grab
+history's source title, copy indexer and indexer flags from the grab, augment,
+calculate custom formats, and warn on the tracked download for several movies
+or a parse failure. The library events (`MovieAdded/Edited/BulkEdited/Deleted`)
+moved to `MovieTrackedDownloadRefresher`, which selects the Movies downloads
+that are affected and calls `ITrackedDownloadService.Rematch`; the service asks
+each one's matcher to `Rematch` and publishes `TrackedDownloadRefreshedEvent`
+once. The refresher also turns `MovieFileImportedEvent` into the core
+`RefreshDownloadsRequestedEvent`, which `DownloadMonitoringService` debounces
+as before (it used to handle the movie event itself). `TrackedDownload`,
+`TrackedDownloadService` and `DownloadMonitoringService` left the boundary
+allowlist (30 to 27). No schema change.
+
 As built in porting step 9l (aggregators; compared with Sonarr `b3d4bb8`).
 No core contract. Radarr's and Sonarr's aggregation services each take their
 own remote type (`RemoteMovie`, `RemoteEpisode`), and Sonarr's only aggregator
@@ -767,8 +807,8 @@ aggregators are module code. `IRemoteMovieAggregationService`,
 `RemoteMovieAggregationService`, `IAggregateRemoteMovie` and
 `AggregateLanguages` moved to `NzbDrone.Core.Movies.Aggregation`; their
 callers (`DownloadDecisionMaker`, `PendingReleaseService`, the parse
-controller) are movie code, and `TrackedDownloadService` stays on the
-allowlist until tracking is generalized. Freeing the `Download.Aggregation`
+controller) are movie code, and `TrackedDownloadService` stayed on the
+allowlist until tracking was generalized (see the routing step above). Freeing the `Download.Aggregation`
 name lets the TV module add its own without a rename. No behavior or schema
 change.
 

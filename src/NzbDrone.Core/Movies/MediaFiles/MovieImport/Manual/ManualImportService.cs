@@ -214,7 +214,7 @@ namespace NzbDrone.Core.Movies.MediaFiles.MovieImport.Manual
 
                 if (movie == null)
                 {
-                    movie = trackedDownload.RemoteMovie?.Movie;
+                    movie = trackedDownload.GetRemoteMovie()?.Movie;
                 }
             }
 
@@ -267,7 +267,7 @@ namespace NzbDrone.Core.Movies.MediaFiles.MovieImport.Manual
 
                 if (trackedDownload != null && movie == null)
                 {
-                    movie = trackedDownload?.RemoteMovie?.Movie;
+                    movie = trackedDownload?.GetRemoteMovie()?.Movie;
                 }
 
                 if (movie == null)
@@ -437,7 +437,7 @@ namespace NzbDrone.Core.Movies.MediaFiles.MovieImport.Manual
                 if (file.DownloadId.IsNotNullOrWhiteSpace())
                 {
                     trackedDownload = _trackedDownloadService.Find(file.DownloadId);
-                    localMovie.DownloadClientMovieInfo = trackedDownload?.RemoteMovie?.ParsedMovieInfo;
+                    localMovie.DownloadClientMovieInfo = trackedDownload?.GetRemoteMovie()?.ParsedMovieInfo;
                     localMovie.DownloadItem = trackedDownload?.DownloadItem;
                 }
 

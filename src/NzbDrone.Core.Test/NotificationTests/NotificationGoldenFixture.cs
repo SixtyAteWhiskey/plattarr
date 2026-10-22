@@ -189,7 +189,7 @@ namespace NzbDrone.Core.Test.NotificationTests
         {
             var td = new TrackedDownload
             {
-                RemoteMovie = remote,
+                RemoteRelease = remote,
                 DownloadItem = new DownloadClientItem
                 {
                     DownloadId = "HASH123",

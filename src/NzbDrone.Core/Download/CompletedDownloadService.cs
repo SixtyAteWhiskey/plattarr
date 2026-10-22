@@ -177,9 +177,9 @@ namespace NzbDrone.Core.Download
                 return importer;
             }
 
-            // Every tracked download gets a kind today (TrackedDownloadService). Without one, or with
-            // a media type that has no importer, there is nobody to import it, and no module to ask
-            // for a manual-interaction notification.
+            // TrackedDownloadService gives a download no kind when no rule attributes it to one media
+            // type. Without a kind, or with a media type that has no importer, there is nobody to
+            // import it, and no module to ask for a manual-interaction notification.
             trackedDownload.Warn("No media type claims this download, automatic import is not possible. Manual Import required.");
             trackedDownload.State = TrackedDownloadState.ImportBlocked;
 

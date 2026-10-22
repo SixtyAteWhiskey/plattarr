@@ -45,7 +45,7 @@ namespace NzbDrone.Core.Test.QueueTests
                 .All()
                 .With(v => v.IsTrackable = true)
                 .With(v => v.DownloadItem = downloadItem)
-                .With(v => v.RemoteMovie = _remoteMovie)
+                .With(v => v.RemoteRelease = _remoteMovie)
                 .Build()
                 .ToList();
         }

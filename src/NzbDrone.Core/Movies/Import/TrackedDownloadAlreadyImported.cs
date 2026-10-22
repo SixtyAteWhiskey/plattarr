@@ -31,7 +31,7 @@ namespace NzbDrone.Core.Movies.Import
                 return false;
             }
 
-            var movie = trackedDownload.RemoteMovie.Movie;
+            var movie = trackedDownload.GetRemoteMovie().Movie;
 
             var lastHistoryItem = historyItems.FirstOrDefault(h => h.ParentId == movie.Id);
 

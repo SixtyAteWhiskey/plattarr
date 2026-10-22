@@ -201,7 +201,7 @@ namespace NzbDrone.Core.Movies.Notifications
             }
 
             var trackedDownload = message.TrackedDownload;
-            var remoteMovie = trackedDownload.RemoteMovie;
+            var remoteMovie = trackedDownload.GetRemoteMovie();
             var movie = remoteMovie?.Movie;
             var text = "";
 
