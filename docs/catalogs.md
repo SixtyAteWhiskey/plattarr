@@ -1,4 +1,4 @@
-# Quality and language catalogs (porting step 8d)
+# Quality and language catalogs (built in porting step 8d)
 
 Status: **decided** 2026-10-20 (session 13). The owner chose a separate
 audio catalog and left numbering to Claude; the choices are recorded in
@@ -154,16 +154,6 @@ Radarr clients omit it, so a missing value on update keeps the stored one. A
 quality profile accepts only `movies` and `tv`. `/api/v3` still lists every
 profile and format, since the UI uses it; the `/radarr/api/v3`
 compatibility API will list only the ones that apply to Movies.
-
-### Order of work
-
-1. 8d1: catalogs and translation tables. `Quality` and `Language` carry
-   catalog IDs; Radarr's parsers keep producing the same objects, so they
-   output catalog IDs with no parser change. Fix tests that hard-code
-   upstream IDs. `001_initial` seeds no `QualityDefinitions` rows;
-   `QualityDefinitionService` creates them at startup from the catalog.
-2. 8d2: `AppliesTo` on profiles and custom formats and filtered reads in the
-   movie code.
 
 ## Decisions
 
