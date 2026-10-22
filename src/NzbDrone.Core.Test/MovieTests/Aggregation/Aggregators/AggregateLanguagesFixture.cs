@@ -3,16 +3,16 @@ using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
-using NzbDrone.Core.Download.Aggregation.Aggregators;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.Overrides;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Aggregation.Aggregators;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 
-namespace NzbDrone.Core.Test.Download.Aggregation.Aggregators
+namespace NzbDrone.Core.Test.MovieTests.Aggregation.Aggregators
 {
     [TestFixture]
     public class AggregateLanguagesFixture : CoreTest<AggregateLanguages>

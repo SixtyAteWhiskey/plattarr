@@ -8,7 +8,7 @@ using NzbDrone.Common.Serializer;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.DecisionEngine.ReleaseSpecifications;
 using NzbDrone.Core.DecisionEngine.Specifications;
-using NzbDrone.Core.Download.Aggregation;
+using NzbDrone.Core.Movies.Aggregation;
 using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;

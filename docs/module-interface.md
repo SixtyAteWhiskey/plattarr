@@ -796,6 +796,19 @@ A download in the client must be attributed to one module before import:
    module's `MapFromTitle`. Exactly one match wins. Zero or several matches
    leave the download in the queue with a `ManualInteractionRequired` warning.
 
+As built in porting step 9l (aggregators; compared with Sonarr `b3d4bb8`).
+No core contract. Radarr's and Sonarr's aggregation services each take their
+own remote type (`RemoteMovie`, `RemoteEpisode`), and Sonarr's only aggregator
+(`AggregateLanguages`) reads the episode parse result and series, so the
+aggregators are module code. `IRemoteMovieAggregationService`,
+`RemoteMovieAggregationService`, `IAggregateRemoteMovie` and
+`AggregateLanguages` moved to `NzbDrone.Core.Movies.Aggregation`; their
+callers (`DownloadDecisionMaker`, `PendingReleaseService`, the parse
+controller) are movie code, and `TrackedDownloadService` stays on the
+allowlist until tracking is generalized. Freeing the `Download.Aggregation`
+name lets the TV module add its own without a rename. No behavior or schema
+change.
+
 ### Contract 6: Activity
 
 History, blocklist, pending releases, and download history are shared tables

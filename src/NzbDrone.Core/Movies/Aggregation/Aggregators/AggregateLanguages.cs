@@ -10,7 +10,7 @@ using NzbDrone.Core.Modules;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 
-namespace NzbDrone.Core.Download.Aggregation.Aggregators
+namespace NzbDrone.Core.Movies.Aggregation.Aggregators
 {
     public class AggregateLanguages : IAggregateRemoteMovie
     {
