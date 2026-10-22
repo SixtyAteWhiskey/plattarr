@@ -671,16 +671,16 @@ this data (the rule stays for other users). `Prowlarr.History` is not imported.
    Look for one in another Prowlarr database before relying on the rename, or keep the
    adapter tolerant of both `appMinimumSeeders` and `minimumSeeders`. Still open; the
    Prowlarr indexer settings translation is not built.
-4. Decide, with the owner, the two reversible calls most likely to matter in practice:
-   Prowlarr-only download clients (skipped; none exist in the owner's data, so this
-   one only matters for other users) and instance keys such as the API key (not
-   carried).
+4. ~~Decide the two reversible calls.~~ Decided by the owner 2026-10-22: Prowlarr-only
+   download clients are skipped and reported (none exist in the owner's data, so this
+   only matters for other users); instance keys such as the API key are not carried.
 5. Confirm that `moduleCategories` is stored for a client created through the API
    (Finding 5).
-6. **Prowlarr `Config`.** The mapping table imports global settings from it; the dump
-   findings say it holds secrets under unreadable keys and is never read. The adapter
-   follows the findings (counted only). Decide which keys, if any, are wanted, and read
-   exactly those.
+6. ~~Prowlarr `Config`.~~ Decided 2026-10-22 (owner delegated): import no keys. The table
+   holds secrets under unreadable keys and no setting in it is needed for the movie
+   loop. The adapter keeps counting it (reason `INSTANCE`). Adding a key later means
+   naming it in the adapter and the mapping table; no migration. The "Configuration"
+   mapping table should drop its Prowlarr `Config` rows when the settings stage is built.
 7. Scrubbed row fixtures: the building blocks have theirs (`UpstreamFixtureTest`:
    tags, a qBittorrent client, five indexers, a grab row, Prowlarr applications and
    sync records). Still to write: a movie with a file, history chains, blocklist,
