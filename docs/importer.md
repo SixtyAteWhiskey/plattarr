@@ -120,12 +120,17 @@ docker compose run --rm plattarr /import /radarr=/import/radarr.db /prowlarr=/im
   rows from the `IdMap` the earlier stages filled, the writer inserts them and records
   the new IDs (`IdMap.Record`), and the next stage plans. Nothing is written outside the
   one transaction, so a failed stage still rolls everything back.
-- **Writer**: inserts through the existing repositories (`InsertMany`), so the table
-  mapper and its converters (`QualityIntConverter`, `LanguageIntConverter`) apply and
-  Postgres behaves the same as SQLite. Order is fixed by dependencies (see
-  [Write order](#write-order)).
-- **Verifier**: runs inside the transaction after the writes. Any failure rolls back
-  (see [Verification](#verification)).
+- **Writer**: inserts through the existing repositories so the table mapper and its
+  converters (`QualityIntConverter`, `LanguageIntConverter`) apply and Postgres behaves
+  the same as SQLite. **It must use the caller-transaction overloads**
+  `InsertMany(models, connection, transaction)` and `UpdateMany(models, connection,
+  transaction)` (see [Target-side pieces](#target-side-pieces-built)). The plain
+  `InsertMany` opens its own connection and commits at once, so a design built on it
+  cannot roll back. Order is fixed by dependencies (see [Write order](#write-order)).
+- **Verifier**: runs inside the transaction after the writes, with plain SQL on the
+  import's own connection. A repository call (`All()`, `Count()`) opens another
+  connection that cannot see uncommitted rows. Any failure rolls back (see
+  [Verification](#verification)).
 
 **IDs are not preserved.** Repositories assign new IDs, and merging forces a remap for
 tags, profiles, clients and indexers anyway; remapping everything keeps one mechanism.
@@ -224,10 +229,30 @@ Radarr-specific, movie-vocabulary pieces above. The contract the Movies module
 registers for the core planner is not designed yet. Design it together with the
 activity planner against its real caller, not ahead of it.
 
+## Target-side pieces (built)
+
+Found while starting the writer. Both are in core and used by the importer only for now.
+
+- **Caller-transaction repository overloads.** `BasicRepository` gained
+  `InsertMany(models, connection, transaction)` and `UpdateMany(models, connection,
+  transaction)`, on `IBasicRepository<T>`. They assign IDs like `InsertMany`, commit
+  nothing and raise no event. The importer opens one connection, begins one
+  transaction, passes both to every repository, and commits only after the verifier
+  passes. Tests (`CallerTransactionRepositoryFixture`, SQLite and Postgres): IDs are
+  assigned, rows from two different repositories roll back together, a model with an ID
+  is refused. Shown to fail when the overload commits on its own. Two consequences:
+  no other connection may write meanwhile (SQLite allows one writer, and a repository
+  call would hit `Busy` and retry), and any read the planner or verifier needs from the
+  target is plain SQL on the import's connection.
+- **`TagUsage.Tables`** (`NzbDrone.Core.Tags`): the list of tables with a `Tags` column,
+  extracted from `CleanupUnusedTags`, which now reads it. `TagUsageFixture` compares it
+  with the real table mapping, so a new tag-using table fails a test. Metadata consumers
+  (`Movies_Metadata`) are mapped with `Tags` ignored and have no column, so they are
+  correctly absent; adding them breaks the housekeeper (`no such column`), which the
+  first version of the test caught.
+
 Gaps found while building these, to close before the writer:
 
-- `CleanupUnusedTags` holds its tag-table list inline. Extract it to a shared list so a
-  completeness test can compare the importer's tag remap against it.
 - `AutoTagging.Specifications` holds tag IDs inside `TagSpecification` and needs the same
   remap as a `Tags` column.
 - Fixtures are written by hand from documented shapes until `tools/upstream-fixtures`
@@ -441,8 +466,9 @@ adapter reads has a position.
 
 ## Verification
 
-Runs in the transaction after the writes; any failure rolls back and the report says
-which check failed.
+Runs in the transaction after the writes, with plain SQL on the import's connection
+(see [Pipeline](#pipeline)); any failure rolls back and the report says which check
+failed.
 
 1. **Reconciliation.** For every source table, rows read = rows written + rows skipped.
    The report prints the table.
