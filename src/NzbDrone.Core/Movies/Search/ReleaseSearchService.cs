@@ -119,8 +119,8 @@ namespace NzbDrone.Core.Movies.Search
         private List<DownloadDecision> DeDupeDecisions(List<DownloadDecision> decisions)
         {
             // De-dupe reports by guid so duplicate results aren't returned. Pick the one with the least rejections and higher indexer priority.
-            return decisions.GroupBy(d => d.RemoteMovie.Release.Guid)
-                .Select(d => d.OrderBy(v => v.Rejections.Count()).ThenBy(v => v.RemoteMovie?.Release?.IndexerPriority ?? IndexerDefinition.DefaultPriority).First())
+            return decisions.GroupBy(d => d.GetRemoteMovie().Release.Guid)
+                .Select(d => d.OrderBy(v => v.Rejections.Count()).ThenBy(v => v.GetRemoteMovie()?.Release?.IndexerPriority ?? IndexerDefinition.DefaultPriority).First())
                 .ToList();
         }
     }

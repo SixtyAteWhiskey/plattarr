@@ -1,12 +1,15 @@
 using System.Collections.Generic;
 using System.Linq;
-using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Modules;
 
 namespace NzbDrone.Core.DecisionEngine
 {
+    // The outcome of the decision engine for one release. The release is the module's match
+    // (RemoteMovie, RemoteEpisode, RemoteAlbum); module code reads it through its own extension
+    // (Movies.MovieDecisionExtensions).
     public class DownloadDecision
     {
-        public RemoteMovie RemoteMovie { get; private set; }
+        public RemoteRelease RemoteRelease { get; private set; }
 
         public IEnumerable<DownloadRejection> Rejections { get; private set; }
 
@@ -28,9 +31,9 @@ namespace NzbDrone.Core.DecisionEngine
             }
         }
 
-        public DownloadDecision(RemoteMovie movie, params DownloadRejection[] rejections)
+        public DownloadDecision(RemoteRelease release, params DownloadRejection[] rejections)
         {
-            RemoteMovie = movie;
+            RemoteRelease = release;
             Rejections = rejections.ToList();
         }
 
@@ -38,10 +41,10 @@ namespace NzbDrone.Core.DecisionEngine
         {
             if (Approved)
             {
-                return "[OK] " + RemoteMovie;
+                return "[OK] " + RemoteRelease;
             }
 
-            return "[Rejected " + Rejections.Count() + "]" + RemoteMovie;
+            return "[Rejected " + Rejections.Count() + "]" + RemoteRelease;
         }
     }
 }

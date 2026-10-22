@@ -154,7 +154,7 @@ namespace Radarr.Api.V3.Indexers
             try
             {
                 var decisions = await _releaseSearchService.MovieSearch(movieId, true, true);
-                var prioritizedDecisions = _prioritizeDownloadDecision.PrioritizeDecisionsForMovies(decisions);
+                var prioritizedDecisions = _prioritizeDownloadDecision.PrioritizeDecisions(decisions);
                 var history = _historyService.FindByMovieId(movieId);
 
                 return MapDecisions(prioritizedDecisions, history);
@@ -176,7 +176,7 @@ namespace Radarr.Api.V3.Indexers
                 .Where(r => _indexerCategoryService.BelongsTo(r, MediaKind.Movies))
                 .ToList();
             var decisions = _downloadDecisionMaker.GetRssDecision(reports);
-            var prioritizedDecisions = _prioritizeDownloadDecision.PrioritizeDecisionsForMovies(decisions);
+            var prioritizedDecisions = _prioritizeDownloadDecision.PrioritizeDecisions(decisions);
 
             return MapDecisions(prioritizedDecisions);
         }
@@ -184,7 +184,7 @@ namespace Radarr.Api.V3.Indexers
         protected override ReleaseResource MapDecision(DownloadDecision decision, int initialWeight)
         {
             var resource = base.MapDecision(decision, initialWeight);
-            _remoteMovieCache.Set(GetCacheKey(resource), decision.RemoteMovie, TimeSpan.FromMinutes(30));
+            _remoteMovieCache.Set(GetCacheKey(resource), decision.GetRemoteMovie(), TimeSpan.FromMinutes(30));
 
             return resource;
         }
@@ -202,7 +202,7 @@ namespace Radarr.Api.V3.Indexers
             {
                 var release = MapDecision(downloadDecision, result.Count);
 
-                release.History = AddHistory(downloadDecision.RemoteMovie.Release, history);
+                release.History = AddHistory(downloadDecision.GetRemoteMovie().Release, history);
 
                 result.Add(release);
             }

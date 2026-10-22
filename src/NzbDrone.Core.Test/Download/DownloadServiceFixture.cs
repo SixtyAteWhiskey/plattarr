@@ -16,6 +16,7 @@ using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Test.DecisionEngineTests.ReleaseSpecifications;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.Download
@@ -81,7 +82,7 @@ namespace NzbDrone.Core.Test.Download
 
             await Subject.DownloadReport(_parseResult, null);
 
-            VerifyEventPublished<MovieGrabbedEvent>();
+            VerifyEventPublished<ReleaseGrabbedEvent>();
         }
 
         private Mock<IIndexer> GivenReleaseFromIndexer()
@@ -158,7 +159,7 @@ namespace NzbDrone.Core.Test.Download
 
             Assert.ThrowsAsync<WebException>(async () => await Subject.DownloadReport(_parseResult, null));
 
-            VerifyEventNotPublished<MovieGrabbedEvent>();
+            VerifyEventNotPublished<ReleaseGrabbedEvent>();
         }
 
         [Test]
@@ -254,7 +255,7 @@ namespace NzbDrone.Core.Test.Download
             Assert.ThrowsAsync<DownloadClientUnavailableException>(async () => await Subject.DownloadReport(_parseResult, null));
 
             Mocker.GetMock<IDownloadClient>().Verify(c => c.Download(It.IsAny<RemoteMovie>(), It.IsAny<IIndexer>()), Times.Never());
-            VerifyEventNotPublished<MovieGrabbedEvent>();
+            VerifyEventNotPublished<ReleaseGrabbedEvent>();
         }
 
         [Test]
@@ -277,7 +278,7 @@ namespace NzbDrone.Core.Test.Download
 
             Mocker.GetMock<IDownloadClientStatusService>().Verify(c => c.GetBlockedProviders(), Times.Never());
             mockUsenet.Verify(c => c.Download(It.IsAny<RemoteMovie>(), It.IsAny<IIndexer>()), Times.Once());
-            VerifyEventPublished<MovieGrabbedEvent>();
+            VerifyEventPublished<ReleaseGrabbedEvent>();
         }
 
         [Test]
@@ -304,6 +305,37 @@ namespace NzbDrone.Core.Test.Download
 
             mockTorrent.Verify(c => c.Download(It.IsAny<RemoteMovie>(), It.IsAny<IIndexer>()), Times.Once());
             mockUsenet.Verify(c => c.Download(It.IsAny<RemoteMovie>(), It.IsAny<IIndexer>()), Times.Never());
+        }
+
+        [Test]
+        public async Task Download_report_should_grab_a_release_of_another_media_type()
+        {
+            var tv = new TvRemoteRelease
+            {
+                Series = new TvParent { Id = 3, Title = "A Series" },
+                Release = _parseResult.Release
+            };
+
+            var mock = WithUsenetClient();
+            mock.Setup(s => s.Download(tv, It.IsAny<IIndexer>())).ReturnsAsync("download-id");
+
+            await Subject.DownloadReport(tv, null);
+
+            mock.Verify(c => c.Download(tv, It.IsAny<IIndexer>()), Times.Once());
+            Mocker.GetMock<IEventAggregator>()
+                .Verify(e => e.PublishEvent(It.Is<ReleaseGrabbedEvent>(g => ReferenceEquals(g.Release, tv) && g.DownloadId == "download-id")), Times.Once());
+        }
+
+        [Test]
+        public void Download_report_should_refuse_a_release_without_a_parent()
+        {
+            var tv = new TvRemoteRelease { Series = null, Release = _parseResult.Release };
+
+            WithUsenetClient();
+
+            Assert.ThrowsAsync<ArgumentNullException>(() => Subject.DownloadReport(tv, null));
+
+            VerifyEventNotPublished<ReleaseGrabbedEvent>();
         }
     }
 }

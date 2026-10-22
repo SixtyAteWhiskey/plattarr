@@ -13,13 +13,14 @@ using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.Events;
 using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.Download
 {
     public interface IDownloadService
     {
-        Task DownloadReport(RemoteMovie remoteMovie, int? downloadClientId);
+        Task DownloadReport(RemoteRelease release, int? downloadClientId);
     }
 
     public class DownloadService : IDownloadService
@@ -52,114 +53,114 @@ namespace NzbDrone.Core.Download
             _logger = logger;
         }
 
-        public async Task DownloadReport(RemoteMovie remoteMovie, int? downloadClientId)
+        public async Task DownloadReport(RemoteRelease release, int? downloadClientId)
         {
-            var filterBlockedClients = remoteMovie.Release.PendingReleaseReason == PendingReleaseReason.DownloadClientUnavailable;
+            var filterBlockedClients = release.Release.PendingReleaseReason == PendingReleaseReason.DownloadClientUnavailable;
 
-            var tags = remoteMovie.Movie?.Tags;
+            var tags = release.Parent?.Tags;
 
             var downloadClient = downloadClientId.HasValue
                 ? _downloadClientProvider.Get(downloadClientId.Value)
-                : _downloadClientProvider.GetDownloadClient(remoteMovie.Release.DownloadProtocol, remoteMovie.Release.IndexerId, filterBlockedClients, tags);
+                : _downloadClientProvider.GetDownloadClient(release.Release.DownloadProtocol, release.Release.IndexerId, filterBlockedClients, tags);
 
-            await DownloadReport(remoteMovie, downloadClient);
+            await DownloadReport(release, downloadClient);
         }
 
-        private async Task DownloadReport(RemoteMovie remoteMovie, IDownloadClient downloadClient)
+        private async Task DownloadReport(RemoteRelease release, IDownloadClient downloadClient)
         {
-            Ensure.That(remoteMovie.Movie, () => remoteMovie.Movie).IsNotNull();
+            Ensure.That(release.Parent, () => release.Parent).IsNotNull();
 
-            var downloadTitle = remoteMovie.Release.Title;
+            var downloadTitle = release.Release.Title;
 
             if (downloadClient == null)
             {
-                throw new DownloadClientUnavailableException($"{remoteMovie.Release.DownloadProtocol} Download client isn't configured yet");
+                throw new DownloadClientUnavailableException($"{release.Release.DownloadProtocol} Download client isn't configured yet");
             }
 
             // Get the seed configuration for this release.
-            remoteMovie.SeedConfiguration = _seedConfigProvider.GetSeedConfiguration(remoteMovie.Release);
+            release.SeedConfiguration = _seedConfigProvider.GetSeedConfiguration(release.Release);
 
             // Limit grabs to 2 per second.
-            if (remoteMovie.Release.DownloadUrl.IsNotNullOrWhiteSpace() && !remoteMovie.Release.DownloadUrl.StartsWith("magnet:"))
+            if (release.Release.DownloadUrl.IsNotNullOrWhiteSpace() && !release.Release.DownloadUrl.StartsWith("magnet:"))
             {
-                var url = new HttpUri(remoteMovie.Release.DownloadUrl);
+                var url = new HttpUri(release.Release.DownloadUrl);
                 await _rateLimitService.WaitAndPulseAsync(url.Host, TimeSpan.FromSeconds(2));
             }
 
             IIndexer indexer = null;
 
-            if (remoteMovie.Release.IndexerId > 0)
+            if (release.Release.IndexerId > 0)
             {
-                indexer = _indexerFactory.GetInstance(_indexerFactory.Get(remoteMovie.Release.IndexerId));
+                indexer = _indexerFactory.GetInstance(_indexerFactory.Get(release.Release.IndexerId));
             }
 
             string downloadClientId;
             try
             {
-                downloadClientId = await downloadClient.Download(remoteMovie, indexer);
+                downloadClientId = await downloadClient.Download(release, indexer);
                 _downloadClientStatusService.RecordSuccess(downloadClient.Definition.Id);
-                _indexerStatusService.RecordSuccess(remoteMovie.Release.IndexerId);
+                _indexerStatusService.RecordSuccess(release.Release.IndexerId);
             }
             catch (ReleaseUnavailableException)
             {
-                _logger.Trace("Release {0} no longer available on indexer.", remoteMovie);
-                PublishIndexerGrab(remoteMovie, indexer, downloadClient, null, false);
+                _logger.Trace("Release {0} no longer available on indexer.", release);
+                PublishIndexerGrab(release, indexer, downloadClient, null, false);
                 throw;
             }
             catch (ReleaseBlockedException)
             {
-                _logger.Trace("Release {0} previously added to blocklist, not sending to download client again.", remoteMovie);
+                _logger.Trace("Release {0} previously added to blocklist, not sending to download client again.", release);
                 throw;
             }
             catch (DownloadClientRejectedReleaseException)
             {
-                _logger.Trace("Release {0} rejected by download client, possible duplicate.", remoteMovie);
+                _logger.Trace("Release {0} rejected by download client, possible duplicate.", release);
                 throw;
             }
             catch (ReleaseDownloadException ex)
             {
                 if (ex.InnerException is TooManyRequestsException http429)
                 {
-                    _indexerStatusService.RecordFailure(remoteMovie.Release.IndexerId, http429.RetryAfter);
+                    _indexerStatusService.RecordFailure(release.Release.IndexerId, http429.RetryAfter);
                 }
                 else
                 {
-                    _indexerStatusService.RecordFailure(remoteMovie.Release.IndexerId);
+                    _indexerStatusService.RecordFailure(release.Release.IndexerId);
                 }
 
-                PublishIndexerGrab(remoteMovie, indexer, downloadClient, null, false);
+                PublishIndexerGrab(release, indexer, downloadClient, null, false);
                 throw;
             }
 
-            PublishIndexerGrab(remoteMovie, indexer, downloadClient, downloadClientId, true);
+            PublishIndexerGrab(release, indexer, downloadClient, downloadClientId, true);
 
-            var movieGrabbedEvent = new MovieGrabbedEvent(remoteMovie);
-            movieGrabbedEvent.DownloadClient = downloadClient.Name;
-            movieGrabbedEvent.DownloadClientId = downloadClient.Definition.Id;
-            movieGrabbedEvent.DownloadClientName = downloadClient.Definition.Name;
+            var grabbedEvent = new ReleaseGrabbedEvent(release);
+            grabbedEvent.DownloadClient = downloadClient.Name;
+            grabbedEvent.DownloadClientId = downloadClient.Definition.Id;
+            grabbedEvent.DownloadClientName = downloadClient.Definition.Name;
 
             if (downloadClientId.IsNotNullOrWhiteSpace())
             {
-                movieGrabbedEvent.DownloadId = downloadClientId;
+                grabbedEvent.DownloadId = downloadClientId;
             }
 
-            _logger.ProgressInfo("Report for {0} ({1}) sent to {2} from indexer {3}. {4}", remoteMovie.Movie.Title, remoteMovie.Movie.Year, downloadClient.Definition.Name, remoteMovie.Release.Indexer, downloadTitle);
-            _eventAggregator.PublishEvent(movieGrabbedEvent);
+            _logger.ProgressInfo("Report for {0} ({1}) sent to {2} from indexer {3}. {4}", release.Parent.Title, release.Year, downloadClient.Definition.Name, release.Release.Indexer, downloadTitle);
+            _eventAggregator.PublishEvent(grabbedEvent);
         }
 
         // Indexer history and stats count grabs per indexer (Prowlarr's grab event). Only
         // releases from an indexer are recorded; pushed releases without one are not.
-        private void PublishIndexerGrab(RemoteMovie remoteMovie, IIndexer indexer, IDownloadClient downloadClient, string downloadId, bool successful)
+        private void PublishIndexerGrab(RemoteRelease release, IIndexer indexer, IDownloadClient downloadClient, string downloadId, bool successful)
         {
             if (indexer == null)
             {
                 return;
             }
 
-            var release = remoteMovie.Release;
+            var releaseInfo = release.Release;
             var redirect = indexer.SupportsRedirect && indexer.Definition is IndexerDefinition { Redirect: true };
 
-            _eventAggregator.PublishEvent(new IndexerDownloadEvent(release, successful, IndexerReleaseFetcher.SearchSource, null, release.Title, release.DownloadUrl)
+            _eventAggregator.PublishEvent(new IndexerDownloadEvent(releaseInfo, successful, IndexerReleaseFetcher.SearchSource, null, releaseInfo.Title, releaseInfo.DownloadUrl)
             {
                 Indexer = indexer,
                 Redirect = redirect,
@@ -167,7 +168,7 @@ namespace NzbDrone.Core.Download
                 DownloadClientName = downloadClient.Definition.Name,
                 DownloadClientId = downloadClient.Definition.Id,
                 DownloadId = downloadId,
-                GrabTrigger = remoteMovie.ReleaseSource == ReleaseSourceType.InteractiveSearch ? GrabTrigger.Manual : GrabTrigger.Api
+                GrabTrigger = release.ReleaseSource == ReleaseSourceType.InteractiveSearch ? GrabTrigger.Manual : GrabTrigger.Api
             });
         }
     }

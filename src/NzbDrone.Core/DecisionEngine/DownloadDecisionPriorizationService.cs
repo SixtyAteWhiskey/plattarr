@@ -1,17 +1,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Modules;
+using NzbDrone.Core.Movies;
 using NzbDrone.Core.Profiles.Delay;
 using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.DecisionEngine
 {
-    public interface IPrioritizeDownloadDecision
-    {
-        List<DownloadDecision> PrioritizeDecisionsForMovies(List<DownloadDecision> decisions);
-    }
-
-    public class DownloadDecisionPriorizationService : IPrioritizeDownloadDecision
+    public class DownloadDecisionPriorizationService : IDownloadDecisionPrioritizer
     {
         private readonly IConfigService _configService;
         private readonly IDelayProfileService _delayProfileService;
@@ -24,15 +21,17 @@ namespace NzbDrone.Core.DecisionEngine
             _qualityDefinitionService = qualityDefinitionService;
         }
 
-        public List<DownloadDecision> PrioritizeDecisionsForMovies(List<DownloadDecision> decisions)
+        public MediaKind Kind => MediaKind.Movies;
+
+        public List<DownloadDecision> Prioritize(List<DownloadDecision> decisions)
         {
-            return decisions.Where(c => c.RemoteMovie.Movie != null)
-                            .GroupBy(c => c.RemoteMovie.Movie.Id, (movieId, downloadDecisions) =>
+            return decisions.Where(c => c.GetRemoteMovie().Movie != null)
+                            .GroupBy(c => c.GetRemoteMovie().Movie.Id, (movieId, downloadDecisions) =>
                             {
                                 return downloadDecisions.OrderByDescending(decision => decision, new DownloadDecisionComparer(_configService, _delayProfileService, _qualityDefinitionService));
                             })
                             .SelectMany(c => c)
-                            .Union(decisions.Where(c => c.RemoteMovie.Movie == null))
+                            .Union(decisions.Where(c => c.GetRemoteMovie().Movie == null))
                             .ToList();
         }
     }

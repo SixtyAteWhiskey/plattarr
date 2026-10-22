@@ -44,12 +44,10 @@ namespace NzbDrone.Core.Test.Architecture
         // DecisionEngine.ReleaseSpecifications holds the core specifications).
         public static readonly string[] MovieTypesNotYetMoved =
         {
-            "NzbDrone.Core.DecisionEngine.DownloadDecision",
             "NzbDrone.Core.DecisionEngine.DownloadDecisionComparer",
             "NzbDrone.Core.DecisionEngine.DownloadDecisionMaker",
             "NzbDrone.Core.DecisionEngine.DownloadDecisionPriorizationService",
             "NzbDrone.Core.DecisionEngine.IMakeDownloadDecision",
-            "NzbDrone.Core.DecisionEngine.IPrioritizeDownloadDecision",
             "NzbDrone.Core.DecisionEngine.UpgradeableRejectReason",
             "NzbDrone.Core.Parser.IParsingService",
             "NzbDrone.Core.Parser.LanguageParser",

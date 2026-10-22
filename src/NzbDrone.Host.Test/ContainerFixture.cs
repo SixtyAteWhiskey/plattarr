@@ -15,6 +15,7 @@ using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Common.Options;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Datastore.Extensions;
+using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Indexers;
@@ -23,6 +24,7 @@ using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Movies.Search;
 using NzbDrone.Host;
 using NzbDrone.SignalR;
@@ -116,8 +118,8 @@ namespace NzbDrone.App.Test
         [Test]
         public void should_return_same_instance_of_singletons_by_different_same_interface()
         {
-            var first = _container.GetServices<IHandle<MovieGrabbedEvent>>().OfType<DownloadMonitoringService>().Single();
-            var second = _container.GetServices<IHandle<MovieGrabbedEvent>>().OfType<DownloadMonitoringService>().Single();
+            var first = _container.GetServices<IHandle<ReleaseGrabbedEvent>>().OfType<DownloadMonitoringService>().Single();
+            var second = _container.GetServices<IHandle<ReleaseGrabbedEvent>>().OfType<DownloadMonitoringService>().Single();
 
             first.Should().BeSameAs(second);
         }
@@ -125,10 +127,34 @@ namespace NzbDrone.App.Test
         [Test]
         public void should_return_same_instance_of_singletons_by_different_interfaces()
         {
-            var first = _container.GetServices<IHandle<MovieGrabbedEvent>>().OfType<DownloadMonitoringService>().Single();
+            var first = _container.GetServices<IHandle<ReleaseGrabbedEvent>>().OfType<DownloadMonitoringService>().Single();
             var second = (DownloadMonitoringService)_container.GetRequiredService<IExecute<RefreshMonitoredDownloadsCommand>>();
 
             first.Should().BeSameAs(second);
+        }
+
+        [Test]
+        public void should_resolve_the_movie_pending_release_handler_by_kind()
+        {
+            var handlers = _container.GetServices<IPendingReleaseHandler>().ToList();
+
+            handlers.Should().ContainSingle(h => h.Kind == MediaKind.Movies);
+            handlers.Single(h => h.Kind == MediaKind.Movies).Should().BeOfType<PendingReleaseService>();
+        }
+
+        [Test]
+        public void should_resolve_the_movie_decision_prioritizer_by_kind()
+        {
+            var prioritizers = _container.GetServices<IDownloadDecisionPrioritizer>().ToList();
+
+            prioritizers.Should().ContainSingle(p => p.Kind == MediaKind.Movies);
+            prioritizers.Single(p => p.Kind == MediaKind.Movies).Should().BeOfType<DownloadDecisionPriorizationService>();
+        }
+
+        [Test]
+        public void should_resolve_the_core_decision_prioritizer()
+        {
+            _container.GetRequiredService<IPrioritizeDownloadDecision>().Should().BeOfType<PrioritizeDownloadDecision>();
         }
     }
 }

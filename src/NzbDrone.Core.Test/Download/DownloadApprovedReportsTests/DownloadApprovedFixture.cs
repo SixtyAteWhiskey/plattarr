@@ -11,11 +11,12 @@ using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Test.DecisionEngineTests.ReleaseSpecifications;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
 
@@ -28,8 +29,14 @@ namespace NzbDrone.Core.Test.Download.DownloadApprovedReportsTests
         public void SetUp()
         {
             Mocker.GetMock<IPrioritizeDownloadDecision>()
-                .Setup(v => v.PrioritizeDecisionsForMovies(It.IsAny<List<DownloadDecision>>()))
+                .Setup(v => v.PrioritizeDecisions(It.IsAny<List<DownloadDecision>>()))
                 .Returns<List<DownloadDecision>>(v => v);
+
+            Mocker.GetMock<IPendingReleaseHandler>()
+                .SetupGet(v => v.Kind)
+                .Returns(MediaKind.Movies);
+
+            Mocker.SetConstant<IEnumerable<IPendingReleaseHandler>>(new[] { Mocker.GetMock<IPendingReleaseHandler>().Object });
         }
 
         private Movie GetMovie(int id)
@@ -218,7 +225,7 @@ namespace NzbDrone.Core.Test.Download.DownloadApprovedReportsTests
             decisions.Add(new DownloadDecision(removeMovie, new DownloadRejection(DownloadRejectionReason.Unknown, "Failure!", RejectionType.Temporary)));
 
             await Subject.ProcessDecisions(decisions);
-            Mocker.GetMock<IPendingReleaseService>().Verify(v => v.AddMany(It.IsAny<List<Tuple<DownloadDecision, PendingReleaseReason>>>()), Times.Never());
+            Mocker.GetMock<IPendingReleaseHandler>().Verify(v => v.AddMany(It.IsAny<List<Tuple<DownloadDecision, PendingReleaseReason>>>()), Times.Never());
         }
 
         [Test]
@@ -231,7 +238,7 @@ namespace NzbDrone.Core.Test.Download.DownloadApprovedReportsTests
             decisions.Add(new DownloadDecision(remoteEpisode, new DownloadRejection(DownloadRejectionReason.Unknown, "Failure!", RejectionType.Temporary)));
 
             await Subject.ProcessDecisions(decisions);
-            Mocker.GetMock<IPendingReleaseService>().Verify(v => v.AddMany(It.IsAny<List<Tuple<DownloadDecision, PendingReleaseReason>>>()), Times.Once());
+            Mocker.GetMock<IPendingReleaseHandler>().Verify(v => v.AddMany(It.IsAny<List<Tuple<DownloadDecision, PendingReleaseReason>>>()), Times.Once());
         }
 
         [Test]
@@ -286,6 +293,87 @@ namespace NzbDrone.Core.Test.Download.DownloadApprovedReportsTests
             result.Rejected.Should().NotBeEmpty();
 
             ExceptionVerification.ExpectedWarns(1);
+        }
+
+        private static TvRemoteRelease GetTvRelease(int seriesId, int episodeId)
+        {
+            return new TvRemoteRelease
+            {
+                Series = new TvParent { Id = seriesId, Title = "A Series" },
+                Items = new[] { episodeId },
+                Release = new ReleaseInfo
+                {
+                    PublishDate = DateTime.UtcNow,
+                    Title = "A.Series.S01E01",
+                    Size = 200,
+                    DownloadProtocol = DownloadProtocol.Usenet
+                }
+            };
+        }
+
+        [Test]
+        public async Task should_download_a_release_from_another_media_type()
+        {
+            var release = GetTvRelease(7, 70);
+
+            var result = await Subject.ProcessDecisions(new List<DownloadDecision> { new DownloadDecision(release) });
+
+            Mocker.GetMock<IDownloadService>().Verify(v => v.DownloadReport(release, null), Times.Once());
+            result.Grabbed.Should().HaveCount(1);
+        }
+
+        [Test]
+        public async Task should_not_treat_the_same_item_id_of_another_media_type_as_already_downloaded()
+        {
+            var movie = GetRemoteMovie(new QualityModel(Quality.HDTV720p), GetMovie(5));
+            var tv = GetTvRelease(5, 5);
+
+            var result = await Subject.ProcessDecisions(new List<DownloadDecision> { new DownloadDecision(movie), new DownloadDecision(tv) });
+
+            Mocker.GetMock<IDownloadService>().Verify(v => v.DownloadReport(movie, null), Times.Once());
+            Mocker.GetMock<IDownloadService>().Verify(v => v.DownloadReport(tv, null), Times.Once());
+            result.Grabbed.Should().HaveCount(2);
+        }
+
+        [Test]
+        public async Task should_only_download_an_item_of_another_media_type_once()
+        {
+            var first = GetTvRelease(7, 70);
+            var second = GetTvRelease(7, 70);
+
+            await Subject.ProcessDecisions(new List<DownloadDecision> { new DownloadDecision(first), new DownloadDecision(second) });
+
+            Mocker.GetMock<IDownloadService>().Verify(v => v.DownloadReport(It.IsAny<RemoteRelease>(), null), Times.Once());
+        }
+
+        [Test]
+        public async Task should_hand_a_delayed_release_to_the_pending_handler_of_its_media_type()
+        {
+            var movieHandler = new Mock<IPendingReleaseHandler>();
+            movieHandler.SetupGet(h => h.Kind).Returns(MediaKind.Movies);
+
+            var tvHandler = new Mock<IPendingReleaseHandler>();
+            tvHandler.SetupGet(h => h.Kind).Returns(MediaKind.Tv);
+
+            Mocker.SetConstant<IEnumerable<IPendingReleaseHandler>>(new[] { movieHandler.Object, tvHandler.Object });
+
+            var delayed = new DownloadDecision(GetTvRelease(7, 70), new DownloadRejection(DownloadRejectionReason.MinimumAge, "Delayed", RejectionType.Temporary));
+
+            await Subject.ProcessDecisions(new List<DownloadDecision> { delayed });
+
+            tvHandler.Verify(h => h.AddMany(It.Is<List<Tuple<DownloadDecision, PendingReleaseReason>>>(l => l.Count == 1 && l[0].Item1 == delayed)), Times.Once());
+            movieHandler.Verify(h => h.AddMany(It.IsAny<List<Tuple<DownloadDecision, PendingReleaseReason>>>()), Times.Never());
+            Mocker.GetMock<IDownloadService>().Verify(v => v.DownloadReport(It.IsAny<RemoteRelease>(), It.IsAny<int?>()), Times.Never());
+        }
+
+        [Test]
+        public async Task should_fail_loudly_when_no_pending_handler_exists_for_the_media_type()
+        {
+            var delayed = new DownloadDecision(GetTvRelease(7, 70), new DownloadRejection(DownloadRejectionReason.MinimumAge, "Delayed", RejectionType.Temporary));
+
+            Func<Task> process = () => Subject.ProcessDecisions(new List<DownloadDecision> { delayed });
+
+            await process.Should().ThrowAsync<InvalidOperationException>().WithMessage("*Tv*");
         }
     }
 }

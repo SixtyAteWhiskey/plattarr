@@ -13,6 +13,7 @@ using NzbDrone.Core.Movies;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Test.DecisionEngineTests.ReleaseSpecifications;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Test.Qualities;
 
@@ -95,6 +96,16 @@ namespace NzbDrone.Core.Test.HistoryTests
 
             Mocker.GetMock<IHistoryRepository>()
                 .Verify(v => v.Insert(It.Is<MovieHistory>(h => h.SourceTitle == Path.GetFileNameWithoutExtension(localMovie.Path))));
+        }
+
+        [Test]
+        public void should_not_write_movie_history_for_a_grab_of_another_media_type()
+        {
+            var tv = new TvRemoteRelease { Series = new TvParent { Id = 5, Title = "A Series" }, Release = new ReleaseInfo { Title = "A.Series.S01E01" } };
+
+            Subject.Handle(new ReleaseGrabbedEvent(tv) { DownloadId = "HASH" });
+
+            Mocker.GetMock<IHistoryRepository>().Verify(r => r.Insert(It.IsAny<MovieHistory>()), Times.Never());
         }
     }
 }

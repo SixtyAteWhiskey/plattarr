@@ -11,6 +11,7 @@ using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Test.DecisionEngineTests.ReleaseSpecifications;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
@@ -77,7 +78,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
                   .Returns(new List<Movie> { _movie });
 
             Mocker.GetMock<IPrioritizeDownloadDecision>()
-                  .Setup(s => s.PrioritizeDecisionsForMovies(It.IsAny<List<DownloadDecision>>()))
+                  .Setup(s => s.PrioritizeDecisions(It.IsAny<List<DownloadDecision>>()))
                   .Returns((List<DownloadDecision> d) => d);
         }
 
@@ -101,7 +102,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
         {
             GivenHeldRelease(_parsedMovieInfo.Quality);
 
-            Subject.Handle(new MovieGrabbedEvent(_remoteMovie));
+            Subject.Handle(new ReleaseGrabbedEvent(_remoteMovie));
 
             VerifyDelete();
         }
@@ -111,7 +112,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
         {
             GivenHeldRelease(new QualityModel(Quality.SDTV));
 
-            Subject.Handle(new MovieGrabbedEvent(_remoteMovie));
+            Subject.Handle(new ReleaseGrabbedEvent(_remoteMovie));
 
             VerifyDelete();
         }
@@ -121,7 +122,7 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
         {
             GivenHeldRelease(new QualityModel(Quality.Bluray720p));
 
-            Subject.Handle(new MovieGrabbedEvent(_remoteMovie));
+            Subject.Handle(new ReleaseGrabbedEvent(_remoteMovie));
 
             VerifyNoDelete();
         }
@@ -136,6 +137,16 @@ namespace NzbDrone.Core.Test.Download.Pending.PendingReleaseServiceTests
         {
             Mocker.GetMock<IPendingReleaseRepository>()
                 .Verify(v => v.Delete(It.IsAny<PendingRelease>()), Times.Never());
+        }
+
+        [Test]
+        public void should_ignore_a_grab_of_another_media_type()
+        {
+            GivenHeldRelease(_parsedMovieInfo.Quality);
+
+            Subject.Handle(new ReleaseGrabbedEvent(new TvRemoteRelease { Series = new TvParent { Id = _movie.Id }, Release = _release }));
+
+            VerifyNoDelete();
         }
     }
 }

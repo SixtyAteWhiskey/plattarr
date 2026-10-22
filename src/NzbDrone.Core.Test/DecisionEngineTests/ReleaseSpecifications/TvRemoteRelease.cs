@@ -13,7 +13,9 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.ReleaseSpecifications
 
         public override MediaKind Kind => MediaKind.Tv;
         public override IMediaParent Parent => Series;
-        public override IReadOnlyList<int> ItemIds => Array.Empty<int>();
+        public int[] Items { get; set; } = Array.Empty<int>();
+
+        public override IReadOnlyList<int> ItemIds => Items;
         public override bool IsRecent => false;
         public QualityModel ParsedQuality { get; set; } = new QualityModel();
 
