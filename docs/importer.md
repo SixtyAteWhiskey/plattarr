@@ -29,13 +29,10 @@ Checked in the repo at `3d6984b`, not assumed:
 | `StartupContext` parses `/key=value` into a dictionary (`Add`, so a repeated key throws) and treats anything with more than one `=` as a flag. | `NzbDrone.Common/EnvironmentInfo/StartupContext.cs` | Command-line options stay simple. Path maps and similar go in a JSON options file. |
 | The Docker entrypoint is `exec /app/bin/Radarr -nobrowser -data=/config "$@"`. | `docker/entrypoint.sh` | Extra container arguments reach the binary, so `docker compose run --rm plattarr /import ...` works without a new entrypoint. |
 
-Not checked, and therefore not designed around: the exact schema and
-`VersionInfo` of the owner's running Radarr and Prowlarr databases. The first
-implementation task is to dump both (`.schema`, `SELECT MAX(Version) FROM
-VersionInfo`, row counts) and record them in the adapters as the supported
-range. Upstream column names in this note come from Radarr and Prowlarr
-`develop` as remembered; every one is confirmed against the real dump before
-code is written.
+Checked against a dump of the owner's databases on 2026-10-21: see
+[Dump findings](#dump-findings). Upstream column names not listed there still come
+from Radarr and Prowlarr `develop` as remembered and are confirmed against the dump
+before the code that uses them is written.
 
 ## How it runs
 
@@ -270,8 +267,8 @@ would duplicate every indexer.
 
 - **Prowlarr rows.** `Settings` JSON is already in the shape Plattarr's layer uses (it
   is Prowlarr's layer). The adapter: renames the stored `appMinimumSeeders` to
-  `minimumSeeders` in the torrent base settings (confirm both keys against a real
-  row); sets `EnableRss`, `EnableAutomaticSearch`, `EnableInteractiveSearch` from the
+  `minimumSeeders` in the torrent base settings (the key is optional and absent from
+  every row in the owner's data; see [Dump findings](#dump-findings)); sets `EnableRss`, `EnableAutomaticSearch`, `EnableInteractiveSearch` from the
   row's `AppSyncProfile`; takes `MinimumSeeders` from the indexer if set, otherwise
   from the sync profile; drops `AppProfileId`; remaps `Tags` and `DownloadClientId`.
   `Priority`, `Redirect`, `Enable`, `Added`, `Implementation`, `ConfigContract` are
@@ -446,6 +443,112 @@ movies and paths, and reads the report with the owner. It is the only test that 
 real data volume and real surprises; the fixtures exist so that what it finds can be
 reproduced as a test afterwards.
 
+## Dump findings
+
+Source: consistent copies of the owner's live databases (SQLite backup API, source
+opened read-only, containers untouched), taken 2026-10-21. Both passed
+`PRAGMA integrity_check`. Raw rows are not in the repository. Fixtures are scrubbed
+(see [Tests](#tests)).
+
+### Supported versions
+
+| App | Image | `MAX(VersionInfo.Version)` | Tables |
+|---|---|---|---|
+| Radarr | hotio/radarr | 242 | 41 |
+| Prowlarr | linuxserver/prowlarr | 44 | 20 |
+
+The adapters record these as the first supported versions and refuse a database with a
+newer `MAX(Version)` unless the user passes an override. A lower version is read with
+the columns it has.
+
+### Radarr row counts that shape the design
+
+`Movies` 87, `MovieMetadata` 113, `MovieFiles` 75, `History` 277, `DownloadHistory` 352,
+`Blocklist` 53, `Indexers` 13, `DownloadClients` 1, `QualityProfiles` 6,
+`CustomFormats` 1, `Tags` 1, `RootFolders` 1. Empty: `Notifications`, `ImportLists`,
+`ReleaseProfiles`, `RemotePathMappings`, `PendingReleases`, `MetadataFiles`,
+`ExtraFiles`, `ImportExclusions`, `AutoTagging`. `Credits` (4,623) is the largest
+imported table; `Commands` (3,504) is transient and skipped.
+
+### Prowlarr row counts
+
+`Indexers` 17 (15 Cardigann, Knaben, SubsPlease), `Applications` 4, `AppSyncProfiles` 1,
+`ApplicationIndexerMapping` 37, `IndexerProxies` 1, `Tags` 2, `History` 203,960.
+**`DownloadClients` is empty**, so the "Prowlarr-only client" case does not occur in
+this data (the rule stays for other users). `Prowlarr.History` is not imported.
+
+### Confirmed shapes
+
+- **Radarr `DownloadHistory.Release`** is populated only for `EventType = 1` (grabbed):
+  141 of 141 rows; it is null for all other event types. It is camelCase `ReleaseInfo`
+  JSON: `title`, `size`, `guid`, `downloadUrl`, `infoUrl`, `commentUrl`, `magnetUrl`,
+  `infoHash`, `seeders`, `peers`, `indexerId`, `indexer`, `indexerPriority`,
+  `downloadProtocol` (`"torrent"`), `tmdbId`, `imdbId`, `publishDate`, `languages`,
+  `age`, `ageHours`, `ageMinutes`. `imdbId` is an **integer** (not `tt...`), `tmdbId`
+  can be 0, `languages` can be empty. **`downloadUrl` embeds the Prowlarr API key** in
+  its query string, so the importer must not log it and fixtures must replace it.
+- **`DownloadHistory.Data`** holds `downloadClient`, `downloadClientName`, `indexer`
+  (grab rows only), `customFormatScore`. `History.Data` for an import adds `fileId`,
+  `droppedPath`, `importedPath`, `releaseGroup`, `size`, `indexerFlags` (a string such
+  as `G_Freeleech`, not an integer). `History.Quality` and `Languages` are indented
+  JSON with upstream IDs, so they go through the catalog maps.
+- **Radarr Torznab `Indexers.Settings`**: `baseUrl` ends in `/<prowlarrIndexerId>/`,
+  and the ID is the Prowlarr indexer ID (confirmed for 13 of 13 rows against
+  `ApplicationIndexerMapping`). Other keys: `apiPath`, `apiKey`, `minimumSeeders`,
+  `seedCriteria` (object), `rejectBlocklistedTorrentHashesWhileGrabbing`,
+  `requiredFlags`, `categories`, `multiLanguages`, `failDownloads`, `removeYear`.
+  `ConfigContract` is `TorznabSettings`; `Tags` is a JSON string; `DownloadClientId` is 0.
+- **Radarr `DownloadClients.Settings`** (qBittorrent): `host`, `port`, `useSsl`,
+  `username`, `password`, `movieCategory`, `recentMoviePriority`, `olderMoviePriority`,
+  `initialState`, `sequentialOrder`, `firstAndLast`, `contentLayout`.
+  `movieImportedCategory` is **absent** when unset (unstored stays unstored, as the
+  mapping already says). `ConfigContract` is `QBittorrentSettings`.
+- **Prowlarr `Indexers.Settings`**: top-level keys seen are `definitionFile`,
+  `extraFieldData`, `baseSettings` (`limitsUnit`), `torrentBaseSettings`, `baseUrl`
+  (13 of 17). `torrentBaseSettings` contains only `preferMagnetUrl` in all 17 rows.
+  **`appMinimumSeeders`, `seedRatio`, `seedTime`, `packSeedTime` are absent** from every
+  row: they are written only when set. The adapter treats each as optional and the
+  fixture set includes one row with them present, built from upstream's property
+  names (camelCase). The key name `appMinimumSeeders` is therefore *not* confirmed by
+  real data. Native indexers (Knaben, SubsPlease) use `ConfigContract`
+  `NoAuthTorrentBaseSettings`. `Indexers` columns: `Id, Name, Implementation,
+  Settings, ConfigContract, Enable, Priority, Added, Redirect, AppProfileId, Tags,
+  DownloadClientId`; there is no `Protocol` column.
+- **Prowlarr `AppSyncProfiles`** columns: `Id, Name, EnableRss, EnableInteractiveSearch,
+  EnableAutomaticSearch, MinimumSeeders`.
+- **Prowlarr `Applications`** columns include `Name, Implementation, Settings,
+  ConfigContract, SyncLevel, Tags`. `Settings` has `prowlarrUrl`, `baseUrl`, `apiKey`,
+  `syncCategories`, `syncRejectBlocklistedTorrentHashesWhileGrabbing`; Sonarr adds
+  `animeSyncCategories` and `syncAnimeStandardFormatSearch`. The owner's four rows are
+  Radarr, Sonarr, **LazyLibrarian** and Lidarr. LazyLibrarian is not a Plattarr
+  application: the importer reads Prowlarr's `Applications` only to confirm that a
+  Radarr sync target exists and does not import the table.
+- **`ApplicationIndexerMapping`**: `IndexerId` (Prowlarr), `AppId`, `RemoteIndexerId`
+  (the app's own indexer ID), `RemoteIndexerName` (null here).
+- **`IndexerProxies`**: FlareSolverr with a `host` and `requestTimeout`; tagged. Tags
+  are `lazylibrarian` and `flaresolverr`.
+
+### Findings that change the design
+
+1. **`DownloadHistory.IndexerId` is mostly dangling.** 211 of 352 rows are 0 and, of
+   the 141 non-zero rows, 81 point to a Radarr indexer ID that no longer exists. The
+   "same match as `ReleaseProfiles.IndexerId`" rule stands, but an unmatched ID is the
+   normal case and must map to 0 without a warning per row. The report gives one
+   count.
+2. **Radarr's synchronized indexers are not in sync with Prowlarr's.** 13 Radarr
+   indexers map to 13 of Prowlarr's 17; Prowlarr indexers 10, 37, 41 and 46 have no
+   Radarr row. They are imported from Prowlarr regardless. Radarr indexers 29, 31, 32,
+   34 (Radarr IDs) have all three `Enable*` flags at 0; the importer compares them with
+   the Prowlarr value and reports differences (not compared yet).
+3. **The `appMinimumSeeders` rename cannot be tested from real rows.** See above.
+4. **Prowlarr's `Config` table holds secrets** (keys are not all readable names and
+   values are GUIDs or hashes). It is never read by the importer.
+5. **The `moduleCategories` check from the live regression is still open.** The dev
+   database has no `DownloadClients` row (the test client was removed), so it cannot
+   be answered from it. Check by creating a qBittorrent client through the API on the
+   dev stack and reading its `Settings` column, then remove it. Not needed for the
+   adapter: the importer writes `moduleCategories` itself.
+
 ## Known costs
 
 - **Cover images** are not copied. IDs differ, and `MediaCover` is a cache that
@@ -463,15 +566,23 @@ reproduced as a test afterwards.
 
 ## Open items
 
-1. Dump the owner's two databases and fill in `SupportedVersions`, the confirmed column
-   and key names, and the first fixtures. Blocks all code.
-2. Confirm the `Release` JSON shape in Radarr's `DownloadHistory` and the Prowlarr
-   `ReleaseInfo` shape it converts to, from real rows.
-3. Confirm Prowlarr's per-indexer `AppMinimumSeeders` key and that its indexer
-   `baseUrl` form in Radarr's synchronized rows carries the Prowlarr indexer ID.
+1. ~~Dump the owner's two databases.~~ Done 2026-10-21 (see
+   [Dump findings](#dump-findings)). Supported versions are Radarr 242 and Prowlarr 44.
+   Fixtures still have to be written from scrubbed copies of the shapes above.
+2. ~~Confirm the `Release` JSON shape.~~ Done: camelCase `ReleaseInfo`, grabbed rows
+   only, integer `imdbId`, `downloadUrl` carries an API key. The conversion to
+   Prowlarr's `ReleaseInfo` shape is still required (the sample is Radarr's shape);
+   its fixtures can now be built from a real row.
+3. ~~Confirm the synchronized `baseUrl` form.~~ Done: `.../<prowlarrIndexerId>/`, 13 of
+   13. **`appMinimumSeeders` is not confirmed**: no row in the owner's data sets it.
+   Look for one in another Prowlarr database before relying on the rename, or keep the
+   adapter tolerant of both `appMinimumSeeders` and `minimumSeeders`.
 4. Decide, with the owner, the two reversible calls most likely to matter in practice:
-   Prowlarr-only download clients (skipped) and instance keys such as the API key
-   (not carried).
+   Prowlarr-only download clients (skipped; none exist in the owner's data, so this
+   one only matters for other users) and instance keys such as the API key (not
+   carried).
+5. Confirm that `moduleCategories` is stored for a client created through the API
+   (Finding 5).
 
 Implementation order once the dump is in: adapter read layer and fixtures, then the
 planner with its unit tests, then the writer for the movie tables, then the activity
