@@ -5,10 +5,10 @@ using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies.MediaFiles.MediaInfo;
-using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Notifications;
 using NzbDrone.Core.Notifications.CustomScript;
 using NzbDrone.Core.Parser;
+using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Tags;
 
 namespace NzbDrone.Core.Movies.Notifications

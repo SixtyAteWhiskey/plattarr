@@ -4,6 +4,7 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Movies.MediaFiles;
 using NzbDrone.Core.Movies.MediaFiles.MediaInfo;
+using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Movies.Parser.Model

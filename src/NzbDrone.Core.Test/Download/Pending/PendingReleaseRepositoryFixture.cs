@@ -6,7 +6,6 @@ using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;

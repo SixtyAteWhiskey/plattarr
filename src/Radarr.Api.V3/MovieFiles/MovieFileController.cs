@@ -15,7 +15,7 @@ using NzbDrone.Core.Movies.DecisionEngine.Specifications;
 using NzbDrone.Core.Movies.MediaFiles;
 using NzbDrone.Core.Movies.MediaFiles.Events;
 using NzbDrone.Core.Movies.Parser;
-using NzbDrone.Core.Movies.Parser.Model;
+using NzbDrone.Core.Parser.Model;
 using NzbDrone.SignalR;
 using Radarr.Http;
 using Radarr.Http.REST;

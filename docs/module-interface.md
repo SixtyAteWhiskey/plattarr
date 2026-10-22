@@ -545,16 +545,35 @@ As built in porting step 9d:
 - `ReleaseDecisionInformation.SearchCriteria` is a `ModuleSearchRequest`.
   The one specification that reads a movie member (`MovieSpecification`)
   casts to `MovieSearchRequest`.
-- Core `IReleaseSpecification` and ten specifications live in
+- Core `IReleaseSpecification` and eleven specifications live in
   `NzbDrone.Core.DecisionEngine.ReleaseSpecifications`: `BlockedIndexer`,
   `FreeSpace`, `MaximumSize`, `MinimumAge`, `NotSample`, `Protocol`,
-  `RawDisk`, `ReleaseRestrictions`, `Retention`, `TorrentSeeding`. They read
+  `RawDisk`, `ReleaseRestrictions`, `Retention`, `TorrentSeeding`, and (since
+  step 12) `RequiredIndexerFlags`. They read
   `Release`, `Kind`, and `Parent` (`Tags`, `Path`) only. `Protocol` names
   the parent with the upstream noun for its kind ("movie", "series",
   "artist").
-- `RequiredIndexerFlags` stays in the module until the indexer flag
-  vocabulary is global (plan, finding 21). Sonarr has no such
+- `RequiredIndexerFlags` was module code until the indexer flag vocabulary
+  was global (plan, finding 6; step 12). It reads the indexer override for the
+  release's own `Kind`, so it runs for every media type. Sonarr has no such
   specification.
+
+As built in porting step 12 (global indexer flag vocabulary):
+
+- `IndexerFlags` (Radarr's values: `G_Freeleech` 1 ... `Nuked` 2048) is the
+  global vocabulary, never renumbered. The enum and `IndexerFlagsMapper`
+  moved back to `NzbDrone.Core.Parser.Model`, so core custom formats read it
+  without a module reference (the allowlist went from 32 to 30). Release-level
+  flags were already a named set (`IndexerFlag`); the enum is only the stored
+  integer.
+- Sonarr's eight flags (`Freeleech` 1, `Halfleech` 2, `DoubleUpload` 4,
+  `Internal` 8, `Scene` 16, `Freeleech75` 32, `Freeleech25` 64, `Nuked` 128)
+  all exist by name in the vocabulary, so no value was added. Its integers
+  differ from bit 8 up and are translated by name with
+  `SonarrIndexerFlags.ToGlobal` / `ToUpstream` (importer and compatibility
+  API; `SonarrIndexerFlagsFixture` pins the table independently of the code).
+  A flag Sonarr lacks (`PTP_Golden`, `PTP_Approved`) is dropped going the
+  other way. A future app with a new flag appends a bit above 2048.
 - The module-typed interface keeps its upstream name,
   `IDownloadDecisionEngineSpecification` (on `RemoteMovie` for Movies), in
   place of the generic `IReleaseSpecification<TRemote>` sketched above. A

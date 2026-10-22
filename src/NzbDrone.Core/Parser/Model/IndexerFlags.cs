@@ -1,6 +1,6 @@
 using System;
 
-namespace NzbDrone.Core.Movies.Parser.Model
+namespace NzbDrone.Core.Parser.Model
 {
     [Flags]
     public enum IndexerFlags

@@ -4,7 +4,7 @@ using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Modules;
-using NzbDrone.Core.Movies.Parser.Model;
+using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Movies.Blocklisting
