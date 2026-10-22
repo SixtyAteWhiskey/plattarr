@@ -11,6 +11,7 @@ using NzbDrone.Core.Datastore;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Movies;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Qualities;
 using Radarr.Http;
@@ -76,7 +77,7 @@ namespace Radarr.Api.V3.Indexers
                 _downloadDecisionProcessor.ProcessDecision(decision, downloadClientId).GetAwaiter().GetResult();
             }
 
-            if (decision?.RemoteMovie.ParsedMovieInfo == null)
+            if (decision?.GetRemoteMovie().ParsedMovieInfo == null)
             {
                 throw new ValidationException(new List<ValidationFailure> { new("Title", "Unable to parse", release.Title) });
             }

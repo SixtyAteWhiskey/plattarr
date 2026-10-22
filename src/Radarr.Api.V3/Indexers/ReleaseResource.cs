@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Movies;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 using Radarr.Api.V3.CustomFormats;
@@ -75,10 +76,10 @@ namespace Radarr.Api.V3.Indexers
     {
         public static ReleaseResource ToResource(this DownloadDecision model)
         {
-            var releaseInfo = model.RemoteMovie.Release;
-            var parsedMovieInfo = model.RemoteMovie.ParsedMovieInfo;
-            var remoteMovie = model.RemoteMovie;
-            var torrentInfo = (model.RemoteMovie.Release as TorrentInfo) ?? new TorrentInfo();
+            var releaseInfo = model.GetRemoteMovie().Release;
+            var parsedMovieInfo = model.GetRemoteMovie().ParsedMovieInfo;
+            var remoteMovie = model.GetRemoteMovie();
+            var torrentInfo = (model.GetRemoteMovie().Release as TorrentInfo) ?? new TorrentInfo();
             var indexerFlags = torrentInfo.ToIndexerFlags().ToString().Split(new[] { ", " }, StringSplitOptions.None).Where(x => x != "0");
 
             // TODO: Clean this mess up. don't mix data from multiple classes, use sub-resources instead? (Got a huge Deja Vu, didn't we talk about this already once?)

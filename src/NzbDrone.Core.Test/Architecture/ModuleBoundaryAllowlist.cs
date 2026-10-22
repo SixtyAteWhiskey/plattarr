@@ -2,7 +2,7 @@ namespace NzbDrone.Core.Test.Architecture
 {
     // Core types that reference module code today (ModuleBoundaryFixture). This list may only shrink:
     // remove an entry when its type stops referencing a module; never add one. Each group says how it
-    // leaves the list. Seeded in step 9a with 159 types; 156 after 9b, 141 after 9c and 9d, 135 after 9e, 129 after 9f, 72 after contract 7 (notifications), 48 after 9h (download clients).
+    // leaves the list. Seeded in step 9a with 159 types; 156 after 9b, 141 after 9c and 9d, 135 after 9e, 129 after 9f, 72 after contract 7 (notifications), 48 after 9h (download clients; 9i changed nothing), 42 after 9j (grab and decision processing).
     public static class ModuleBoundaryAllowlist
     {
         public static readonly string[] Types =
@@ -32,22 +32,16 @@ namespace NzbDrone.Core.Test.Architecture
             // DiskSpace (1): Root folders come from each module.
             "NzbDrone.Core.DiskSpace.DiskSpaceService",
 
-            // Download (19): Clients and their base classes were retyped to RemoteRelease in 9h. What is left: tracked downloads, history reads, decision processing and the aggregators (movie parse results), and ScanWatchFolder (needs a core media-file scanner).
+            // Download (13): Clients and their base classes were retyped to RemoteRelease in 9h, and the grab and decision processing path (DownloadService, ProcessDownloadDecisions) in 9j. What is left: tracked downloads, the failure and ignore services with their history reads, the aggregators (movie parse results), the seed configuration provider, and ScanWatchFolder (needs a core media-file scanner).
             "NzbDrone.Core.Download.Aggregation.Aggregators.AggregateLanguages",
             "NzbDrone.Core.Download.Aggregation.Aggregators.IAggregateRemoteMovie",
             "NzbDrone.Core.Download.Aggregation.IRemoteMovieAggregationService",
             "NzbDrone.Core.Download.Aggregation.RemoteMovieAggregationService",
             "NzbDrone.Core.Download.Clients.Blackhole.ScanWatchFolder",
             "NzbDrone.Core.Download.DownloadSeedConfigProvider",
-            "NzbDrone.Core.Download.DownloadService",
             "NzbDrone.Core.Download.FailedDownloadService",
             "NzbDrone.Core.Download.History.DownloadHistoryService",
-            "NzbDrone.Core.Download.IDownloadService",
-            "NzbDrone.Core.Download.IProcessDownloadDecisions",
             "NzbDrone.Core.Download.IgnoredDownloadService",
-            "NzbDrone.Core.Download.MovieGrabbedEvent",
-            "NzbDrone.Core.Download.ProcessDownloadDecisions",
-            "NzbDrone.Core.Download.ProcessedDecisions",
             "NzbDrone.Core.Download.RedownloadFailedDownloadService",
             "NzbDrone.Core.Download.TrackedDownloads.DownloadMonitoringService",
             "NzbDrone.Core.Download.TrackedDownloads.TrackedDownload",

@@ -622,6 +622,29 @@ As built in porting step 9d:
   movie rejection at `Default` skips the core `FreeSpace` check at `Disk`,
   and the reverse.
 
+As built in porting step 9j (grab and decision processing):
+
+- `DownloadDecision` holds a `RemoteRelease`. Movie code reads it as a
+  `RemoteMovie` through `GetRemoteMovie()` (`NzbDrone.Core.Movies`), which
+  returns null for another media type.
+- `PrioritizeDownloadDecision` (core) groups decisions by `RemoteRelease.Kind`
+  and calls the `IDownloadDecisionPrioritizer` registered for that kind
+  (`Kind`, `Prioritize`). Movies' is `DownloadDecisionPriorizationService`. A
+  kind with no prioritizer keeps its place at the end of the list.
+- `ProcessDownloadDecisions` (core) is media-agnostic. A delayed release goes to
+  the `IPendingReleaseHandler` for its kind (`Kind`, `Add`, `AddMany`); Movies'
+  is `PendingReleaseService`. A kind with no handler throws
+  `InvalidOperationException` instead of dropping the release. A release counts
+  as already processed only when another one of the same kind shares an item id.
+- `DownloadService.DownloadReport` takes a `RemoteRelease` and publishes
+  `ReleaseGrabbedEvent` (was `MovieGrabbedEvent`), which carries
+  `RemoteRelease Release`. Handlers that write movie data (`HistoryService`,
+  `MovieNotificationHandler`, `PendingReleaseService`, the movie SignalR
+  controller) return early when `Release.Kind` is not Movies.
+  `DownloadHistoryService`, `TrackedDownloadService` and
+  `DownloadMonitoringService` are kind-agnostic.
+- No schema change.
+
 ### Contract 5: Download import
 
 ```csharp
@@ -864,8 +887,8 @@ from the sketch above in these ways:
   TMDb link when the TMDb id is 0; Discord's file-delete path is
   `Combine(ParentPath, RelativePath)`.
 - **Not done here:** `DownloadMonitoringService` still handles
-  `MovieGrabbedEvent` and `MovieFileImportedEvent`, so it stays on the
-  allowlist.
+  `MovieFileImportedEvent`, so it stays on the allowlist. It handles
+  `ReleaseGrabbedEvent` since step 9j.
 
 `NotificationGoldenFixture` pushes a fixed movie library through the handler
 into Webhook, Custom Script and Discord and compares the output with

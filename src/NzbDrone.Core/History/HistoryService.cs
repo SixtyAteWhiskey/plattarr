@@ -9,6 +9,7 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Events;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Qualities;
@@ -33,7 +34,7 @@ namespace NzbDrone.Core.History
     }
 
     public class HistoryService : IHistoryService,
-                                  IHandle<MovieGrabbedEvent>,
+                                  IHandle<ReleaseGrabbedEvent>,
                                   IHandle<MovieFileImportedEvent>,
                                   IHandle<DownloadFailedEvent>,
                                   IHandle<MovieFileDeletedEvent>,
@@ -130,47 +131,54 @@ namespace NzbDrone.Core.History
             return downloadId;
         }
 
-        public void Handle(MovieGrabbedEvent message)
+        public void Handle(ReleaseGrabbedEvent message)
         {
+            if (message.Release.Kind != MediaKind.Movies)
+            {
+                return;
+            }
+
+            var remoteMovie = message.GetRemoteMovie();
+
             var history = new MovieHistory
             {
                 MediaKind = MediaKind.Movies,
                 EventType = MovieHistoryEventType.Grabbed,
                 Date = DateTime.UtcNow,
-                Quality = message.Movie.ParsedMovieInfo.Quality,
-                Languages = message.Movie.Languages,
-                SourceTitle = message.Movie.Release.Title,
+                Quality = remoteMovie.ParsedMovieInfo.Quality,
+                Languages = remoteMovie.Languages,
+                SourceTitle = remoteMovie.Release.Title,
                 DownloadId = message.DownloadId,
-                ParentId = message.Movie.Movie.Id
+                ParentId = remoteMovie.Movie.Id
             };
 
-            history.Data.Add("Indexer", message.Movie.Release.Indexer);
-            history.Data.Add("NzbInfoUrl", message.Movie.Release.InfoUrl);
-            history.Data.Add("ReleaseGroup", message.Movie.ParsedMovieInfo.ReleaseGroup);
-            history.Data.Add("Age", message.Movie.Release.Age.ToString());
-            history.Data.Add("AgeHours", message.Movie.Release.AgeHours.ToString());
-            history.Data.Add("AgeMinutes", message.Movie.Release.AgeMinutes.ToString());
-            history.Data.Add("PublishedDate", message.Movie.Release.PublishDate.ToUniversalTime().ToString("s") + "Z");
+            history.Data.Add("Indexer", remoteMovie.Release.Indexer);
+            history.Data.Add("NzbInfoUrl", remoteMovie.Release.InfoUrl);
+            history.Data.Add("ReleaseGroup", remoteMovie.ParsedMovieInfo.ReleaseGroup);
+            history.Data.Add("Age", remoteMovie.Release.Age.ToString());
+            history.Data.Add("AgeHours", remoteMovie.Release.AgeHours.ToString());
+            history.Data.Add("AgeMinutes", remoteMovie.Release.AgeMinutes.ToString());
+            history.Data.Add("PublishedDate", remoteMovie.Release.PublishDate.ToUniversalTime().ToString("s") + "Z");
             history.Data.Add("DownloadClient", message.DownloadClient);
             history.Data.Add("DownloadClientName", message.DownloadClientName);
-            history.Data.Add("Size", message.Movie.Release.Size.GetValueOrDefault().ToString());
-            history.Data.Add("DownloadUrl", message.Movie.Release.DownloadUrl);
-            history.Data.Add("Guid", message.Movie.Release.Guid);
-            history.Data.Add("TmdbId", message.Movie.Release.TmdbId.ToString());
-            history.Data.Add("ImdbId", message.Movie.Release.ImdbId.ToString());
-            history.Data.Add("Protocol", ((int)message.Movie.Release.DownloadProtocol).ToString());
-            history.Data.Add("CustomFormatScore", message.Movie.CustomFormatScore.ToString());
-            history.Data.Add("MovieMatchType", message.Movie.MovieMatchType.ToString());
-            history.Data.Add("ReleaseSource", message.Movie.ReleaseSource.ToString());
-            history.Data.Add("IndexerFlags", message.Movie.Release.ToIndexerFlags().ToString());
-            history.Data.Add("IndexerId", message.Movie.Release.IndexerId.ToString());
+            history.Data.Add("Size", remoteMovie.Release.Size.GetValueOrDefault().ToString());
+            history.Data.Add("DownloadUrl", remoteMovie.Release.DownloadUrl);
+            history.Data.Add("Guid", remoteMovie.Release.Guid);
+            history.Data.Add("TmdbId", remoteMovie.Release.TmdbId.ToString());
+            history.Data.Add("ImdbId", remoteMovie.Release.ImdbId.ToString());
+            history.Data.Add("Protocol", ((int)remoteMovie.Release.DownloadProtocol).ToString());
+            history.Data.Add("CustomFormatScore", remoteMovie.CustomFormatScore.ToString());
+            history.Data.Add("MovieMatchType", remoteMovie.MovieMatchType.ToString());
+            history.Data.Add("ReleaseSource", remoteMovie.ReleaseSource.ToString());
+            history.Data.Add("IndexerFlags", remoteMovie.Release.ToIndexerFlags().ToString());
+            history.Data.Add("IndexerId", remoteMovie.Release.IndexerId.ToString());
 
-            if (!message.Movie.ParsedMovieInfo.ReleaseHash.IsNullOrWhiteSpace())
+            if (!remoteMovie.ParsedMovieInfo.ReleaseHash.IsNullOrWhiteSpace())
             {
-                history.Data.Add("ReleaseHash", message.Movie.ParsedMovieInfo.ReleaseHash);
+                history.Data.Add("ReleaseHash", remoteMovie.ParsedMovieInfo.ReleaseHash);
             }
 
-            if (message.Movie.Release is TorrentInfo torrentRelease)
+            if (remoteMovie.Release is TorrentInfo torrentRelease)
             {
                 history.Data.Add("TorrentInfoHash", torrentRelease.InfoHash);
             }

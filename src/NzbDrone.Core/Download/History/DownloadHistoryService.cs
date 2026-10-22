@@ -17,7 +17,7 @@ namespace NzbDrone.Core.Download.History
     }
 
     public class DownloadHistoryService : IDownloadHistoryService,
-                                          IHandle<MovieGrabbedEvent>,
+                                          IHandle<ReleaseGrabbedEvent>,
                                           IHandle<MovieFileImportedEvent>,
                                           IHandle<DownloadCompletedEvent>,
                                           IHandle<DownloadFailedEvent>,
@@ -92,7 +92,7 @@ namespace NzbDrone.Core.Download.History
                               .FirstOrDefault(d => d.EventType == DownloadHistoryEventType.DownloadGrabbed);
         }
 
-        public void Handle(MovieGrabbedEvent message)
+        public void Handle(ReleaseGrabbedEvent message)
         {
             // Don't store grabbed events for clients that don't download IDs
             if (message.DownloadId.IsNullOrWhiteSpace())
@@ -102,23 +102,23 @@ namespace NzbDrone.Core.Download.History
 
             var history = new DownloadHistory
             {
-                MediaKind = MediaKind.Movies,
+                MediaKind = message.Release.Kind,
                 EventType = DownloadHistoryEventType.DownloadGrabbed,
-                ParentId = message.Movie.Movie.Id,
+                ParentId = message.Release.Parent.Id,
                 DownloadId = message.DownloadId,
-                SourceTitle = message.Movie.Release.Title,
+                SourceTitle = message.Release.Release.Title,
                 Date = DateTime.UtcNow,
-                Protocol = message.Movie.Release.DownloadProtocol,
-                IndexerId = message.Movie.Release.IndexerId,
+                Protocol = message.Release.Release.DownloadProtocol,
+                IndexerId = message.Release.Release.IndexerId,
                 DownloadClientId = message.DownloadClientId,
-                Release = message.Movie.Release
+                Release = message.Release.Release
             };
 
-            history.Data.Add("Indexer", message.Movie.Release.Indexer);
+            history.Data.Add("Indexer", message.Release.Release.Indexer);
             history.Data.Add("DownloadClient", message.DownloadClient);
             history.Data.Add("DownloadClientName", message.DownloadClientName);
 
-            history.Data.Add("CustomFormatScore", message.Movie.CustomFormatScore.ToString());
+            history.Data.Add("CustomFormatScore", message.Release.CustomFormatScore.ToString());
             _repository.Insert(history);
         }
 

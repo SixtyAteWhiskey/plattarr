@@ -28,7 +28,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
     }
 
     public class TrackedDownloadService : ITrackedDownloadService,
-                                          IHandle<MovieGrabbedEvent>,
+                                          IHandle<ReleaseGrabbedEvent>,
                                           IHandle<MovieAddedEvent>,
                                           IHandle<MovieEditedEvent>,
                                           IHandle<MoviesBulkEditedEvent>,
@@ -271,7 +271,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
             }
         }
 
-        public void Handle(MovieGrabbedEvent message)
+        public void Handle(ReleaseGrabbedEvent message)
         {
             if (message.DownloadId.IsNullOrWhiteSpace())
             {

@@ -4,6 +4,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies.Events;
 using NzbDrone.Core.Notifications;
 using NzbDrone.Core.Qualities;
@@ -12,7 +13,7 @@ namespace NzbDrone.Core.Movies.Notifications
 {
     // Contract 7. Movie events become neutral notification messages for the core dispatcher.
     public class MovieNotificationHandler
-        : IHandle<MovieGrabbedEvent>,
+        : IHandle<ReleaseGrabbedEvent>,
           IHandle<MovieFileImportedEvent>,
           IHandle<MovieAddedEvent>,
           IHandle<MoviesImportedEvent>,
@@ -48,14 +49,20 @@ namespace NzbDrone.Core.Movies.Notifications
                                     imdbUrl);
         }
 
-        public void Handle(MovieGrabbedEvent message)
+        public void Handle(ReleaseGrabbedEvent message)
         {
+            if (message.Release.Kind != MediaKind.Movies)
+            {
+                return;
+            }
+
+            var remoteMovie = message.GetRemoteMovie();
+
             if (!_dispatcher.AnyEnabled(NotificationEvent.Grab))
             {
                 return;
             }
 
-            var remoteMovie = message.Movie;
             var movie = remoteMovie.Movie;
             var quality = remoteMovie.ParsedMovieInfo.Quality;
 

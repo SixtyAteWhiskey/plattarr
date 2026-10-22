@@ -259,7 +259,7 @@ namespace NzbDrone.Core.Test.NotificationTests
             var renderer = new MovieActivityRenderer(new Mock<IMovieService>().Object, new Mock<IRootFolderService>().Object);
             var handler = new MovieNotificationHandler(new ProviderDispatcher(provider), renderer);
 
-            handler.Handle(new MovieGrabbedEvent(remote) { DownloadClient = "qBittorrent", DownloadClientName = "qb-main", DownloadId = "HASH123" });
+            handler.Handle(new ReleaseGrabbedEvent(remote) { DownloadClient = "qBittorrent", DownloadClientName = "qb-main", DownloadId = "HASH123" });
             handler.Handle(new MovieFileImportedEvent(Local(movie), file, new List<DeletedMovieFile>(), true, item));
             handler.Handle(new MovieFileImportedEvent(Local(movie), file, new List<DeletedMovieFile> { old }, true, item));
             handler.Handle(new MovieRenamedEvent(movie, new List<RenamedMovieFile> { new RenamedMovieFile { MovieFile = file, PreviousPath = "/movies/Interstellar (2014)/old.mkv", PreviousRelativePath = "old.mkv" } }));

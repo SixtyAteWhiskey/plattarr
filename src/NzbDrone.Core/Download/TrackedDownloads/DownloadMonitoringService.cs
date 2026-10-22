@@ -13,7 +13,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
 {
     public class DownloadMonitoringService : IExecute<RefreshMonitoredDownloadsCommand>,
                                              IExecute<CheckForFinishedDownloadCommand>,
-                                             IHandle<MovieGrabbedEvent>,
+                                             IHandle<ReleaseGrabbedEvent>,
                                              IHandle<MovieFileImportedEvent>,
                                              IHandle<ManualInteractionRequiredEvent>,
                                              IHandle<DownloadsProcessedEvent>,
@@ -165,7 +165,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
             Refresh();
         }
 
-        public void Handle(MovieGrabbedEvent message)
+        public void Handle(ReleaseGrabbedEvent message)
         {
             _refreshDebounce.Execute();
         }

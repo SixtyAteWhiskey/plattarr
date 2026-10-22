@@ -10,6 +10,7 @@ using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Translations;
 using NzbDrone.Core.MovieStats;
@@ -19,7 +20,7 @@ using Radarr.Http.REST;
 namespace Radarr.Api.V3.Movies
 {
     public abstract class MovieControllerWithSignalR : RestControllerWithSignalR<MovieResource, Movie>,
-                                                         IHandle<MovieGrabbedEvent>,
+                                                         IHandle<ReleaseGrabbedEvent>,
                                                          IHandle<MovieFileImportedEvent>,
                                                          IHandle<MovieFileDeletedEvent>
     {
@@ -142,9 +143,14 @@ namespace Radarr.Api.V3.Movies
         }
 
         [NonAction]
-        public void Handle(MovieGrabbedEvent message)
+        public void Handle(ReleaseGrabbedEvent message)
         {
-            var resource = MapToResource(message.Movie.Movie);
+            if (message.Release.Kind != MediaKind.Movies)
+            {
+                return;
+            }
+
+            var resource = MapToResource(message.GetRemoteMovie().Movie);
             resource.Grabbed = true;
 
             BroadcastResourceChange(ModelAction.Updated, resource);
