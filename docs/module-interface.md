@@ -2,8 +2,15 @@
 
 Status: Approved by the owner 2026-10-20, revision 2. See
 [Decision record](#decision-record).
-Applies to: Phase 1 onward. Supersedes the draft list in
-`claude/arr-combo-plan.md` section 3.
+Applies to: Phase 1 onward.
+
+How to read this: each contract has its original design followed by "As built"
+notes. Where they differ, the as-built note is correct. Since 2026-10-22 the
+code behind many of the examples (download clients other than qBittorrent and
+SABnzbd, most notification providers, most import lists) is pruned; the design
+text still holds for what remains. See `docs/pruned-providers.md`. The
+compatibility APIs and the owner's Jellyseerr plan below are deferred until a
+user asks for them; they are not part of the near-term plan.
 
 This document defines the seams between the Plattarr shared core and the
 media modules (Movies, TV, Music). It is derived from how Radarr's movie code
@@ -42,13 +49,13 @@ All paths below are relative to `src/NzbDrone.Core/` unless stated.
 - Indexers have one global setting each. Search categories are derived from
   the media type being searched; the user doesn't configure them.
 - 52 of Sonarr's 62 `/api/v3` routes collide with Radarr's. The compatibility
-  APIs get their own URL bases: `/radarr`, `/sonarr`, `/lidarr`. They are
-  full-fidelity copies of the upstream APIs, not a captured subset, so
-  third-party tools work unchanged.
+  APIs (deferred, built on request) get their own URL bases: `/radarr`,
+  `/sonarr`, `/lidarr`. They are full-fidelity copies of the upstream APIs, not a
+  captured subset, so third-party tools work unchanged.
 - One schema, one migration chain, one version table.
 - The module boundary is a namespace rule enforced by an architecture test.
-  177 core files reference movie types today; the test starts with that list
-  as an allowlist that may only shrink. No separate module assemblies.
+  The test started with 159 allowlisted core types; the list may only shrink and
+  is frozen at 32 until TV code needs the rest. No separate module assemblies.
 
 ## Single pane of glass
 
@@ -115,47 +122,6 @@ The persisted activity records follow the same parent-plus-items shape:
 History is one row per item in Sonarr and Lidarr (one per episode, one per
 track or album). Blocklist and pending releases are one row per release.
 
-### Download clients use four movie-specific values
-
-`IDownloadClient.Download` takes the module's release type in each app:
-`Download(RemoteMovie, IIndexer)`, `Download(RemoteEpisode, IIndexer)`,
-`Download(RemoteAlbum, IIndexer)`. Across Radarr's 18 clients, the client
-code reads only these from the release:
-
-- `Release` (URL, title, indexer).
-- `SeedConfiguration`.
-- The recency flag, to choose `RecentMoviePriority` or `OlderMoviePriority`.
-
-And one value from settings: the category. Each app names it for its media:
-
-| Setting | Radarr | Sonarr | Lidarr |
-|---|---|---|---|
-| Category | `MovieCategory` | `TvCategory` | `MusicCategory` |
-| Post-import category | `MovieImportedCategory` | `TvImportedCategory` | `MusicImportedCategory` |
-| Priorities | `RecentMoviePriority`, `OlderMoviePriority` | `RecentTvPriority`, `OlderTvPriority` | `RecentMusicPriority`, `OlderMusicPriority` |
-
-`GetItems()` filters the client's queue by that category. The category is how
-each app recognizes its own downloads.
-
-### Decision specifications split cleanly
-
-Of Radarr's 23 download decision specifications, 8 read only
-`subject.Release`: `BlockedIndexer`, `MaximumSize`, `MinimumAge`,
-`NotSample`, `RawDisk`, `RequiredIndexerFlags`, `Retention`, and
-`TorrentSeeding`. Three more read the movie only for its tags or path:
-`Protocol` (delay profile by tag), `ReleaseRestrictions` (tags), and
-`FreeSpace` (path). The rest depend on the movie, its quality profile, or
-its files.
-
-Sonarr's specification set is a superset with TV-only rules (`FullSeason`,
-`MultiSeason`, `SeasonPackOnly`, `SceneMapping`, `AnimeVersionUpgrade`,
-`SplitEpisode`, `AirDate`). Lidarr adds `Discography`, `EarlyRelease`, and
-`YearMatch`, and still uses the older signature
-`Decision IsSatisfiedBy(RemoteAlbum, SearchCriteriaBase)`. Radarr and Sonarr
-use `DownloadSpecDecision IsSatisfiedBy(subject, ReleaseDecisionInformation)`.
-Lidarr's specifications need converting to the newer signature during the
-Phase 4 port.
-
 ### Quality and language IDs collide
 
 Quality IDs are persisted in profiles, history, and file records.
@@ -182,42 +148,6 @@ Sonarr together define 33 video qualities, two of which are aliases
 Lidarr's 38 audio qualities. Radarr's 60 and Sonarr's 55 languages make 64
 distinct names.
 
-### Indexer settings carry consumer-side fields
-
-Radarr's, Sonarr's, and Lidarr's Newznab and Torznab settings carry fields
-that Prowlarr's indexer settings do not, because in Prowlarr they belong to
-the app that consumes the indexer (they are pushed through `Applications`):
-
-| Field | Radarr | Sonarr | Lidarr | Prowlarr indexer |
-|---|---|---|---|---|
-| `Categories` | yes | yes | yes | no (has `Capabilities`) |
-| `AnimeCategories`, `AnimeStandardFormatSearch` | no | yes | no | no |
-| `MultiLanguages` | yes | yes | no | no |
-| `RequiredFlags` | yes | no | no | no |
-| `RemoveYear` | yes | no | no | no |
-| `MinimumSeeders` | yes | yes | yes | no (`AppMinimumSeeders` is a sync value) |
-| `SeedRatio`, `SeedTime` | yes | yes | yes | yes |
-| `SeasonPackSeed*` | no | yes | no | `PackSeedTime` |
-| `DiscographySeedTime`, `EarlyReleaseLimit` | no | no | yes | no |
-| `FailDownloads`, `RejectBlocklistedTorrentHashesWhileGrabbing` | yes | yes | partly | no |
-| `EnableRss`, `EnableAutomaticSearch`, `EnableInteractiveSearch` | definition | definition | definition | no (`Enable` plus `AppProfile`) |
-
-Deleting Prowlarr's `Applications` subsystem removes the place these settings
-lived. They have to come back as global indexer settings plus optional overrides
-(see [Indexer settings](#indexer-settings)).
-
-### Search criteria names collide
-
-Prowlarr's `IIndexer` already has one `Fetch` overload per media type:
-`MovieSearchCriteria`, `TvSearchCriteria`, `MusicSearchCriteria`,
-`BookSearchCriteria`, `BasicSearchCriteria`, all in
-`NzbDrone.Core.IndexerSearch.Definitions`. Radarr defines its own
-`MovieSearchCriteria` in the same namespace with a different shape (it holds
-the `Movie` entity and scene titles). Sonarr defines seven criteria types
-(single, season, daily, daily season, anime, anime season, special) that
-Prowlarr's single `TvSearchCriteria` (`Season`, `Episode` as a string) must
-represent.
-
 ### The DI container registers by convention
 
 `NzbDrone.Common/Composition/Extensions.cs` `AutoAddServices` registers every
@@ -240,29 +170,6 @@ Radarr's `Radarr.Api.V3` has 64 controller routes and Sonarr's
 `Sonarr.Api.V3` has 62. 52 routes have the same path, including
 `system/status`, `qualityprofile`, `rootfolder`, `tag`, `queue`, `history`,
 `command`, and `config/*`. Both cannot serve `/api/v3` on one port.
-
-### Current coupling
-
-177 files outside the module-owned folders reference movie types
-(`Movie`, `RemoteMovie`, `LocalMovie`, `MovieFile`, `ParsedMovieInfo`,
-`MovieId`, `MovieMetadata`, `IMovieService`):
-
-| Folder | Files | Note |
-|---|---|---|
-| `Notifications` | 58 | Every provider formats movie messages |
-| `Download` | 47 | Clients, tracked downloads, pending, completed and failed handling |
-| `Datastore` | 24 | Mostly upstream migrations; removed by `001_initial` |
-| `Housekeeping` | 16 | Orphan cleanup per table |
-| `Indexers` | 8 | Radarr request generators; replaced by Prowlarr's layer |
-| `IndexerSearch` | 4 | |
-| `History`, `Blocklisting`, `HealthCheck`, `MovieStats`, `Validation` | 3 each | |
-| `Queue` | 2 | |
-| `Tags`, `Exceptions`, `DiskSpace` | 1 each | |
-
-Module-owned folders, excluded from the count: `Movies`, `MediaFiles`,
-`DecisionEngine`, `ImportLists`, `Extras`, `Organizer`, `CustomFormats`,
-`Qualities`, `MetadataSource`, `Profiles`, `AutoTagging`, `RootFolders`,
-`Languages`, `MediaCover`, `Parser`.
 
 ## Design
 
@@ -494,8 +401,7 @@ As built in porting step 9h, download clients take the release, not the movie:
   shared with the movie `FileNameBuilder`), and the blocklisted-hash check
   (`IReleaseBlocklist`, which asks the `IMediaBlocklist` of the release's kind).
 - Left in the boundary allowlist: tracked downloads, history reads, decision
-  processing, the aggregators, and `ScanWatchFolder` (it needs a core scanner for
-  finished media files).
+  processing and the aggregators (later steps moved most of these).
 
 ### Contract 3: Search translation
 
@@ -926,7 +832,7 @@ from the sketch above in these ways:
   `ExternalIdTypes`) and `Links`. `Data` (`IMediaNotificationData`, with
   `Kind`) holds the module's own objects. Only the module's builders read
   `Data`: `IWebhookPayloadBuilder`, `ICustomScriptEnvironmentBuilder`,
-  `ITraktCollectionBuilder`. Core picks the builder with
+  (the Trakt builder hook was removed with the Trakt provider). Core picks the builder with
   `Single(b => b.Kind == message.Data.Kind)`. Files and releases are neutral
   (`NotificationFile`, `NotificationRelease`), so there is no `Kind` or
   `RemoteRelease` on `GrabMessage` itself.
@@ -941,7 +847,7 @@ from the sketch above in these ways:
   when no provider listens. Without it every bulk `MoviesImportedEvent`
   would load metadata for each movie.
 - **`ActivitySubject.RootFolderPath` is lazy.** `RootFolderService.All()` is
-  expensive; the module supplies a resolver and only Plex and Jellyfin pay.
+  expensive; the module supplies a resolver and only Jellyfin pays.
 - **Renamed provider methods:** `OnRename(RenameMessage)`,
   `OnMediaAdded`, `OnMediaFileDelete`, `OnMediaDelete`. `Supports*`
   properties, the `NotificationDefinition` columns (`OnMovieAdded`,
@@ -1002,7 +908,9 @@ Owner's setup: qBittorrent behind gluetun with one save path
 (`/mnt/share/Media/Importing`). Separate categories per module are required
 before TV is enabled, or routing falls to title parsing.
 
-As built in porting step 9i (migration 003):
+As built in porting step 9i (migration 003). Since the prune only qBittorrent
+and SABnzbd remain; the notes below describe all 11 clients as built and hold
+for those two:
 
 - `ModuleCategorySettings` (`NzbDrone.Core.Download.Clients`) is as sketched, with
   value equality. The 11 clients that route by category (qBittorrent, Deluge,
@@ -1043,11 +951,8 @@ As built in porting step 9i (migration 003):
   "Advanced"; the category and priorities are shown. The default category for a
   new client is now `plattarr-movies` (Radarr's clients defaulted to `radarr`
   or empty); existing clients keep what they stored.
-- Settings that name a directory (`MovieDirectory` in Transmission, Vuze and
-  rTorrent, `TvDirectory` in Download Station, `DestinationDirectory` in Freebox
-  Download) are unchanged and apply to every media type. They are per-client
-  paths, not per-media-type; a client that needs separate folders per media type
-  uses categories.
+- Settings that name a directory are per-client paths, not per-media-type; a
+  client that needs separate folders per media type uses categories.
 
 ### Indexer settings
 
@@ -1276,21 +1181,6 @@ module keeps its upstream code:
 - Import lists, extras, and media covers.
 - The quality and language parsers (output is global, see above).
 - The module's compatibility API controllers.
-
-## Phase 1 work this implies
-
-In porting order (plan section 3a):
-
-| Step | Spec work |
-|---|---|
-| 2. Port Prowlarr indexers | Keep Prowlarr's `IndexerSearch.Definitions` names. Rename Radarr's `MovieSearchCriteria` to `Movies.Search.MovieSearchRequest` first so the port doesn't collide. Move enable and seed settings onto the shared indexer definition; add `IndexerOverrides`. Keep Prowlarr's Newznab and Torznab feed controller. |
-| 3. Swap `ReleaseInfo` | Add `RemoteRelease`, `IMediaParent`, `MediaKind`. Make `RemoteMovie` derive from `RemoteRelease`. |
-| 4. Indexer adapter | `IReleaseMatcher` and `ISearchTranslator` for Movies. Category derivation from capabilities. RSS routing by category. |
-| 5. Collapse migrations | One chain from `001_initial`: core tables, global quality and language catalogs, `Movies_` tables, activity tables with `MediaKind`. Move Radarr's quality and language parser output to catalog IDs. |
-| 6. Module boundary | Move movie code to `NzbDrone.Core.Movies.*`. Add the architecture test and allowlist. Split core specifications, `IDownloadImporter`, `IMediaModule`, client category settings. Serve `/radarr/api/v3` alongside `/api/v3`. |
-
-Exit check for the boundary: the allowlist has only `Notifications` entries
-left. Notifications move off it before Phase 3.
 
 ## Decision record
 
