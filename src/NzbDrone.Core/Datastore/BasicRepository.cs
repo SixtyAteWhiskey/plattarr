@@ -532,9 +532,11 @@ namespace NzbDrone.Core.Datastore
             PublishModelEvent(model, ModelAction.Created);
         }
 
-        protected void ModelUpdated(TModel model)
+        // forceEvent publishes the event even when the repository does not publish model events
+        // for inserts and updates (Sonarr's episode repository does this for file and monitor changes).
+        protected void ModelUpdated(TModel model, bool forceEvent = false)
         {
-            PublishModelEvent(model, ModelAction.Updated);
+            PublishModelEvent(model, ModelAction.Updated, forceEvent);
         }
 
         protected void ModelDeleted(TModel model)
@@ -542,9 +544,9 @@ namespace NzbDrone.Core.Datastore
             PublishModelEvent(model, ModelAction.Deleted);
         }
 
-        private void PublishModelEvent(TModel model, ModelAction action)
+        private void PublishModelEvent(TModel model, ModelAction action, bool forceEvent = false)
         {
-            if (PublishModelEvents)
+            if (PublishModelEvents || forceEvent)
             {
                 _eventAggregator.PublishEvent(new ModelEvent<TModel>(model, action));
             }
