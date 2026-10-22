@@ -1,8 +1,10 @@
 # Importer for `radarr.db` and `prowlarr.db`
 
-Status: **design note; the adapter read layer is built** (see
-[Read layer](#read-layer-built)). The planner, writer, verifier and command are not
-(roadmap Phase 2, item 1). Decisions marked
+Status: **design note; built so far: the adapter read layer, the pure building blocks,
+the engine with its stage contract, and the Tags and root folder stages** (see
+[Read layer](#read-layer-built), [Building blocks](#building-blocks-built) and
+[Engine and stages](#engine-and-stages-built)). The remaining stages, the `/import` command
+and the boot test are not (roadmap Phase 2, item 1). Decisions marked
 *(reversible)* were made by Claude under the owner's standing delegation
 ("least technical debt later, most efficient") and can change without rework
 elsewhere.
@@ -250,6 +252,40 @@ Found while starting the writer. Both are in core and used by the importer only 
   (`Movies_Metadata`) are mapped with `Tags` ignored and have no column, so they are
   correctly absent; adding them breaks the housekeeper (`no such column`), which the
   first version of the test caught.
+
+## Engine and stages (built)
+
+`NzbDrone.Core.Upstream`. This is the staged planner and writer the pipeline describes, as
+code the rest of the stages plug into.
+
+| Type | Role |
+|---|---|
+| `IImportStage` | `Name`, `Order`, `Tables` (the `SourceTableRef(app, table)` pairs it accounts for), `Run(session)`. A stage plans from the `IdMap`, writes with the repositories' caller-transaction overloads, records the new IDs, and reports rows with `session.Imported` and `session.Skip`. `ImportOrder` holds the position constants (gaps left on purpose); `UpstreamApps` the app names. |
+| `ImportSession` | The connection and transaction the importer owns, the snapshots, `ImportOptions`, `IdMap`, `PathMapper`, skips, warnings, and the per-table imported counts. |
+| `ImportReconciliation` | Rows read = imported + skipped for every table a stage claims, per app. A table counted but not read (instance and runtime state) is reported by its reason and never checked. An unbalanced table throws `ImportVerificationException`, which names tables and counts and no value. |
+| `UpstreamImporter` (`IUpstreamImporter`) | Refuses two databases of one app and a target that already holds data (`Movies_Movies`, `Indexers`, `DownloadClients`, `Notifications`, `QualityProfiles`, `CustomFormats`, `Tags`) or an earlier import (Config key `importedfrom`). Runs the stages by `Order`, reconciles, then commits, or rolls back for a dry run or for strict mode with a skipped row. Any exception rolls back. `ImportResult` carries the outcome, per-table accounts, unread tables, skips, warnings and the `IdMap`. |
+| `TagsStage` (core) | Writes the label union (`TagMerger`) and fills the tag `IdMap`. |
+| `RootFoldersStage` (Movies module, `NzbDrone.Core.Movies.Upstream`) | Radarr `RootFolders` to `Movies_RootFolders` through the path map. Two folders that map onto one path become one row (both counted as imported). A folder with no path is skipped as `CORRUPT`. Nothing refers to a root folder by ID, so its `IdMap` entries serve the report only. |
+
+**The module seam is a stage.** Movie-vocabulary mapping lives in stages in the Movies module;
+the engine discovers every registered `IImportStage` and knows nothing about movies. This is
+the contract the note left open: it needs no registration beyond implementing the interface,
+and a TV or Music module adds its own stages without touching core.
+
+**Coverage cannot rot.** `ImportStageCoverageFixture` lists, per app, the tables no stage claims
+yet. The list can only shrink: a table a stage now claims fails the test until it is removed
+from the list, and a name that is not a table the adapter reads fails it too. A stage that
+claims a table the adapters do not read, or two stages that claim one table, also fail.
+
+**Strict means a skipped row, not an unread table.** Strict mode fails on any `ImportSkip`.
+Tables the adapters only count (`Commands`, `PendingReleases`, `Config` of Prowlarr...) are
+skipped by design and would make every run fail.
+
+Tests (`UpstreamImporterFixture`, `ImportReconciliationFixture`, SQLite and Postgres): the
+union of tags and their `IdMap`, the per-table accounts, path mapping, merged and skipped root
+folders, dry run and strict mode write nothing, a later stage's failure rolls back an earlier
+stage's rows, stage ordering, a stage that loses rows fails the run, and each refusal. Each
+rule was broken in turn and shown to fail its test (five engine rules, three stage rules).
 
 Gaps found while building these, to close before the writer:
 
@@ -712,8 +748,9 @@ this data (the rule stays for other users). `Prowlarr.History` is not imported.
    sync records). Still to write: a movie with a file, history chains, blocklist,
    profiles and custom formats.
 
-Implementation order: adapter read layer (done), building blocks (done), then the staged
-planner and writer for the movie tables, then the activity tables (highest risk, most
+Implementation order: adapter read layer (done), building blocks (done), engine and the
+Tags and root folder stages (done), then the remaining stages for the movie tables (profiles
+and custom formats, movies, movie files, extras), then the activity tables (highest risk, most
 real-row tests; design the module seam here), then settings and providers (including
 the Prowlarr indexer settings translation), then the verifier, the `/import` command,
 and the boot test.
