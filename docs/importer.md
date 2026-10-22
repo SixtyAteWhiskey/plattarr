@@ -92,6 +92,31 @@ docker compose run --rm plattarr /import /radarr=/import/radarr.db /prowlarr=/im
 5. **Nothing on disk is touched.** Media files, torrents and upstream config stay as
    they are. Cover images are not copied (see [Known costs](#known-costs)).
 
+### The command (built, partial)
+
+`/import` runs today over the stages that exist (tags, profiles, root folders, import
+exclusions and the movie tables). Built as designed: `ApplicationModes.Import` is selected by
+the `/import` flag in `Bootstrap.GetApplicationMode`, `Bootstrap.RunUtilityMode` resolves
+`ImportCommand` (Host) instead of the router, and `UpstreamImportRunner` (Core) copies each
+source, reads it through its adapter, runs `UpstreamImporter` and writes the report. The process
+exits with the code of the run through `Bootstrap.UtilityExitCode` (`ConsoleApp` calls
+`Environment.Exit` when it is not 0).
+
+- **A real run is refused while any source table has rows and no stage claims it** (exit 1,
+  nothing written, the message lists the tables). Until the settings and activity stages exist a
+  committed import would look finished and leave indexers, clients and history behind, and
+  `ImportedFrom` (written by the settings stage) would not be there to stop a second run.
+  `/dry-run` is not refused: it reports those tables under "Not imported by this version".
+  *(reversible: delete the check in `UpstreamImportRunner.Run` when the last table has a stage.)*
+- **Report files** (`<data>/import-report`, or `/report=`): `import-<UTC timestamp>.json` and
+  `.txt`, plus `import-idmap-<timestamp>.csv` for a committed run only (after a rollback the
+  target IDs name rows that do not exist). Sources appear by file name, schema version and SHA-256
+  of the copy, never by path.
+- **The console prints counts and reason codes only.** Titles and provider names (the skip
+  list) are in the report files, so a run in a shared terminal or CI log leaks no library listing.
+- `DryRun` needs a migrated, empty target: point `-data` at a scratch folder and the run
+  migrates it, imports inside one transaction and rolls back.
+
 ## Pipeline
 
 ```
