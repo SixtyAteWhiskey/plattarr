@@ -1,10 +1,11 @@
 # Importer for `radarr.db` and `prowlarr.db`
 
 Status: **design note; built so far: the adapter read layer, the pure building blocks,
-the engine with its stage contract, and the Tags, root folder and profile stages** (see
-[Read layer](#read-layer-built), [Building blocks](#building-blocks-built) and
-[Engine and stages](#engine-and-stages-built)). The remaining stages, the `/import` command
-and the boot test are not (roadmap Phase 2, item 1). Decisions marked
+the engine with its stage contract, and the Tags, root folder, profile and movie stages**
+(see [Read layer](#read-layer-built), [Building blocks](#building-blocks-built),
+[Engine and stages](#engine-and-stages-built) and [Movie stages](#movie-stages-built)). The
+indexer, client, settings and activity stages, the verifier, the `/import` command and the
+boot test are not (roadmap Phase 2, item 1). Decisions marked
 *(reversible)* were made by Claude under the owner's standing delegation
 ("least technical debt later, most efficient") and can change without rework
 elsewhere.
@@ -266,7 +267,10 @@ code the rest of the stages plug into.
 | `UpstreamImporter` (`IUpstreamImporter`) | Refuses two databases of one app and a target that already holds data (`Movies_Movies`, `Indexers`, `DownloadClients`, `Notifications`, `QualityProfiles`, `CustomFormats`, `Tags`) or an earlier import (Config key `importedfrom`). Runs the stages by `Order`, reconciles, then commits, or rolls back for a dry run or for strict mode with a skipped row. Any exception rolls back. `ImportResult` carries the outcome, per-table accounts, unread tables, skips, warnings and the `IdMap`. |
 | `TagsStage` (core) | Writes the label union (`TagMerger`) and fills the tag `IdMap`. |
 | `ProfilesStage` (core) | Radarr `CustomFormats`, `QualityProfiles`, `QualityDefinitions` and `DelayProfiles` in that order inside one stage (each reads the `IdMap` the one before filled). Documents are rewritten as JSON and parsed by the same converters the repositories use, so a shape the target cannot read skips that one row as `CORRUPT`; the report names the table, ID and column, never a value. Language conditions, quality items, cutoffs and profile languages go through the app's catalog; group IDs (1000 and up) are profile-local and kept; a score for a custom format that was not imported is dropped with one warning per profile; delay profile tags go through the tag map. The target's default delay profile (the one row migration 001 inserts) is updated in place by the source's default row; all other delay profiles are inserted. `AppliesTo` is `["Movies"]`. |
+| `SourceDocuments`, `RowBatch<T>` (core) | Helpers every stage shares. `SourceDocuments.IsBad` says which exceptions mean "this one document is unreadable" (a stage skips the row as `CORRUPT`; anything else fails the run) and `Describe` words them without a value. `RowBatch` collects models with their source IDs and writes them with the caller-transaction `InsertMany`, then records every new ID in the `IdMap` and counts the rows imported. |
 | `RootFoldersStage` (Movies module, `NzbDrone.Core.Movies.Upstream`) | Radarr `RootFolders` to `Movies_RootFolders` through the path map. Two folders that map onto one path become one row (both counted as imported). A folder with no path is skipped as `CORRUPT`. Nothing refers to a root folder by ID, so its `IdMap` entries serve the report only. |
+
+The movie stages (`ImportExclusionsStage`, `MovieMetadataStage`, `MoviesStage`, `MovieExtrasStage`) are described under [Movie stages](#movie-stages-built).
 
 **The module seam is a stage.** Movie-vocabulary mapping lives in stages in the Movies module;
 the engine discovers every registered `IImportStage` and knows nothing about movies. This is
@@ -294,6 +298,43 @@ Gaps found while building these, to close before the writer:
   remap as a `Tags` column.
 - Fixtures are written by hand from documented shapes until `tools/upstream-fixtures`
   exists.
+
+### Movie stages (built)
+
+`NzbDrone.Core.Movies.Upstream`. Four stages in `ImportOrder` positions 550 to 800: metadata
+before movies, movies before the files that hang off them.
+
+| Stage (order) | Tables | Rules |
+|---|---|---|
+| `ImportExclusionsStage` (550) | `ImportExclusions` | `TmdbId`, title and year copied; a NULL year becomes 0 (the model's `MovieYear` is a non-nullable int). Refers to nothing else. |
+| `MovieMetadataStage` (600) | `MovieMetadata`, `AlternativeTitles`, `MovieTranslations`, `Credits`, `Collections` | All metadata is imported, including titles no movie uses (it is a lookup catalog). `OriginalLanguage` and translation `Language` go through the catalog; `Images`, `Genres`, `Keywords`, `Ratings`, `Recommendations` are parsed by the target's own converters. NULL `Year`, `CollectionTmdbId` and `Popularity` become 0. A child row whose metadata was skipped is skipped too. Collections resolve `QualityProfileId` (skipped when the profile was not imported), map `RootFolderPath`, remap `Tags` (dropped ones give one warning per collection), and take the import time as `Added` when the source has none. |
+| `MoviesStage` (700) | `Movies`, `MovieFiles` | A movie needs its metadata, its quality profile and a non-empty path, otherwise it is skipped as `CORRUPT` and named by its title. Movies are inserted with `MovieFileId` 0, then files with the new movie IDs, then `Movies_Movies.MovieFileId` is set with plain SQL on the import's connection and transaction (a repository call opens another connection and cannot see the rows). A file whose movie was skipped is skipped; a movie whose file was skipped is imported without a file and the next disk scan finds the file again, with no warning because the skip is already in the report. A movie that points at a file that is not in Radarr's database at all gets one warning. `Quality` and `Languages` go through the catalog; `MediaInfo` is parsed as is (NULL stays NULL); `IndexerFlags` is copied. |
+| `MovieExtrasStage` (800) | `SubtitleFiles`, `ExtraFiles`, `MetadataFiles` | `MovieId` resolves through `Movies`; `MovieFileId` through `MovieFiles` when it is above 0. 0 (or NULL for metadata files) stays as it was. A row whose movie or file was not imported is skipped as `CORRUPT`, because the target has no foreign keys and a stale ID would attach the row to whatever later takes it. Subtitle `Language` goes through the catalog. `Added` falls back to the import time and `LastUpdated` to `Added`. Metadata files keep their `Consumer` class name and `Type`. |
+
+**Bad documents skip one row.** `SourceRow.GetJson` throws `CorruptSourceDataException` (a
+subclass of `UpstreamImportException`) for text that is not valid JSON, so every stage skips
+that row instead of failing the run. This also changed `ProfilesStage`: a profile or format
+with malformed JSON used to abort the import and is now skipped and reported. A missing
+mandatory column still fails the run, and messages name the column, never the value.
+
+**Dates.** `SourceRow.GetNullableDateTime` and `GetDateTime` read a `DateTime`,
+`DateTimeOffset` or text and always return UTC: a value with no zone is taken as UTC (Radarr
+writes UTC), a value with an offset is converted. Text that is not a date throws without
+echoing it. The target keeps microseconds on Postgres, so the seventh fractional digit Radarr
+writes is dropped there.
+
+**Deferred.** `ImportListMovies` waits for the import list stage, which needs the settings
+and provider work.
+
+**Not yet confirmed against real rows.** The fixtures are hand-built from the Radarr 242
+schema and the session 30 dump. The date text format and the JSON of `Images`, `Ratings` and
+`MediaInfo` in the owner's database have not been read directly; the readers are tolerant,
+and the cutover rehearsal is the real test.
+
+Tests (`MovieStagesFixture`, `SourceRowFixture`, `ProfilesStageFixture`; SQLite and
+Postgres): each rule above, with a read-back through the target repositories. One test pins
+that the target allows two metadata rows to share an alternative title `CleanTitle`. Each
+rule was broken in turn and shown to fail its test (14 mutations, all caught).
 
 ## Mapping
 
@@ -745,9 +786,9 @@ what the stored JSON and constraints look like.
    `rawStreamData` and `rawFrameData` text). It is copied as is; 75 rows, so about 5 MB.
    `Quality` is `{"quality": id, "revision": {"version", "real", "isRepack"}}`, `Languages` an
    array of language IDs, `IndexerFlags` an integer.
-10. **`AlternativeTitles.CleanTitle` is UNIQUE in the source schema.** If the target's table has the
-    same constraint, two movies sharing an alternative title cannot both keep it. Check the target
-    schema before writing that stage.
+10. **`AlternativeTitles.CleanTitle` is UNIQUE in the source schema.** Checked: the target's
+    `Movies_AlternativeTitles` index on `CleanTitle` is not unique, so nothing is lost on import
+    (pinned by `should_allow_two_metadata_rows_to_share_an_alternative_title_clean_title`).
 11. **Event types.** `History`: 1 (grabbed) 141, 3 (downloaded) 79, 4 (failed) 53, 6 (file deleted) 4.
     `DownloadHistory`: 1: 141, 2: 79, 3: 53, 5: 79. Every one of these is in `RadarrEventTypes`.
 12. **`History.Data` for a grab carries a `downloadUrl` with the Prowlarr API key in its query
@@ -802,8 +843,9 @@ what the stored JSON and constraints look like.
    mapping table should drop its Prowlarr `Config` rows when the settings stage is built.
 7. Scrubbed row fixtures: the building blocks have theirs (`UpstreamFixtureTest`:
    tags, a qBittorrent client, five indexers, a grab row, Prowlarr applications and
-   sync records), and the profile stage has its own (`ProfilesStageFixture`, rows shaped like the
-   live ones). Still to write: a movie with a file, history chains, blocklist.
+   sync records), the profile stage has its own (`ProfilesStageFixture`, rows shaped like the
+   live ones), and the movie stages have `MovieStagesFixture` (a movie with a file, extras,
+   exclusions, collections). Still to write: history chains, blocklist.
 8. ~~Strip the `apikey` query parameter from `downloadUrl` in `History.Data` and
    `DownloadHistory.Release`?~~ Decided by the owner 2026-10-22: **yes, strip it.** The
    activity stage removes the `apikey` query parameter (any case) from `downloadUrl` and keeps
@@ -811,8 +853,7 @@ what the stored JSON and constraints look like.
    building block is a pure function with its own tests, written with the activity stage.
 
 Implementation order: adapter read layer (done), building blocks (done), engine and the
-Tags, root folder and profile stages (done), then the remaining stages for the movie tables
-(movies, movie files, extras), then the activity tables (highest risk, most
+Tags, root folder, profile and movie stages (done), then the activity tables (highest risk, most
 real-row tests; design the module seam here), then settings and providers (including
 the Prowlarr indexer settings translation), then the verifier, the `/import` command,
 and the boot test.
