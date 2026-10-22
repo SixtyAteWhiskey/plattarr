@@ -6,6 +6,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.AutoTagging;
 using NzbDrone.Core.AutoTagging.Specifications;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Tags;
 
 namespace NzbDrone.Core.Housekeeping.Housekeepers
 {
@@ -23,14 +24,7 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
         public void Clean()
         {
             using var mapper = _database.OpenConnection();
-            var usedTags = new[]
-                {
-                    "Movies_Movies", "Notifications", "DelayProfiles", "ReleaseProfiles", "Movies_ImportLists", "Indexers",
-                    "AutoTagging", "DownloadClients", "IndexerProxies",
-
-                    // Collections hand their tags to the movies they add (upstream Radarr leaves them out).
-                    "Movies_Collections"
-                }
+            var usedTags = TagUsage.Tables
                 .SelectMany(v => GetUsedTags(v, mapper))
                 .Concat(GetAutoTaggingTagSpecificationTags(mapper))
                 .Distinct()

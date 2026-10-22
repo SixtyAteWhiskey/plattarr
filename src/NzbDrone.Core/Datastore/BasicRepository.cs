@@ -31,7 +31,9 @@ namespace NzbDrone.Core.Datastore
         void Delete(int id);
         IEnumerable<TModel> Get(IEnumerable<int> ids);
         void InsertMany(IList<TModel> model);
+        void InsertMany(IList<TModel> models, IDbConnection connection, IDbTransaction transaction);
         void UpdateMany(IList<TModel> model);
+        void UpdateMany(IList<TModel> models, IDbConnection connection, IDbTransaction transaction);
         void SetFields(IList<TModel> models, params Expression<Func<TModel, object>>[] properties);
         void DeleteMany(List<TModel> model);
         void DeleteMany(IEnumerable<int> ids);
@@ -222,7 +224,7 @@ namespace NzbDrone.Core.Datastore
             return model;
         }
 
-        public void InsertMany(IList<TModel> models)
+        private void PrepareInsertMany(IList<TModel> models)
         {
             if (models.Any(x => x.Id != 0))
             {
@@ -233,6 +235,35 @@ namespace NzbDrone.Core.Datastore
             {
                 BeforeInsert(model);
             }
+        }
+
+        // For the upstream importer: writes on a connection and transaction the caller owns, so one
+        // failure rolls back every table. The models get their IDs as with InsertMany, but nothing is
+        // committed here and no event is raised. The caller must not write through any other
+        // connection meanwhile (SQLite allows one writer).
+        public void InsertMany(IList<TModel> models, IDbConnection connection, IDbTransaction transaction)
+        {
+            PrepareInsertMany(models);
+
+            foreach (var model in models)
+            {
+                Insert(connection, transaction, model);
+            }
+        }
+
+        public void UpdateMany(IList<TModel> models, IDbConnection connection, IDbTransaction transaction)
+        {
+            if (models.Any(x => x.Id == 0))
+            {
+                throw new InvalidOperationException("Can't update model with ID 0");
+            }
+
+            UpdateFields(connection, transaction, models, _properties);
+        }
+
+        public void InsertMany(IList<TModel> models)
+        {
+            PrepareInsertMany(models);
 
             using (var conn = _database.OpenConnection())
             {
