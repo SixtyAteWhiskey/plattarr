@@ -9,9 +9,9 @@ namespace NzbDrone.Core.Upstream
     // matched case-insensitively and may be absent: an older upstream schema has
     // fewer columns, and the adapter reads the columns it finds.
     //
-    // Reading rules: GetString, GetNullableInt, GetNullableLong, GetNullableDouble and GetJson return
-    // null for an absent or NULL column. GetInt, GetLong and GetBool throw for
-    // both, so a mandatory column that is missing is loud. Exception messages name
+    // Reading rules: GetString, GetNullableInt, GetNullableLong, GetNullableDouble, GetNullableDateTime
+    // and GetJson return null for an absent or NULL column. GetInt, GetLong, GetBool and GetDateTime
+    // throw for both, so a mandatory column that is missing is loud. Exception messages name
     // the column and never the value (rows hold secrets).
     public class SourceRow
     {
@@ -87,6 +87,50 @@ namespace NzbDrone.Core.Upstream
             }
         }
 
+        // A date as UTC. SQLite keeps dates as text, and the upstream apps wrote them without a
+        // zone ("2026-01-02 03:04:05.1234567"), with a Z, or with an offset; text without a zone
+        // is UTC, because the apps converted to UTC before storing. A blank column is null.
+        public DateTime? GetNullableDateTime(string column)
+        {
+            if (IsNull(column))
+            {
+                return null;
+            }
+
+            var value = _values[column];
+
+            if (value is DateTime dateTime)
+            {
+                return dateTime.Kind == DateTimeKind.Unspecified
+                    ? DateTime.SpecifyKind(dateTime, DateTimeKind.Utc)
+                    : dateTime.ToUniversalTime();
+            }
+
+            if (value is DateTimeOffset offset)
+            {
+                return offset.UtcDateTime;
+            }
+
+            var text = GetString(column);
+
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            if (DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var parsed))
+            {
+                return DateTime.SpecifyKind(parsed, DateTimeKind.Utc);
+            }
+
+            throw new UpstreamImportException($"Column {column} does not hold a date");
+        }
+
+        public DateTime GetDateTime(string column)
+        {
+            return GetNullableDateTime(column) ?? throw MissingValue(column);
+        }
+
         public long GetLong(string column)
         {
             return GetNullableLong(column) ?? throw MissingValue(column);
@@ -120,7 +164,8 @@ namespace NzbDrone.Core.Upstream
             return GetLong(column) != 0;
         }
 
-        // The stored JSON text, parsed. Null for an absent, NULL or empty column.
+        // The stored JSON text, parsed. Null for an absent, NULL or empty column. Text that is not
+        // JSON is corrupt data (a stage skips that one row), not a reason to stop the run.
         public JToken GetJson(string column)
         {
             var text = GetString(column);
@@ -136,7 +181,7 @@ namespace NzbDrone.Core.Upstream
             }
             catch (Exception ex) when (ex is Newtonsoft.Json.JsonReaderException)
             {
-                throw new UpstreamImportException($"Column {column} does not hold valid JSON", ex);
+                throw new CorruptSourceDataException($"Column {column} does not hold valid JSON", ex);
             }
         }
 

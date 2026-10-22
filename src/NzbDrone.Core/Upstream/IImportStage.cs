@@ -17,6 +17,12 @@ namespace NzbDrone.Core.Upstream
         public const int Tags = 100;
         public const int Profiles = 200;
         public const int RootFolders = 500;
+        public const int ImportExclusions = 550;
+
+        // Metadata, then the library (movies, then their files), then what hangs off the files.
+        public const int MovieMetadata = 600;
+        public const int Movies = 700;
+        public const int MovieExtras = 800;
     }
 
     // One source table of one app.

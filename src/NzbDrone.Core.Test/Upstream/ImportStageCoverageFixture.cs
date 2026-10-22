@@ -21,10 +21,8 @@ namespace NzbDrone.Core.Test.Upstream
         {
             "ReleaseProfiles",
             "Indexers", "DownloadClients", "RemotePathMappings", "Notifications", "AutoTagging",
-            "CustomFilters", "NamingConfig", "ImportExclusions", "Metadata", "ImportLists",
-            "MovieMetadata", "AlternativeTitles", "MovieTranslations", "Credits", "Collections",
-            "Movies", "MovieFiles", "ImportListMovies", "MetadataFiles", "ExtraFiles",
-            "SubtitleFiles", "History", "DownloadHistory", "Blocklist", "Config"
+            "CustomFilters", "NamingConfig", "Metadata", "ImportLists", "ImportListMovies",
+            "History", "DownloadHistory", "Blocklist", "Config"
         };
 
         private static readonly string[] ProwlarrNotYetClaimed =
