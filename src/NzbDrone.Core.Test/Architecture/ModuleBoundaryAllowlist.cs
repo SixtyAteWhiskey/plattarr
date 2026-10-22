@@ -32,8 +32,7 @@ namespace NzbDrone.Core.Test.Architecture
             // DiskSpace (1): Root folders come from each module.
             "NzbDrone.Core.DiskSpace.DiskSpaceService",
 
-            // Download (4): Clients and their base classes were retyped to RemoteRelease in 9h, the grab and decision processing path (DownloadService, ProcessDownloadDecisions) in 9j, the failure, ignore, redownload, download history and seed configuration services in 9k, and the aggregators (movie parse results) moved into Movies.Aggregation in 9l. What is left: tracked downloads and ScanWatchFolder (needs a core media-file scanner).
-            "NzbDrone.Core.Download.Clients.Blackhole.ScanWatchFolder",
+            // Download (3): Clients and their base classes were retyped to RemoteRelease in 9h, the grab and decision processing path (DownloadService, ProcessDownloadDecisions) in 9j, the failure, ignore, redownload, download history and seed configuration services in 9k, and the aggregators (movie parse results) moved into Movies.Aggregation in 9l. ScanWatchFolder left the list when the Blackhole clients were pruned. What is left: tracked downloads.
             "NzbDrone.Core.Download.TrackedDownloads.DownloadMonitoringService",
             "NzbDrone.Core.Download.TrackedDownloads.TrackedDownload",
             "NzbDrone.Core.Download.TrackedDownloads.TrackedDownloadService",

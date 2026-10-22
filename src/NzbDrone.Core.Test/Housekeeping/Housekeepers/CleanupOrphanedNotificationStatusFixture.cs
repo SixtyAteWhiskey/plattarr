@@ -3,7 +3,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Housekeeping.Housekeepers;
 using NzbDrone.Core.Notifications;
-using NzbDrone.Core.Notifications.Join;
+using NzbDrone.Core.Notifications.Webhook;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
@@ -17,7 +17,7 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
         public void Setup()
         {
             _notification = Builder<NotificationDefinition>.CreateNew()
-                                                           .With(s => s.Settings = new JoinSettings { })
+                                                           .With(s => s.Settings = new WebhookSettings { })
                                                            .BuildNew();
         }
 
