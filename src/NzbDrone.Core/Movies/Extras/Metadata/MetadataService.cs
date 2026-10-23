@@ -8,6 +8,7 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Movies.Extras.Files;
 using NzbDrone.Core.Movies.Extras.Metadata.Files;
 using NzbDrone.Core.Movies.Extras.Others;

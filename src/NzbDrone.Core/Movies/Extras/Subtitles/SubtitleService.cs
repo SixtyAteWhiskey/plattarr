@@ -8,6 +8,7 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Movies.Extras.Files;
 using NzbDrone.Core.Movies.MediaFiles;
 using NzbDrone.Core.Movies.MediaFiles.MovieImport;

@@ -5,10 +5,10 @@ using System.Linq;
 using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies.Events;
-using NzbDrone.Core.Movies.MediaFiles;
 using NzbDrone.Core.Movies.MediaFiles.Events;
 
 namespace NzbDrone.Core.Movies.Extras.Files

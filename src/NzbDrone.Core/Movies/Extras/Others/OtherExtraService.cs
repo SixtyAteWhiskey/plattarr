@@ -6,6 +6,7 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Movies.Extras.Files;
 using NzbDrone.Core.Movies.MediaFiles;
 using NzbDrone.Core.Movies.Parser.Model;

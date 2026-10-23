@@ -19,6 +19,7 @@ namespace NzbDrone.Core.Tv.CustomFormats
         List<CustomFormat> ParseCustomFormat(EpisodeFile episodeFile);
         List<CustomFormat> ParseCustomFormat(Blocklist blocklist, Series series);
         List<CustomFormat> ParseCustomFormat(EpisodeHistory history, Series series);
+        List<CustomFormat> ParseCustomFormat(LocalEpisode localEpisode, string fileName);
     }
 
     // Sonarr's CustomFormatCalculationService builders on the core's neutral input. The shared
@@ -111,6 +112,22 @@ namespace NzbDrone.Core.Tv.CustomFormats
             input.Languages = history.Languages;
             input.IndexerFlags = indexerFlags;
             input.ReleaseType = (int)releaseType;
+
+            return Calculate(input);
+        }
+
+        public List<CustomFormat> ParseCustomFormat(LocalEpisode localEpisode, string fileName)
+        {
+            // Sonarr builds a parse result from the local episode; the neutral input carries the same fields.
+            var input = EpisodeInput(localEpisode.Series);
+            input.ReleaseTitle = localEpisode.SceneName.IsNotNullOrWhiteSpace() ? localEpisode.SceneName : Path.GetFileName(localEpisode.Path);
+            input.ReleaseGroup = localEpisode.ReleaseGroup;
+            input.Quality = localEpisode.Quality;
+            input.Size = localEpisode.Size;
+            input.Languages = localEpisode.Languages;
+            input.IndexerFlags = localEpisode.IndexerFlags;
+            input.ReleaseType = (int)localEpisode.ReleaseType;
+            input.Filename = fileName;
 
             return Calculate(input);
         }

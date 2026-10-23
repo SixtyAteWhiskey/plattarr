@@ -1,17 +1,18 @@
-﻿using System;
+using System;
 using System.IO;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnvironmentInfo;
+using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Test.Framework;
 using SixLabors.ImageSharp;
 
 namespace NzbDrone.Core.Test.MediaCoverTests
 {
     [TestFixture]
-    public class ImageResizerFixture : CoreTest<Movies.Covers.ImageResizer>
+    public class ImageResizerFixture : CoreTest<ImageResizer>
     {
         [SetUp]
         public void SetUp()

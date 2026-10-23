@@ -35,6 +35,9 @@ namespace NzbDrone.Core.Configuration
         bool AnimeStandardFormatSearch { get; set; }
         SeasonPackUpgradeType SeasonPackUpgrade { get; set; }
         int SeasonPackUpgradeThreshold { get; set; }
+        EpisodeTitleRequiredType EpisodeTitleRequired { get; set; }
+        string UserRejectedExtensions { get; set; }
+        EpisodeFileDateType EpisodeFileDate { get; set; }
         bool DeleteEmptyFolders { get; set; }
         FileDateType FileDate { get; set; }
         bool SkipFreeSpaceCheckWhenImporting { get; set; }

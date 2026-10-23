@@ -257,6 +257,31 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("SeasonPackUpgradeThreshold", value); }
         }
 
+        // TV: when an episode title must be known before an import (Sonarr's default is Always).
+        public EpisodeTitleRequiredType EpisodeTitleRequired
+        {
+            get { return GetValueEnum("EpisodeTitleRequired", EpisodeTitleRequiredType.Always); }
+
+            set { SetValue("EpisodeTitleRequired", value); }
+        }
+
+        // TV: file extensions (comma separated) an import rejects. Empty by default.
+        public string UserRejectedExtensions
+        {
+            get { return GetValue("UserRejectedExtensions", string.Empty); }
+
+            set { SetValue("UserRejectedExtensions", value); }
+        }
+
+        // TV: Sonarr's FileDate setting. It has its own key because the movie setting's values
+        // (cinema and release date) mean something else.
+        public EpisodeFileDateType EpisodeFileDate
+        {
+            get { return GetValueEnum("EpisodeFileDate", EpisodeFileDateType.None); }
+
+            set { SetValue("EpisodeFileDate", value); }
+        }
+
         public bool DeleteEmptyFolders
         {
             get { return GetValueBoolean("DeleteEmptyFolders", false); }

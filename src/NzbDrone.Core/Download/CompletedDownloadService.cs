@@ -127,6 +127,19 @@ namespace NzbDrone.Core.Download
 
                 if (_rejectedImportService.Process(trackedDownload, firstResult))
                 {
+                    if (importer.BlocksImportAfterRejection && trackedDownload.State != TrackedDownloadState.FailedPending)
+                    {
+                        SetStateToImportBlocked(trackedDownload, importer);
+                    }
+
+                    return;
+                }
+
+                if (firstResult.BlocksAutomaticImport)
+                {
+                    trackedDownload.Warn(new TrackedDownloadStatusMessage(trackedDownload.DownloadItem.Title, firstResult.Errors));
+                    SetStateToImportBlocked(trackedDownload, importer);
+
                     return;
                 }
             }

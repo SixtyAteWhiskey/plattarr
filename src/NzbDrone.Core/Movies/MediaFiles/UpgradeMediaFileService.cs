@@ -2,8 +2,8 @@ using System.IO;
 using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Modules;
-using NzbDrone.Core.Movies.MediaFiles.MovieImport;
 using NzbDrone.Core.Movies.Parser.Model;
 
 namespace NzbDrone.Core.Movies.MediaFiles

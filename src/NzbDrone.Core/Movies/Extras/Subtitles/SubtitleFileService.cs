@@ -1,7 +1,7 @@
 using NLog;
 using NzbDrone.Common.Disk;
+using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Movies.Extras.Files;
-using NzbDrone.Core.Movies.MediaFiles;
 
 namespace NzbDrone.Core.Movies.Extras.Subtitles
 {

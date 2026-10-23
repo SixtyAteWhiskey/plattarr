@@ -1,7 +1,7 @@
 using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Core.Movies.MediaFiles;
+using NzbDrone.Core.MediaFiles;
 
 namespace NzbDrone.Core.Movies.Extras.Others
 {

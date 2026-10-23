@@ -29,6 +29,8 @@ namespace NzbDrone.Core.Movies.MediaFiles.MovieImport
             }
         }
 
+        bool IImportResult.BlocksAutomaticImport => false;
+
         string IImportResult.Path => ImportDecision.LocalMovie?.Path;
 
         // Contract 5: the first rejection decides, as RejectedImportService did before the move.
