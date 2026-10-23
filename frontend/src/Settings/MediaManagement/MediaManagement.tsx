@@ -9,9 +9,11 @@ import FormInputGroup from 'Components/Form/FormInputGroup';
 import FormLabel from 'Components/Form/FormLabel';
 import { EnhancedSelectInputValue } from 'Components/Form/Select/EnhancedSelectInput';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import MediaKindSwitcher from 'Components/MediaKindSwitcher';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
 import useShowAdvancedSettings from 'Helpers/Hooks/useShowAdvancedSettings';
+import { useMediaKind } from 'Helpers/mediaKindStore';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
 import RootFolders from 'RootFolder/RootFolders';
 import SettingsToolbar from 'Settings/SettingsToolbar';
@@ -20,6 +22,7 @@ import {
   fetchMediaManagementSettings,
   saveMediaManagementSettings,
   saveNamingSettings,
+  saveTvNamingSettings,
   setMediaManagementSettingsValue,
 } from 'Store/Actions/settingsActions';
 import createSettingsSectionSelector from 'Store/Selectors/createSettingsSectionSelector';
@@ -28,6 +31,7 @@ import { InputChanged } from 'typings/inputs';
 import isEmpty from 'Utilities/Object/isEmpty';
 import translate from 'Utilities/String/translate';
 import Naming from './Naming/Naming';
+import TvNaming from './Naming/Tv/TvNaming';
 import AddRootFolder from './RootFolder/AddRootFolder';
 
 const SECTION = 'mediaManagement';
@@ -74,6 +78,48 @@ const downloadPropersAndRepacksOptions: EnhancedSelectInputValue<string>[] = [
   },
 ];
 
+const episodeTitleRequiredOptions: EnhancedSelectInputValue<string>[] = [
+  {
+    key: 'always',
+    get value() {
+      return translate('Always');
+    },
+  },
+  {
+    key: 'bulkSeasonReleases',
+    get value() {
+      return translate('OnlyForBulkSeasonReleases');
+    },
+  },
+  {
+    key: 'never',
+    get value() {
+      return translate('Never');
+    },
+  },
+];
+
+const episodeFileDateOptions: EnhancedSelectInputValue<string>[] = [
+  {
+    key: 'none',
+    get value() {
+      return translate('None');
+    },
+  },
+  {
+    key: 'localAirDate',
+    get value() {
+      return translate('LocalAirDate');
+    },
+  },
+  {
+    key: 'utcAirDate',
+    get value() {
+      return translate('UtcAirDate');
+    },
+  },
+];
+
 const fileDateOptions: EnhancedSelectInputValue<string>[] = [
   {
     key: 'none',
@@ -98,8 +144,14 @@ const fileDateOptions: EnhancedSelectInputValue<string>[] = [
 function MediaManagement() {
   const dispatch = useDispatch();
   const showAdvancedSettings = useShowAdvancedSettings();
+  const isTv = useMediaKind() === 'tv';
+  const mediaKind = isTv ? 'tv' : 'movies';
   const hasNamingPendingChanges = !isEmpty(
-    useSelector((state: AppState) => state.settings.naming.pendingChanges)
+    useSelector((state: AppState) =>
+      isTv
+        ? state.settings.tvNaming.pendingChanges
+        : state.settings.naming.pendingChanges
+    )
   );
   const isWindows = useIsWindows();
   const {
@@ -116,8 +168,8 @@ function MediaManagement() {
 
   const handleSavePress = useCallback(() => {
     dispatch(saveMediaManagementSettings());
-    dispatch(saveNamingSettings());
-  }, [dispatch]);
+    dispatch(isTv ? saveTvNamingSettings() : saveNamingSettings());
+  }, [dispatch, isTv]);
 
   const handleInputChange = useCallback(
     (change: InputChanged) => {
@@ -140,11 +192,12 @@ function MediaManagement() {
       <SettingsToolbar
         isSaving={isSaving}
         hasPendingChanges={hasNamingPendingChanges || hasPendingChanges}
+        additionalButtons={<MediaKindSwitcher />}
         onSavePress={handleSavePress}
       />
 
       <PageContentBody>
-        <Naming />
+        {isTv ? <TvNaming /> : <Naming />}
 
         {isFetching ? (
           <FieldSet legend={translate('NamingSettings')}>
@@ -173,18 +226,36 @@ function MediaManagement() {
                   isAdvanced={true}
                   size={sizes.MEDIUM}
                 >
-                  <FormLabel>{translate('CreateEmptyMovieFolders')}</FormLabel>
+                  <FormLabel>
+                    {translate(
+                      isTv
+                        ? 'CreateEmptySeriesFolders'
+                        : 'CreateEmptyMovieFolders'
+                    )}
+                  </FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.CHECK}
                     isDisabled={
                       settings.deleteEmptyFolders.value &&
-                      !settings.createEmptyMovieFolders.value
+                      !(isTv
+                        ? settings.createEmptySeriesFolders.value
+                        : settings.createEmptyMovieFolders.value)
                     }
-                    name="createEmptyMovieFolders"
-                    helpText={translate('CreateEmptyMovieFoldersHelpText')}
+                    name={
+                      isTv
+                        ? 'createEmptySeriesFolders'
+                        : 'createEmptyMovieFolders'
+                    }
+                    helpText={translate(
+                      isTv
+                        ? 'CreateEmptySeriesFoldersHelpText'
+                        : 'CreateEmptyMovieFoldersHelpText'
+                    )}
                     onChange={handleInputChange}
-                    {...settings.createEmptyMovieFolders}
+                    {...(isTv
+                      ? settings.createEmptySeriesFolders
+                      : settings.createEmptyMovieFolders)}
                   />
                 </FormGroup>
 
@@ -198,11 +269,17 @@ function MediaManagement() {
                   <FormInputGroup
                     type={inputTypes.CHECK}
                     isDisabled={
-                      settings.createEmptyMovieFolders.value &&
+                      (isTv
+                        ? settings.createEmptySeriesFolders.value
+                        : settings.createEmptyMovieFolders.value) &&
                       !settings.deleteEmptyFolders.value
                     }
                     name="deleteEmptyFolders"
-                    helpText={translate('DeleteEmptyMovieFoldersHelpText')}
+                    helpText={translate(
+                      isTv
+                        ? 'DeleteEmptySeriesFoldersHelpText'
+                        : 'DeleteEmptyMovieFoldersHelpText'
+                    )}
                     onChange={handleInputChange}
                     {...settings.deleteEmptyFolders}
                   />
@@ -212,6 +289,25 @@ function MediaManagement() {
 
             {showAdvancedSettings ? (
               <FieldSet legend={translate('Importing')}>
+                {isTv ? (
+                  <FormGroup
+                    advancedSettings={showAdvancedSettings}
+                    isAdvanced={true}
+                    size={sizes.MEDIUM}
+                  >
+                    <FormLabel>{translate('EpisodeTitleRequired')}</FormLabel>
+
+                    <FormInputGroup
+                      type={inputTypes.SELECT}
+                      name="episodeTitleRequired"
+                      values={episodeTitleRequiredOptions}
+                      helpText={translate('EpisodeTitleRequiredHelpText')}
+                      onChange={handleInputChange}
+                      {...settings.episodeTitleRequired}
+                    />
+                  </FormGroup>
+                ) : null}
+
                 <FormGroup
                   advancedSettings={showAdvancedSettings}
                   isAdvanced={true}
@@ -257,7 +353,11 @@ function MediaManagement() {
                   <FormInputGroup
                     type={inputTypes.CHECK}
                     name="copyUsingHardlinks"
-                    helpText={translate('CopyUsingHardlinksMovieHelpText')}
+                    helpText={translate(
+                      isTv
+                        ? 'CopyUsingHardlinksSeriesHelpText'
+                        : 'CopyUsingHardlinksMovieHelpText'
+                    )}
                     helpTextWarning={translate(
                       'CopyUsingHardlinksHelpTextWarning'
                     )}
@@ -306,7 +406,11 @@ function MediaManagement() {
                   <FormInputGroup
                     type={inputTypes.CHECK}
                     name="importExtraFiles"
-                    helpText={translate('ImportExtraFilesMovieHelpText')}
+                    helpText={translate(
+                      isTv
+                        ? 'ImportExtraFilesEpisodeHelpText'
+                        : 'ImportExtraFilesMovieHelpText'
+                    )}
                     onChange={handleInputChange}
                     {...settings.importExtraFiles}
                   />
@@ -336,14 +440,28 @@ function MediaManagement() {
 
             <FieldSet legend={translate('FileManagement')}>
               <FormGroup size={sizes.MEDIUM}>
-                <FormLabel>{translate('UnmonitorDeletedMovies')}</FormLabel>
+                <FormLabel>
+                  {translate(
+                    isTv ? 'UnmonitorDeletedEpisodes' : 'UnmonitorDeletedMovies'
+                  )}
+                </FormLabel>
 
                 <FormInputGroup
                   type={inputTypes.CHECK}
-                  name="autoUnmonitorPreviouslyDownloadedMovies"
-                  helpText={translate('UnmonitorDeletedMoviesHelpText')}
+                  name={
+                    isTv
+                      ? 'autoUnmonitorPreviouslyDownloadedEpisodes'
+                      : 'autoUnmonitorPreviouslyDownloadedMovies'
+                  }
+                  helpText={translate(
+                    isTv
+                      ? 'UnmonitorDeletedEpisodesHelpText'
+                      : 'UnmonitorDeletedMoviesHelpText'
+                  )}
                   onChange={handleInputChange}
-                  {...settings.autoUnmonitorPreviouslyDownloadedMovies}
+                  {...(isTv
+                    ? settings.autoUnmonitorPreviouslyDownloadedEpisodes
+                    : settings.autoUnmonitorPreviouslyDownloadedMovies)}
                 />
               </FormGroup>
 
@@ -393,13 +511,21 @@ function MediaManagement() {
                 isAdvanced={true}
               >
                 <FormLabel>
-                  {translate('RescanMovieFolderAfterRefresh')}
+                  {translate(
+                    isTv
+                      ? 'RescanSeriesFolderAfterRefresh'
+                      : 'RescanMovieFolderAfterRefresh'
+                  )}
                 </FormLabel>
 
                 <FormInputGroup
                   type={inputTypes.SELECT}
                   name="rescanAfterRefresh"
-                  helpText={translate('RescanAfterRefreshMovieHelpText')}
+                  helpText={translate(
+                    isTv
+                      ? 'RescanAfterRefreshSeriesHelpText'
+                      : 'RescanAfterRefreshMovieHelpText'
+                  )}
                   helpTextWarning={translate(
                     'RescanAfterRefreshHelpTextWarning'
                   )}
@@ -417,11 +543,11 @@ function MediaManagement() {
 
                 <FormInputGroup
                   type={inputTypes.SELECT}
-                  name="fileDate"
+                  name={isTv ? 'episodeFileDate' : 'fileDate'}
                   helpText={translate('ChangeFileDateHelpText')}
-                  values={fileDateOptions}
+                  values={isTv ? episodeFileDateOptions : fileDateOptions}
                   onChange={handleInputChange}
-                  {...settings.fileDate}
+                  {...(isTv ? settings.episodeFileDate : settings.fileDate)}
                 />
               </FormGroup>
 
@@ -519,8 +645,8 @@ function MediaManagement() {
         ) : null}
 
         <FieldSet legend={translate('RootFolders')}>
-          <RootFolders />
-          <AddRootFolder />
+          <RootFolders mediaKind={mediaKind} />
+          <AddRootFolder mediaKind={mediaKind} />
         </FieldSet>
       </PageContentBody>
     </PageContent>

@@ -38,6 +38,7 @@ namespace Radarr.Api.V3.Config
             SharedValidator.RuleFor(c => c.ScriptImportPath).IsValidPath().When(c => c.UseScriptImport);
 
             SharedValidator.RuleFor(c => c.MinimumFreeSpaceWhenImporting).GreaterThanOrEqualTo(100);
+            SharedValidator.RuleFor(c => c.SeasonPackUpgradeThreshold).InclusiveBetween(1, 100);
         }
 
         protected override MediaManagementConfigResource ToResource(IConfigService model)

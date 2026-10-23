@@ -238,6 +238,14 @@ class SignalRConnector extends Component {
     }
   };
 
+  handleTvMetadata = ({ action, resource }) => {
+    const section = 'settings.tvMetadata';
+
+    if (action === 'updated') {
+      this.props.dispatchUpdateItem({ section, ...resource });
+    }
+  };
+
   handleNotification = ({ action, resource }) => {
     const section = 'settings.notifications';
 

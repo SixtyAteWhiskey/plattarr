@@ -25,6 +25,7 @@ import NamingConfig from 'typings/Settings/NamingConfig';
 import NamingExample from 'typings/Settings/NamingExample';
 import ReleaseProfile from 'typings/Settings/ReleaseProfile';
 import TvNamingConfig from 'typings/Settings/TvNamingConfig';
+import TvNamingExample from 'typings/Settings/TvNamingExample';
 import UiSettings from 'typings/Settings/UiSettings';
 import MetadataAppState from './MetadataAppState';
 
@@ -73,7 +74,7 @@ export interface TvNamingAppState
   extends AppSectionItemState<TvNamingConfig>,
     AppSectionSaveState {}
 
-export type TvNamingExamplesAppState = AppSectionItemState<NamingExample>;
+export type TvNamingExamplesAppState = AppSectionItemState<TvNamingExample>;
 
 export interface ImportListAppState
   extends AppSectionState<ImportList>,
@@ -149,6 +150,8 @@ interface SettingsAppState {
   metadata: MetadataAppState;
   naming: NamingAppState;
   namingExamples: NamingExamplesAppState;
+  tvAutoTaggings: AutoTaggingAppState;
+  tvMetadata: MetadataAppState;
   tvNaming: TvNamingAppState;
   tvNamingExamples: TvNamingExamplesAppState;
   notifications: NotificationAppState;

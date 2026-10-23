@@ -131,7 +131,7 @@ class Notification extends Component {
         {
           supportsOnMovieAdded && onMovieAdded ?
             <Label kind={kinds.SUCCESS}>
-              {translate('OnMovieAdded')}
+              {translate('OnMediaAdded')}
             </Label> :
             null
         }
@@ -163,7 +163,7 @@ class Notification extends Component {
         {
           supportsOnMovieDelete && onMovieDelete ?
             <Label kind={kinds.SUCCESS}>
-              {translate('OnMovieDelete')}
+              {translate('OnMediaDelete')}
             </Label> :
             null
         }
@@ -171,7 +171,7 @@ class Notification extends Component {
         {
           supportsOnMovieFileDelete && onMovieFileDelete ?
             <Label kind={kinds.SUCCESS}>
-              {translate('OnMovieFileDelete')}
+              {translate('OnMediaFileDelete')}
             </Label> :
             null
         }
@@ -179,7 +179,7 @@ class Notification extends Component {
         {
           supportsOnMovieFileDeleteForUpgrade && onMovieFileDelete && onMovieFileDeleteForUpgrade ?
             <Label kind={kinds.SUCCESS}>
-              {translate('OnMovieFileDeleteForUpgrade')}
+              {translate('OnMediaFileDeleteForUpgrade')}
             </Label> :
             null
         }

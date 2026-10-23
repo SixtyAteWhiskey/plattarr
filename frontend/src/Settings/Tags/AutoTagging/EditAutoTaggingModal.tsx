@@ -20,9 +20,16 @@ export default function EditAutoTaggingModal({
   const dispatch = useDispatch();
 
   const handleModalClose = useCallback(() => {
-    dispatch(clearPendingChanges({ section: 'settings.autoTaggings' }));
+    dispatch(
+      clearPendingChanges({
+        section:
+          otherProps.mediaKind === 'tv'
+            ? 'settings.tvAutoTaggings'
+            : 'settings.autoTaggings',
+      })
+    );
     onModalClose();
-  }, [dispatch, onModalClose]);
+  }, [dispatch, onModalClose, otherProps.mediaKind]);
 
   return (
     <Modal isOpen={isOpen} size={sizes.LARGE} onModalClose={handleModalClose}>

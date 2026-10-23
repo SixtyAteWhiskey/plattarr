@@ -89,12 +89,23 @@ export default {
   // Action Handlers
 
   actionHandlers: {
-    [FETCH_AUTO_TAGGING_SPECIFICATION_SCHEMA]: createFetchSchemaHandler(section, '/autoTagging/schema'),
+    // The specification list being edited is shared by the movie and series auto-tag editors;
+    // only the schema URL and the source of a cloned/edited item's specifications differ.
+    [FETCH_AUTO_TAGGING_SPECIFICATION_SCHEMA]: (getState, payload, dispatch) => {
+      const url = payload && payload.mediaKind === 'tv' ?
+        '/autotagging/tv/schema' :
+        '/autoTagging/schema';
+
+      return createFetchSchemaHandler(section, url)(getState, payload, dispatch);
+    },
 
     [FETCH_AUTO_TAGGING_SPECIFICATIONS]: (getState, payload, dispatch) => {
       let tags = [];
       if (payload.id) {
-        const cfState = getSectionState(getState(), 'settings.autoTaggings', true);
+        const sourceSection = payload.mediaKind === 'tv' ?
+          'settings.tvAutoTaggings' :
+          'settings.autoTaggings';
+        const cfState = getSectionState(getState(), sourceSection, true);
         const cf = cfState.items[cfState.itemMap[payload.id]];
         tags = cf.specifications.map((tag, i) => {
           return {

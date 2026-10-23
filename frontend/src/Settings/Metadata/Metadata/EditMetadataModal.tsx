@@ -25,9 +25,16 @@ function EditMetadataModal({
   );
 
   const handleModalClose = useCallback(() => {
-    dispatch(clearPendingChanges({ section: 'metadata' }));
+    dispatch(
+      clearPendingChanges({
+        section:
+          otherProps.mediaKind === 'tv'
+            ? 'settings.tvMetadata'
+            : 'settings.metadata',
+      })
+    );
     onModalClose();
-  }, [dispatch, onModalClose]);
+  }, [dispatch, onModalClose, otherProps.mediaKind]);
 
   return (
     <Modal size={sizes.MEDIUM} isOpen={isOpen} onModalClose={handleModalClose}>

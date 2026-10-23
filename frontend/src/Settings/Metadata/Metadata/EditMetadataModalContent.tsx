@@ -17,29 +17,38 @@ import usePrevious from 'Helpers/Hooks/usePrevious';
 import { inputTypes } from 'Helpers/Props';
 import {
   saveMetadata,
+  saveTvMetadata,
   setMetadataFieldValue,
   setMetadataValue,
+  setTvMetadataFieldValue,
+  setTvMetadataValue,
 } from 'Store/Actions/settingsActions';
 import selectSettings from 'Store/Selectors/selectSettings';
 import { InputChanged } from 'typings/inputs';
+import MediaKind from 'typings/MediaKind';
 import translate from 'Utilities/String/translate';
 import styles from './EditMetadataModalContent.css';
 
 export interface EditMetadataModalContentProps {
   id: number;
   advancedSettings: boolean;
+  mediaKind?: MediaKind;
   onModalClose: () => void;
 }
 
 function EditMetadataModalContent({
   id,
   advancedSettings,
+  mediaKind = 'movies',
   onModalClose,
 }: EditMetadataModalContentProps) {
   const dispatch = useDispatch();
 
+  const isTv = mediaKind === 'tv';
+
   const { isSaving, saveError, pendingChanges, items } = useSelector(
-    (state: AppState) => state.settings.metadata
+    (state: AppState) =>
+      isTv ? state.settings.tvMetadata : state.settings.metadata
   );
 
   const wasSaving = usePrevious(isSaving);
@@ -54,23 +63,27 @@ function EditMetadataModalContent({
 
   const handleInputChange = useCallback(
     ({ name, value }: InputChanged) => {
+      const action = isTv ? setTvMetadataValue : setMetadataValue;
+
       // @ts-expect-error not typed
-      dispatch(setMetadataValue({ name, value }));
+      dispatch(action({ name, value }));
     },
-    [dispatch]
+    [dispatch, isTv]
   );
 
   const handleFieldChange = useCallback(
     ({ name, value }: InputChanged) => {
+      const action = isTv ? setTvMetadataFieldValue : setMetadataFieldValue;
+
       // @ts-expect-error not typed
-      dispatch(setMetadataFieldValue({ name, value }));
+      dispatch(action({ name, value }));
     },
-    [dispatch]
+    [dispatch, isTv]
   );
 
   const handleSavePress = useCallback(() => {
-    dispatch(saveMetadata({ id }));
-  }, [id, dispatch]);
+    dispatch(isTv ? saveTvMetadata({ id }) : saveMetadata({ id }));
+  }, [id, isTv, dispatch]);
 
   useEffect(() => {
     if (wasSaving && !isSaving && !saveError) {
@@ -109,7 +122,7 @@ function EditMetadataModalContent({
               <ProviderFieldFormGroup
                 key={field.name}
                 advancedSettings={advancedSettings}
-                provider="metadata"
+                provider={isTv ? 'tv/metadata' : 'metadata'}
                 {...field}
                 isDisabled={!enable.value}
                 onChange={handleFieldChange}
