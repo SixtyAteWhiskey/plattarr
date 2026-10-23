@@ -119,6 +119,48 @@ namespace NzbDrone.Api.Test.ClientSchemaTests
         }
 
         [Test]
+        public void should_give_a_client_an_entry_for_every_media_type_when_the_caller_names_only_some()
+        {
+            GivenModules(new MoviesModule(), new FakeTvModule());
+
+            var fields = SchemaBuilder.ToSchema(new QBittorrentSettings())
+                .Where(f => !f.Name.StartsWith("tv") && !f.Name.Contains("Tv"))
+                .ToList();
+
+            var settings = (QBittorrentSettings)SchemaBuilder.ReadFromSchema(fields, typeof(QBittorrentSettings), null);
+
+            settings.ModuleCategories.Select(c => (c.Kind, c.Category)).Should().Equal(
+                (MediaKind.Movies, "plattarr-movies"),
+                (MediaKind.Tv, "plattarr-tv"));
+            settings.For(MediaKind.Tv).RecentPriority.Should().Be((int)QBittorrentPriority.Last);
+        }
+
+        [Test]
+        public void should_not_give_a_client_an_entry_for_a_media_type_that_is_not_registered()
+        {
+            GivenModules(new MoviesModule());
+
+            var settings = (QBittorrentSettings)SchemaBuilder.ReadFromSchema(new List<Field>(), typeof(QBittorrentSettings), null);
+
+            settings.ModuleCategories.Select(c => c.Kind).Should().Equal(MediaKind.Movies);
+        }
+
+        [Test]
+        public void should_keep_the_values_the_caller_sent_when_it_fills_in_the_missing_entries()
+        {
+            GivenModules(new MoviesModule(), new FakeTvModule());
+
+            var fields = SchemaBuilder.ToSchema(new QBittorrentSettings())
+                .Where(f => !f.Name.StartsWith("tv") && !f.Name.Contains("Tv"))
+                .ToList();
+            fields.Single(f => f.Name == "movieCategory").Value = "my-movies";
+
+            var settings = (QBittorrentSettings)SchemaBuilder.ReadFromSchema(fields, typeof(QBittorrentSettings), null);
+
+            settings.For(MediaKind.Movies).Category.Should().Be("my-movies");
+        }
+
+        [Test]
         public void should_read_back_what_it_wrote()
         {
             GivenModules(new MoviesModule(), new FakeTvModule());
