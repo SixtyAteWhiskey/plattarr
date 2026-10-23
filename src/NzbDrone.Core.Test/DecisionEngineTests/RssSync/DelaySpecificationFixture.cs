@@ -8,8 +8,6 @@ using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Movies.DecisionEngine;
-using NzbDrone.Core.Movies.DecisionEngine.Specifications;
 using NzbDrone.Core.Movies.DecisionEngine.Specifications.RssSync;
 using NzbDrone.Core.Movies.MediaFiles;
 using NzbDrone.Core.Movies.Parser.Model;

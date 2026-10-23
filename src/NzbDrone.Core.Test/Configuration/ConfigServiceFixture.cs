@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
@@ -48,6 +48,23 @@ namespace NzbDrone.Core.Test.Configuration
             var interval = Subject.RssSyncInterval;
             interval.Should().Be(30);
             Mocker.GetMock<IConfigRepository>().Verify(c => c.Insert(It.IsAny<Config>()), Times.Never());
+        }
+
+        [Test]
+        public void season_pack_upgrade_should_default_to_all_episodes_with_a_50_percent_threshold()
+        {
+            Subject.SeasonPackUpgrade.Should().Be(SeasonPackUpgradeType.All);
+            Subject.SeasonPackUpgradeThreshold.Should().Be(50);
+        }
+
+        [Test]
+        public void season_pack_upgrade_should_store_the_mode_by_name()
+        {
+            Subject.SeasonPackUpgrade = SeasonPackUpgradeType.Threshold;
+            Subject.SeasonPackUpgradeThreshold = 75;
+
+            AssertUpsert("SeasonPackUpgrade", "threshold");
+            AssertUpsert("SeasonPackUpgradeThreshold", 75);
         }
 
         private void AssertUpsert(string key, object value)

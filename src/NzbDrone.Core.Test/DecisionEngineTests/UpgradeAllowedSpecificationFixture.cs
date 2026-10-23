@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.CustomFormats;
-using NzbDrone.Core.Movies.DecisionEngine.Specifications;
+using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Profiles;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;

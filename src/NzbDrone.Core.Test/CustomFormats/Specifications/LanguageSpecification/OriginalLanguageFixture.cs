@@ -1,13 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
-using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Languages;
-using NzbDrone.Core.Movies;
-using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.CustomFormats.Specifications.LanguageSpecification
@@ -22,8 +19,7 @@ namespace NzbDrone.Core.Test.CustomFormats.Specifications.LanguageSpecification
         {
             _input = new CustomFormatInput
             {
-                MovieInfo = Builder<ParsedMovieInfo>.CreateNew().Build(),
-                Movie = Builder<Movie>.CreateNew().With(m => m.MovieMetadata.Value.OriginalLanguage = Language.English).Build(),
+                OriginalLanguage = Language.English,
                 Size = 100.Megabytes(),
                 Languages = new List<Language>
                 {

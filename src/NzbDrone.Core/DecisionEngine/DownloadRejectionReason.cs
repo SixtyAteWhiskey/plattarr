@@ -64,5 +64,26 @@ public enum DownloadRejectionReason
     DiskCustomFormatCutoffMet,
     DiskCustomFormatScore,
     DiskCustomFormatScoreIncrement,
-    DiskUpgradesNotAllowed
+    DiskUpgradesNotAllowed,
+
+    // Appended for the TV module (Sonarr's reasons). Values are never stored as integers.
+    AmbiguousNumbering,
+    BeforeAirDate,
+    DiskNotUpgrade,
+    EpisodeNotMonitored,
+    ExistingFileHasMoreEpisodes,
+    FullSeason,
+    FullSeasonNotAired,
+    MatchesAnotherSeries,
+    MultiSeason,
+    NotSeasonPack,
+    ReleaseGroupDoesNotMatch,
+    SeriesNotMonitored,
+    SplitEpisode,
+    UnknownEpisode,
+    UnknownReleaseGroup,
+    UnknownSeries,
+    WrongEpisode,
+    WrongSeason,
+    WrongSeries
 }

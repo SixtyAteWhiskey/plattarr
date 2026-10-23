@@ -54,6 +54,23 @@ namespace NzbDrone.Core.Test.IndexerTests.OverrideTests
         }
 
         [Test]
+        public void should_default_the_single_episode_age_to_off()
+        {
+            Subject.Get(5, MediaKind.Tv).SeasonSearchMaximumSingleEpisodeAge.Should().Be(0);
+        }
+
+        [Test]
+        public void should_round_trip_the_single_episode_age_on_a_tv_row()
+        {
+            Subject.Upsert(new IndexerOverride { IndexerId = 1, MediaKind = MediaKind.Tv, SeasonSearchMaximumSingleEpisodeAge = 365 });
+            Subject.Upsert(new IndexerOverride { IndexerId = 1, MediaKind = MediaKind.Movies, RemoveYear = true });
+
+            Db.All<IndexerOverride>().Single(o => o.MediaKind == MediaKind.Tv).SeasonSearchMaximumSingleEpisodeAge.Should().Be(365);
+            Subject.Get(1, MediaKind.Tv).SeasonSearchMaximumSingleEpisodeAge.Should().Be(365);
+            Subject.Get(1, MediaKind.Movies).SeasonSearchMaximumSingleEpisodeAge.Should().Be(0);
+        }
+
+        [Test]
         public void should_replace_existing_row_for_same_indexer_and_media_type()
         {
             Subject.Upsert(new IndexerOverride { IndexerId = 1, MediaKind = MediaKind.Movies, RemoveYear = true });

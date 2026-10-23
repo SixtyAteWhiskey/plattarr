@@ -10,6 +10,11 @@ namespace NzbDrone.Core.Profiles.Releases
         public List<string> Required { get; set; }
         public List<string> Ignored { get; set; }
         public int IndexerId { get; set; }
+
+        // TV only; Movies and Music ignore these three.
+        public bool AirDateRestriction { get; set; }
+        public int AirDateGracePeriod { get; set; }
+        public bool AllowSeasonPackWithoutAllEpisodesAired { get; set; }
         public HashSet<int> Tags { get; set; }
 
         public ReleaseProfile()

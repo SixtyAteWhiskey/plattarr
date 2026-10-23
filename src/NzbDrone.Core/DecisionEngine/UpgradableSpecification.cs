@@ -6,7 +6,7 @@ using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
 
-namespace NzbDrone.Core.Movies.DecisionEngine.Specifications
+namespace NzbDrone.Core.DecisionEngine
 {
     public interface IUpgradableSpecification
     {
