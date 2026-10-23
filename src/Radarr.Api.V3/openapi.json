@@ -13609,6 +13609,9 @@
           "whitelistedHardcodedSubs": {
             "type": "string",
             "nullable": true
+          },
+          "animeStandardFormatSearch": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false

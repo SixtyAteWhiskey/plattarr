@@ -6,6 +6,7 @@ import ConfirmModal from 'Components/Modal/ConfirmModal';
 import TagList from 'Components/TagList';
 import { kinds } from 'Helpers/Props';
 import translate from 'Utilities/String/translate';
+import DownloadClientCategory from './DownloadClientCategory';
 import EditDownloadClientModalConnector from './EditDownloadClientModalConnector';
 import styles from './DownloadClient.css';
 
@@ -58,6 +59,7 @@ class DownloadClient extends Component {
       name,
       enable,
       priority,
+      fields,
       tags,
       tagList
     } = this.props;
@@ -95,6 +97,8 @@ class DownloadClient extends Component {
                 {translate('PrioritySettings', { priority })}
               </Label>
           }
+
+          <DownloadClientCategory fields={fields} />
         </div>
 
         <TagList
@@ -128,6 +132,7 @@ DownloadClient.propTypes = {
   name: PropTypes.string.isRequired,
   enable: PropTypes.bool.isRequired,
   priority: PropTypes.number.isRequired,
+  fields: PropTypes.arrayOf(PropTypes.object),
   tags: PropTypes.arrayOf(PropTypes.number).isRequired,
   tagList: PropTypes.arrayOf(PropTypes.object).isRequired,
   onConfirmDeleteDownloadClient: PropTypes.func.isRequired
