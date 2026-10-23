@@ -273,5 +273,47 @@ namespace NzbDrone.Core.Test.TvTests
 
             ExceptionVerification.ExpectedErrors(1);
         }
+
+        [Test]
+        public void should_apply_auto_tags_to_the_refreshed_series_and_save_it_when_they_changed()
+        {
+            var refreshed = _series.JsonClone();
+            GivenNewSeriesInfo(refreshed);
+            Mocker.GetMock<ISeriesService>()
+                  .Setup(s => s.UpdateAutoTaggingTags(It.IsAny<Series>()))
+                  .Returns(true);
+
+            Subject.Execute(new RefreshSeriesCommand(new List<int> { _series.Id }));
+
+            Mocker.GetMock<ISeriesService>().Verify(v => v.UpdateAutoTaggingTags(It.IsAny<Series>()), Times.Once());
+            Mocker.GetMock<ISeriesService>().Verify(v => v.UpdateSeries(It.IsAny<Series>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.AtLeast(2));
+        }
+
+        [Test]
+        public void should_not_save_again_when_auto_tags_changed_nothing()
+        {
+            GivenNewSeriesInfo(_series.JsonClone());
+            Mocker.GetMock<ISeriesService>()
+                  .Setup(s => s.UpdateAutoTaggingTags(It.IsAny<Series>()))
+                  .Returns(false);
+
+            Subject.Execute(new RefreshSeriesCommand(new List<int> { _series.Id }));
+
+            Mocker.GetMock<ISeriesService>().Verify(v => v.UpdateAutoTaggingTags(It.IsAny<Series>()), Times.Once());
+            Mocker.GetMock<ISeriesService>().Verify(v => v.UpdateSeries(It.IsAny<Series>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Once());
+        }
+
+        [Test]
+        public void should_apply_auto_tags_to_the_refreshed_series_not_the_stale_list_entry_when_refreshing_everything()
+        {
+            var staleListEntry = _series.JsonClone();
+            Mocker.GetMock<ISeriesService>().Setup(s => s.GetAllSeries()).Returns(new List<Series> { staleListEntry });
+            GivenNewSeriesInfo(_series.JsonClone());
+
+            Subject.Execute(new RefreshSeriesCommand { Trigger = NzbDrone.Core.Messaging.Commands.CommandTrigger.Manual });
+
+            Mocker.GetMock<ISeriesService>().Verify(v => v.UpdateAutoTaggingTags(It.Is<Series>(s => ReferenceEquals(s, _series))), Times.Once());
+            Mocker.GetMock<ISeriesService>().Verify(v => v.UpdateAutoTaggingTags(It.Is<Series>(s => ReferenceEquals(s, staleListEntry))), Times.Never());
+        }
     }
 }

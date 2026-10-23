@@ -210,6 +210,16 @@ namespace NzbDrone.App.Test
         }
 
         [Test]
+        public void should_resolve_the_tv_auto_tagging_service_its_eleven_specifications_and_controller()
+        {
+            _container.GetRequiredService<NzbDrone.Core.Tv.AutoTagging.IAutoTaggingService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Tv.AutoTagging.IAutoTaggingRepository>().Should().NotBeNull();
+            _container.GetServices<NzbDrone.Core.Tv.AutoTagging.Specifications.IAutoTaggingSpecification>().Should().HaveCount(11);
+            _container.GetRequiredService<Radarr.Api.V3.Tv.AutoTagging.TvAutoTaggingController>().Should().NotBeNull();
+            _container.GetServices<IAutoTagUsageSource>().Should().ContainSingle(s => s.Kind == MediaKind.Tv);
+        }
+
+        [Test]
         public void should_resolve_one_tagged_item_source_per_module_and_the_tag_service()
         {
             _container.GetServices<ITaggedItemSource>().Should().Contain(s => s.Kind == MediaKind.Movies).And.Contain(s => s.Kind == MediaKind.Tv);

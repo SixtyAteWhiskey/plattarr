@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using FizzWare.NBuilder;
 using FluentAssertions;
+using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Housekeeping.Housekeepers;
 using NzbDrone.Core.IndexerProxies;
 using NzbDrone.Core.IndexerProxies.Http;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.Newznab;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies.AutoTagging;
 using NzbDrone.Core.Movies.AutoTagging.Specifications;
 using NzbDrone.Core.Movies.Collections;
@@ -20,6 +22,17 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
     [TestFixture]
     public class CleanupUnusedTagsFixture : DbTest<CleanupUnusedTags, Tag>
     {
+        private Mock<IAutoTagUsageSource> _tvAutoTags;
+
+        [SetUp]
+        public void Setup()
+        {
+            _tvAutoTags = new Mock<IAutoTagUsageSource>();
+            _tvAutoTags.SetupGet(v => v.Kind).Returns(MediaKind.Tv);
+            _tvAutoTags.Setup(v => v.All()).Returns(new List<AutoTagUsage>());
+            Mocker.SetConstant<IEnumerable<IAutoTagUsageSource>>(new[] { _tvAutoTags.Object });
+        }
+
         [Test]
         public void should_delete_unused_tags()
         {
@@ -140,6 +153,46 @@ namespace NzbDrone.Core.Test.Housekeeping.Housekeepers
 
             Subject.Clean();
             AllStoredModels.Should().HaveCount(1);
+        }
+
+        [Test]
+        public void should_not_delete_tags_applied_by_a_series_auto_tag()
+        {
+            var tags = Builder<Tag>.CreateListOfSize(2)
+                .All()
+                .With(x => x.Id = 0)
+                .BuildList();
+            Db.InsertMany(tags);
+
+            Db.Insert(new NzbDrone.Core.Tv.AutoTagging.AutoTag
+            {
+                Name = "Series",
+                Tags = new HashSet<int> { tags[0].Id },
+                Specifications = new List<NzbDrone.Core.Tv.AutoTagging.Specifications.IAutoTaggingSpecification>()
+            });
+
+            Subject.Clean();
+
+            AllStoredModels.Should().ContainSingle(t => t.Id == tags[0].Id);
+        }
+
+        [Test]
+        public void should_not_delete_tags_a_series_auto_tag_looks_for()
+        {
+            var tags = Builder<Tag>.CreateListOfSize(2)
+                .All()
+                .With(x => x.Id = 0)
+                .BuildList();
+            Db.InsertMany(tags);
+
+            _tvAutoTags.Setup(v => v.All()).Returns(new List<AutoTagUsage>
+            {
+                new AutoTagUsage { Id = 1, ConditionTags = new List<int> { tags[1].Id } }
+            });
+
+            Subject.Clean();
+
+            AllStoredModels.Should().ContainSingle(t => t.Id == tags[1].Id);
         }
     }
 }

@@ -24,6 +24,7 @@ namespace NzbDrone.Core.Test.Tags
         private Tag _tag;
         private Mock<ITaggedItemSource> _movies;
         private Mock<ITaggedItemSource> _series;
+        private Mock<IAutoTagUsageSource> _seriesAutoTags;
 
         [SetUp]
         public void Setup()
@@ -54,6 +55,11 @@ namespace NzbDrone.Core.Test.Tags
             _series = GivenSource(MediaKind.Tv, new Dictionary<int, List<int>>());
 
             Mocker.SetConstant<IEnumerable<ITaggedItemSource>>(new[] { _movies.Object, _series.Object });
+
+            _seriesAutoTags = new Mock<IAutoTagUsageSource>();
+            _seriesAutoTags.SetupGet(v => v.Kind).Returns(MediaKind.Tv);
+            _seriesAutoTags.Setup(v => v.All()).Returns(new List<AutoTagUsage>());
+            Mocker.SetConstant<IEnumerable<IAutoTagUsageSource>>(new[] { _seriesAutoTags.Object });
         }
 
         private static Mock<ITaggedItemSource> GivenSource(MediaKind kind, Dictionary<int, List<int>> itemTags)
@@ -116,6 +122,43 @@ namespace NzbDrone.Core.Test.Tags
             Subject.Delete(7);
 
             Mocker.GetMock<ITagRepository>().Verify(v => v.Delete(7), Times.Once());
+        }
+
+        [Test]
+        public void should_report_the_series_auto_tags_that_apply_or_look_for_a_tag()
+        {
+            _seriesAutoTags.Setup(v => v.All()).Returns(new List<AutoTagUsage>
+            {
+                new AutoTagUsage { Id = 1, Tags = new List<int> { 7 } },
+                new AutoTagUsage { Id = 2, ConditionTags = new List<int> { 7 } },
+                new AutoTagUsage { Id = 3, Tags = new List<int> { 8 }, ConditionTags = new List<int> { 9 } }
+            });
+
+            Subject.Details(7).SeriesAutoTagIds.Should().Equal(1, 2);
+            Subject.Details().Single().SeriesAutoTagIds.Should().Equal(1, 2);
+            Subject.Details(7).AutoTagIds.Should().BeEmpty();
+        }
+
+        [Test]
+        public void should_not_delete_a_tag_that_only_a_series_auto_tag_uses()
+        {
+            _seriesAutoTags.Setup(v => v.All()).Returns(new List<AutoTagUsage> { new AutoTagUsage { Id = 1, ConditionTags = new List<int> { 7 } } });
+
+            Subject.Details(7).InUse.Should().BeTrue();
+            Assert.Throws<ModelConflictException>(() => Subject.Delete(7));
+
+            Mocker.GetMock<ITagRepository>().Verify(v => v.Delete(7), Times.Never());
+        }
+
+        [Test]
+        public void should_ignore_auto_tag_sources_of_another_kind()
+        {
+            var movies = new Mock<IAutoTagUsageSource>();
+            movies.SetupGet(v => v.Kind).Returns(MediaKind.Movies);
+            movies.Setup(v => v.All()).Returns(new List<AutoTagUsage> { new AutoTagUsage { Id = 1, Tags = new List<int> { 7 } } });
+            Mocker.SetConstant<IEnumerable<IAutoTagUsageSource>>(new[] { movies.Object, _seriesAutoTags.Object });
+
+            Subject.Details(7).SeriesAutoTagIds.Should().BeEmpty();
         }
 
         [Test]

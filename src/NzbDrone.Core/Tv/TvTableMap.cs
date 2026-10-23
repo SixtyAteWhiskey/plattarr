@@ -1,8 +1,11 @@
+using System.Collections.Generic;
 using System.Linq;
 using Dapper;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Datastore.Converters;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Tv.AutoTagging;
+using NzbDrone.Core.Tv.AutoTagging.Specifications;
 using NzbDrone.Core.Tv.Blocklisting;
 using NzbDrone.Core.Tv.DataAugmentation.Scene;
 using NzbDrone.Core.Tv.Extras.Metadata;
@@ -32,6 +35,7 @@ namespace NzbDrone.Core.Tv
             // the match information as documents, like Movies' ParsedMovieInfo.
             SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<ParsedEpisodeInfo>(new QualityIntConverter(), new LanguageIntConverter()));
             SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<PendingReleaseAdditionalInfo>());
+            SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<List<IAutoTaggingSpecification>>(new AutoTaggingSpecificationConverter()));
         }
 
         public void MapTables(TableMapper mapper)
@@ -70,6 +74,8 @@ namespace NzbDrone.Core.Tv
             mapper.Entity<MetadataFile>("Tv_MetadataFiles").RegisterModel();
             mapper.Entity<SubtitleFile>("Tv_SubtitleFiles").RegisterModel();
             mapper.Entity<OtherExtraFile>("Tv_ExtraFiles").RegisterModel();
+
+            mapper.Entity<AutoTag>("Tv_AutoTagging").RegisterModel();
 
             mapper.Entity<SceneMapping>("Tv_SceneMappings").RegisterModel();
             mapper.Entity<NamingConfig>("Tv_NamingConfig").RegisterModel();

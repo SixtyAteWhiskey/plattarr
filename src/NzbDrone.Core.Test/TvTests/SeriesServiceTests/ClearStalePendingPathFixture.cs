@@ -20,6 +20,10 @@ namespace NzbDrone.Core.Test.TvTests.SeriesServiceTests
         [SetUp]
         public void Setup()
         {
+            Mocker.GetMock<NzbDrone.Core.Tv.AutoTagging.IAutoTaggingService>()
+                .Setup(a => a.GetTagChanges(It.IsAny<Series>()))
+                .Returns(new NzbDrone.Core.Tv.AutoTagging.AutoTaggingChanges());
+
             Mocker.GetMock<IManageCommandQueue>()
                 .Setup(s => s.All())
                 .Returns(new List<CommandModel>());

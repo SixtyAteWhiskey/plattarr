@@ -4,6 +4,7 @@ using System.Linq;
 using Dapper;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies.AutoTagging;
 using NzbDrone.Core.Movies.AutoTagging.Specifications;
 using NzbDrone.Core.Tags;
@@ -14,11 +15,13 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
     {
         private readonly IMainDatabase _database;
         private readonly IAutoTaggingRepository _autoTaggingRepository;
+        private readonly IEnumerable<IAutoTagUsageSource> _autoTagUsageSources;
 
-        public CleanupUnusedTags(IMainDatabase database, IAutoTaggingRepository autoTaggingRepository)
+        public CleanupUnusedTags(IMainDatabase database, IAutoTaggingRepository autoTaggingRepository, IEnumerable<IAutoTagUsageSource> autoTagUsageSources)
         {
             _database = database;
             _autoTaggingRepository = autoTaggingRepository;
+            _autoTagUsageSources = autoTagUsageSources;
         }
 
         public void Clean()
@@ -27,6 +30,7 @@ namespace NzbDrone.Core.Housekeeping.Housekeepers
             var usedTags = TagUsage.Tables
                 .SelectMany(v => GetUsedTags(v, mapper))
                 .Concat(GetAutoTaggingTagSpecificationTags(mapper))
+                .Concat(_autoTagUsageSources.SelectMany(s => s.All()).SelectMany(a => a.ConditionTags))
                 .Distinct()
                 .ToList();
 
