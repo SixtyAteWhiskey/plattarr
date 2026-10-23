@@ -8,6 +8,7 @@ import FormInputGroup from 'Components/Form/FormInputGroup';
 import FormLabel from 'Components/Form/FormLabel';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import useShowAdvancedSettings from 'Helpers/Hooks/useShowAdvancedSettings';
+import { useMediaKind } from 'Helpers/mediaKindStore';
 import { inputTypes, kinds } from 'Helpers/Props';
 import { clearPendingChanges } from 'Store/Actions/baseActions';
 import {
@@ -46,6 +47,9 @@ function IndexerOptions({
   } = useSelector(createSettingsSectionSelector(SECTION));
 
   const showAdvancedSettings = useShowAdvancedSettings();
+  const mediaKind = useMediaKind();
+  const isMovies = mediaKind === 'movies';
+  const isTv = mediaKind === 'tv';
 
   const handleInputChange = useCallback(
     (change: InputChanged) => {
@@ -135,31 +139,35 @@ function IndexerOptions({
             />
           </FormGroup>
 
-          <FormGroup>
-            <FormLabel>{translate('PreferIndexerFlags')}</FormLabel>
+          {isMovies ? (
+            <>
+              <FormGroup>
+                <FormLabel>{translate('PreferIndexerFlags')}</FormLabel>
 
-            <FormInputGroup
-              type={inputTypes.CHECK}
-              name="preferIndexerFlags"
-              helpText={translate('PreferIndexerFlagsHelpText')}
-              helpLink="https://wiki.servarr.com/radarr/settings#indexer-flags"
-              onChange={handleInputChange}
-              {...settings.preferIndexerFlags}
-            />
-          </FormGroup>
+                <FormInputGroup
+                  type={inputTypes.CHECK}
+                  name="preferIndexerFlags"
+                  helpText={translate('PreferIndexerFlagsHelpText')}
+                  helpLink="https://wiki.servarr.com/radarr/settings#indexer-flags"
+                  onChange={handleInputChange}
+                  {...settings.preferIndexerFlags}
+                />
+              </FormGroup>
 
-          <FormGroup>
-            <FormLabel>{translate('AvailabilityDelay')}</FormLabel>
+              <FormGroup>
+                <FormLabel>{translate('AvailabilityDelay')}</FormLabel>
 
-            <FormInputGroup
-              type={inputTypes.NUMBER}
-              name="availabilityDelay"
-              unit="days"
-              helpText={translate('AvailabilityDelayHelpText')}
-              onChange={handleInputChange}
-              {...settings.availabilityDelay}
-            />
-          </FormGroup>
+                <FormInputGroup
+                  type={inputTypes.NUMBER}
+                  name="availabilityDelay"
+                  unit="days"
+                  helpText={translate('AvailabilityDelayHelpText')}
+                  onChange={handleInputChange}
+                  {...settings.availabilityDelay}
+                />
+              </FormGroup>
+            </>
+          ) : null}
 
           <FormGroup advancedSettings={showAdvancedSettings} isAdvanced={true}>
             <FormLabel>{translate('RssSyncInterval')}</FormLabel>
@@ -178,29 +186,53 @@ function IndexerOptions({
             />
           </FormGroup>
 
-          <FormGroup advancedSettings={showAdvancedSettings} isAdvanced={true}>
-            <FormLabel>{translate('WhitelistedSubtitleTags')}</FormLabel>
+          {isMovies ? (
+            <>
+              <FormGroup
+                advancedSettings={showAdvancedSettings}
+                isAdvanced={true}
+              >
+                <FormLabel>{translate('WhitelistedSubtitleTags')}</FormLabel>
 
-            <FormInputGroup
-              type={inputTypes.TEXT_TAG}
-              name="whitelistedHardcodedSubs"
-              helpText={translate('WhitelistedHardcodedSubsHelpText')}
-              onChange={handleWhitelistedSubtitleChange}
-              {...settings.whitelistedHardcodedSubs}
-            />
-          </FormGroup>
+                <FormInputGroup
+                  type={inputTypes.TEXT_TAG}
+                  name="whitelistedHardcodedSubs"
+                  helpText={translate('WhitelistedHardcodedSubsHelpText')}
+                  onChange={handleWhitelistedSubtitleChange}
+                  {...settings.whitelistedHardcodedSubs}
+                />
+              </FormGroup>
 
-          <FormGroup advancedSettings={showAdvancedSettings} isAdvanced={true}>
-            <FormLabel>{translate('AllowHardcodedSubs')}</FormLabel>
+              <FormGroup
+                advancedSettings={showAdvancedSettings}
+                isAdvanced={true}
+              >
+                <FormLabel>{translate('AllowHardcodedSubs')}</FormLabel>
 
-            <FormInputGroup
-              type={inputTypes.CHECK}
-              name="allowHardcodedSubs"
-              helpText={translate('AllowHardcodedSubsHelpText')}
-              onChange={handleInputChange}
-              {...settings.allowHardcodedSubs}
-            />
-          </FormGroup>
+                <FormInputGroup
+                  type={inputTypes.CHECK}
+                  name="allowHardcodedSubs"
+                  helpText={translate('AllowHardcodedSubsHelpText')}
+                  onChange={handleInputChange}
+                  {...settings.allowHardcodedSubs}
+                />
+              </FormGroup>
+            </>
+          ) : null}
+
+          {isTv ? (
+            <FormGroup>
+              <FormLabel>{translate('AnimeStandardFormatSearch')}</FormLabel>
+
+              <FormInputGroup
+                type={inputTypes.CHECK}
+                name="animeStandardFormatSearch"
+                helpText={translate('AnimeStandardFormatSearchHelpText')}
+                onChange={handleInputChange}
+                {...settings.animeStandardFormatSearch}
+              />
+            </FormGroup>
+          ) : null}
         </Form>
       ) : null}
     </FieldSet>

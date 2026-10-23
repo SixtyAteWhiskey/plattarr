@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React, { Component, Fragment } from 'react';
+import MediaKindSwitcher from 'Components/MediaKindSwitcher';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
 import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
@@ -76,6 +77,8 @@ class DownloadClientSettings extends Component {
           hasPendingChanges={hasPendingChanges}
           additionalButtons={
             <Fragment>
+              <MediaKindSwitcher />
+
               <PageToolbarSeparator />
 
               <PageToolbarButton

@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import AppState from 'App/State/AppState';
+import MediaKindSwitcher from 'Components/MediaKindSwitcher';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
 import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
@@ -65,6 +66,8 @@ function IndexerSettings() {
         hasPendingChanges={hasPendingChanges}
         additionalButtons={
           <>
+            <MediaKindSwitcher />
+
             <PageToolbarSeparator />
 
             <PageToolbarButton

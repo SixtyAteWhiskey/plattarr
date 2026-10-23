@@ -100,6 +100,8 @@
   "AnimeEpisodeFormat": "Anime Episode Format",
   "AnimeEpisodeTypeDescription": "Episodes released using an absolute episode number",
   "AnimeEpisodeTypeFormat": "Absolute episode number ({format})",
+  "AnimeStandardFormatSearch": "Anime Standard Format Search",
+  "AnimeStandardFormatSearchHelpText": "Also search for anime using the standard episode numbering",
   "Announced": "Announced",
   "AnnouncedMovieAvailabilityDescription": "Movies are considered available as soon as they are added to {appName}.",
   "AnnouncedMovieDescription": "Movie is announced",

@@ -2066,6 +2066,33 @@ payloads and the TV events exist; the toggles come with the unified notification
 `openapi.json` is stale.
 
 
+### TV step 7, frontend slice 3 (shared settings pages): as built
+
+The media type switcher goes only where a page has content that differs per media type, so a
+switcher is never a control that changes nothing.
+
+- **Indexers page.** `MediaKindSwitcher` is in the settings toolbar. The options fieldset shows the
+  shared fields (`minimumAge`, `retention`, `maximumSize`, `rssSyncInterval`) for every kind, the Movies-only
+  ones (`preferIndexerFlags`, `availabilityDelay`, `allowHardcodedSubs`, `whitelistedHardcodedSubs`: only
+  `NzbDrone.Core.Movies` reads them) under Movies, and `animeStandardFormatSearch` under Series. The
+  indexer list itself is shared (one set of indexers, contract 4).
+- **`animeStandardFormatSearch`** is now on `IndexerConfigResource` (`GET`/`PUT config/indexer`); the
+  setting already lived in `IConfigService` (see step 4). `openapi.json` gained that one property. A
+  new media type adds its own kind-specific fields under its own `useMediaKind()` check.
+- **Download clients page.** `MediaKindSwitcher` in the toolbar; each client card shows the category the
+  client routes the selected kind's downloads to (`DownloadClientCategory`, `Helpers/moduleCategoryFields`,
+  which mirrors `ModuleCategoryFieldNames`: `movieCategory`, `tvCategory`; the `Record<MediaKind, string>`
+  makes a new kind a compile error until it is added). A client with no category field for the kind, or an
+  empty one, shows no label. The edit modal still shows every kind's category and priority fields together,
+  each labelled with its media type, because it is one form that saves one client.
+- **General settings** has no switcher: nothing on it differs per media type.
+- The SignalR `calendar/tv` and `wanted/*/tv` handlers are real (they refresh `tvCalendar` and `tvWanted`),
+  not no-ops, so nothing was removed.
+- Proof: scratch instance in the cloud container driven with Playwright (kind-dependent fields, the
+  `PUT config/indexer` body, persistence after reload, card labels per kind with a mock qBittorrent
+  endpoint, no console errors).
+
+
 
 
 ## Decision record
