@@ -1,14 +1,18 @@
 import React from 'react';
 import { Redirect, Route } from 'react-router-dom';
 import Blocklist from 'Activity/Blocklist/Blocklist';
+import TvBlocklist from 'Activity/Blocklist/Tv/TvBlocklist';
 import History from 'Activity/History/History';
+import TvHistory from 'Activity/History/Tv/TvHistory';
 import Queue from 'Activity/Queue/Queue';
 import AddNewMovieConnector from 'AddMovie/AddNewMovie/AddNewMovieConnector';
 import ImportMovies from 'AddMovie/ImportMovie/ImportMovies';
 import AddNewSeries from 'AddSeries/AddNewSeries/AddNewSeries';
 import ImportSeriesPage from 'AddSeries/ImportSeries/ImportSeriesPage';
 import CalendarPage from 'Calendar/CalendarPage';
+import TvCalendarPage from 'Calendar/Tv/CalendarPage';
 import CollectionConnector from 'Collection/CollectionConnector';
+import createMediaKindPage from 'Components/createMediaKindPage';
 import NotFound from 'Components/NotFound';
 import Switch from 'Components/Router/Switch';
 import DiscoverMovieConnector from 'DiscoverMovie/DiscoverMovieConnector';
@@ -37,11 +41,19 @@ import Tasks from 'System/Tasks/Tasks';
 import Updates from 'System/Updates/Updates';
 import getPathWithUrlBase from 'Utilities/getPathWithUrlBase';
 import CutoffUnmet from 'Wanted/CutoffUnmet/CutoffUnmet';
+import TvCutoffUnmet from 'Wanted/CutoffUnmet/Tv/TvCutoffUnmet';
 import Missing from 'Wanted/Missing/Missing';
+import TvMissing from 'Wanted/Missing/Tv/TvMissing';
 
 function RedirectWithUrlBase() {
   return <Redirect to={getPathWithUrlBase('/')} />;
 }
+
+const CalendarRoutePage = createMediaKindPage(CalendarPage, TvCalendarPage);
+const BlocklistRoutePage = createMediaKindPage(Blocklist, TvBlocklist);
+const HistoryPage = createMediaKindPage(History, TvHistory);
+const MissingPage = createMediaKindPage(Missing, TvMissing);
+const CutoffUnmetPage = createMediaKindPage(CutoffUnmet, TvCutoffUnmet);
 
 function AppRoutes() {
   return (
@@ -89,25 +101,25 @@ function AppRoutes() {
         Calendar
       */}
 
-      <Route path="/calendar" component={CalendarPage} />
+      <Route path="/calendar" component={CalendarRoutePage} />
 
       {/*
         Activity
       */}
 
-      <Route path="/activity/history" component={History} />
+      <Route path="/activity/history" component={HistoryPage} />
 
       <Route path="/activity/queue" component={Queue} />
 
-      <Route path="/activity/blocklist" component={Blocklist} />
+      <Route path="/activity/blocklist" component={BlocklistRoutePage} />
 
       {/*
         Wanted
       */}
 
-      <Route path="/wanted/missing" component={Missing} />
+      <Route path="/wanted/missing" component={MissingPage} />
 
-      <Route path="/wanted/cutoffunmet" component={CutoffUnmet} />
+      <Route path="/wanted/cutoffunmet" component={CutoffUnmetPage} />
 
       {/*
         Settings

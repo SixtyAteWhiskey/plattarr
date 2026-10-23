@@ -36,15 +36,20 @@ import * as seriesOrganizePreview from './seriesOrganizePreviewActions';
 import * as settings from './settingsActions';
 import * as system from './systemActions';
 import * as tags from './tagActions';
+import * as tvBlocklist from './tvBlocklistActions';
+import * as tvCalendar from './tvCalendarActions';
+import * as tvHistory from './tvHistoryActions';
 import * as tvInteractiveImport from './tvInteractiveImportActions';
 import * as tvReleases from './tvReleaseActions';
 import * as tvRootFolders from './tvRootFolderActions';
+import * as tvWanted from './tvWantedActions';
 import * as wanted from './wantedActions';
 
 export default [
   addMovie,
   app,
   blocklist,
+  tvBlocklist,
   calendar,
   captcha,
   commands,
@@ -82,6 +87,9 @@ export default [
   tags,
   tvInteractiveImport,
   tvReleases,
+  tvCalendar,
+  tvHistory,
   tvRootFolders,
+  tvWanted,
   wanted
 ];

@@ -73,6 +73,30 @@ export const defaultState = {
         isVisible: true
       },
       {
+        name: 'series.sortTitle',
+        label: () => translate('Series'),
+        isSortable: true,
+        isVisible: true
+      },
+      {
+        name: 'episode',
+        label: () => translate('Episode'),
+        isSortable: false,
+        isVisible: true
+      },
+      {
+        name: 'episodes.title',
+        label: () => translate('EpisodeTitle'),
+        isSortable: false,
+        isVisible: true
+      },
+      {
+        name: 'episodes.airDateUtc',
+        label: () => translate('EpisodeAirDate'),
+        isSortable: false,
+        isVisible: false
+      },
+      {
         name: 'year',
         label: () => translate('Year'),
         isSortable: true,

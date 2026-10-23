@@ -13,6 +13,7 @@ interface Blocklist extends ModelBase {
   protocol: DownloadProtocol;
   sourceTitle: string;
   movieId?: number;
+  seriesId?: number;
   indexer?: string;
   message?: string;
 }

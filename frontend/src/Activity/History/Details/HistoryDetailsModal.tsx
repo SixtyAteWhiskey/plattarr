@@ -8,22 +8,27 @@ import ModalFooter from 'Components/Modal/ModalFooter';
 import ModalHeader from 'Components/Modal/ModalHeader';
 import { kinds } from 'Helpers/Props';
 import { HistoryData, HistoryEventType } from 'typings/History';
+import MediaKind from 'typings/MediaKind';
 import translate from 'Utilities/String/translate';
 import HistoryDetails from './HistoryDetails';
 import styles from './HistoryDetailsModal.css';
 
-function getHeaderTitle(eventType: HistoryEventType) {
+function getHeaderTitle(eventType: HistoryEventType, mediaKind: MediaKind) {
+  const isTv = mediaKind === 'tv';
+
   switch (eventType) {
     case 'grabbed':
       return translate('Grabbed');
     case 'downloadFailed':
       return translate('DownloadFailed');
     case 'downloadFolderImported':
-      return translate('MovieImported');
+      return translate(isTv ? 'EpisodeImported' : 'MovieImported');
     case 'movieFileDeleted':
-      return translate('MovieFileDeleted');
+    case 'episodeFileDeleted':
+      return translate(isTv ? 'EpisodeFileDeleted' : 'MovieFileDeleted');
     case 'movieFileRenamed':
-      return translate('MovieFileRenamed');
+    case 'episodeFileRenamed':
+      return translate(isTv ? 'EpisodeFileRenamed' : 'MovieFileRenamed');
     case 'downloadIgnored':
       return translate('DownloadIgnored');
     default:
@@ -38,6 +43,7 @@ interface HistoryDetailsModalProps {
   data: HistoryData;
   downloadId?: string;
   isMarkingAsFailed?: boolean;
+  mediaKind?: MediaKind;
   onMarkAsFailedPress: () => void;
   onModalClose: () => void;
 }
@@ -50,6 +56,7 @@ function HistoryDetailsModal(props: HistoryDetailsModalProps) {
     data,
     downloadId,
     isMarkingAsFailed = false,
+    mediaKind = 'movies',
     onMarkAsFailedPress,
     onModalClose,
   } = props;
@@ -57,7 +64,7 @@ function HistoryDetailsModal(props: HistoryDetailsModalProps) {
   return (
     <Modal isOpen={isOpen} onModalClose={onModalClose}>
       <ModalContent onModalClose={onModalClose}>
-        <ModalHeader>{getHeaderTitle(eventType)}</ModalHeader>
+        <ModalHeader>{getHeaderTitle(eventType, mediaKind)}</ModalHeader>
 
         <ModalBody>
           <HistoryDetails

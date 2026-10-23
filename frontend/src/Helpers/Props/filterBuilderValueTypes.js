@@ -15,5 +15,7 @@ export const MINIMUM_AVAILABILITY = 'minimumAvailability';
 export const TAG = 'tag';
 export const IMPORTLIST = 'importList';
 export const SEASONS_MONITORED_STATUS = 'seasonsMonitoredStatus';
+export const SERIES = 'series';
 export const SERIES_STATUS = 'seriesStatus';
 export const SERIES_TYPES = 'seriesType';
+export const TV_HISTORY_EVENT_TYPE = 'tvHistoryEventType';

@@ -32,8 +32,12 @@ import SeriesAppState, { SeriesIndexAppState } from './SeriesAppState';
 import SettingsAppState from './SettingsAppState';
 import SystemAppState from './SystemAppState';
 import TagsAppState from './TagsAppState';
+import TvBlocklistAppState from './TvBlocklistAppState';
+import TvCalendarAppState from './TvCalendarAppState';
+import TvHistoryAppState from './TvHistoryAppState';
 import TvInteractiveImportAppState from './TvInteractiveImportAppState';
 import TvReleasesAppState from './TvReleasesAppState';
+import TvWantedAppState from './TvWantedAppState';
 import WantedAppState from './WantedAppState';
 
 interface FilterBuilderPropOption {
@@ -92,6 +96,7 @@ export interface AppSectionState {
 interface AppState {
   app: AppSectionState;
   blocklist: BlocklistAppState;
+  tvBlocklist: TvBlocklistAppState;
   calendar: CalendarAppState;
   captcha: CaptchaAppState;
   commands: CommandAppState;
@@ -125,6 +130,9 @@ interface AppState {
   system: SystemAppState;
   tags: TagsAppState;
   importSeries: ImportSeriesAppState;
+  tvCalendar: TvCalendarAppState;
+  tvHistory: TvHistoryAppState;
+  tvWanted: TvWantedAppState;
   tvInteractiveImport: TvInteractiveImportAppState;
   tvReleases: TvReleasesAppState;
   tvRootFolders: RootFolderAppState;
