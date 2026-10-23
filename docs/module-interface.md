@@ -1595,6 +1595,13 @@ while building (each is reversible):
   pending releases to the fetched ones, makes the decisions, processes them and publishes the TV
   module's own `RssSyncCompleteEvent`. The history and blocklist event handlers that Sonarr hangs
   on RSS and grab events are step 6.
+- **`EventAggregator` caches subscribers per event type, not per type name.** The live proof
+  found it: the TV and Movies modules each have a `RssSyncCompleteEvent`, the cache was keyed by
+  `Type.Name`, so the second module's publish got the first one's subscribers, cast them to `null`
+  and threw a `NullReferenceException` that aborted `RssSync` after the TV handler ran. The key is
+  now `typeof(TEvent)`. Unit tests could not see it because no fixture published two events with
+  one name; `should_publish_events_that_share_a_type_name_to_their_own_handlers` does, and fails
+  with the same exception under the old key. Any future module event may reuse a name.
 - **A kept Sonarr quirk.** The global scene mapping sets `AbsoluteEpisodeNumber` from
   `SceneSeasonNumber` (`ReleaseSearchService.cs:330` in Sonarr `b3d4bb8`). It is ported as is, to
   stay comparable; fix it only together with a test against a real anime search.
@@ -1619,7 +1626,7 @@ added, and a re-run killed 15. The last, an explicit scene mapping with the seri
 longer suppressing the implied one, is equivalent: both mappings merge into one request with the
 same title.
 
-Results (Release, full solution builds with 0 warnings): Core 7,274 passed and 21 skipped, Common
+Results (Release, full solution builds with 0 warnings): Core 7,255 passed and 21 skipped, Common
 656, Host 31, Api 38, 0 failed; Core `DbTest` on PostgreSQL 16: 444 passed, 0 failed.
 
 
