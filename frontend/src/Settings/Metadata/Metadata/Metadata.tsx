@@ -3,6 +3,7 @@ import Card from 'Components/Card';
 import Label from 'Components/Label';
 import { kinds } from 'Helpers/Props';
 import Field from 'typings/Field';
+import MediaKind from 'typings/MediaKind';
 import translate from 'Utilities/String/translate';
 import EditMetadataModal from './EditMetadataModal';
 import styles from './Metadata.css';
@@ -12,9 +13,16 @@ interface MetadataProps {
   name: string;
   enable: boolean;
   fields: Field[];
+  mediaKind?: MediaKind;
 }
 
-function Metadata({ id, name, enable, fields }: MetadataProps) {
+function Metadata({
+  id,
+  name,
+  enable,
+  fields,
+  mediaKind = 'movies',
+}: MetadataProps) {
   const [isEditMetadataModalOpen, setIsEditMetadataModalOpen] = useState(false);
 
   const { metadataFields, imageFields } = useMemo(() => {
@@ -96,6 +104,7 @@ function Metadata({ id, name, enable, fields }: MetadataProps) {
 
       <EditMetadataModal
         id={id}
+        mediaKind={mediaKind}
         isOpen={isEditMetadataModalOpen}
         onModalClose={handleModalClose}
       />

@@ -22,10 +22,13 @@ import {
   deleteAutoTaggingSpecification,
   fetchAutoTaggingSpecifications,
   saveAutoTagging,
+  saveTvAutoTagging,
   setAutoTaggingValue,
+  setTvAutoTaggingValue,
 } from 'Store/Actions/settingsActions';
 import { createProviderSettingsSelectorHook } from 'Store/Selectors/createProviderSettingsSelector';
 import { InputChanged } from 'typings/inputs';
+import MediaKind from 'typings/MediaKind';
 import translate from 'Utilities/String/translate';
 import AddSpecificationModal from './Specifications/AddSpecificationModal';
 import EditSpecificationModal from './Specifications/EditSpecificationModal';
@@ -35,6 +38,7 @@ import styles from './EditAutoTaggingModalContent.css';
 export interface EditAutoTaggingModalContentProps {
   id?: number;
   tagsFromId?: number;
+  mediaKind?: MediaKind;
   onModalClose: () => void;
   onDeleteAutoTaggingPress?: () => void;
 }
@@ -42,9 +46,12 @@ export interface EditAutoTaggingModalContentProps {
 export default function EditAutoTaggingModalContent({
   id,
   tagsFromId,
+  mediaKind = 'movies',
   onModalClose,
   onDeleteAutoTaggingPress,
 }: EditAutoTaggingModalContentProps) {
+  const isTv = mediaKind === 'tv';
+
   const {
     error,
     item,
@@ -53,7 +60,12 @@ export default function EditAutoTaggingModalContent({
     saveError,
     validationErrors,
     validationWarnings,
-  } = useSelector(createProviderSettingsSelectorHook('autoTaggings', id));
+  } = useSelector(
+    createProviderSettingsSelectorHook(
+      isTv ? 'tvAutoTaggings' : 'autoTaggings',
+      id
+    )
+  );
 
   const { isPopulated: specificationsPopulated, items: specifications } =
     useSelector((state: AppState) => state.settings.autoTaggingSpecifications);
@@ -82,15 +94,17 @@ export default function EditAutoTaggingModalContent({
 
   const handleInputChange = useCallback(
     ({ name, value }: InputChanged) => {
+      const action = isTv ? setTvAutoTaggingValue : setAutoTaggingValue;
+
       // @ts-expect-error - actions are not typed
-      dispatch(setAutoTaggingValue({ name, value }));
+      dispatch(action({ name, value }));
     },
-    [dispatch]
+    [dispatch, isTv]
   );
 
   const handleSavePress = useCallback(() => {
-    dispatch(saveAutoTagging({ id }));
-  }, [dispatch, id]);
+    dispatch(isTv ? saveTvAutoTagging({ id }) : saveAutoTagging({ id }));
+  }, [dispatch, id, isTv]);
 
   const handleCloneSpecificationPress = useCallback(
     (specId: number) => {
@@ -107,8 +121,10 @@ export default function EditAutoTaggingModalContent({
   );
 
   useEffect(() => {
-    dispatch(fetchAutoTaggingSpecifications({ id: tagsFromId || id }));
-  }, [id, tagsFromId, dispatch]);
+    dispatch(
+      fetchAutoTaggingSpecifications({ id: tagsFromId || id, mediaKind })
+    );
+  }, [id, tagsFromId, mediaKind, dispatch]);
 
   const isSavingRef = useRef(false);
 
@@ -206,6 +222,7 @@ export default function EditAutoTaggingModalContent({
               </FieldSet>
 
               <AddSpecificationModal
+                mediaKind={mediaKind}
                 isOpen={isAddSpecificationModalOpen}
                 onModalClose={handleAddSpecificationModalClose}
               />

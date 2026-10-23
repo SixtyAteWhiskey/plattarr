@@ -8,6 +8,7 @@ import TagList from 'Components/TagList';
 import { icons, kinds } from 'Helpers/Props';
 import { Kind } from 'Helpers/Props/kinds';
 import { AutoTaggingSpecification } from 'typings/AutoTagging';
+import MediaKind from 'typings/MediaKind';
 import translate from 'Utilities/String/translate';
 import EditAutoTaggingModal from './EditAutoTaggingModal';
 import styles from './AutoTagging.css';
@@ -19,6 +20,7 @@ interface AutoTaggingProps {
   tags: number[];
   tagList: Tag[];
   isDeleting: boolean;
+  mediaKind?: MediaKind;
   onConfirmDeleteAutoTagging: (id: number) => void;
   onCloneAutoTaggingPress: (id: number) => void;
 }
@@ -30,6 +32,7 @@ export default function AutoTagging({
   tagList,
   specifications,
   isDeleting,
+  mediaKind,
   onConfirmDeleteAutoTagging,
   onCloneAutoTaggingPress,
 }: AutoTaggingProps) {
@@ -107,6 +110,7 @@ export default function AutoTagging({
 
       <EditAutoTaggingModal
         id={id}
+        mediaKind={mediaKind}
         isOpen={isEditModalOpen}
         onModalClose={onEditModalClose}
         onDeleteAutoTaggingPress={onDeletePress}

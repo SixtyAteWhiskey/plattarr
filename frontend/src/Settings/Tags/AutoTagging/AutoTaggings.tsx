@@ -9,22 +9,34 @@ import { icons } from 'Helpers/Props';
 import { fetchRootFolders } from 'Store/Actions/rootFolderActions';
 import {
   cloneAutoTagging,
+  cloneTvAutoTagging,
   deleteAutoTagging,
+  deleteTvAutoTagging,
   fetchAutoTaggings,
+  fetchTvAutoTaggings,
 } from 'Store/Actions/settingsActions';
+import { fetchTvRootFolders } from 'Store/Actions/tvRootFolderActions';
 import createSortedSectionSelector from 'Store/Selectors/createSortedSectionSelector';
 import createTagsSelector from 'Store/Selectors/createTagsSelector';
 import AutoTaggingModel from 'typings/AutoTagging';
+import MediaKind from 'typings/MediaKind';
 import sortByProp from 'Utilities/Array/sortByProp';
 import translate from 'Utilities/String/translate';
 import AutoTagging from './AutoTagging';
 import EditAutoTaggingModal from './EditAutoTaggingModal';
 import styles from './AutoTaggings.css';
 
-export default function AutoTaggings() {
+interface AutoTaggingsProps {
+  mediaKind?: MediaKind;
+}
+
+export default function AutoTaggings({
+  mediaKind = 'movies',
+}: AutoTaggingsProps) {
+  const isTv = mediaKind === 'tv';
   const { error, items, isDeleting, isFetching, isPopulated } = useSelector(
     createSortedSectionSelector<AutoTaggingModel, AutoTaggingAppState>(
-      'settings.autoTaggings',
+      isTv ? 'settings.tvAutoTaggings' : 'settings.autoTaggings',
       sortByProp('name')
     )
   );
@@ -36,12 +48,12 @@ export default function AutoTaggings() {
 
   const onClonePress = useCallback(
     (id: number) => {
-      dispatch(cloneAutoTagging({ id }));
+      dispatch(isTv ? cloneTvAutoTagging({ id }) : cloneAutoTagging({ id }));
 
       setTagsFromId(id);
       setIsEditModalOpen(true);
     },
-    [dispatch, setIsEditModalOpen]
+    [dispatch, isTv, setIsEditModalOpen]
   );
 
   const onEditPress = useCallback(() => {
@@ -54,15 +66,15 @@ export default function AutoTaggings() {
 
   const onConfirmDelete = useCallback(
     (id: number) => {
-      dispatch(deleteAutoTagging({ id }));
+      dispatch(isTv ? deleteTvAutoTagging({ id }) : deleteAutoTagging({ id }));
     },
-    [dispatch]
+    [dispatch, isTv]
   );
 
   useEffect(() => {
-    dispatch(fetchAutoTaggings());
-    dispatch(fetchRootFolders());
-  }, [dispatch]);
+    dispatch(isTv ? fetchTvAutoTaggings() : fetchAutoTaggings());
+    dispatch(isTv ? fetchTvRootFolders() : fetchRootFolders());
+  }, [dispatch, isTv]);
 
   return (
     <FieldSet legend={translate('AutoTagging')}>
@@ -78,6 +90,7 @@ export default function AutoTaggings() {
               <AutoTagging
                 key={item.id}
                 {...item}
+                mediaKind={mediaKind}
                 isDeleting={isDeleting}
                 tagList={tagList}
                 onConfirmDeleteAutoTagging={onConfirmDelete}
@@ -94,6 +107,7 @@ export default function AutoTaggings() {
         </div>
 
         <EditAutoTaggingModal
+          mediaKind={mediaKind}
           isOpen={isEditModalOpen}
           tagsFromId={tagsFromId}
           onModalClose={onEditModalClose}

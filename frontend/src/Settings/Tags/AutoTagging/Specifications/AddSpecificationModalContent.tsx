@@ -13,15 +13,18 @@ import {
   fetchAutoTaggingSpecificationSchema,
   selectAutoTaggingSpecificationSchema,
 } from 'Store/Actions/settingsActions';
+import MediaKind from 'typings/MediaKind';
 import translate from 'Utilities/String/translate';
 import AddSpecificationItem from './AddSpecificationItem';
 import styles from './AddSpecificationModalContent.css';
 
 interface AddSpecificationModalContentProps {
+  mediaKind?: MediaKind;
   onModalClose: (options?: { specificationSelected: boolean }) => void;
 }
 
 export default function AddSpecificationModalContent({
+  mediaKind,
   onModalClose,
 }: AddSpecificationModalContentProps) {
   const { isSchemaFetching, isSchemaPopulated, schemaError, schema } =
@@ -47,8 +50,8 @@ export default function AddSpecificationModalContent({
   }, [onModalClose]);
 
   useEffect(() => {
-    dispatch(fetchAutoTaggingSpecificationSchema());
-  }, [dispatch]);
+    dispatch(fetchAutoTaggingSpecificationSchema({ mediaKind }));
+  }, [dispatch, mediaKind]);
 
   return (
     <ModalContent onModalClose={onModalClose}>

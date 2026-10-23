@@ -4,33 +4,38 @@ import { createSelector } from 'reselect';
 import MetadataAppState from 'App/State/MetadataAppState';
 import FieldSet from 'Components/FieldSet';
 import PageSectionContent from 'Components/Page/PageSectionContent';
-import { fetchMetadata } from 'Store/Actions/settingsActions';
+import { fetchMetadata, fetchTvMetadata } from 'Store/Actions/settingsActions';
 import createSortedSectionSelector from 'Store/Selectors/createSortedSectionSelector';
+import MediaKind from 'typings/MediaKind';
 import MetadataType from 'typings/Metadata';
 import sortByProp from 'Utilities/Array/sortByProp';
 import translate from 'Utilities/String/translate';
 import Metadata from './Metadata';
 import styles from './Metadatas.css';
 
-function createMetadatasSelector() {
+function createMetadatasSelector(mediaKind: MediaKind) {
   return createSelector(
     createSortedSectionSelector<MetadataType, MetadataAppState>(
-      'settings.metadata',
+      mediaKind === 'tv' ? 'settings.tvMetadata' : 'settings.metadata',
       sortByProp('name')
     ),
     (metadata: MetadataAppState) => metadata
   );
 }
 
-function Metadatas() {
+interface MetadatasProps {
+  mediaKind?: MediaKind;
+}
+
+function Metadatas({ mediaKind = 'movies' }: MetadatasProps) {
   const dispatch = useDispatch();
   const { isFetching, error, items, ...otherProps } = useSelector(
-    createMetadatasSelector()
+    createMetadatasSelector(mediaKind)
   );
 
   useEffect(() => {
-    dispatch(fetchMetadata());
-  }, [dispatch]);
+    dispatch(mediaKind === 'tv' ? fetchTvMetadata() : fetchMetadata());
+  }, [dispatch, mediaKind]);
 
   return (
     <FieldSet legend={translate('Metadata')}>
@@ -41,7 +46,7 @@ function Metadatas() {
       >
         <div className={styles.metadatas}>
           {items.map((item) => {
-            return <Metadata key={item.id} {...item} />;
+            return <Metadata key={item.id} mediaKind={mediaKind} {...item} />;
           })}
         </div>
       </PageSectionContent>

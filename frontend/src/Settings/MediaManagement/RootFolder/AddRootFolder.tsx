@@ -6,12 +6,22 @@ import Icon from 'Components/Icon';
 import Button from 'Components/Link/Button';
 import { icons, kinds, sizes } from 'Helpers/Props';
 import { addRootFolder } from 'Store/Actions/rootFolderActions';
+import { addTvRootFolder } from 'Store/Actions/tvRootFolderActions';
 import createRootFoldersSelector from 'Store/Selectors/createRootFoldersSelector';
+import MediaKind from 'typings/MediaKind';
 import translate from 'Utilities/String/translate';
 import styles from './AddRootFolder.css';
 
-function AddRootFolder() {
-  const { isSaving, saveError } = useSelector(createRootFoldersSelector());
+interface AddRootFolderProps {
+  mediaKind?: MediaKind;
+}
+
+function AddRootFolder({ mediaKind = 'movies' }: AddRootFolderProps) {
+  const { isSaving, saveError } = useSelector(
+    createRootFoldersSelector(
+      mediaKind === 'tv' ? 'tvRootFolders' : 'rootFolders'
+    )
+  );
 
   const dispatch = useDispatch();
 
@@ -24,9 +34,13 @@ function AddRootFolder() {
 
   const onNewRootFolderSelect = useCallback(
     ({ value }: { value: string }) => {
-      dispatch(addRootFolder({ path: value }));
+      dispatch(
+        mediaKind === 'tv'
+          ? addTvRootFolder({ path: value })
+          : addRootFolder({ path: value })
+      );
     },
-    [dispatch]
+    [dispatch, mediaKind]
   );
 
   const onAddRootFolderModalClose = useCallback(() => {

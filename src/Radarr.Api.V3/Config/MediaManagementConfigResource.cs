@@ -8,10 +8,17 @@ namespace Radarr.Api.V3.Config
     public class MediaManagementConfigResource : RestResource
     {
         public bool AutoUnmonitorPreviouslyDownloadedMovies { get; set; }
+        public bool AutoUnmonitorPreviouslyDownloadedEpisodes { get; set; }
         public string RecycleBin { get; set; }
         public int RecycleBinCleanupDays { get; set; }
         public ProperDownloadTypes DownloadPropersAndRepacks { get; set; }
         public bool CreateEmptyMovieFolders { get; set; }
+        public bool CreateEmptySeriesFolders { get; set; }
+        public EpisodeTitleRequiredType EpisodeTitleRequired { get; set; }
+        public SeasonPackUpgradeType SeasonPackUpgrade { get; set; }
+        public int SeasonPackUpgradeThreshold { get; set; }
+        public string UserRejectedExtensions { get; set; }
+        public EpisodeFileDateType EpisodeFileDate { get; set; }
         public bool DeleteEmptyFolders { get; set; }
         public FileDateType FileDate { get; set; }
         public RescanAfterRefreshType RescanAfterRefresh { get; set; }
@@ -39,10 +46,17 @@ namespace Radarr.Api.V3.Config
             return new MediaManagementConfigResource
             {
                 AutoUnmonitorPreviouslyDownloadedMovies = model.AutoUnmonitorPreviouslyDownloadedMovies,
+                AutoUnmonitorPreviouslyDownloadedEpisodes = model.AutoUnmonitorPreviouslyDownloadedEpisodes,
                 RecycleBin = model.RecycleBin,
                 RecycleBinCleanupDays = model.RecycleBinCleanupDays,
                 DownloadPropersAndRepacks = model.DownloadPropersAndRepacks,
                 CreateEmptyMovieFolders = model.CreateEmptyMovieFolders,
+                CreateEmptySeriesFolders = model.CreateEmptySeriesFolders,
+                EpisodeTitleRequired = model.EpisodeTitleRequired,
+                SeasonPackUpgrade = model.SeasonPackUpgrade,
+                SeasonPackUpgradeThreshold = model.SeasonPackUpgradeThreshold,
+                UserRejectedExtensions = model.UserRejectedExtensions,
+                EpisodeFileDate = model.EpisodeFileDate,
                 DeleteEmptyFolders = model.DeleteEmptyFolders,
                 FileDate = model.FileDate,
                 RescanAfterRefresh = model.RescanAfterRefresh,

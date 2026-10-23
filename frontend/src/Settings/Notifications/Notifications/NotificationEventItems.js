@@ -104,7 +104,7 @@ function NotificationEventItems(props) {
             <FormInputGroup
               type={inputTypes.CHECK}
               name="onMovieAdded"
-              helpText={translate('OnMovieAdded')}
+              helpText={translate('OnMediaAdded')}
               isDisabled={!supportsOnMovieAdded.value}
               {...onMovieAdded}
               onChange={onInputChange}
@@ -115,7 +115,7 @@ function NotificationEventItems(props) {
             <FormInputGroup
               type={inputTypes.CHECK}
               name="onMovieDelete"
-              helpText={translate('OnMovieDelete')}
+              helpText={translate('OnMediaDelete')}
               isDisabled={!supportsOnMovieDelete.value}
               {...onMovieDelete}
               onChange={onInputChange}
@@ -126,7 +126,7 @@ function NotificationEventItems(props) {
             <FormInputGroup
               type={inputTypes.CHECK}
               name="onMovieFileDelete"
-              helpText={translate('OnMovieFileDelete')}
+              helpText={translate('OnMediaFileDelete')}
               isDisabled={!supportsOnMovieFileDelete.value}
               {...onMovieFileDelete}
               onChange={onInputChange}
@@ -139,7 +139,7 @@ function NotificationEventItems(props) {
                 <FormInputGroup
                   type={inputTypes.CHECK}
                   name="onMovieFileDeleteForUpgrade"
-                  helpText={translate('OnMovieFileDeleteForUpgrade')}
+                  helpText={translate('OnMediaFileDeleteForUpgrade')}
                   isDisabled={!supportsOnMovieFileDeleteForUpgrade.value}
                   {...onMovieFileDeleteForUpgrade}
                   onChange={onInputChange}
