@@ -1,3 +1,3 @@
-type EpisodeDetailsTab = 'details' | 'history';
+type EpisodeDetailsTab = 'details' | 'history' | 'search';
 
 export default EpisodeDetailsTab;

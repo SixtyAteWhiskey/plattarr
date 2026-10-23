@@ -132,6 +132,11 @@ function AddNewSeries() {
             <div className={styles.noSeriesText}>
               {translate('NoSeriesHaveBeenAdded')}
             </div>
+            <div>
+              <Button to="/tv/add/import" kind={kinds.PRIMARY}>
+                {translate('ImportExistingSeries')}
+              </Button>
+            </div>
           </div>
         ) : null}
 

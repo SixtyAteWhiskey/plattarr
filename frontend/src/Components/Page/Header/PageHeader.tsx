@@ -8,7 +8,7 @@ import { icons } from 'Helpers/Props';
 import { setIsSidebarVisible } from 'Store/Actions/appActions';
 import translate from 'Utilities/String/translate';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
-import MovieSearchInput from './MovieSearchInput';
+import MediaSearchInput from './MediaSearchInput';
 import PageHeaderActionsMenu from './PageHeaderActionsMenu';
 import styles from './PageHeader.css';
 
@@ -73,7 +73,7 @@ function PageHeader({ isSmallScreen }: PageHeaderProps) {
         />
       </div>
 
-      <MovieSearchInput />
+      <MediaSearchInput />
 
       <div className={styles.right}>
         <IconButton

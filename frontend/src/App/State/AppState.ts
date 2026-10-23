@@ -11,6 +11,7 @@ import HistoryAppState, {
   MovieHistoryAppState,
   SeriesHistoryAppState,
 } from './HistoryAppState';
+import ImportSeriesAppState from './ImportSeriesAppState';
 import InteractiveImportAppState from './InteractiveImportAppState';
 import MessagesAppState from './MessagesAppState';
 import MovieCollectionAppState from './MovieCollectionAppState';
@@ -31,6 +32,8 @@ import SeriesAppState, { SeriesIndexAppState } from './SeriesAppState';
 import SettingsAppState from './SettingsAppState';
 import SystemAppState from './SystemAppState';
 import TagsAppState from './TagsAppState';
+import TvInteractiveImportAppState from './TvInteractiveImportAppState';
+import TvReleasesAppState from './TvReleasesAppState';
 import WantedAppState from './WantedAppState';
 
 interface FilterBuilderPropOption {
@@ -121,6 +124,9 @@ interface AppState {
   settings: SettingsAppState;
   system: SystemAppState;
   tags: TagsAppState;
+  importSeries: ImportSeriesAppState;
+  tvInteractiveImport: TvInteractiveImportAppState;
+  tvReleases: TvReleasesAppState;
   tvRootFolders: RootFolderAppState;
   wanted: WantedAppState;
 }

@@ -2,21 +2,26 @@ import React from 'react';
 import { Tag } from 'App/State/TagsAppState';
 import Label from 'Components/Label';
 import { kinds } from 'Helpers/Props';
+import Movie from 'Movie/Movie';
 import MoviePoster from 'Movie/MoviePoster';
-import { SuggestedMovie } from './MovieSearchInput';
-import styles from './MovieSearchResult.css';
+import Series from 'Series/Series';
+import SeriesPoster from 'Series/SeriesPoster';
+import translate from 'Utilities/String/translate';
+import { SuggestedMedia } from './MediaSearchInput';
+import styles from './MediaSearchResult.css';
 
 interface Match {
   key: string;
   refIndex: number;
 }
 
-interface MovieSearchResultProps extends SuggestedMovie {
+interface MediaSearchResultProps extends SuggestedMedia {
   match: Match;
 }
 
-function MovieSearchResult(props: MovieSearchResultProps) {
+function MediaSearchResult(props: MediaSearchResultProps) {
   const {
+    kind,
     match,
     title,
     originalTitle,
@@ -24,6 +29,7 @@ function MovieSearchResult(props: MovieSearchResultProps) {
     images,
     alternateTitles,
     tmdbId,
+    tvdbId,
     imdbId,
     tags,
   } = props;
@@ -39,17 +45,30 @@ function MovieSearchResult(props: MovieSearchResultProps) {
 
   return (
     <div className={styles.result}>
-      <MoviePoster
-        className={styles.poster}
-        images={images}
-        size={250}
-        lazy={false}
-        overflow={true}
-      />
+      {kind === 'tv' ? (
+        <SeriesPoster
+          className={styles.poster}
+          images={images as Series['images']}
+          size={250}
+          lazy={false}
+          overflow={true}
+        />
+      ) : (
+        <MoviePoster
+          className={styles.poster}
+          images={images as Movie['images']}
+          size={250}
+          lazy={false}
+          overflow={true}
+        />
+      )}
 
       <div className={styles.titles}>
         <div className={styles.title}>
           {title} {year > 0 ? `(${year})` : ''}
+          <span className={styles.kind}>
+            {kind === 'tv' ? translate('Series') : translate('Movie')}
+          </span>
         </div>
 
         {match.key === 'originalTitle' && originalTitle ? (
@@ -62,6 +81,10 @@ function MovieSearchResult(props: MovieSearchResultProps) {
 
         {match.key === 'tmdbId' && tmdbId ? (
           <div className={styles.alternateTitle}>TmdbId: {tmdbId}</div>
+        ) : null}
+
+        {match.key === 'tvdbId' && tvdbId ? (
+          <div className={styles.alternateTitle}>TvdbId: {tvdbId}</div>
         ) : null}
 
         {match.key === 'imdbId' && imdbId ? (
@@ -80,4 +103,4 @@ function MovieSearchResult(props: MovieSearchResultProps) {
   );
 }
 
-export default MovieSearchResult;
+export default MediaSearchResult;

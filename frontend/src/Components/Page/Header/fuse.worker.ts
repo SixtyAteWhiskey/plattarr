@@ -1,5 +1,5 @@
 import Fuse from 'fuse.js';
-import { SuggestedMovie } from './MovieSearchInput';
+import { SuggestedMedia } from './MediaSearchInput';
 
 const fuseOptions = {
   shouldSort: true,
@@ -13,21 +13,22 @@ const fuseOptions = {
     'year',
     'alternateTitles.title',
     'tmdbId',
+    'tvdbId',
     'imdbId',
     'tags.label',
   ],
 };
 
-function getSuggestions(movies: SuggestedMovie[], value: string) {
+function getSuggestions(media: SuggestedMedia[], value: string) {
   const limit = 10;
   let suggestions = [];
 
   if (value.length === 1) {
-    for (let i = 0; i < movies.length; i++) {
-      const m = movies[i];
+    for (let i = 0; i < media.length; i++) {
+      const m = media[i];
       if (m.firstCharacter === value.toLowerCase()) {
         suggestions.push({
-          item: movies[i],
+          item: media[i],
           indices: [[0, 0]],
           matches: [
             {
@@ -43,7 +44,7 @@ function getSuggestions(movies: SuggestedMovie[], value: string) {
       }
     }
   } else {
-    const fuse = new Fuse(movies, fuseOptions);
+    const fuse = new Fuse(media, fuseOptions);
     suggestions = fuse.search(value, { limit });
   }
 
@@ -55,9 +56,9 @@ onmessage = function (e) {
     return;
   }
 
-  const { movies, value } = e.data;
+  const { media, value } = e.data;
 
-  const suggestions = getSuggestions(movies, value);
+  const suggestions = getSuggestions(media, value);
 
   const results = {
     value,

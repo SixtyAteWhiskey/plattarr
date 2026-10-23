@@ -19,10 +19,12 @@ import TableBody from 'Components/Table/TableBody';
 import Popover from 'Components/Tooltip/Popover';
 import Episode from 'Episode/Episode';
 import usePrevious from 'Helpers/Hooks/usePrevious';
-import { align, icons, tooltipPositions } from 'Helpers/Props';
+import { align, icons, sortDirections, tooltipPositions } from 'Helpers/Props';
 import { SortDirection } from 'Helpers/Props/sortDirections';
+import TvInteractiveImportModal from 'InteractiveImport/Tv/TvInteractiveImportModal';
 import SeriesHistoryModal from 'Series/History/SeriesHistoryModal';
 import SeriesOrganizePreviewModal from 'Series/Organize/SeriesOrganizePreviewModal';
+import SeasonInteractiveSearchModal from 'Series/Search/SeasonInteractiveSearchModal';
 import { Statistics } from 'Series/Series';
 import useSeries from 'Series/useSeries';
 import {
@@ -131,7 +133,7 @@ function SeriesDetailsSeason({
   onExpandPress,
 }: SeriesDetailsSeasonProps) {
   const dispatch = useDispatch();
-  const { monitored: seriesMonitored } = useSeries(seriesId)!;
+  const { monitored: seriesMonitored, path } = useSeries(seriesId)!;
 
   const { items, columns, sortKey, sortDirection } = useSelector(
     createEpisodesSelector(seasonNumber)
@@ -155,7 +157,10 @@ function SeriesDetailsSeason({
   const previousEpisodeFileCount = usePrevious(episodeFileCount);
 
   const [isOrganizeModalOpen, setIsOrganizeModalOpen] = useState(false);
+  const [isManageEpisodesOpen, setIsManageEpisodesOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isInteractiveSearchModalOpen, setIsInteractiveSearchModalOpen] =
+    useState(false);
 
   const lastToggledEpisode = useRef<number | null>(null);
   const itemsRef = useRef(items);
@@ -228,12 +233,28 @@ function SeriesDetailsSeason({
     setIsOrganizeModalOpen(false);
   }, []);
 
+  const handleManageEpisodesPress = useCallback(() => {
+    setIsManageEpisodesOpen(true);
+  }, []);
+
+  const handleManageEpisodesModalClose = useCallback(() => {
+    setIsManageEpisodesOpen(false);
+  }, []);
+
   const handleHistoryPress = useCallback(() => {
     setIsHistoryModalOpen(true);
   }, []);
 
   const handleHistoryModalClose = useCallback(() => {
     setIsHistoryModalOpen(false);
+  }, []);
+
+  const handleInteractiveSearchPress = useCallback(() => {
+    setIsInteractiveSearchModalOpen(true);
+  }, []);
+
+  const handleInteractiveSearchModalClose = useCallback(() => {
+    setIsInteractiveSearchModalOpen(false);
   }, []);
 
   const handleSortPress = useCallback(
@@ -366,12 +387,36 @@ function SeriesDetailsSeason({
               </MenuItem>
 
               <MenuItem
+                isDisabled={!totalEpisodeCount}
+                onPress={handleInteractiveSearchPress}
+              >
+                <Icon
+                  className={styles.actionMenuIcon}
+                  name={icons.INTERACTIVE}
+                />
+
+                {translate('InteractiveSearch')}
+              </MenuItem>
+
+              <MenuItem
                 isDisabled={!episodeFileCount}
                 onPress={handleOrganizePress}
               >
                 <Icon className={styles.actionMenuIcon} name={icons.ORGANIZE} />
 
                 {translate('PreviewRename')}
+              </MenuItem>
+
+              <MenuItem
+                isDisabled={!episodeFileCount}
+                onPress={handleManageEpisodesPress}
+              >
+                <Icon
+                  className={styles.actionMenuIcon}
+                  name={icons.EPISODE_FILE}
+                />
+
+                {translate('ManageEpisodes')}
               </MenuItem>
 
               <MenuItem
@@ -404,11 +449,29 @@ function SeriesDetailsSeason({
 
             <IconButton
               className={styles.actionButton}
+              name={icons.INTERACTIVE}
+              title={translate('InteractiveSearchSeason')}
+              size={24}
+              isDisabled={!totalEpisodeCount}
+              onPress={handleInteractiveSearchPress}
+            />
+
+            <IconButton
+              className={styles.actionButton}
               name={icons.ORGANIZE}
               title={translate('PreviewRenameSeason')}
               size={24}
               isDisabled={!episodeFileCount}
               onPress={handleOrganizePress}
+            />
+
+            <IconButton
+              className={styles.actionButton}
+              name={icons.EPISODE_FILE}
+              title={translate('ManageEpisodesSeason')}
+              size={24}
+              isDisabled={!episodeFileCount}
+              onPress={handleManageEpisodesPress}
             />
 
             <IconButton
@@ -473,11 +536,34 @@ function SeriesDetailsSeason({
         onModalClose={handleOrganizeModalClose}
       />
 
+      <TvInteractiveImportModal
+        isOpen={isManageEpisodesOpen}
+        seriesId={seriesId}
+        seasonNumber={seasonNumber}
+        title={seasonNumberTitle}
+        folder={path}
+        initialSortKey="relativePath"
+        initialSortDirection={sortDirections.DESCENDING}
+        showSeries={false}
+        allowSeriesChange={false}
+        showDelete={true}
+        showImportMode={false}
+        modalTitle={translate('ManageEpisodes')}
+        onModalClose={handleManageEpisodesModalClose}
+      />
+
       <SeriesHistoryModal
         isOpen={isHistoryModalOpen}
         seriesId={seriesId}
         seasonNumber={seasonNumber}
         onModalClose={handleHistoryModalClose}
+      />
+
+      <SeasonInteractiveSearchModal
+        isOpen={isInteractiveSearchModalOpen}
+        seriesId={seriesId}
+        seasonNumber={seasonNumber}
+        onModalClose={handleInteractiveSearchModalClose}
       />
     </div>
   );

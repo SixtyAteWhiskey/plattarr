@@ -20,46 +20,48 @@ import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import useKeyboardShortcuts from 'Helpers/Hooks/useKeyboardShortcuts';
 import { icons } from 'Helpers/Props';
 import Movie from 'Movie/Movie';
+import Series from 'Series/Series';
 import createAllMoviesSelector from 'Store/Selectors/createAllMoviesSelector';
+import createAllSeriesSelector from 'Store/Selectors/createAllSeriesSelector';
 import createDeepEqualSelector from 'Store/Selectors/createDeepEqualSelector';
 import createTagsSelector from 'Store/Selectors/createTagsSelector';
+import MediaKind from 'typings/MediaKind';
 import translate from 'Utilities/String/translate';
-import MovieSearchResult from './MovieSearchResult';
-import styles from './MovieSearchInput.css';
+import MediaSearchResult from './MediaSearchResult';
+import styles from './MediaSearchInput.css';
 
 const ADD_NEW_TYPE = 'addNew';
+const ADD_NEW_KINDS: MediaKind[] = ['movies', 'tv'];
 
 interface Match {
   key: string;
   refIndex: number;
 }
 
-interface AddNewMovieSuggestion {
+interface AddNewSuggestion {
   type: 'addNew';
+  kind: MediaKind;
   title: string;
 }
 
-export interface SuggestedMovie
-  extends Pick<
-    Movie,
-    | 'title'
-    | 'originalTitle'
-    | 'year'
-    | 'titleSlug'
-    | 'sortTitle'
-    | 'images'
-    | 'alternateTitles'
-    | 'tmdbId'
-    | 'imdbId'
-  > {
+// One entry of the combined library list the search runs over. Movies and
+// series share a list so one search box finds either.
+export interface SuggestedMedia
+  extends Pick<Movie, 'title' | 'year' | 'titleSlug' | 'sortTitle' | 'imdbId'> {
+  kind: MediaKind;
+  images: Movie['images'] | Series['images'];
+  originalTitle?: string;
+  alternateTitles: { title: string }[];
+  tmdbId?: number;
+  tvdbId?: number;
   firstCharacter: string;
   tags: Tag[];
 }
 
-interface MovieSuggestion {
+interface MediaSuggestion {
   title: string;
   indices: number[];
-  item: SuggestedMovie;
+  item: SuggestedMedia;
   matches: Match[];
   refIndex: number;
 }
@@ -67,15 +69,40 @@ interface MovieSuggestion {
 interface Section {
   title: string;
   loading?: boolean;
-  suggestions: MovieSuggestion[] | AddNewMovieSuggestion[];
+  suggestions: MediaSuggestion[] | AddNewSuggestion[];
+}
+
+function getMediaPath(kind: MediaKind, titleSlug: string) {
+  return `${window.Radarr.urlBase}/${
+    kind === 'tv' ? 'series' : 'movie'
+  }/${titleSlug}`;
+}
+
+function getAddNewPath(kind: MediaKind, term: string) {
+  return `${window.Radarr.urlBase}/${
+    kind === 'tv' ? 'tv/add/new' : 'add/new'
+  }?term=${encodeURIComponent(term)}`;
+}
+
+function resolveTags(tagIds: number[], allTags: Tag[]) {
+  return tagIds.reduce<Tag[]>((acc, id) => {
+    const matchingTag = allTags.find((tag) => tag.id === id);
+
+    if (matchingTag) {
+      acc.push(matchingTag);
+    }
+
+    return acc;
+  }, []);
 }
 
 function createUnoptimizedSelector() {
   return createSelector(
     createAllMoviesSelector(),
+    createAllSeriesSelector(),
     createTagsSelector(),
-    (allMovies, allTags) => {
-      return allMovies.map((movie): SuggestedMovie => {
+    (allMovies, allSeries, allTags) => {
+      const movies = allMovies.map((movie): SuggestedMedia => {
         const {
           title,
           originalTitle,
@@ -90,6 +117,7 @@ function createUnoptimizedSelector() {
         } = movie;
 
         return {
+          kind: 'movies',
           title,
           originalTitle,
           year,
@@ -100,36 +128,55 @@ function createUnoptimizedSelector() {
           tmdbId,
           imdbId,
           firstCharacter: title.charAt(0).toLowerCase(),
-          tags: tags.reduce<Tag[]>((acc, id) => {
-            const matchingTag = allTags.find((tag) => tag.id === id);
-
-            if (matchingTag) {
-              acc.push(matchingTag);
-            }
-
-            return acc;
-          }, []),
+          tags: resolveTags(tags, allTags),
         };
       });
+
+      const series = allSeries.map((item): SuggestedMedia => {
+        const {
+          title,
+          year,
+          titleSlug,
+          sortTitle,
+          images,
+          alternateTitles = [],
+          tvdbId,
+          imdbId,
+          tags = [],
+        } = item;
+
+        return {
+          kind: 'tv',
+          title,
+          year,
+          titleSlug,
+          sortTitle,
+          images,
+          alternateTitles,
+          tvdbId,
+          imdbId,
+          firstCharacter: title.charAt(0).toLowerCase(),
+          tags: resolveTags(tags, allTags),
+        };
+      });
+
+      return [...movies, ...series];
     }
   );
 }
 
-function createMoviesSelector() {
-  return createDeepEqualSelector(
-    createUnoptimizedSelector(),
-    (movies) => movies
-  );
+function createMediaSelector() {
+  return createDeepEqualSelector(createUnoptimizedSelector(), (media) => media);
 }
 
-function MovieSearchInput() {
-  const movies = useSelector(createMoviesSelector());
+function MediaSearchInput() {
+  const media = useSelector(createMediaSelector());
   const dispatch = useDispatch();
   const { bindShortcut, unbindShortcut } = useKeyboardShortcuts();
 
   const [value, setValue] = useState('');
   const [requestLoading, setRequestLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState<MovieSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<MediaSuggestion[]>([]);
 
   const autosuggestRef = useRef<Autosuggest>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -142,17 +189,23 @@ function MovieSearchInput() {
 
     if (suggestions.length || isLoading.current) {
       result.push({
-        title: translate('ExistingMovies'),
+        title: translate('ExistingMedia'),
         loading: isLoading.current,
         suggestions,
       });
     }
 
     result.push({
-      title: translate('AddNewMovie'),
+      title: translate('AddNew'),
       suggestions: [
         {
           type: ADD_NEW_TYPE,
+          kind: 'movies',
+          title: value,
+        },
+        {
+          type: ADD_NEW_TYPE,
+          kind: 'tv',
           title: value,
         },
       ],
@@ -162,7 +215,7 @@ function MovieSearchInput() {
   }, [suggestions, value]);
 
   const handleSuggestionsReceived = useCallback(
-    (message: { data: { value: string; suggestions: MovieSuggestion[] } }) => {
+    (message: { data: { value: string; suggestions: MediaSuggestion[] } }) => {
       const { value, suggestions } = message.data;
 
       if (!isLoading.current) {
@@ -180,13 +233,13 @@ function MovieSearchInput() {
 
         const payload = {
           value: requestValue,
-          movies,
+          media,
         };
 
         worker.current?.postMessage(payload);
       }
     },
-    [movies]
+    [media]
   );
 
   const requestSuggestions = useDebouncedCallback((value: string) => {
@@ -200,7 +253,7 @@ function MovieSearchInput() {
     if (!requestLoading) {
       const payload = {
         value,
-        movies,
+        media,
       };
 
       worker.current?.postMessage(payload);
@@ -245,18 +298,22 @@ function MovieSearchInput() {
 
   const renderSuggestion = useCallback(
     (
-      item: AddNewMovieSuggestion | MovieSuggestion,
+      item: AddNewSuggestion | MediaSuggestion,
       { query }: { query: string }
     ) => {
       if ('type' in item) {
         return (
-          <div className={styles.addNewMovieSuggestion}>
+          <div className={styles.addNewSuggestion}>
+            <span className={styles.kind}>
+              {item.kind === 'tv' ? translate('Series') : translate('Movie')}
+            </span>
+
             {translate('SearchForQuery', { query })}
           </div>
         );
       }
 
-      return <MovieSearchResult {...item.item} match={item.matches[0]} />;
+      return <MediaSearchResult {...item.item} match={item.matches[0]} />;
     },
     []
   );
@@ -303,12 +360,18 @@ function MovieSearchInput() {
       const { highlightedSectionIndex, highlightedSuggestionIndex } =
         autosuggestRef.current.state;
 
+      const addNewSectionIndex = suggestionGroups.length - 1;
+
       if (!suggestions.length || highlightedSectionIndex) {
-        dispatch(
-          push(
-            `${window.Radarr.urlBase}/add/new?term=${encodeURIComponent(value)}`
-          )
-        );
+        // Enter on an "Add New" entry follows that entry; with nothing
+        // highlighted the first entry (movies) is used.
+        const addNewKind =
+          highlightedSectionIndex === addNewSectionIndex &&
+          highlightedSuggestionIndex != null
+            ? ADD_NEW_KINDS[highlightedSuggestionIndex]
+            : ADD_NEW_KINDS[0];
+
+        dispatch(push(getAddNewPath(addNewKind, value)));
 
         inputRef.current?.blur();
         reset();
@@ -316,8 +379,8 @@ function MovieSearchInput() {
         return;
       }
 
-      // If a suggestion is not selected go to the first movie,
-      // otherwise go to the selected movie.
+      // If a suggestion is not selected go to the first match,
+      // otherwise go to the selected match.
 
       const selectedSuggestion =
         highlightedSuggestionIndex == null
@@ -326,14 +389,17 @@ function MovieSearchInput() {
 
       dispatch(
         push(
-          `${window.Radarr.urlBase}/movie/${selectedSuggestion.item.titleSlug}`
+          getMediaPath(
+            selectedSuggestion.item.kind,
+            selectedSuggestion.item.titleSlug
+          )
         )
       );
 
       inputRef.current?.blur();
       reset();
     },
-    [value, suggestions, dispatch, reset]
+    [value, suggestions, suggestionGroups, dispatch, reset]
   );
 
   const handleBlur = useCallback(() => {
@@ -357,18 +423,14 @@ function MovieSearchInput() {
   const handleSuggestionSelected = useCallback(
     (
       _event: SyntheticEvent,
-      { suggestion }: { suggestion: MovieSuggestion | AddNewMovieSuggestion }
+      { suggestion }: { suggestion: MediaSuggestion | AddNewSuggestion }
     ) => {
       if ('type' in suggestion) {
-        dispatch(
-          push(
-            `${window.Radarr.urlBase}/add/new?term=${encodeURIComponent(value)}`
-          )
-        );
+        dispatch(push(getAddNewPath(suggestion.kind, value)));
       } else {
         setValue('');
         dispatch(
-          push(`${window.Radarr.urlBase}/movie/${suggestion.item.titleSlug}`)
+          push(getMediaPath(suggestion.item.kind, suggestion.item.titleSlug))
         );
       }
     },
@@ -378,7 +440,7 @@ function MovieSearchInput() {
   const inputProps = {
     ref: inputRef,
     className: styles.input,
-    name: 'movieSearch',
+    name: 'mediaSearch',
     value,
     placeholder: translate('Search'),
     autoComplete: 'off',
@@ -391,7 +453,7 @@ function MovieSearchInput() {
   const theme = {
     container: styles.container,
     containerOpen: styles.containerOpen,
-    suggestionsContainer: styles.movieContainer,
+    suggestionsContainer: styles.mediaContainer,
     suggestionsList: styles.list,
     suggestion: styles.listItem,
     suggestionHighlighted: styles.highlighted,
@@ -457,4 +519,4 @@ function MovieSearchInput() {
   );
 }
 
-export default MovieSearchInput;
+export default MediaSearchInput;
