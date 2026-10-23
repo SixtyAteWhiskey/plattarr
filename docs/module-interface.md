@@ -1519,6 +1519,27 @@ hard-coding the SkyHook language code, monitoring special seasons, and deleting 
 event publishers. Two checks first survived (the unmonitored episode in the airing test was
 further from now than the monitored one) and the test was changed to make them fail.
 
+**Live proof (dev stack, image `80d734b`).** Migration 006 ran first on a copy of the config
+(version 6, the four tables with the expected columns, clean logs), then live. With Game of Thrones
+seeded (there is no TV API yet) and a qBittorrent client whose `tvCategory` is `plattarr-tv`, a
+CC-licensed torrent renamed to `Game.of.Thrones.S01E01.1080p.WEB-DL.x264-BLENDER` completed in that
+category with no grab history. The next `RefreshMonitoredDownloads` matched it by title
+(`TvTrackedDownloadMatcher`), `TvDownloadImporter.Check` returned `Ready` from the category alone,
+and `ProcessPath` imported it: a hardlink (same inode, link count 2) named
+`Season 1/Game of Thrones (2011) - S01E01 - Winter Is Coming WEBDL-480p.mp4` (480p comes from the
+file's real resolution, so the ffprobe read ran), a `Tv_EpisodeFiles` row with scene name, group and
+original path, the episode linked, and a shared `DownloadHistory` row with `MediaKind` 2 from
+`DownloadCompletedEvent`. No Warn or Error beyond the two expected first-refresh lines. `RssSync`
+completed and the movie search is unchanged (70 releases, 56 approved). Not exercised: the episode
+`History` table stays empty (step 6 owns those handlers), no queue API for TV (step 7), no TV
+notification (no builders yet), and the sidecar subtitles were not imported (`ImportExtraFiles` is
+off by default). Everything seeded was deleted afterwards.
+
+**Lesson, CI.** `Fast` builds use `RunAnalyzers=false`, and an incremental `Radarr.sln` build can
+skip a test project whose last edit followed it. CI failed on two analyzer errors in a test file
+edited after the last full build (SA1117 and IDE0005). Before every push run
+`dotnet build Radarr.sln -c Release --no-restore --no-incremental` (about 3 min).
+
 Results (Release, full solution builds with 0 warnings): Core 6,688 passed and 21 skipped, Common
 656, Host 29, Api 38, 0 failed; Core `DbTest` on PostgreSQL 16: 432 passed, 0 failed.
 
