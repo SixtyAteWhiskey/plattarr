@@ -1,11 +1,15 @@
 using System.Linq;
+using Dapper;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Datastore.Converters;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Tv.Blocklisting;
 using NzbDrone.Core.Tv.DataAugmentation.Scene;
 using NzbDrone.Core.Tv.History;
 using NzbDrone.Core.Tv.MediaFiles;
 using NzbDrone.Core.Tv.Organizer;
+using NzbDrone.Core.Tv.Parser.Model;
+using NzbDrone.Core.Tv.Pending;
 using NzbDrone.Core.Tv.RootFolders;
 
 namespace NzbDrone.Core.Tv
@@ -20,7 +24,10 @@ namespace NzbDrone.Core.Tv
         {
             // Every IEmbeddedDocument type in the assembly, and a list of it, gets its handler in
             // TableMapping (Actor, Ratings, Season, SeasonType, AddSeriesOptions, MediaInfoModel and
-            // the media cover list). Nothing here needs its own converter yet.
+            // the media cover list). The pending releases table keeps the parsed episode info and
+            // the match information as documents, like Movies' ParsedMovieInfo.
+            SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<ParsedEpisodeInfo>(new QualityIntConverter(), new LanguageIntConverter()));
+            SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<PendingReleaseAdditionalInfo>());
         }
 
         public void MapTables(TableMapper mapper)
@@ -59,6 +66,9 @@ namespace NzbDrone.Core.Tv
             // every query to TV.
             mapper.Entity<EpisodeHistory>("History").RegisterModel();
             mapper.Entity<Blocklist>("Blocklist").RegisterModel();
+
+            // RemoteEpisode is not persisted. It has no type handler, so RegisterModel skips it.
+            mapper.Entity<PendingRelease>("PendingReleases").RegisterModel();
         }
     }
 }

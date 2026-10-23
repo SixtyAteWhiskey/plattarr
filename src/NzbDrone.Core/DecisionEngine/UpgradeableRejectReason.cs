@@ -1,4 +1,4 @@
-namespace NzbDrone.Core.Movies.DecisionEngine
+namespace NzbDrone.Core.DecisionEngine
 {
     public enum UpgradeableRejectReason
     {

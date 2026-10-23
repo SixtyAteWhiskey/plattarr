@@ -7,6 +7,7 @@ using NUnit.Framework;
 using NzbDrone.Common.Serializer;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.CustomFormats;
+using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.DecisionEngine.Specifications;
 using NzbDrone.Core.Movies.MediaFiles;

@@ -85,6 +85,30 @@ namespace NzbDrone.App.Test
         }
 
         [Test]
+        public void should_resolve_the_tv_decision_and_search_contracts()
+        {
+            _container.GetRequiredService<IEnumerable<IRssReleaseHandler>>().Should().ContainSingle(h => h.Kind == MediaKind.Tv)
+                .Which.Should().BeOfType<NzbDrone.Core.Tv.Search.TvRssReleaseHandler>();
+            _container.GetServices<IPendingReleaseHandler>().Should().ContainSingle(h => h.Kind == MediaKind.Tv)
+                .Which.Should().BeOfType<NzbDrone.Core.Tv.Pending.PendingReleaseService>();
+            _container.GetServices<IDownloadDecisionPrioritizer>().Should().ContainSingle(p => p.Kind == MediaKind.Tv)
+                .Which.Should().BeOfType<NzbDrone.Core.Tv.DecisionEngine.DownloadDecisionPriorizationService>();
+            _container.GetRequiredService<ISearchTranslator<NzbDrone.Core.Tv.Search.TvSearchRequest>>().Should().BeOfType<NzbDrone.Core.Tv.Search.TvSearchTranslator>();
+            _container.GetRequiredService<NzbDrone.Core.Tv.DecisionEngine.IMakeDownloadDecision>().Should().BeOfType<NzbDrone.Core.Tv.DecisionEngine.DownloadDecisionMaker>();
+            _container.GetRequiredService<NzbDrone.Core.Tv.Search.ISearchForReleases>().Should().NotBeNull();
+        }
+
+        [Test]
+        public void should_resolve_the_tv_search_command_executors()
+        {
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Tv.Search.EpisodeSearchCommand>>().Should().NotBeNull();
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Tv.Search.MissingEpisodeSearchCommand>>().Should().NotBeNull();
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Tv.Search.CutoffUnmetEpisodeSearchCommand>>().Should().NotBeNull();
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Tv.Search.SeasonSearchCommand>>().Should().NotBeNull();
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Tv.Search.SeriesSearchCommand>>().Should().NotBeNull();
+        }
+
+        [Test]
         public void should_be_able_to_resolve_downloadclients()
         {
             _container.GetRequiredService<IEnumerable<IDownloadClient>>().Should().NotBeEmpty();

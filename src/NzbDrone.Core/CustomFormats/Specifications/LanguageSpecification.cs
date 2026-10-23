@@ -45,8 +45,8 @@ namespace NzbDrone.Core.CustomFormats
 
         protected override bool IsSatisfiedByWithoutNegate(CustomFormatInput input)
         {
-            var comparedLanguage = input.MovieInfo != null && input.Movie != null && Value == Language.Original.Id && input.Movie.MovieMetadata.Value.OriginalLanguage != Language.Unknown
-                ? input.Movie.MovieMetadata.Value.OriginalLanguage
+            var comparedLanguage = Value == Language.Original.Id && input.OriginalLanguage != null && input.OriginalLanguage != Language.Unknown
+                ? input.OriginalLanguage
                 : (Language)Value;
 
             if (ExceptLanguage)
@@ -59,8 +59,8 @@ namespace NzbDrone.Core.CustomFormats
 
         private bool IsSatisfiedByWithNegate(CustomFormatInput input)
         {
-            var comparedLanguage = input.MovieInfo != null && input.Movie != null && Value == Language.Original.Id && input.Movie.MovieMetadata.Value.OriginalLanguage != Language.Unknown
-                ? input.Movie.MovieMetadata.Value.OriginalLanguage
+            var comparedLanguage = Value == Language.Original.Id && input.OriginalLanguage != null && input.OriginalLanguage != Language.Unknown
+                ? input.OriginalLanguage
                 : (Language)Value;
 
             if (ExceptLanguage)

@@ -231,6 +231,32 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("CreateEmptySeriesFolders", value); }
         }
 
+        // Also search anime episodes and seasons by standard numbering (S01E02), as Sonarr's indexer
+        // setting of the same name does. Off by default, as upstream.
+        public bool AnimeStandardFormatSearch
+        {
+            get { return GetValueBoolean("AnimeStandardFormatSearch", false); }
+
+            set { SetValue("AnimeStandardFormatSearch", value); }
+        }
+
+        // TV: how many of the episodes a season pack would replace must be upgrades. All is Sonarr's
+        // behavior before it had the setting, so it stays the default.
+        public SeasonPackUpgradeType SeasonPackUpgrade
+        {
+            get { return GetValueEnum("SeasonPackUpgrade", SeasonPackUpgradeType.All); }
+
+            set { SetValue("SeasonPackUpgrade", value); }
+        }
+
+        // TV: the percentage of episodes that must be upgrades when SeasonPackUpgrade is Threshold.
+        public int SeasonPackUpgradeThreshold
+        {
+            get { return GetValueInt("SeasonPackUpgradeThreshold", 50); }
+
+            set { SetValue("SeasonPackUpgradeThreshold", value); }
+        }
+
         public bool DeleteEmptyFolders
         {
             get { return GetValueBoolean("DeleteEmptyFolders", false); }

@@ -1522,6 +1522,107 @@ further from now than the monitored one) and the test was changed to make them f
 Results (Release, full solution builds with 0 warnings): Core 6,688 passed and 21 skipped, Common
 656, Host 29, Api 38, 0 failed; Core `DbTest` on PostgreSQL 16: 432 passed, 0 failed.
 
+### TV step 4: as built
+
+Built in session 39 against Sonarr `b3d4bb8`. One migration (005), no table change. Calls made
+while building (each is reversible):
+
+- **Custom formats are neutral (4a).** `CustomFormatInput` carries what a specification may read
+  (release title, group, quality, edition, year, original language, release type, size, indexer
+  flags, languages, filename). Each module fills it from its own parse result and parent, so no
+  specification references a module type; the module-boundary allowlist shrank to 18 entries.
+  `CustomFormatCalculationService.ParseCustomFormat(CustomFormatInput, MediaKind)` is the one entry
+  point. `Tv.CustomFormats.TvCustomFormatCalculationService` builds the input from a `RemoteEpisode`,
+  an episode file, a blocklist row or a history row.
+- **`ReleaseType` lives in the TV module.** The Release Type specification reads the neutral input's
+  `ReleaseType` (0 unknown, 1 single episode, 2 multi episode, 3 season pack). Movies and Music
+  inputs leave it 0.
+- **Rejection reasons are appended.** `DownloadRejectionReason` gained the TV reasons at the end, so
+  existing numeric values are unchanged.
+- **`UpgradableSpecification` and `UpgradeableRejectReason` moved to `NzbDrone.Core.DecisionEngine`.**
+  Both modules use the core types.
+- **`IConfigService.AnimeStandardFormatSearch`** (default false) replaces Sonarr's per-indexer
+  setting of the same name. Anime categories are not carried: the search translator uses the
+  categories the indexer category service returns for TV.
+- **Search criteria carry every identifier (4a).** `TvSearchTranslator` sends all IDs it has
+  (TVDB, TVMaze, IMDb, TMDB, TVRage) instead of Sonarr's per-indexer choice; Prowlarr's indexer layer
+  drops what an indexer does not support. Daily series are searched by year (a season request) or by year plus `MM/dd` (an episode request), as Sonarr does.
+- **Matching and aggregation (4b).** `TvReleaseMatcher` is Sonarr's title parse and series lookup
+  moved out of `DownloadDecisionMaker` (contract 2). `RemoteEpisodeAggregationService` and
+  `AggregateLanguages` are Sonarr's; an aggregator that throws is logged and skipped.
+- **Pending releases are ported on the shared `PendingReleases` table (4b).** `PendingReleaseService`
+  keeps Sonarr's static cache. Two deviations: the grouping key for pending releases is a string of
+  the ordered episode IDs (Sonarr's `GroupBy` over an `IEnumerable` never grouped, because it
+  compared references), and there is no `QualityProfileUpdated` handler or obsolete queue method.
+  The queue ID is a hash of `pending-{id}`.
+- **History and blocklist (4b).** `Tv.History.HistoryService` and `Tv.Blocklisting.BlocklistService`
+  are read services plus `Block(RemoteEpisode, message)`, which sets `MediaKind`, `ParentId`,
+  `ItemIds`, `ReleaseType` (a deviation from Radarr, which has no such column) and the release
+  fields. The event handlers that write history and blocklist rows are step 6.
+- **Specifications are Sonarr's (4c).** All 29 decision specifications live in
+  `Tv.DecisionEngine.Specifications` (root, `RssSync`, `Search`) behind the module's own
+  `IDownloadDecisionEngineSpecification`, and run in one priority order with the core release
+  specifications. `DownloadDecisionMaker` rejects a release with `UnknownSeries`,
+  `MatchesAnotherSeries` (the title is a scene alias of another series) or `UnknownEpisode` before
+  any specification runs. `DownloadDecisionComparer` is Sonarr's order (quality, custom format
+  score, protocol, episode count, episode number, indexer priority, peers, age, size) and has no
+  indexer-flag comparison. The module's `IDownloadDecisionPrioritizer` has `Kind` `Tv`.
+- **Size limits come from the shared quality definitions.** Sonarr keeps minimum, maximum and
+  preferred size on the profile's items. Plattarr keeps them on `QualityDefinition`, in MB per
+  minute, so `AcceptableSizeSpecification` and the comparer read `IQualityDefinitionService`. A
+  profile can no longer set a size limit for one series only.
+- **TV-only settings (migration 005).** Columns with defaults that keep today's behavior:
+  `ReleaseProfiles.AirDateRestriction`, `AirDateGracePeriod` and
+  `AllowSeasonPackWithoutAllEpisodesAired`, and `IndexerOverrides.SeasonSearchMaximumSingleEpisodeAge`
+  (a TV row, 0 is off). Sonarr stamps the indexer setting on each release; the season pack
+  specification reads the indexer's TV override instead. The season pack upgrade settings are
+  global config keys, not overrides: `SeasonPackUpgrade` (`All`, `Threshold` or `Any`, default `All`)
+  and `SeasonPackUpgradeThreshold` (default 50). The reference tree has no definition of either, so
+  the enum and defaults are ours; `All` matches the behavior before Sonarr had the setting.
+- **Search services are Sonarr's (4d).** `NzbDrone.Core.Tv.Search` now holds `ReleaseSearchService`
+  (`ISearchForReleases`: episode, season and interactive search, scene and XEM mappings, daily,
+  anime and special routing), `EpisodeSearchService` (`EpisodeSearchCommand`,
+  `MissingEpisodeSearchCommand`, `CutoffUnmetEpisodeSearchCommand`), `SeriesSearchService`,
+  `SeasonSearchService` with the new `SeasonSearchCommand` (Sonarr's, copied unchanged), and
+  `TvRssReleaseHandler` (`IRssReleaseHandler`, `Kind` `Tv`). Nothing schedules or routes these
+  commands yet; that is step 7.
+- **A search goes through the shared fetcher.** `ReleaseSearchService.Dispatch` calls
+  `IIndexerReleaseFetcher.Search(request, series.Tags, MediaKind.Tv, translator)`. The fetcher
+  filters indexers by the series' tags, so Sonarr's four indexer-tag search tests became one test
+  that the tags reach the fetcher. `LastSearchTime` is set, and saved, only when
+  `IndexersSearched` is above 0.
+- **RSS handling.** `TvRssReleaseHandler` is the Movies handler with TV types: it adds the
+  pending releases to the fetched ones, makes the decisions, processes them and publishes the TV
+  module's own `RssSyncCompleteEvent`. The history and blocklist event handlers that Sonarr hangs
+  on RSS and grab events are step 6.
+- **A kept Sonarr quirk.** The global scene mapping sets `AbsoluteEpisodeNumber` from
+  `SceneSeasonNumber` (`ReleaseSearchService.cs:330` in Sonarr `b3d4bb8`). It is ported as is, to
+  stay comparable; fix it only together with a test against a real anime search.
+
+**Tests.** Sonarr's decision and search fixtures run under `TvTests/DecisionEngineTests` (347
+tests) and `TvTests/SearchTests` (108, with the 4a and 4b translator and matcher fixtures), adapted to the module seams (neutral
+custom format input, quality definitions for sizes, `IIndexerOverrideService` for the
+single-episode age, `IIndexerReleaseFetcher` for searches). New fixtures: decision maker ordering
+and reasons, prioritizer, comparer, migration 005, `ReleaseProfile` TV settings, the config and
+override defaults, `TvEpisodeSearchServiceFixture`, `TvSeasonSearchServiceFixture`,
+`TvRssReleaseHandlerFixture`, `TvReleaseSearchBranchesFixture` (daily, special and anime
+routing, monitored filtering, scene mapping season filters, de-duplication), and two Host
+container tests that resolve the TV contracts and command executors.
+
+**Mutation checks.** 4c: 50 mutations of the maker, comparer, prioritizer, size and season pack
+specifications; 48 killed. The 2 survivors are equivalent: the `DownloadProtocol != Torrent ||`
+and `!= Usenet ||` guards in the comparer cannot change a result, because the protocol comparison
+runs earlier. 4d: 48 mutations of the search services and the RSS handler; 16 first survived, in
+`ReleaseSearchService` (daily air date, special and anime routing, monitored filters, season
+scoped mappings, scene title fallback, de-duplication order, absolute number). 18 tests were
+added, and a re-run killed 15. The last, an explicit scene mapping with the series' own title no
+longer suppressing the implied one, is equivalent: both mappings merge into one request with the
+same title.
+
+Results (Release, full solution builds with 0 warnings): Core 7,274 passed and 21 skipped, Common
+656, Host 31, Api 38, 0 failed; Core `DbTest` on PostgreSQL 16: 444 passed, 0 failed.
+
+
 ## Decision record
 
 Owner answers, 2026-10-20, to the six questions in revision 1:

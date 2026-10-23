@@ -32,5 +32,9 @@ namespace NzbDrone.Core.Indexers.Overrides
         // Newznab categories to search and route instead of the media type's defaults,
         // for indexers that miscategorize.
         public List<int> Categories { get; set; }
+
+        // TV: days after a season's last episode aired that this indexer's single episodes are
+        // refused in favor of a season pack (Sonarr's SeasonSearchMaximumSingleEpisodeAge). 0 is off.
+        public int SeasonSearchMaximumSingleEpisodeAge { get; set; }
     }
 }

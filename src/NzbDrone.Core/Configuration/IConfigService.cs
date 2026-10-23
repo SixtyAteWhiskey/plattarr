@@ -32,6 +32,9 @@ namespace NzbDrone.Core.Configuration
         ProperDownloadTypes DownloadPropersAndRepacks { get; set; }
         bool CreateEmptyMovieFolders { get; set; }
         bool CreateEmptySeriesFolders { get; set; }
+        bool AnimeStandardFormatSearch { get; set; }
+        SeasonPackUpgradeType SeasonPackUpgrade { get; set; }
+        int SeasonPackUpgradeThreshold { get; set; }
         bool DeleteEmptyFolders { get; set; }
         FileDateType FileDate { get; set; }
         bool SkipFreeSpaceCheckWhenImporting { get; set; }
