@@ -193,6 +193,14 @@ namespace NzbDrone.App.Test
         }
 
         [Test]
+        public void should_resolve_the_tv_manual_import_service_command_and_controller()
+        {
+            _container.GetRequiredService<NzbDrone.Core.Tv.MediaFiles.EpisodeImport.Manual.IManualImportService>().Should().BeOfType<NzbDrone.Core.Tv.MediaFiles.EpisodeImport.Manual.ManualImportService>();
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Tv.MediaFiles.EpisodeImport.Manual.TvManualImportCommand>>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Tv.ManualImport.TvManualImportController>().Should().NotBeNull();
+        }
+
+        [Test]
         public void should_resolve_one_tagged_item_source_per_module_and_the_tag_service()
         {
             _container.GetServices<ITaggedItemSource>().Should().Contain(s => s.Kind == MediaKind.Movies).And.Contain(s => s.Kind == MediaKind.Tv);
