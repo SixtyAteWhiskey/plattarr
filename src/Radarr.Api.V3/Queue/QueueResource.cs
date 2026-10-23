@@ -1,14 +1,18 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Queue;
+using NzbDrone.Core.Tv;
 using Radarr.Api.V3.CustomFormats;
 using Radarr.Api.V3.Movies;
+using Radarr.Api.V3.Tv.Episodes;
+using Radarr.Api.V3.Tv.Series;
 using Radarr.Http.REST;
 
 namespace Radarr.Api.V3.Queue
@@ -17,6 +21,25 @@ namespace Radarr.Api.V3.Queue
     {
         public int? MovieId { get; set; }
         public MovieResource Movie { get; set; }
+
+        // Set for downloads matched to a series; omitted for movies so Radarr's output is unchanged.
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? SeriesId { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? EpisodeId { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? SeasonNumber { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public SeriesResource Series { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public EpisodeResource Episode { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public bool? EpisodeHasFile { get; set; }
         public List<Language> Languages { get; set; }
         public QualityModel Quality { get; set; }
         public List<CustomFormatResource> CustomFormats { get; set; }
@@ -51,21 +74,31 @@ namespace Radarr.Api.V3.Queue
 
     public static class QueueResourceMapper
     {
-        public static QueueResource ToResource(this NzbDrone.Core.Queue.Queue model, bool includeMovie)
+        public static QueueResource ToResource(this NzbDrone.Core.Queue.Queue model, bool includeMovie, bool includeSeries = false, bool includeEpisode = false)
         {
             if (model == null)
             {
                 return null;
             }
 
-            var customFormats = model.GetRemoteMovie()?.CustomFormats;
-            var customFormatScore = model.GetMovie()?.QualityProfile?.CalculateCustomFormatScore(customFormats) ?? 0;
+            var series = model.GetSeries();
+            var episode = model.GetEpisode();
+            var customFormats = model.RemoteRelease?.CustomFormats;
+            var customFormatScore = model.GetMovie()?.QualityProfile?.CalculateCustomFormatScore(customFormats)
+                                    ?? series?.QualityProfile?.Value?.CalculateCustomFormatScore(customFormats)
+                                    ?? 0;
 
             return new QueueResource
             {
                 Id = model.Id,
                 MovieId = model.GetMovie()?.Id,
                 Movie = includeMovie && model.GetMovie() != null ? model.GetMovie().ToResource(0) : null,
+                SeriesId = series?.Id,
+                EpisodeId = episode?.Id,
+                SeasonNumber = episode?.SeasonNumber,
+                Series = includeSeries && series != null ? series.ToResource() : null,
+                Episode = includeEpisode && episode != null ? episode.ToResource() : null,
+                EpisodeHasFile = episode?.HasFile,
                 Languages = model.Languages,
                 Quality = model.Quality,
                 CustomFormats = customFormats?.ToResource(false),
@@ -91,16 +124,16 @@ namespace Radarr.Api.V3.Queue
                 Indexer = model.Indexer,
                 OutputPath = model.OutputPath,
 
-                #pragma warning disable CS0618
+#pragma warning disable CS0618
                 Sizeleft = model.SizeLeft,
                 Timeleft = model.TimeLeft,
-                #pragma warning restore CS0618
+#pragma warning restore CS0618
             };
         }
 
-        public static List<QueueResource> ToResource(this IEnumerable<NzbDrone.Core.Queue.Queue> models, bool includeMovie)
+        public static List<QueueResource> ToResource(this IEnumerable<NzbDrone.Core.Queue.Queue> models, bool includeMovie, bool includeSeries = false, bool includeEpisode = false)
         {
-            return models.Select((m) => ToResource(m, includeMovie)).ToList();
+            return models.Select((m) => ToResource(m, includeMovie, includeSeries, includeEpisode)).ToList();
         }
     }
 }

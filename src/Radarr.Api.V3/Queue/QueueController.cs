@@ -13,12 +13,12 @@ using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Movies.Blocklisting;
-using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Queue;
+using NzbDrone.Core.Tv;
 using NzbDrone.SignalR;
 using Radarr.Http;
 using Radarr.Http.Extensions;
@@ -32,24 +32,26 @@ namespace Radarr.Api.V3.Queue
                                IHandle<QueueUpdatedEvent>, IHandle<PendingReleasesUpdatedEvent>
     {
         private readonly IQueueService _queueService;
-        private readonly IPendingReleaseService _pendingReleaseService;
+        private readonly IPendingQueueService _pendingReleaseService;
 
         private readonly QualityModelComparer _qualityComparer;
         private readonly ITrackedDownloadService _trackedDownloadService;
         private readonly IFailedDownloadService _failedDownloadService;
         private readonly IIgnoredDownloadService _ignoredDownloadService;
         private readonly IProvideDownloadClient _downloadClientProvider;
-        private readonly IBlocklistService _blocklistService;
+        private readonly NzbDrone.Core.Movies.Blocklisting.IBlocklistService _movieBlocklistService;
+        private readonly NzbDrone.Core.Tv.Blocklisting.IBlocklistService _tvBlocklistService;
 
         public QueueController(IBroadcastSignalRMessage broadcastSignalRMessage,
                            IQueueService queueService,
-                           IPendingReleaseService pendingReleaseService,
+                           IPendingQueueService pendingReleaseService,
                            QualityProfileService qualityProfileService,
                            ITrackedDownloadService trackedDownloadService,
                            IFailedDownloadService failedDownloadService,
                            IIgnoredDownloadService ignoredDownloadService,
                            IProvideDownloadClient downloadClientProvider,
-                           IBlocklistService blocklistService)
+                           NzbDrone.Core.Movies.Blocklisting.IBlocklistService movieBlocklistService,
+                           NzbDrone.Core.Tv.Blocklisting.IBlocklistService tvBlocklistService)
             : base(broadcastSignalRMessage)
         {
             _queueService = queueService;
@@ -58,7 +60,8 @@ namespace Radarr.Api.V3.Queue
             _failedDownloadService = failedDownloadService;
             _ignoredDownloadService = ignoredDownloadService;
             _downloadClientProvider = downloadClientProvider;
-            _blocklistService = blocklistService;
+            _movieBlocklistService = movieBlocklistService;
+            _tvBlocklistService = tvBlocklistService;
 
             _qualityComparer = new QualityModelComparer(qualityProfileService.GetDefaultProfile(string.Empty));
         }
@@ -143,7 +146,7 @@ namespace Radarr.Api.V3.Queue
 
         [HttpGet]
         [Produces("application/json")]
-        public Ok<PagingResource<QueueResource>> GetQueue([FromQuery] PagingRequestResource paging, bool includeUnknownMovieItems = false, bool includeMovie = false, [FromQuery] int[] movieIds = null, DownloadProtocol? protocol = null, [FromQuery] int[] languages = null, [FromQuery] int[] quality = null, [FromQuery] QueueStatus[] status = null)
+        public Ok<PagingResource<QueueResource>> GetQueue([FromQuery] PagingRequestResource paging, bool includeUnknownMovieItems = false, bool includeMovie = false, bool includeSeries = false, bool includeEpisode = false, [FromQuery] int[] movieIds = null, [FromQuery] int[] seriesIds = null, DownloadProtocol? protocol = null, [FromQuery] int[] languages = null, [FromQuery] int[] quality = null, [FromQuery] QueueStatus[] status = null)
         {
             var pagingResource = new PagingResource<QueueResource>(paging);
             var pagingSpec = pagingResource.MapToPagingSpec<QueueResource, NzbDrone.Core.Queue.Queue>(
@@ -155,6 +158,7 @@ namespace Radarr.Api.V3.Queue
                     "indexer",
                     "languages",
                     "movies.sortTitle",
+                    "series.sortTitle",
                     "progress",
                     "protocol",
                     "quality",
@@ -167,19 +171,20 @@ namespace Radarr.Api.V3.Queue
                 "timeleft",
                 SortDirection.Ascending);
 
-            return TypedResults.Ok(pagingSpec.ApplyToPage((spec) => GetQueue(spec, movieIds?.ToHashSet(), protocol, languages?.ToHashSet(), quality?.ToHashSet(), status?.ToHashSet(), includeUnknownMovieItems), (q) => MapToResource(q, includeMovie)));
+            return TypedResults.Ok(pagingSpec.ApplyToPage((spec) => GetQueue(spec, movieIds?.ToHashSet(), seriesIds?.ToHashSet(), protocol, languages?.ToHashSet(), quality?.ToHashSet(), status?.ToHashSet(), includeUnknownMovieItems), (q) => MapToResource(q, includeMovie, includeSeries, includeEpisode)));
         }
 
-        private PagingSpec<NzbDrone.Core.Queue.Queue> GetQueue(PagingSpec<NzbDrone.Core.Queue.Queue> pagingSpec, HashSet<int> movieIds, DownloadProtocol? protocol, HashSet<int> languages, HashSet<int> quality, HashSet<QueueStatus> status, bool includeUnknownMovieItems)
+        private PagingSpec<NzbDrone.Core.Queue.Queue> GetQueue(PagingSpec<NzbDrone.Core.Queue.Queue> pagingSpec, HashSet<int> movieIds, HashSet<int> seriesIds, DownloadProtocol? protocol, HashSet<int> languages, HashSet<int> quality, HashSet<QueueStatus> status, bool includeUnknownMovieItems)
         {
             var ascending = pagingSpec.SortDirection == SortDirection.Ascending;
             var orderByFunc = GetOrderByFunc(pagingSpec);
 
             var queue = _queueService.GetQueue();
-            var filteredQueue = includeUnknownMovieItems ? queue : queue.Where(q => q.GetMovie() != null);
+            var filteredQueue = includeUnknownMovieItems ? queue : queue.Where(q => q.IsMatched());
             var pending = _pendingReleaseService.GetPendingQueue();
 
             var hasMovieIdFilter = movieIds is { Count: > 0 };
+            var hasSeriesIdFilter = seriesIds is { Count: > 0 };
             var hasLanguageFilter = languages is { Count: > 0 };
             var hasQualityFilter = quality is { Count: > 0 };
             var hasStatusFilter = status is { Count: > 0 };
@@ -191,6 +196,11 @@ namespace Radarr.Api.V3.Queue
                 if (hasMovieIdFilter)
                 {
                     include &= q.GetMovie() != null && movieIds.Contains(q.GetMovie().Id);
+                }
+
+                if (hasSeriesIdFilter)
+                {
+                    include &= q.GetSeries() != null && seriesIds.Contains(q.GetSeries().Id);
                 }
 
                 if (include && protocol.HasValue)
@@ -295,10 +305,12 @@ namespace Radarr.Api.V3.Queue
                     return q => q.Status.ToString();
                 case "movies.sortTitle":
                     return q => q.GetMovie()?.MovieMetadata.Value.SortTitle ?? q.Title;
+                case "series.sortTitle":
+                    return q => q.GetSeries()?.SortTitle ?? q.Title;
                 case "title":
                     return q => q.Title;
                 case "year":
-                    return q => q.GetMovie()?.Year ?? 0;
+                    return q => q.RemoteRelease?.Year ?? 0;
                 case "languages":
                     return q => q.Languages;
                 case "quality":
@@ -317,10 +329,17 @@ namespace Radarr.Api.V3.Queue
         {
             if (blocklist)
             {
-                _blocklistService.Block(pendingRelease.GetRemoteMovie(), "Pending release manually blocklisted");
+                if (pendingRelease.IsKind(MediaKind.Tv))
+                {
+                    _tvBlocklistService.Block(pendingRelease.GetRemoteEpisode(), "Pending release manually blocklisted");
+                }
+                else
+                {
+                    _movieBlocklistService.Block(pendingRelease.GetRemoteMovie(), "Pending release manually blocklisted");
+                }
             }
 
-            _pendingReleaseService.RemovePendingQueueItems(pendingRelease.Id);
+            _pendingReleaseService.RemovePendingQueueItem(pendingRelease);
         }
 
         private TrackedDownload Remove(TrackedDownload trackedDownload, bool removeFromClient, bool blocklist, bool skipRedownload, bool changeCategory)
@@ -383,9 +402,9 @@ namespace Radarr.Api.V3.Queue
             return trackedDownload;
         }
 
-        private QueueResource MapToResource(NzbDrone.Core.Queue.Queue queueItem, bool includeMovie)
+        private QueueResource MapToResource(NzbDrone.Core.Queue.Queue queueItem, bool includeMovie, bool includeSeries, bool includeEpisode)
         {
-            return queueItem.ToResource(includeMovie);
+            return queueItem.ToResource(includeMovie, includeSeries, includeEpisode);
         }
 
         [NonAction]
