@@ -15,6 +15,20 @@ namespace NzbDrone.Core.Modules
         // "Movie", "Series", "Artist": the noun in titles such as "Movie Grabbed".
         public string KindLabel { get; set; }
 
+        // The noun for events about one library item rather than the parent: "Episode Grabbed",
+        // "Episode File Deleted". Null where the item is the parent (a movie) and KindLabel serves.
+        public string ItemKindLabel { get; set; }
+
+        public string ItemNoun => ItemKindLabel ?? KindLabel;
+
+        // The page for the parent that a provider links its title to (TMDb for a movie, TVDb for a
+        // series). Null when the module has no id to build it from.
+        public string MetadataUrl { get; set; }
+
+        // True where the parent's title is shown without its year: a series, whose year is its first
+        // season's and not part of how it is named. A movie's title carries it.
+        public bool OmitYearFromTitle { get; set; }
+
         public int ParentId { get; set; }
         public string ParentTitle { get; set; }
 
@@ -68,5 +82,7 @@ namespace NzbDrone.Core.Modules
     {
         public const string Imdb = "imdb";
         public const string Tmdb = "tmdb";
+        public const string Tvdb = "tvdb";
+        public const string TvMaze = "tvmaze";
     }
 }

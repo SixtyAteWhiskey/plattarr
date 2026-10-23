@@ -55,6 +55,7 @@ namespace NzbDrone.Core.Movies.Downloads
             {
                 Kind = MediaKind.Movies,
                 ParentId = historyItem.ParentId,
+                ItemIds = new List<int> { historyItem.ParentId },
                 Quality = historyItem.Quality,
                 SourceTitle = historyItem.SourceTitle,
                 DownloadClient = historyItem.Data.GetValueOrDefault(MovieHistory.DOWNLOAD_CLIENT),

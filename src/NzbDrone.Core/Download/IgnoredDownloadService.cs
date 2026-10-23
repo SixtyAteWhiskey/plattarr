@@ -1,3 +1,4 @@
+using System.Linq;
 using NLog;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Messaging.Events;
@@ -37,6 +38,7 @@ namespace NzbDrone.Core.Download
             {
                 Kind = release.Kind,
                 ParentId = release.Parent.Id,
+                ItemIds = release.ItemIds.ToList(),
                 Languages = release.Languages,
                 Quality = release.Quality,
                 SourceTitle = trackedDownload.DownloadItem.Title,

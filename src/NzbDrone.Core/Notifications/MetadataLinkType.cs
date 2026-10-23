@@ -11,6 +11,12 @@ namespace NzbDrone.Core.Notifications
         Imdb = 1,
 
         [FieldOption(Label = "Trakt")]
-        Trakt = 2
+        Trakt = 2,
+
+        [FieldOption(Label = "TVDb")]
+        Tvdb = 3,
+
+        [FieldOption(Label = "TVMaze")]
+        Tvmaze = 4
     }
 }

@@ -56,7 +56,8 @@ namespace NzbDrone.Core.Movies.Notifications
                 Rating = metadata.Ratings?.Tmdb?.Value,
                 PosterUrl = metadata.Images?.FirstOrDefault(x => x.CoverType == MediaCoverTypes.Poster)?.RemoteUrl,
                 FanartUrl = metadata.Images?.FirstOrDefault(x => x.CoverType == MediaCoverTypes.Fanart)?.RemoteUrl,
-                Tags = movie.Tags ?? new HashSet<int>()
+                Tags = movie.Tags ?? new HashSet<int>(),
+                MetadataUrl = metadata.TmdbId > 0 ? $"https://www.themoviedb.org/movie/{metadata.TmdbId}" : null
             };
 
             subject.ResolveRootFolderWith(() => movie.Path.IsNotNullOrWhiteSpace() ? _rootFolderService.GetBestRootFolderPath(movie.Path) : null);

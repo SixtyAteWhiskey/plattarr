@@ -51,32 +51,32 @@ namespace NzbDrone.Core.Notifications.CustomScript
 
         public override void OnGrab(GrabMessage message)
         {
-            ExecuteScript(BuildEnvironment("Grab", BuilderFor(message.Data).BuildGrab(message)));
+            ExecuteScript(BuildEnvironment(NotificationEvent.Grab, message.Data, (builder) => builder.BuildGrab(message)));
         }
 
         public override void OnDownload(DownloadMessage message)
         {
-            ExecuteScript(BuildEnvironment("Download", BuilderFor(message.Data).BuildDownload(message)));
+            ExecuteScript(BuildEnvironment(NotificationEvent.Download, message.Data, (builder) => builder.BuildDownload(message)));
         }
 
         public override void OnRename(RenameMessage message)
         {
-            ExecuteScript(BuildEnvironment("Rename", BuilderFor(message.Data).BuildRename(message)));
+            ExecuteScript(BuildEnvironment(NotificationEvent.Rename, message.Data, (builder) => builder.BuildRename(message)));
         }
 
         public override void OnMediaAdded(MediaAddedMessage message)
         {
-            ExecuteScript(BuildEnvironment("MovieAdded", BuilderFor(message.Data).BuildMediaAdded(message)));
+            ExecuteScript(BuildEnvironment(NotificationEvent.MediaAdded, message.Data, (builder) => builder.BuildMediaAdded(message)));
         }
 
         public override void OnMediaFileDelete(MediaFileDeleteMessage deleteMessage)
         {
-            ExecuteScript(BuildEnvironment("MovieFileDelete", BuilderFor(deleteMessage.Data).BuildMediaFileDelete(deleteMessage)));
+            ExecuteScript(BuildEnvironment(NotificationEvent.MediaFileDelete, deleteMessage.Data, (builder) => builder.BuildMediaFileDelete(deleteMessage)));
         }
 
         public override void OnMediaDelete(MediaDeleteMessage deleteMessage)
         {
-            ExecuteScript(BuildEnvironment("MovieDelete", BuilderFor(deleteMessage.Data).BuildMediaDelete(deleteMessage)));
+            ExecuteScript(BuildEnvironment(NotificationEvent.MediaDelete, deleteMessage.Data, (builder) => builder.BuildMediaDelete(deleteMessage)));
         }
 
         public override void OnHealthIssue(HealthCheck.HealthCheck healthCheck)
@@ -125,7 +125,7 @@ namespace NzbDrone.Core.Notifications.CustomScript
 
         public override void OnManualInteractionRequired(ManualInteractionRequiredMessage message)
         {
-            ExecuteScript(BuildEnvironment("ManualInteractionRequired", BuilderFor(message.Data).BuildManualInteraction(message)));
+            ExecuteScript(BuildEnvironment(NotificationEvent.ManualInteractionRequired, message.Data, (builder) => builder.BuildManualInteraction(message)));
         }
 
         public override ValidationResult Test()
@@ -187,16 +187,19 @@ namespace NzbDrone.Core.Notifications.CustomScript
             return _environmentBuilders.Single(b => b.Kind == data.Kind);
         }
 
-        private StringDictionary BuildEnvironment(string eventType, StringDictionary mediaVariables)
+        private StringDictionary BuildEnvironment(NotificationEvent notificationEvent, IMediaNotificationData data, Func<ICustomScriptEnvironmentBuilder, StringDictionary> buildMediaVariables)
         {
+            var builder = BuilderFor(data);
+            var prefix = builder.VariablePrefix;
+
             var environmentVariables = new StringDictionary
             {
-                { "Radarr_EventType", eventType },
-                { "Radarr_InstanceName", _configFileProvider.InstanceName },
-                { "Radarr_ApplicationUrl", _configService.ApplicationUrl }
+                { $"{prefix}_EventType", builder.EventType(notificationEvent) },
+                { $"{prefix}_InstanceName", _configFileProvider.InstanceName },
+                { $"{prefix}_ApplicationUrl", _configService.ApplicationUrl }
             };
 
-            foreach (DictionaryEntry variable in mediaVariables)
+            foreach (DictionaryEntry variable in buildMediaVariables(builder))
             {
                 environmentVariables.Add((string)variable.Key, (string)variable.Value);
             }

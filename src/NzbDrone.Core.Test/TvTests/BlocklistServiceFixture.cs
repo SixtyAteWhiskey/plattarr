@@ -5,6 +5,7 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Download;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Modules;
@@ -13,6 +14,7 @@ using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
 using NzbDrone.Core.Tv.Blocklisting;
+using NzbDrone.Core.Tv.Events;
 using NzbDrone.Core.Tv.Parser.Model;
 
 namespace NzbDrone.Core.Test.TvTests
@@ -248,6 +250,74 @@ namespace NzbDrone.Core.Test.TvTests
             Mocker.GetMock<IBlocklistRepository>().Verify(v => v.DeleteMany(It.Is<IEnumerable<int>>(l => l.SequenceEqual(new[] { 4, 5 }))), Times.Once());
             Mocker.GetMock<IBlocklistRepository>().Verify(v => v.GetPaged(It.IsAny<PagingSpec<Blocklist>>()), Times.Once());
             Mocker.GetMock<IBlocklistRepository>().Verify(v => v.BlocklistedBySeries(7), Times.Once());
+        }
+
+        private static DownloadFailedEvent Failure(MediaKind kind, int parentId = 7)
+        {
+            return new DownloadFailedEvent
+            {
+                Kind = kind,
+                ParentId = parentId,
+                ItemIds = new List<int> { 1, 2 },
+                SourceTitle = "Show.S01E01E02",
+                Quality = new QualityModel(Quality.HDTV720p),
+                Message = "failed",
+                Languages = new List<Language> { Language.French },
+                Data = new Dictionary<string, string>
+                {
+                    { "publishedDate", "2026-10-01T12:00:00Z" },
+                    { "size", "99" },
+                    { "indexer", "idx" },
+                    { "protocol", ((int)DownloadProtocol.Torrent).ToString() },
+                    { "torrentInfoHash", "HASH" },
+                    { "indexerFlags", "G_Freeleech" },
+                    { "releaseType", "MultiEpisode" }
+                }
+            };
+        }
+
+        [Test]
+        public void should_blocklist_a_failed_tv_download_for_every_episode_it_covered()
+        {
+            Blocklist inserted = null;
+
+            Mocker.GetMock<IBlocklistRepository>()
+                  .Setup(v => v.Insert(It.IsAny<Blocklist>()))
+                  .Callback<Blocklist>(b => inserted = b)
+                  .Returns<Blocklist>(b => b);
+
+            Subject.Handle(Failure(MediaKind.Tv));
+
+            inserted.Should().NotBeNull();
+            inserted.MediaKind.Should().Be(MediaKind.Tv);
+            inserted.ParentId.Should().Be(7);
+            inserted.ItemIds.Should().Equal(1, 2);
+            inserted.SourceTitle.Should().Be("Show.S01E01E02");
+            inserted.Size.Should().Be(99);
+            inserted.Indexer.Should().Be("idx");
+            inserted.Protocol.Should().Be(DownloadProtocol.Torrent);
+            inserted.TorrentInfoHash.Should().Be("HASH");
+            inserted.IndexerFlags.Should().Be(IndexerFlags.G_Freeleech);
+            inserted.ReleaseType.Should().Be(ReleaseType.MultiEpisode);
+            inserted.Languages.Should().Equal(Language.French);
+            inserted.PublishedDate.Value.ToUniversalTime().Should().Be(Published);
+        }
+
+        [Test]
+        public void should_not_blocklist_a_failed_download_of_another_media_type()
+        {
+            Subject.Handle(Failure(MediaKind.Movies));
+
+            Mocker.GetMock<IBlocklistRepository>().Verify(v => v.Insert(It.IsAny<Blocklist>()), Times.Never());
+        }
+
+        [Test]
+        public void should_delete_the_blocklist_of_deleted_series()
+        {
+            Subject.HandleAsync(new SeriesDeletedEvent(new List<Series> { new Series { Id = 7 }, new Series { Id = 8 } }, false, false));
+
+            Mocker.GetMock<IBlocklistRepository>()
+                  .Verify(v => v.DeleteForSeriesIds(It.Is<List<int>>(ids => ids.SequenceEqual(new[] { 7, 8 }))), Times.Once());
         }
     }
 }

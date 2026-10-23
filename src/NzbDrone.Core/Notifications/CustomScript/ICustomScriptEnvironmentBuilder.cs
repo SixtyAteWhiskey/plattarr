@@ -10,6 +10,13 @@ namespace NzbDrone.Core.Notifications.CustomScript
     {
         MediaKind Kind { get; }
 
+        // "Radarr", "Sonarr": the variable prefix the module's upstream scripts expect. The core uses it for
+        // the event type, instance name and application URL variables it adds ({Prefix}_EventType).
+        string VariablePrefix { get; }
+
+        // The EventType value a script sees for an event: "MovieAdded" for a movie, "SeriesAdd" for a series.
+        string EventType(NotificationEvent notificationEvent);
+
         StringDictionary BuildGrab(GrabMessage message);
         StringDictionary BuildDownload(DownloadMessage message);
         StringDictionary BuildRename(RenameMessage message);

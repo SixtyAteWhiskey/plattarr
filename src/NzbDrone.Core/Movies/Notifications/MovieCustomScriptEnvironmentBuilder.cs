@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
@@ -25,6 +26,23 @@ namespace NzbDrone.Core.Movies.Notifications
         }
 
         public MediaKind Kind => MediaKind.Movies;
+
+        public string VariablePrefix => "Radarr";
+
+        public string EventType(NotificationEvent notificationEvent)
+        {
+            return notificationEvent switch
+            {
+                NotificationEvent.Grab => "Grab",
+                NotificationEvent.Download => "Download",
+                NotificationEvent.Rename => "Rename",
+                NotificationEvent.MediaAdded => "MovieAdded",
+                NotificationEvent.MediaFileDelete => "MovieFileDelete",
+                NotificationEvent.MediaDelete => "MovieDelete",
+                NotificationEvent.ManualInteractionRequired => "ManualInteractionRequired",
+                _ => throw new ArgumentOutOfRangeException(nameof(notificationEvent), notificationEvent, null)
+            };
+        }
 
         public StringDictionary BuildGrab(GrabMessage message)
         {

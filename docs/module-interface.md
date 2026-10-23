@@ -1746,6 +1746,75 @@ Results (Release, full solution builds with 0 warnings): Core 8,165 passed and 2
 656, Host 35, Api 38, 0 failed; Core `DbTest` on PostgreSQL 16: 458 passed, 1 skipped, 0 failed (`DbTest` and `DbMigrationTest`).
 
 
+### TV step 6: as built
+
+Built in session 41 against Sonarr `b3d4bb8`. No migration: the shared activity tables already had the
+TV columns (migration 004). Calls made while building (each is reversible):
+
+- **Core events carry the covered items.** `DownloadFailedEvent` and `DownloadIgnoredEvent` gained
+  `ItemIds` (the movie itself, the episodes or the tracks), so a release that covered several
+  episodes is one failure that names them all. `MovieFailedDownloadSource` sets `[movieId]`.
+  Module handlers still start with a `Kind` guard, because the core publishes both events for every
+  module.
+- **TV history is Sonarr's, one row per episode.** `Tv.History.HistoryService` handles grab, import,
+  failure, ignore, file delete, file rename and series delete, with `ParentId` the series and `ItemId`
+  the episode. `Size` is written with `GetValueOrDefault()`: Sonarr's `Size.ToString()` writes a
+  blank for a release with no size and the blocklist's `long.Parse` would throw on it.
+- **Blocklist.** `Tv.Blocklisting.BlocklistService` now handles `DownloadFailedEvent` (TV only; it
+  reads the published date, size, protocol, flags and release type from the failure's data) and
+  `SeriesDeletedEvent`. The clear-blocklist command stays with Movies: it is a single-handler
+  command and the TV API does not exist yet (step 7).
+- **Failed downloads and redownload.** `Tv.Downloads.TvFailedDownloadSource` is Sonarr's
+  `FailedDownloadService` at the seam the core leaves, including the rule that a skip-redownload
+  request only counts for a history row with no download ID. `TvRedownloadSearcher` is Sonarr's
+  `RedownloadFailedDownloadService`: one episode searches again, a failure that covers the whole
+  season runs a season search, anything else an episode search for the episodes it covered.
+- **Notifications.** `Tv.Notifications`: `TvNotificationData` (series, remote episode, local episode,
+  episode file, old and renamed files, grabbed release), `TvActivityRenderer`,
+  `TvNotificationHandler` (grab, import, series added, renamed, file deleted, series deleted, manual
+  interaction), `TvWebhookPayloadBuilder` and `TvCustomScriptEnvironmentBuilder`. The message text is
+  Sonarr's ("Series - 1x01x02 - Titles [WEBDL-1080p Proper]", " vN" for anime, the air date for a
+  daily series).
+- **Sonarr's payloads and variable names are kept.** The 16 webhook payload classes are copies of
+  Sonarr's (`WebhookGrabPayload`, `WebhookImportPayload`, `WebhookSeriesAddPayload`, and so on) in
+  `NzbDrone.Core.Tv.Notifications`, so existing receivers keep working. Scripts get `Sonarr_Series_*`,
+  `Sonarr_EpisodeFile_*`, `Sonarr_Release_*` and `Sonarr_Download_*`.
+- **Contract 7 grew these members for this.** `ICustomScriptEnvironmentBuilder.VariablePrefix` and
+  `EventType(NotificationEvent)`: the core adds `{prefix}_EventType`, `_InstanceName` and
+  `_ApplicationUrl`, and a series sends `SeriesAdd`, `EpisodeFileDelete` and `SeriesDelete` where a
+  movie sends `MovieAdded`, `MovieFileDelete` and `MovieDelete`. `ActivitySubject.ItemKindLabel` /
+  `ItemNoun` ("Episode Grabbed" against "Movie Grabbed"), `MetadataUrl` (the page the title links
+  to: TMDb for a movie, TVDb for a series) and `OmitYearFromTitle` (Sonarr's Discord title is
+  "Series - 1x01 - Title", with no year). `MetadataLinkType` gained `Tvdb` and `Tvmaze`,
+  `WebhookEventType` gained `SeriesAdd`, `SeriesDelete` and `EpisodeFileDelete`, and the Emby and
+  Jellyfin lookup also matches a series by its TVDb or TVMaze ID.
+- **Movies output is byte-identical.** The Movie golden files for Webhook, CustomScript and Discord
+  did not change; `GOLDEN_OUT` regeneration diffs clean.
+- **Orphan cleanup.** `Tv.Housekeepers.CleanupOrphanedTvActivity` deletes TV rows of `History`,
+  `Blocklist` and `PendingReleases` whose series is gone, and history rows whose episode is gone.
+  The movie housekeepers still touch only `MediaKind.Movies` rows.
+- **Not built, on purpose.**
+  - Sonarr's `OnImportComplete` (fires when the whole release has imported): it needs a column on the
+    notification definition, a migration, and the API and UI to set it. It arrives with step 7.
+  - A TV clear-blocklist command (step 7, see above).
+  - Per-media-type notification toggles. A provider enabled for Grab sends for movies and series both;
+    tags already narrow it per series or movie.
+  - Discord's rename embed and "Links" field are the shared Radarr-style code, not Sonarr's text.
+    The shared notification providers are not reopened.
+
+**Tests.** New fixtures: `HistoryEventsFixture` (a row per episode, the size fallback, kind guards, the
+file-delete reasons that write nothing), `TvFailedDownloadSourceFixture`,
+`TvRedownloadSearcherFixture`, blocklist handler tests added to `BlocklistServiceFixture`,
+`CleanupOrphanedTvActivityFixture`, `TvActivityRendererFixture`, `TvNotificationHandlerFixture`
+(including the message format by series type and revision), three TV golden fixtures
+(`tv-webhook.json`, `tv-customscript.txt`, `tv-discord.json`, reviewed by hand against Sonarr's
+shapes), and three Host container tests.
+
+**Mutation checks.** Five mutations (failure guard in history, the season branch of the searcher, the
+grab guard in the notification handler, the episode orphan query, the guard in the blocklist
+handler); all five were killed by the new tests.
+
+
 ## Decision record
 
 Owner answers, 2026-10-20, to the six questions in revision 1:

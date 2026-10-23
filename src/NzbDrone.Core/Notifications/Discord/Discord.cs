@@ -40,7 +40,7 @@ namespace NzbDrone.Core.Notifications.Discord
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
                     IconUrl = "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
                 },
-                Url = message.Subject.GetLink(MetadataLinkType.Tmdb)?.Link,
+                Url = message.Subject.MetadataUrl,
                 Description = GrabbedTitle(message.Subject),
                 Title = GetTitle(message.Subject),
                 Color = (int)DiscordColors.Standard,
@@ -144,8 +144,8 @@ namespace NzbDrone.Core.Notifications.Discord
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
                     IconUrl = "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
                 },
-                Url = message.Subject.GetLink(MetadataLinkType.Tmdb)?.Link,
-                Description = isUpgrade ? UpgradedTitle(message.Subject) : $"{message.Subject.KindLabel} Imported",
+                Url = message.Subject.MetadataUrl,
+                Description = isUpgrade ? UpgradedTitle(message.Subject) : $"{message.Subject.ItemNoun} Imported",
                 Title = GetTitle(message.Subject),
                 Color = isUpgrade ? (int)DiscordColors.Upgrade : (int)DiscordColors.Success,
                 Fields = new List<DiscordField>(),
@@ -260,7 +260,7 @@ namespace NzbDrone.Core.Notifications.Discord
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
                     IconUrl = "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
                 },
-                Url = subject.GetLink(MetadataLinkType.Tmdb)?.Link,
+                Url = subject.MetadataUrl,
                 Title = subject.ParentTitle,
                 Description = AddedTitle(subject),
                 Color = (int)DiscordColors.Success,
@@ -317,7 +317,7 @@ namespace NzbDrone.Core.Notifications.Discord
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
                     IconUrl = "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
                 },
-                Url = subject.GetLink(MetadataLinkType.Tmdb)?.Link,
+                Url = subject.MetadataUrl,
                 Title = subject.ParentTitle,
                 Description = deleteMessage.DeletedFilesMessage,
                 Color = (int)DiscordColors.Danger,
@@ -358,7 +358,7 @@ namespace NzbDrone.Core.Notifications.Discord
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
                     IconUrl = "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
                 },
-                Url = subject.GetLink(MetadataLinkType.Tmdb)?.Link,
+                Url = subject.MetadataUrl,
                 Title = GetTitle(subject),
                 Description = FileDeletedTitle(subject),
                 Color = (int)DiscordColors.Danger,
@@ -458,7 +458,7 @@ namespace NzbDrone.Core.Notifications.Discord
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
                     IconUrl = "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
                 },
-                Url = subject?.GetLink(MetadataLinkType.Tmdb)?.Link,
+                Url = subject?.MetadataUrl,
                 Description = "Manual interaction needed",
                 Title = GetTitle(subject),
                 Color = (int)DiscordColors.Standard,
@@ -621,7 +621,14 @@ namespace NzbDrone.Core.Notifications.Discord
                 return null;
             }
 
-            var title = (subject.Year > 0 ? $"{subject.ParentTitle} ({subject.Year})" : subject.ParentTitle).Replace("`", "\\`");
+            var title = subject.Year > 0 && !subject.OmitYearFromTitle ? $"{subject.ParentTitle} ({subject.Year})" : subject.ParentTitle;
+
+            if (subject.ItemLabel.IsNotNullOrWhiteSpace())
+            {
+                title += " - " + subject.ItemLabel;
+            }
+
+            title = title.Replace("`", "\\`");
 
             return title.Length > 256 ? $"{title.AsSpan(0, 253).TrimEnd('\\')}..." : title;
         }

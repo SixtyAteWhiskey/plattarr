@@ -150,6 +150,46 @@ namespace NzbDrone.App.Test
         }
 
         [Test]
+        public void should_resolve_the_tv_failed_download_source_and_redownload_searcher_by_kind()
+        {
+            _container.GetServices<IFailedDownloadSource>().Should().ContainSingle(s => s.Kind == MediaKind.Tv)
+                .Which.Should().BeOfType<NzbDrone.Core.Tv.Downloads.TvFailedDownloadSource>();
+            _container.GetServices<IRedownloadSearcher>().Should().ContainSingle(s => s.Kind == MediaKind.Tv)
+                .Which.Should().BeOfType<NzbDrone.Core.Tv.Downloads.TvRedownloadSearcher>();
+        }
+
+        [Test]
+        public void should_write_tv_activity_in_the_tv_module()
+        {
+            _container.GetServices<IHandle<ReleaseGrabbedEvent>>().OfType<NzbDrone.Core.Tv.History.HistoryService>().Should().ContainSingle();
+            _container.GetServices<IHandle<DownloadFailedEvent>>().OfType<NzbDrone.Core.Tv.History.HistoryService>().Should().ContainSingle();
+            _container.GetServices<IHandle<DownloadFailedEvent>>().OfType<NzbDrone.Core.Tv.Blocklisting.BlocklistService>().Should().ContainSingle();
+            _container.GetServices<IHandle<DownloadIgnoredEvent>>().OfType<NzbDrone.Core.Tv.History.HistoryService>().Should().ContainSingle();
+        }
+
+        [Test]
+        public void should_announce_tv_events_in_the_tv_module()
+        {
+            _container.GetServices<IHandle<ReleaseGrabbedEvent>>().OfType<NzbDrone.Core.Tv.Notifications.TvNotificationHandler>().Should().ContainSingle();
+            _container.GetServices<IHandle<NzbDrone.Core.Tv.MediaFiles.Events.EpisodeImportedEvent>>().OfType<NzbDrone.Core.Tv.Notifications.TvNotificationHandler>().Should().ContainSingle();
+            _container.GetServices<IHandle<NzbDrone.Core.Tv.Events.SeriesAddCompletedEvent>>().OfType<NzbDrone.Core.Tv.Notifications.TvNotificationHandler>().Should().ContainSingle();
+            _container.GetServices<IHandle<NzbDrone.Core.Tv.Events.SeriesDeletedEvent>>().OfType<NzbDrone.Core.Tv.Notifications.TvNotificationHandler>().Should().ContainSingle();
+            _container.GetServices<IHandle<NzbDrone.Core.Tv.MediaFiles.Events.EpisodeFileDeletedEvent>>().OfType<NzbDrone.Core.Tv.Notifications.TvNotificationHandler>().Should().ContainSingle();
+            _container.GetServices<IHandle<NzbDrone.Core.Tv.MediaFiles.Events.SeriesRenamedEvent>>().OfType<NzbDrone.Core.Tv.Notifications.TvNotificationHandler>().Should().ContainSingle();
+            _container.GetServices<IHandle<ManualInteractionRequiredEvent>>().OfType<NzbDrone.Core.Tv.Notifications.TvNotificationHandler>().Should().ContainSingle();
+        }
+
+        [Test]
+        public void should_resolve_the_tv_payload_and_script_builders_by_kind()
+        {
+            _container.GetServices<NzbDrone.Core.Notifications.Webhook.IWebhookPayloadBuilder>().Should().ContainSingle(b => b.Kind == MediaKind.Tv)
+                .Which.Should().BeOfType<NzbDrone.Core.Tv.Notifications.TvWebhookPayloadBuilder>();
+            _container.GetServices<NzbDrone.Core.Notifications.CustomScript.ICustomScriptEnvironmentBuilder>().Should().ContainSingle(b => b.Kind == MediaKind.Tv)
+                .Which.Should().BeOfType<NzbDrone.Core.Tv.Notifications.TvCustomScriptEnvironmentBuilder>();
+            _container.GetRequiredService<NzbDrone.Core.Tv.Notifications.TvActivityRenderer>().Kind.Should().Be(MediaKind.Tv);
+        }
+
+        [Test]
         public void should_be_able_to_resolve_downloadclients()
         {
             _container.GetRequiredService<IEnumerable<IDownloadClient>>().Should().NotBeEmpty();
