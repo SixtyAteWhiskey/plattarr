@@ -1946,6 +1946,127 @@ SQL seeding and no fake indexer were needed.
 Still open after the proof: the webhook `Test` payload is movie-shaped; the quality of the imported file
 comes from the real file (480p), as in Sonarr; the checked-in `openapi.json` is stale.
 
+### TV step 7, part 2 (API): as built
+
+Built in session 43 against Sonarr `b3d4bb8`, in five batches (`e6f4d66`, `ca0d584`, `727d056`, `b47ebf5` and the
+auto-tagging commit). Two migrations (007, 008) and two neutral core contracts (`ImportCompleteMessage`,
+`IAutoTagUsageSource`). Calls made while building (each is reversible):
+
+- **Routes added** (all under `/api/v3`): `wanted/missing/tv`, `wanted/cutoff/tv`, `calendar/tv` (with
+  `calendar/tv/Sonarr.ics`), `blocklist/tv`, `parse/tv`, `manualimport/tv`, `extrafile/tv`, `autotagging/tv`
+  (with `autotagging/tv/schema`). `RouteTableFixture` guards them. Type names stay distinct for the OpenAPI
+  schema ids (`TvAutoTaggingResource`, `TvAutoTaggingSpecificationSchema`, `TvExtraFileResource`, and so on).
+- **Tag usage.** `TagService` asks every module's `ITaggedItemSource` which library entries carry a tag, so
+  series appear in `TagDetails.SeriesIds` and keep a tag from being deleted (part 2a). Auto tags use the same
+  shape: `IAutoTagUsageSource` (`NzbDrone.Core.Modules`) returns, per auto tag, the tags it applies and the tags
+  its conditions look for. `TagDetails.SeriesAutoTagIds` is new (the movie `AutoTagIds` is unchanged, so ids
+  from the two tables never mix), `CleanupUnusedTags` keeps condition tags, and `Tv_AutoTagging` joined
+  `TagUsage.Tables`. `TagService` and `CleanupUnusedTags` were already on the module-boundary allowlist; the
+  list did not grow.
+- **Commands.** The clear-blocklist command is `ClearTvBlocklist` and manual import is `TvManualImport`
+  (a command is looked up by its type name; `ClearBlocklist` and `ManualImport` are the movie module's).
+- **Blocklist.** `blocklist/tv` is Sonarr's controller over `Tv.Blocklisting`: paged, `series`, `bulk`
+  delete, `DELETE blocklist/tv/{id}`. The blocklist spec matches by exact title (case-insensitive) or by
+  torrent info hash, and the hash is only known after the client reports the download.
+- **Manual import** (`manualimport/tv`, command `TvManualImport`). Ported from Sonarr's service. Two
+  deviations, both for files Sonarr cannot parse: `ReprocessItem` gives a file that does not parse an empty
+  `ParsedEpisodeInfo` (Sonarr's `Augment` throws and the call returned 500), and a file inside a tracked
+  download uses the parse made at grab time (`DownloadClientInfo`). The controller defaults a missing
+  `quality` and `languages` instead of throwing a `NullReferenceException`. `GET manualimport/tv` without
+  `folder` or `downloadId` fails with a 500, as Sonarr does (parity kept; the movie endpoint answers 400).
+- **On Import Complete** (Sonarr's event). One flag on the shared `NotificationDefinition` (migration 007,
+  default off, so existing notifications are unchanged), one neutral `ImportCompleteMessage`, one
+  `INotificationDispatcher.ImportComplete`. `TvImportCompleteNotifier` handles `DownloadCompletedEvent` for
+  TV downloads only: it reads the imported episode ids from history (`downloadFolderImported` rows of the
+  download whose parent is the series), loads the episodes and files, and sends the full-season message when
+  the grab was a season pack. It sends nothing when no file was imported. Webhook payload: Sonarr's shape
+  (`eventType` `Download`, `fileCount`, `sourcePath`, `destinationPath`). Movies never send the event
+  (`MovieWebhookPayloadBuilder.BuildImportComplete` throws `NotSupportedException`; Radarr has no such event).
+  Sonarr's second trigger, completion of an untracked download, is not ported on purpose.
+- **Webhook Test sends every module's test payload** (one per `IWebhookPayloadBuilder`, ordered by kind), so
+  the receiver sees a movie-shaped and a series-shaped example.
+- **Extra files.** Sonarr has no extra file endpoint, so `extrafile/tv?seriesId=` is the series version of
+  Radarr's `extrafile`: subtitles, then metadata, then other files, each ordered by relative path.
+- **TV auto-tagging.** Own table `Tv_AutoTagging` (migration 008; the same four columns as `AutoTagging`),
+  own service, repository, event and API, because its conditions (network, series type, original country)
+  and its target (series tags) are the TV module's. All eleven Sonarr specifications are ported (genre,
+  monitored, network, original country, original language, quality profile, root folder, series type, status,
+  tag, year); the movie-only ones (keyword, runtime, studio) are not. Matching is Sonarr's:
+  conditions of one type form a group, a group needs one match unless a member is required, every group must
+  match, and `removeTagsAutomatically` takes the tags back when the series stops matching. Hooks (as Sonarr):
+  `SeriesService.UpdateSeries` (single and bulk) and the end of a refresh. One deviation: when refreshing all
+  series Sonarr applies the tags to the series object read **before** the refresh and then saves it, which
+  writes the stale copy back; Plattarr applies them to the refreshed object. The tag condition reuses
+  `FieldType.MovieTag` (a tag picker; there is no `SeriesTag` type in Plattarr). `TagController` also
+  broadcasts on `SeriesAutoTagsUpdatedEvent`.
+- **Already covered, no new code.** Series statistics ride on `GET series` (`statistics` per series and
+  season); decisions and their rejections for an episode come from `GET release/tv`.
+- **Not done:** `openapi.json` regeneration (needs a Debug build once the API is complete), the series
+  frontend, and the unified UI.
+
+**Tests.** New fixtures: `ManualImportServiceFixture`, `TvManualImportResourceFixture`,
+`TvImportCompleteNotifierFixture`, `NotificationServiceImportCompleteFixture`, `WebhookTestPayloadFixture`,
+`NotificationOnImportCompleteFixture` (migration 007), `TvExtraFileResourceFixture`,
+`TvAutoTaggingServiceFixture`, `TvAutoTaggingSpecificationFixture`, `TvAutoTaggingRepositoryFixture`,
+`TvAutoTagUsageSourceFixture`, `TvAutoTaggingFixture` (migration 008), `AutoTaggingFixture` (series service),
+`TvAutoTaggingResourceFixture`, and additions to the tag service, tag cleanup, refresh and golden notification
+fixtures; Host container tests cover each new controller group. The golden file `tv-webhook.json` grew by the
+import-complete payload.
+
+**Mutation checks.** Twelve in all, all killed: the series filter and the enabled-flag test in the notifier,
+the tag check in the dispatcher, the empty parse info and the client-title parse in manual import, the
+controller defaults, the extra-file ordering, and the five auto-tagging mutations (single update, bulk update,
+condition tags in cleanup, refreshed-versus-stale series, condition tags in `Uses`).
+
+Results (Release, full solution builds with 0 warnings, analyzers on): Core 8,334 passed and 29 skipped, Host 46
+and 5 skipped, Api 72, 0 failed.
+
+**Live proof (2026-10-23, image `81000bc`, dev stack on SERVER01).** Migrations 007 and 008 were proved on a copy of
+the config first (version 8, both logged); a backup was taken before the deploy.
+
+1. **Auto-tagging** (`autotagging/tv`). Schema lists eleven specifications with their fields. Validation:
+   empty name, no tags, no conditions and an empty network each answer 400; a duplicate name answers 400
+   ("Must be unique"). A condition with an unknown implementation (`KeywordSpecification`, a movie one)
+   answers 500 with `ArgumentException`, which is what the movie endpoint does too. A network condition `HBO` on
+   Game of Thrones: `PUT series/{id}` returned the series with the tag, `GET tag/detail/{id}` showed
+   `seriesAutoTagIds` and `seriesIds` (and an empty `autoTagIds`), and `DELETE tag/{id}` answered 409. Changing
+   the condition to `AMC` with `removeTagsAutomatically` took the tag off on the next `PUT`. `RefreshSeries` and
+   `PUT series/editor` (bulk update) both applied the tag again. A tag-condition specification kept its tag
+   through `Housekeeping`, and the tag was deleted once nothing used it. The movie `autotagging` list stayed empty.
+2. **Webhook Test** sent two payloads, one movie-shaped and one series-shaped. The Webhook schema reports
+   `supportsOnImportComplete: true`.
+3. **Manual import.** `GET manualimport/tv?downloadId=` listed the unparseable Sintel file with "Unable to parse
+   file". `POST manualimport/tv` (reprocess), which returned 500 before the batch 3 fixes, answered 200, with and
+   without `quality` and `languages`. The `TvManualImport` command imported the file for the chosen episode
+   (quality and release group as chosen, `downloadFolderImported` in `history/tv`, `hasFile` true, `Download`
+   webhook with `episodeFile`). The grab covered two episodes, so the first single-file command did not complete
+   the download (the completion check counts the files of one command, as Sonarr does); the second command
+   imported the other episode and the automatic importer then marked the download imported ("all episodes were
+   previously imported").
+4. **On Import Complete.** Both routes sent the payload: a normal grab imported automatically (`Cosmos`) sent
+   `ManualInteractionRequired`, `Download` with `episodeFile`, then `Download` with `fileCount` 1,
+   `sourcePath` and `destinationPath` (series-shaped, `downloadId`, release title); the manually completed
+   download sent `fileCount` 2 (the files come from history, so a download imported in two commands reports
+   both).
+5. **Extra files.** A `.en.srt` beside an episode, `importExtraFiles` on, `RescanSeries`: `extrafile/tv` returned
+   one `subtitle` entry with the episode file id and season. (`languageTags` holds only extra tags, as in Radarr.)
+6. **Already covered.** `GET series/{id}` carries `statistics` for the series and each season; `GET release/tv?
+   episodeId=` returned 8 releases from the real indexer with approval and rejection strings (for example
+   "9.2 GB is larger than maximum allowed 5.4 GB"); `wanted/missing/tv` and `wanted/cutoff/tv` counted correctly
+   after the imports.
+7. **Regression.** `RssSync`, then `GET release?movieId=1`: 70 releases, 56 approved, 63 mapped; no movie queue.
+8. **Cleanup.** The series (with files), notification, client, root folder, auto tag and torrents were deleted;
+   `Housekeeping` removed the orphaned tags; the qBittorrent stack was taken down and the test data emptied.
+   Only deliberate bad requests logged errors (the unknown specification, a malformed `quality.source` in a
+   command body); the Warn lines were the expected unparseable-file and empty-root-folder ones.
+
+Still open after the proof: the notification resource and schema carry only the movie-named event flags
+(`onMovieAdded`, and so on), so there is no flag for series add, series delete or episode file delete yet (the
+payloads and the TV events exist; the toggles come with the unified notification page); the checked-in
+`openapi.json` is stale.
+
+
+
 
 ## Decision record
 
