@@ -13,6 +13,7 @@ import EpisodeFormats from 'Episode/EpisodeFormats';
 import EpisodeLanguages from 'Episode/EpisodeLanguages';
 import EpisodeQuality from 'Episode/EpisodeQuality';
 import { icons, kinds, tooltipPositions } from 'Helpers/Props';
+import TvOverrideMatchModal from 'InteractiveSearch/OverrideMatch/Tv/TvOverrideMatchModal';
 import Peers from 'InteractiveSearch/Peers';
 import createUISettingsSelector from 'Store/Selectors/createUISettingsSelector';
 import TvRelease from 'typings/TvRelease';
@@ -97,7 +98,9 @@ function TvInteractiveSearchRow(props: TvInteractiveSearchRowProps) {
     seasonNumber,
     episodeNumbers,
     absoluteEpisodeNumbers,
+    mappedSeriesId,
     mappedSeasonNumber,
+    mappedEpisodeInfo,
     mappedEpisodeNumbers,
     mappedAbsoluteEpisodeNumbers,
     indexerFlags = [],
@@ -117,6 +120,7 @@ function TvInteractiveSearchRow(props: TvInteractiveSearchRowProps) {
   );
 
   const [isConfirmGrabModalOpen, setIsConfirmGrabModalOpen] = useState(false);
+  const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
 
   const onGrabPressWrapper = useCallback(() => {
     if (downloadAllowed) {
@@ -150,6 +154,14 @@ function TvInteractiveSearchRow(props: TvInteractiveSearchRowProps) {
   const onGrabCancel = useCallback(() => {
     setIsConfirmGrabModalOpen(false);
   }, [setIsConfirmGrabModalOpen]);
+
+  const onOverridePress = useCallback(() => {
+    setIsOverrideModalOpen(true);
+  }, [setIsOverrideModalOpen]);
+
+  const onOverrideModalClose = useCallback(() => {
+    setIsOverrideModalOpen(false);
+  }, [setIsOverrideModalOpen]);
 
   return (
     <TableRow>
@@ -257,6 +269,26 @@ function TvInteractiveSearchRow(props: TvInteractiveSearchRowProps) {
           isSpinning={isGrabbing}
           onPress={onGrabPressWrapper}
         />
+
+        <Link
+          className={styles.manualDownloadContent}
+          title={translate('OverrideAndAddToDownloadQueue')}
+          onPress={onOverridePress}
+        >
+          <div className={styles.manualDownloadContent}>
+            <Icon
+              className={styles.interactiveIcon}
+              name={icons.INTERACTIVE}
+              size={12}
+            />
+
+            <Icon
+              className={styles.downloadIcon}
+              name={icons.CIRCLE_DOWN}
+              size={10}
+            />
+          </div>
+        </Link>
       </TableRowCell>
 
       <ConfirmModal
@@ -269,6 +301,22 @@ function TvInteractiveSearchRow(props: TvInteractiveSearchRowProps) {
         confirmLabel={translate('Grab')}
         onConfirm={onGrabConfirm}
         onCancel={onGrabCancel}
+      />
+
+      <TvOverrideMatchModal
+        isOpen={isOverrideModalOpen}
+        title={title}
+        indexerId={indexerId}
+        guid={guid}
+        seriesId={mappedSeriesId}
+        seasonNumber={mappedSeasonNumber}
+        episodes={mappedEpisodeInfo}
+        languages={languages}
+        quality={quality}
+        protocol={protocol}
+        isGrabbing={isGrabbing}
+        grabError={grabError}
+        onModalClose={onOverrideModalClose}
       />
     </TableRow>
   );
