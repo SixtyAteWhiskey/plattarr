@@ -1814,6 +1814,55 @@ shapes), and three Host container tests.
 grab guard in the notification handler, the episode orphan query, the guard in the blocklist
 handler); all five were killed by the new tests.
 
+**Live proof (dev stack on `5b46067`, 2026-10-23).** Game of Thrones (TVDB 121361, 128 episodes) was
+seeded by SQL as in step 5. A real GoT release would have meant downloading copyrighted content, so a
+small fake Torznab indexer (a Python script on SERVER01) served two CC-licensed torrents (Sintel,
+Cosmos Laundromat) under GoT S01E01 titles. Knaben was disabled while the TV run was in progress and
+re-enabled afterwards. The throwaway qBittorrent client used `tvCategory` `plattarr-tv`, and a Webhook
+listener received every event.
+
+- **Grab.** `EpisodeSearch` for S01E01 searched the fake indexer, grabbed
+  `Game.of.Thrones.S01E01.1080p.WEB-DL.x264-BLENDER` and wrote one `History` row
+  (`MediaKind` 2, `Grabbed`, `ItemId` = the episode, `DownloadId` = the torrent hash, camelCase `Data`
+  keys including `torrentInfoHash`, `releaseSource`, `indexerId`). The `Grab` webhook arrived in
+  Sonarr's shape (`series`, `episodes`, `release`, `downloadClient`, `downloadId`, `customFormatInfo`).
+- **Blocked import.** The torrent was named `Sintel`, which does not parse. The queue item went to
+  `importBlocked` ("Unable to parse file") and a `ManualInteractionRequired` webhook fired with
+  `downloadStatusMessages`.
+- **Failed download, blocklist, redownload.** `DELETE /queue/{id}?removeFromClient=true&blocklist=true`
+  wrote a `downloadFailed` history row and one `Blocklist` row (`MediaKind` 2, `ItemIds` `[440]`,
+  `TorrentInfoHash`, indexer). The redownload `EpisodeSearch` ran by itself and grabbed the other
+  release (`...720p...COSMOS`), skipping the blocklisted one. The failed torrent was removed from the
+  client.
+- **Import.** After renaming the second torrent to its release title, the import hard-linked the file
+  (same inode, link count 2), wrote the `Tv_EpisodeFiles` row, a `downloadFolderImported` history row
+  and a `DownloadHistory` row, and fired a `Download` webhook with `episodeFile` (media info, scene
+  name, source path), `isUpgrade` and `release`. The file's real width (1920) gave `WEBDL-1080p` for a
+  "720p" title (the media-info rule from step 5).
+- **Housekeeping.** After the series was deleted by SQL, `POST /command {"name":"Housekeeping"}`
+  removed the 4 orphaned Tv history rows and 1 Tv blocklist row.
+- **Regression.** `RssSync` completed (9 reports, 0 grabbed) with both the TV and Movies handlers
+  running. `GET /release?movieId=1` still returns 70 releases, 56 approved. Movies history was empty
+  before and after.
+- **Logs.** Warn, Error and Fatal lines were all caused by the test setup: a bad `SeasonTypes` seed
+  value (`{}`; it must be `[]`) that made `SeriesService` fail once at startup, the webhook created
+  before its listener was up (the connection test failed with a 500), and the two expected
+  first-refresh warnings. No new error from the step 6 code.
+- **Found while proving.**
+  - `GET /queue` hides items that have no movie unless `includeUnknownMovieItems=true`, so a TV item
+    is invisible in the queue API until step 7. `DELETE /queue/{id}` already works for TV items.
+  - The webhook `Test` event still sends the movie-shaped sample payload.
+  - The webhook `instanceName` is "Radarr" (`BuildInfo.AppName`, kept on purpose until a
+    compatibility API exists).
+- **Not exercised live:** file delete, rename, series add and series delete events (no TV API to
+  trigger them; covered by unit and golden tests), a client-reported failure (`FailedDownloadService.Check`),
+  and `OnImportComplete` (not built).
+- **Cleaned up:** client, webhook, fake indexer, torrents (with files), series, episodes, episode file,
+  translations, naming and root folder rows, TV `DownloadHistory` rows, cover folder and `testdata/*`;
+  the fake indexer and listener processes are stopped and the qBittorrent stack is down.
+  `Tv_SceneMappings` keeps its rows, and `Tv_Metadata` keeps the default Kodi/Emby row that the first
+  import created. Backup: `~/plattarr-dev-backups/config-tvstep6-20261023-0645.tgz`.
+
 
 ## Decision record
 
