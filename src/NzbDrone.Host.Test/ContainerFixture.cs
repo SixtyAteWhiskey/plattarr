@@ -168,6 +168,29 @@ namespace NzbDrone.App.Test
         }
 
         [Test]
+        public void should_resolve_the_tv_api_controllers()
+        {
+            _container.GetRequiredService<Radarr.Api.V3.Tv.Series.SeriesController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Tv.Series.SeriesLookupController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Tv.Series.SeriesEditorController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Tv.Episodes.EpisodeController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Tv.Episodes.RenameEpisodeController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Tv.EpisodeFiles.EpisodeFileController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Tv.RootFolders.TvRootFolderController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Tv.Config.TvNamingConfigController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Tv.History.TvHistoryController>().Should().NotBeNull();
+        }
+
+        [Test]
+        public void should_resolve_the_joined_pending_queue_and_the_queue_controllers_that_use_it()
+        {
+            _container.GetRequiredService<Radarr.Api.V3.Queue.IPendingQueueService>().Should().BeOfType<Radarr.Api.V3.Queue.PendingQueueService>();
+            _container.GetRequiredService<Radarr.Api.V3.Queue.QueueDetailsController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Queue.QueueStatusController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Queue.QueueActionController>().Should().NotBeNull();
+        }
+
+        [Test]
         public void should_announce_tv_events_in_the_tv_module()
         {
             _container.GetServices<IHandle<ReleaseGrabbedEvent>>().OfType<NzbDrone.Core.Tv.Notifications.TvNotificationHandler>().Should().ContainSingle();

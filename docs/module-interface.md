@@ -1864,6 +1864,55 @@ listener received every event.
   import created. Backup: `~/plattarr-dev-backups/config-tvstep6-20261023-0645.tgz`.
 
 
+### TV step 7, part 1 (API): as built
+
+Built in session 42 against Sonarr `b3d4bb8`. No migration and no core contract change. Sonarr's API
+controllers are ported, not rewritten (`Radarr.Api.V3/Tv/`, namespaces `Radarr.Api.V3.Tv.*`, `Sonarr.Http`
+swapped for `Radarr.Http`). Calls made while building (each is reversible):
+
+- **Routes.** Names Sonarr owns alone keep Sonarr's route under `/api/v3`: `series`, `series/lookup`,
+  `series/editor`, `series/import`, `series/{id}/folder`, `episode`, `episode/monitor`, `episodefile`.
+  Where Radarr already owns the route, TV moves beside it: `tv/rootfolder`, `tv/config/naming`,
+  `series/rename` (Radarr's is `rename`), `history/tv`, `release/tv`, `release/tv/push`. The compatibility
+  URL bases (`/sonarr/api/v3`) will serve Sonarr's own route names later.
+- **Type names are distinct** so the OpenAPI schema ids do not collide: `TvRootFolderResource`,
+  `TvNamingConfigResource`, `TvNamingExampleResource`, `EpisodeMediaInfoResource`, `EpisodeHistoryResource`,
+  `TvReleaseResource`. `CommandNamesFixture` and the route table are the guards.
+- **Shared queue endpoints are kind-neutral.** `GET /queue` shows every download a module matched
+  (`QueueItemExtensions.IsMatched`: the release has a parent), so TV items are no longer hidden
+  (`includeUnknownMovieItems` keeps its name and now means "not matched by any module"). `QueueResource`
+  gained `seriesId`, `episodeId`, `seasonNumber`, `series`, `episode`, `episodeHasFile`, written only when
+  set, so a movie item serializes as before. New query parameters: `seriesIds`, `includeSeries`,
+  `includeEpisode` (and `seriesId` on `queue/details`). `queue/status` counts matched items of any kind.
+  Sorting adds `series.sortTitle`; `year` reads the release's year.
+- **Pending queue.** Each module keeps its own pending table, so `PendingQueueService` (API project) joins
+  the two lists and sends a removal to the module that owns the item. Manual grab of a pending item passes
+  the `RemoteRelease` to `IDownloadService`; a manual blocklist of a pending item goes to the module's
+  blocklist service by kind.
+- **TV validators in the core:** `SeriesExistsValidator`, `SeriesRootFolderExistsValidator` (the shared
+  `RootFolderExistsValidator` reads the movie root folders).
+- **TV history** is Sonarr's controller at `history/tv` (paged, `since`, `series`, `failed/{id}`) over
+  `Tv.History.HistoryService`; `failed/{id}` calls `MarkAsFailed(MediaKind.Tv, id)`.
+- **TV releases.** `release/tv` (GET: `episodeId`, or `seriesId` with `seasonNumber`, or RSS; POST: grab
+  from the 30-minute cache, with Sonarr's override rules) and `release/tv/push`. Flags and `imdbId` map as
+  the movie resource does (`IndexerFlags` is still Radarr's vocabulary; the collision stays open).
+- **Not done in part 1:** ManualImport for TV, TV auto-tagging, the TV blocklist API, the series-shaped
+  webhook `Test` payload, `OnImportComplete`, the TV clear-blocklist command, the statistics caller beyond
+  the series list, `openapi.json` regeneration, and every frontend page.
+
+**Tests.** `QueueResourceFixture` (TV mapping, series profile scoring, include flags, movie JSON unchanged,
+`IsMatched`), `PendingQueueServiceFixture` (join, find, removal by kind), `SeriesExistsValidatorFixture`,
+`SeriesRootFolderExistsValidatorFixture`, two Host container tests (TV controllers; pending queue and the
+queue controllers that use it). `QueueController` itself cannot be resolved against the dummy database
+(its constructor reads the default profile), so its list filter is proved live.
+
+**Mutation checks.** Four mutations (`IsMatched` movies-only, removal routed to the wrong module, no series
+profile score, `episodeHasFile` dropped); all four were killed.
+
+Results (Release, full solution builds with 0 warnings): Core 8,233 passed and 29 skipped, Host 41 and 5
+skipped, Api 47, 0 failed.
+
+
 ## Decision record
 
 Owner answers, 2026-10-20, to the six questions in revision 1:

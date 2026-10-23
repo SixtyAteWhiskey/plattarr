@@ -7,8 +7,6 @@ using NzbDrone.Core.Datastore.Events;
 using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Messaging.Events;
-using NzbDrone.Core.Movies;
-using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Queue;
 using NzbDrone.SignalR;
 using Radarr.Http;
@@ -21,10 +19,10 @@ namespace Radarr.Api.V3.Queue
                                IHandle<QueueUpdatedEvent>, IHandle<PendingReleasesUpdatedEvent>
     {
         private readonly IQueueService _queueService;
-        private readonly IPendingReleaseService _pendingReleaseService;
+        private readonly IPendingQueueService _pendingReleaseService;
         private readonly Debouncer _broadcastDebounce;
 
-        public QueueStatusController(IBroadcastSignalRMessage broadcastSignalRMessage, IQueueService queueService, IPendingReleaseService pendingReleaseService)
+        public QueueStatusController(IBroadcastSignalRMessage broadcastSignalRMessage, IQueueService queueService, IPendingQueueService pendingReleaseService)
             : base(broadcastSignalRMessage)
         {
             _queueService = queueService;
@@ -56,12 +54,12 @@ namespace Radarr.Api.V3.Queue
             var resource = new QueueStatusResource
             {
                 TotalCount = queue.Count + pending.Count,
-                Count = queue.Count(q => q.GetMovie() != null) + pending.Count,
-                UnknownCount = queue.Count(q => q.GetMovie() == null),
-                Errors = queue.Any(q => q.GetMovie() != null && q.TrackedDownloadStatus == TrackedDownloadStatus.Error),
-                Warnings = queue.Any(q => q.GetMovie() != null && q.TrackedDownloadStatus == TrackedDownloadStatus.Warning),
-                UnknownErrors = queue.Any(q => q.GetMovie() == null && q.TrackedDownloadStatus == TrackedDownloadStatus.Error),
-                UnknownWarnings = queue.Any(q => q.GetMovie() == null && q.TrackedDownloadStatus == TrackedDownloadStatus.Warning)
+                Count = queue.Count(q => q.IsMatched()) + pending.Count,
+                UnknownCount = queue.Count(q => !q.IsMatched()),
+                Errors = queue.Any(q => q.IsMatched() && q.TrackedDownloadStatus == TrackedDownloadStatus.Error),
+                Warnings = queue.Any(q => q.IsMatched() && q.TrackedDownloadStatus == TrackedDownloadStatus.Warning),
+                UnknownErrors = queue.Any(q => !q.IsMatched() && q.TrackedDownloadStatus == TrackedDownloadStatus.Error),
+                UnknownWarnings = queue.Any(q => !q.IsMatched() && q.TrackedDownloadStatus == TrackedDownloadStatus.Warning)
             };
 
             _broadcastDebounce.Resume();

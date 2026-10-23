@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Core.Download;
-using NzbDrone.Core.Movies;
-using NzbDrone.Core.Movies.Pending;
 using Radarr.Http;
 using Radarr.Http.REST;
 
@@ -13,10 +11,10 @@ namespace Radarr.Api.V3.Queue
     [V3ApiController("queue")]
     public class QueueActionController : Controller
     {
-        private readonly IPendingReleaseService _pendingReleaseService;
+        private readonly IPendingQueueService _pendingReleaseService;
         private readonly IDownloadService _downloadService;
 
-        public QueueActionController(IPendingReleaseService pendingReleaseService,
+        public QueueActionController(IPendingQueueService pendingReleaseService,
                                      IDownloadService downloadService)
         {
             _pendingReleaseService = pendingReleaseService;
@@ -33,7 +31,7 @@ namespace Radarr.Api.V3.Queue
                 throw new NotFoundException();
             }
 
-            await _downloadService.DownloadReport(pendingRelease.GetRemoteMovie(), null);
+            await _downloadService.DownloadReport(pendingRelease.RemoteRelease, null);
 
             return TypedResults.Ok<object>(new { });
         }
@@ -51,7 +49,7 @@ namespace Radarr.Api.V3.Queue
                     throw new NotFoundException();
                 }
 
-                await _downloadService.DownloadReport(pendingRelease.GetRemoteMovie(), null);
+                await _downloadService.DownloadReport(pendingRelease.RemoteRelease, null);
             }
 
             return TypedResults.Ok<object>(new { });

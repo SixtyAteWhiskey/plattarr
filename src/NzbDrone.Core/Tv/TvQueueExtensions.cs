@@ -1,3 +1,4 @@
+using System.Linq;
 using NzbDrone.Core.Tv.Parser.Model;
 
 namespace NzbDrone.Core.Tv
@@ -13,6 +14,11 @@ namespace NzbDrone.Core.Tv
         public static Series GetSeries(this Queue.Queue queue)
         {
             return queue.GetRemoteEpisode()?.Series;
+        }
+
+        public static Episode GetEpisode(this Queue.Queue queue)
+        {
+            return queue.GetRemoteEpisode()?.Episodes?.FirstOrDefault();
         }
     }
 }

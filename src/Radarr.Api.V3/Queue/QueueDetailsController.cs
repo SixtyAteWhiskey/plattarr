@@ -8,8 +8,8 @@ using NzbDrone.Core.Datastore.Events;
 using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Movies;
-using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Queue;
+using NzbDrone.Core.Tv;
 using NzbDrone.SignalR;
 using Radarr.Http;
 using Radarr.Http.REST;
@@ -21,9 +21,9 @@ namespace Radarr.Api.V3.Queue
                                IHandle<QueueUpdatedEvent>, IHandle<PendingReleasesUpdatedEvent>
     {
         private readonly IQueueService _queueService;
-        private readonly IPendingReleaseService _pendingReleaseService;
+        private readonly IPendingQueueService _pendingReleaseService;
 
-        public QueueDetailsController(IBroadcastSignalRMessage broadcastSignalRMessage, IQueueService queueService, IPendingReleaseService pendingReleaseService)
+        public QueueDetailsController(IBroadcastSignalRMessage broadcastSignalRMessage, IQueueService queueService, IPendingQueueService pendingReleaseService)
             : base(broadcastSignalRMessage)
         {
             _queueService = queueService;
@@ -43,7 +43,7 @@ namespace Radarr.Api.V3.Queue
 
         [HttpGet]
         [Produces("application/json")]
-        public Ok<List<QueueResource>> GetQueue(int? movieId, bool includeMovie = false)
+        public Ok<List<QueueResource>> GetQueue(int? movieId, int? seriesId, bool includeMovie = false, bool includeSeries = false, bool includeEpisode = false)
         {
             var queue = _queueService.GetQueue();
             var pending = _pendingReleaseService.GetPendingQueue();
@@ -51,10 +51,15 @@ namespace Radarr.Api.V3.Queue
 
             if (movieId.HasValue)
             {
-                return TypedResults.Ok(fullQueue.Where(q => q.GetMovie()?.Id == movieId.Value).ToResource(includeMovie));
+                return TypedResults.Ok(fullQueue.Where(q => q.GetMovie()?.Id == movieId.Value).ToResource(includeMovie, includeSeries, includeEpisode));
             }
 
-            return TypedResults.Ok(fullQueue.ToResource(includeMovie));
+            if (seriesId.HasValue)
+            {
+                return TypedResults.Ok(fullQueue.Where(q => q.GetSeries()?.Id == seriesId.Value).ToResource(includeMovie, includeSeries, includeEpisode));
+            }
+
+            return TypedResults.Ok(fullQueue.ToResource(includeMovie, includeSeries, includeEpisode));
         }
 
         [NonAction]
