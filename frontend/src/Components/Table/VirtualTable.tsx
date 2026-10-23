@@ -42,6 +42,8 @@ interface VirtualTableProps<T extends ModelBase> {
   headerHeight?: number;
   rowRenderer: (rowProps: GridCellProps) => ReactNode;
   rowHeight?: number;
+  // Forwarded to the grid so rows re-render when selection changes.
+  selectedState?: object;
 }
 
 function VirtualTable<T extends ModelBase>({

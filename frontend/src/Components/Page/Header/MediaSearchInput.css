@@ -46,14 +46,14 @@
   flex-grow: 1;
 }
 
-.movieContainer {
+.mediaContainer {
   @add-mixin scrollbar;
   @add-mixin scrollbarTrack;
   @add-mixin scrollbarThumb;
 }
 
 .containerOpen {
-  .movieContainer {
+  .mediaContainer {
     position: absolute;
     top: 42px;
     z-index: 1;
@@ -90,9 +90,15 @@
   color: var(--disabledColor);
 }
 
-.addNewMovieSuggestion {
+.addNewSuggestion {
   padding: 5px 3px;
   cursor: pointer;
+}
+
+.kind {
+  margin-right: 8px;
+  color: var(--disabledColor);
+  font-size: $smallFontSize;
 }
 
 @media only screen and (max-width: $breakpointSmall) {

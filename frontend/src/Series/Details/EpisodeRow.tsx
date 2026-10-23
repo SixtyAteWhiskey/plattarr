@@ -317,7 +317,16 @@ function EpisodeRow({
         }
 
         if (name === 'actions') {
-          return <EpisodeSearchCell key={name} episodeId={id} />;
+          return (
+            <EpisodeSearchCell
+              key={name}
+              episodeId={id}
+              episodeEntity="episodes"
+              seriesId={seriesId}
+              episodeTitle={title}
+              showOpenSeriesButton={false}
+            />
+          );
         }
 
         return null;

@@ -7,7 +7,9 @@ import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
 import { kinds } from 'Helpers/Props';
 import { fetchRootFolders } from 'Store/Actions/rootFolderActions';
+import { fetchTvRootFolders } from 'Store/Actions/tvRootFolderActions';
 import createRootFoldersSelector from 'Store/Selectors/createRootFoldersSelector';
+import MediaKind from 'typings/MediaKind';
 import translate from 'Utilities/String/translate';
 import RootFolderRow from './RootFolderRow';
 
@@ -34,16 +36,22 @@ const rootFolderColumns: Column[] = [
   },
 ];
 
-function RootFolders() {
+interface RootFoldersProps {
+  mediaKind?: MediaKind;
+}
+
+function RootFolders({ mediaKind = 'movies' }: RootFoldersProps) {
   const { isFetching, isPopulated, error, items } = useSelector(
-    createRootFoldersSelector()
+    createRootFoldersSelector(
+      mediaKind === 'tv' ? 'tvRootFolders' : 'rootFolders'
+    )
   );
 
   const dispatch = useDispatch();
 
   useEffect(() => {
-    dispatch(fetchRootFolders());
-  }, [dispatch]);
+    dispatch(mediaKind === 'tv' ? fetchTvRootFolders() : fetchRootFolders());
+  }, [dispatch, mediaKind]);
 
   if (isFetching && !isPopulated) {
     return <LoadingIndicator />;
@@ -67,6 +75,7 @@ function RootFolders() {
               accessible={rootFolder.accessible}
               freeSpace={rootFolder.freeSpace}
               unmappedFolders={rootFolder.unmappedFolders}
+              mediaKind={mediaKind}
             />
           );
         })}

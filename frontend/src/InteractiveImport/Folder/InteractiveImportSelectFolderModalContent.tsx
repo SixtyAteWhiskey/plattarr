@@ -16,6 +16,7 @@ import TableBody from 'Components/Table/TableBody';
 import { icons, kinds, sizes } from 'Helpers/Props';
 import { executeCommand } from 'Store/Actions/commandActions';
 import { addRecentFolder } from 'Store/Actions/interactiveImportActions';
+import MediaKind from 'typings/MediaKind';
 import translate from 'Utilities/String/translate';
 import FavoriteFolderRow from './FavoriteFolderRow';
 import RecentFolderRow from './RecentFolderRow';
@@ -53,6 +54,7 @@ const recentFoldersColumns: Column[] = [
 ];
 
 interface InteractiveImportSelectFolderModalContentProps {
+  mediaKind?: MediaKind;
   modalTitle: string;
   onFolderSelect(folder: string): void;
   onModalClose(): void;
@@ -61,7 +63,12 @@ interface InteractiveImportSelectFolderModalContentProps {
 function InteractiveImportSelectFolderModalContent(
   props: InteractiveImportSelectFolderModalContentProps
 ) {
-  const { modalTitle, onFolderSelect, onModalClose } = props;
+  const {
+    mediaKind = 'movies',
+    modalTitle,
+    onFolderSelect,
+    onModalClose,
+  } = props;
   const [folder, setFolder] = useState('');
   const dispatch = useDispatch();
   const { favoriteFolders, recentFolders } = useSelector(
@@ -99,13 +106,16 @@ function InteractiveImportSelectFolderModalContent(
 
     dispatch(
       executeCommand({
-        name: commandNames.DOWNLOADED_MOVIES_SCAN,
+        name:
+          mediaKind === 'tv'
+            ? commandNames.DOWNLOADED_EPISODES_SCAN
+            : commandNames.DOWNLOADED_MOVIES_SCAN,
         path: folder,
       })
     );
 
     onModalClose();
-  }, [folder, onModalClose, dispatch]);
+  }, [folder, mediaKind, onModalClose, dispatch]);
 
   const onInteractiveImportPress = useCallback(() => {
     dispatch(addRecentFolder({ folder }));

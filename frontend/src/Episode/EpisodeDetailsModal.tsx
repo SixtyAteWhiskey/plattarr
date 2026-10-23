@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import Modal from 'Components/Modal/Modal';
 import EpisodeDetailsTab from 'Episode/EpisodeDetailsTab';
 import { EpisodeEntity } from 'Episode/useEpisode';
@@ -14,19 +14,37 @@ interface EpisodeDetailsModalProps {
   isSaving?: boolean;
   showOpenSeriesButton?: boolean;
   selectedTab?: EpisodeDetailsTab;
+  startInteractiveSearch?: boolean;
   onModalClose(): void;
 }
 
 function EpisodeDetailsModal(props: EpisodeDetailsModalProps) {
-  const { isOpen, onModalClose, ...otherProps } = props;
+  const { selectedTab, isOpen, onModalClose, ...otherProps } = props;
+
+  const [closeOnBackgroundClick, setCloseOnBackgroundClick] = useState(
+    selectedTab !== 'search'
+  );
+
+  const handleTabChange = useCallback(
+    (isSearch: boolean) => {
+      setCloseOnBackgroundClick(!isSearch);
+    },
+    [setCloseOnBackgroundClick]
+  );
 
   return (
     <Modal
       isOpen={isOpen}
       size={sizes.EXTRA_EXTRA_LARGE}
+      closeOnBackgroundClick={closeOnBackgroundClick}
       onModalClose={onModalClose}
     >
-      <EpisodeDetailsModalContent {...otherProps} onModalClose={onModalClose} />
+      <EpisodeDetailsModalContent
+        {...otherProps}
+        selectedTab={selectedTab}
+        onTabChange={handleTabChange}
+        onModalClose={onModalClose}
+      />
     </Modal>
   );
 }

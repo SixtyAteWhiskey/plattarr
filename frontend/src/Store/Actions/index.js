@@ -13,6 +13,7 @@ import * as episodesSelection from './episodeSelectionActions';
 import * as extraFiles from './extraFileActions';
 import * as history from './historyActions';
 import * as importMovie from './importMovieActions';
+import * as importSeries from './importSeriesActions';
 import * as interactiveImportActions from './interactiveImportActions';
 import * as movies from './movieActions';
 import * as movieCollections from './movieCollectionActions';
@@ -35,6 +36,8 @@ import * as seriesOrganizePreview from './seriesOrganizePreviewActions';
 import * as settings from './settingsActions';
 import * as system from './systemActions';
 import * as tags from './tagActions';
+import * as tvInteractiveImport from './tvInteractiveImportActions';
+import * as tvReleases from './tvReleaseActions';
 import * as tvRootFolders from './tvRootFolderActions';
 import * as wanted from './wantedActions';
 
@@ -55,6 +58,7 @@ export default [
   extraFiles,
   history,
   importMovie,
+  importSeries,
   interactiveImportActions,
   oAuth,
   organizePreview,
@@ -76,6 +80,8 @@ export default [
   settings,
   system,
   tags,
+  tvInteractiveImport,
+  tvReleases,
   tvRootFolders,
   wanted
 ];

@@ -8,6 +8,8 @@ import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import TableRow from 'Components/Table/TableRow';
 import { icons, kinds } from 'Helpers/Props';
 import { deleteRootFolder } from 'Store/Actions/rootFolderActions';
+import { deleteTvRootFolder } from 'Store/Actions/tvRootFolderActions';
+import MediaKind from 'typings/MediaKind';
 import formatBytes from 'Utilities/Number/formatBytes';
 import translate from 'Utilities/String/translate';
 import styles from './RootFolderRow.css';
@@ -18,10 +20,18 @@ interface RootFolderRowProps {
   accessible: boolean;
   freeSpace?: number;
   unmappedFolders: object[];
+  mediaKind?: MediaKind;
 }
 
 function RootFolderRow(props: RootFolderRowProps) {
-  const { id, path, accessible, freeSpace = 0, unmappedFolders = [] } = props;
+  const {
+    id,
+    path,
+    accessible,
+    freeSpace = 0,
+    unmappedFolders = [],
+    mediaKind = 'movies',
+  } = props;
 
   const isUnavailable = !accessible;
 
@@ -38,10 +48,12 @@ function RootFolderRow(props: RootFolderRowProps) {
   }, [setIsDeleteModalOpen]);
 
   const onConfirmDelete = useCallback(() => {
-    dispatch(deleteRootFolder({ id }));
+    dispatch(
+      mediaKind === 'tv' ? deleteTvRootFolder({ id }) : deleteRootFolder({ id })
+    );
 
     setIsDeleteModalOpen(false);
-  }, [dispatch, id]);
+  }, [dispatch, id, mediaKind]);
 
   return (
     <TableRow>
@@ -55,7 +67,12 @@ function RootFolderRow(props: RootFolderRowProps) {
             </Label>
           </div>
         ) : (
-          <Link className={styles.link} to={`/add/import/${id}`}>
+          <Link
+            className={styles.link}
+            to={
+              mediaKind === 'tv' ? `/tv/add/import/${id}` : `/add/import/${id}`
+            }
+          >
             {path}
           </Link>
         )}

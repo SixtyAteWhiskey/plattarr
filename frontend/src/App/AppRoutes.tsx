@@ -6,6 +6,7 @@ import Queue from 'Activity/Queue/Queue';
 import AddNewMovieConnector from 'AddMovie/AddNewMovie/AddNewMovieConnector';
 import ImportMovies from 'AddMovie/ImportMovie/ImportMovies';
 import AddNewSeries from 'AddSeries/AddNewSeries/AddNewSeries';
+import ImportSeriesPage from 'AddSeries/ImportSeries/ImportSeriesPage';
 import CalendarPage from 'Calendar/CalendarPage';
 import CollectionConnector from 'Collection/CollectionConnector';
 import NotFound from 'Components/NotFound';
@@ -79,6 +80,8 @@ function AppRoutes() {
       <Route exact={true} path="/tv" component={SeriesIndex} />
 
       <Route path="/tv/add/new" component={AddNewSeries} />
+
+      <Route path="/tv/add/import" component={ImportSeriesPage} />
 
       <Route path="/series/:titleSlug" component={SeriesDetailsPage} />
 

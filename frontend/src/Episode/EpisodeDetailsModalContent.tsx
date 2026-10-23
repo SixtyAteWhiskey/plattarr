@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
 import Button from 'Components/Link/Button';
@@ -14,13 +14,18 @@ import useEpisode, { EpisodeEntity } from 'Episode/useEpisode';
 import Series from 'Series/Series';
 import useSeries from 'Series/useSeries';
 import { toggleEpisodeMonitored } from 'Store/Actions/episodeActions';
+import {
+  cancelFetchTvReleases,
+  clearTvReleases,
+} from 'Store/Actions/tvReleaseActions';
 import translate from 'Utilities/String/translate';
 import EpisodeHistory from './History/EpisodeHistory';
+import EpisodeSearch from './Search/EpisodeSearch';
 import SeasonEpisodeNumber from './SeasonEpisodeNumber';
 import EpisodeSummary from './Summary/EpisodeSummary';
 import styles from './EpisodeDetailsModalContent.css';
 
-const TABS: EpisodeDetailsTab[] = ['details', 'history'];
+const TABS: EpisodeDetailsTab[] = ['details', 'history', 'search'];
 
 export interface EpisodeDetailsModalContentProps {
   episodeId: number;
@@ -30,6 +35,8 @@ export interface EpisodeDetailsModalContentProps {
   isSaving?: boolean;
   showOpenSeriesButton?: boolean;
   selectedTab?: EpisodeDetailsTab;
+  startInteractiveSearch?: boolean;
+  onTabChange(isSearch: boolean): void;
   onModalClose(): void;
 }
 
@@ -41,7 +48,9 @@ function EpisodeDetailsModalContent(props: EpisodeDetailsModalContentProps) {
     episodeTitle,
     isSaving = false,
     showOpenSeriesButton = false,
+    startInteractiveSearch = false,
     selectedTab = 'details',
+    onTabChange,
     onModalClose,
   } = props;
 
@@ -65,9 +74,14 @@ function EpisodeDetailsModalContent(props: EpisodeDetailsModalContentProps) {
     monitored,
   } = useEpisode(episodeId, episodeEntity) as Episode;
 
-  const handleTabSelect = useCallback((selectedIndex: number) => {
-    setCurrentlySelectedTab(TABS[selectedIndex]);
-  }, []);
+  const handleTabSelect = useCallback(
+    (selectedIndex: number) => {
+      const tab = TABS[selectedIndex];
+      onTabChange(tab === 'search');
+      setCurrentlySelectedTab(tab);
+    },
+    [onTabChange]
+  );
 
   const handleMonitorEpisodePress = useCallback(
     (monitored: boolean) => {
@@ -81,6 +95,15 @@ function EpisodeDetailsModalContent(props: EpisodeDetailsModalContentProps) {
     },
     [episodeEntity, episodeId, dispatch]
   );
+
+  useEffect(() => {
+    return () => {
+      // Clear pending releases here, so we can reshow the search
+      // results even after switching tabs.
+      dispatch(cancelFetchTvReleases());
+      dispatch(clearTvReleases());
+    };
+  }, [dispatch]);
 
   const seriesLink = `/series/${titleSlug}`;
 
@@ -126,6 +149,10 @@ function EpisodeDetailsModalContent(props: EpisodeDetailsModalContentProps) {
             <Tab className={styles.tab} selectedClassName={styles.selectedTab}>
               {translate('History')}
             </Tab>
+
+            <Tab className={styles.tab} selectedClassName={styles.selectedTab}>
+              {translate('Search')}
+            </Tab>
           </TabList>
 
           <TabPanel>
@@ -143,6 +170,15 @@ function EpisodeDetailsModalContent(props: EpisodeDetailsModalContentProps) {
             <div className={styles.tabContent}>
               <EpisodeHistory episodeId={episodeId} />
             </div>
+          </TabPanel>
+
+          <TabPanel>
+            {/* Don't wrap in tabContent so we not have a top margin */}
+            <EpisodeSearch
+              episodeId={episodeId}
+              startInteractiveSearch={startInteractiveSearch}
+              onModalClose={onModalClose}
+            />
           </TabPanel>
         </Tabs>
       </ModalBody>
