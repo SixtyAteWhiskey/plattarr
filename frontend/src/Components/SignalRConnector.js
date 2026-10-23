@@ -356,6 +356,15 @@ class SignalRConnector extends Component {
     }
   };
 
+  // The TV calendar and wanted pages are not built yet (they stay movie-only
+  // until those pages become kind-aware), so these messages are acknowledged
+  // and ignored instead of logging "Unable to find handler".
+  handleCalendarTv = () => {};
+
+  handleWantedCutoffTv = () => {};
+
+  handleWantedMissingTv = () => {};
+
   handleSystemTask = () => {
     this.props.dispatchFetchCommands();
   };

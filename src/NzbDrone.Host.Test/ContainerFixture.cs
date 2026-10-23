@@ -179,6 +179,7 @@ namespace NzbDrone.App.Test
             _container.GetRequiredService<Radarr.Api.V3.Tv.RootFolders.TvRootFolderController>().Should().NotBeNull();
             _container.GetRequiredService<Radarr.Api.V3.Tv.Config.TvNamingConfigController>().Should().NotBeNull();
             _container.GetRequiredService<Radarr.Api.V3.Tv.History.TvHistoryController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Tv.SeasonPass.SeasonPassController>().Should().NotBeNull();
         }
 
         [Test]

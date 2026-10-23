@@ -8110,6 +8110,27 @@
         }
       }
     },
+    "/api/v3/seasonpass": {
+      "post": {
+        "tags": [
+          "SeasonPass"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeasonPassResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v3/series": {
       "get": {
         "tags": [
@@ -16260,6 +16281,43 @@
         ],
         "type": "string"
       },
+      "SeasonPassResource": {
+        "type": "object",
+        "properties": {
+          "series": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeasonPassSeriesResource"
+            },
+            "nullable": true
+          },
+          "monitoringOptions": {
+            "$ref": "#/components/schemas/TvMonitoringOptions"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SeasonPassSeriesResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "monitored": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "seasons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeasonResource"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "SeasonResource": {
         "type": "object",
         "properties": {
@@ -17562,6 +17620,21 @@
         ],
         "type": "string"
       },
+      "TvMonitoringOptions": {
+        "type": "object",
+        "properties": {
+          "ignoreEpisodesWithFiles": {
+            "type": "boolean"
+          },
+          "ignoreEpisodesWithoutFiles": {
+            "type": "boolean"
+          },
+          "monitor": {
+            "$ref": "#/components/schemas/TvMonitorTypes"
+          }
+        },
+        "additionalProperties": false
+      },
       "TvNamingConfigResource": {
         "type": "object",
         "properties": {
@@ -18586,6 +18659,9 @@
     },
     {
       "name": "RootFolder"
+    },
+    {
+      "name": "SeasonPass"
     },
     {
       "name": "Series"
