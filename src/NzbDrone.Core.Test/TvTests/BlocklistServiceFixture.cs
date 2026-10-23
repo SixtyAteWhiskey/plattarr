@@ -312,6 +312,14 @@ namespace NzbDrone.Core.Test.TvTests
         }
 
         [Test]
+        public void should_purge_the_series_blocklist_when_cleared()
+        {
+            Subject.Execute(new ClearTvBlocklistCommand());
+
+            Mocker.GetMock<IBlocklistRepository>().Verify(v => v.Purge(false), Times.Once());
+        }
+
+        [Test]
         public void should_delete_the_blocklist_of_deleted_series()
         {
             Subject.HandleAsync(new SeriesDeletedEvent(new List<Series> { new Series { Id = 7 }, new Series { Id = 8 } }, false, false));

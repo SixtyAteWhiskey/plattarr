@@ -17,6 +17,7 @@ namespace Radarr.Api.V3.Tags
         public List<int> DownloadClientIds { get; set; }
         public List<int> AutoTagIds { get; set; }
         public List<int> MovieIds { get; set; }
+        public List<int> SeriesIds { get; set; }
     }
 
     public static class TagDetailsResourceMapper
@@ -41,6 +42,7 @@ namespace Radarr.Api.V3.Tags
                 DownloadClientIds = model.DownloadClientIds,
                 AutoTagIds = model.AutoTagIds,
                 MovieIds = model.MovieIds,
+                SeriesIds = model.SeriesIds,
             };
         }
 

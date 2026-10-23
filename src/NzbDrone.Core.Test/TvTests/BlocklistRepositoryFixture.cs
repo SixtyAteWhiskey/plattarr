@@ -128,6 +128,29 @@ namespace NzbDrone.Core.Test.TvTests
         }
 
         [Test]
+        public void should_purge_tv_rows_and_leave_movie_rows()
+        {
+            var movieRepository = Mocker.Resolve<MovieBlocklistRepository>();
+
+            movieRepository.Insert(new MovieBlocklist
+            {
+                MediaKind = MediaKind.Movies,
+                ParentId = _series.Id,
+                SourceTitle = "Show.S01.720p-GRP",
+                Quality = new QualityModel(),
+                Date = DateTime.UtcNow,
+                Languages = new List<Language>()
+            });
+            Subject.Insert(NewBlocklist(_series));
+            Subject.Insert(NewBlocklist(_other));
+
+            Subject.Purge();
+
+            Subject.All().Should().BeEmpty();
+            movieRepository.All().Should().ContainSingle();
+        }
+
+        [Test]
         public void should_page_only_tv_rows_and_join_the_series()
         {
             var movieRepository = Mocker.Resolve<MovieBlocklistRepository>();
