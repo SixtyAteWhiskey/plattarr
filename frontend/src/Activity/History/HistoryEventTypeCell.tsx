@@ -8,6 +8,7 @@ import {
   HistoryEventType,
   MovieFileDeletedHistory,
 } from 'typings/History';
+import MediaKind from 'typings/MediaKind';
 import translate from 'Utilities/String/translate';
 import styles from './HistoryEventTypeCell.css';
 
@@ -16,16 +17,19 @@ function getIconName(eventType: HistoryEventType, data: HistoryData) {
     case 'grabbed':
       return icons.DOWNLOADING;
     case 'movieFolderImported':
+    case 'seriesFolderImported':
       return icons.DRIVE;
     case 'downloadFolderImported':
       return icons.DOWNLOADED;
     case 'downloadFailed':
       return icons.DOWNLOADING;
     case 'movieFileDeleted':
+    case 'episodeFileDeleted':
       return (data as MovieFileDeletedHistory).reason === 'MissingFromDisk'
         ? icons.FILE_MISSING
         : icons.DELETE;
     case 'movieFileRenamed':
+    case 'episodeFileRenamed':
       return icons.ORGANIZE;
     case 'downloadIgnored':
       return icons.IGNORE;
@@ -43,27 +47,51 @@ function getIconKind(eventType: HistoryEventType) {
   }
 }
 
-function getTooltip(eventType: HistoryEventType, data: HistoryData) {
+function getTooltip(
+  eventType: HistoryEventType,
+  data: HistoryData,
+  mediaKind: MediaKind
+) {
+  const isTv = mediaKind === 'tv';
+
   switch (eventType) {
     case 'grabbed':
-      return translate('MovieGrabbedTooltip', {
+      return translate(isTv ? 'EpisodeGrabbedTooltip' : 'MovieGrabbedTooltip', {
         indexer: (data as GrabbedHistoryData).indexer,
         downloadClient: (data as GrabbedHistoryData).downloadClient,
       });
     case 'movieFolderImported':
       return translate('MovieFolderImportedTooltip');
+    case 'seriesFolderImported':
+      return translate('SeriesFolderImportedTooltip');
     case 'downloadFolderImported':
-      return translate('MovieImportedTooltip');
+      return translate(
+        isTv ? 'EpisodeImportedTooltip' : 'MovieImportedTooltip'
+      );
     case 'downloadFailed':
-      return translate('DownloadFailedMovieTooltip');
+      return translate(
+        isTv ? 'DownloadFailedEpisodeTooltip' : 'DownloadFailedMovieTooltip'
+      );
     case 'movieFileDeleted':
+    case 'episodeFileDeleted':
+      if (isTv) {
+        return (data as MovieFileDeletedHistory).reason === 'MissingFromDisk'
+          ? translate('EpisodeFileMissingTooltip')
+          : translate('EpisodeFileDeletedTooltip');
+      }
+
       return (data as MovieFileDeletedHistory).reason === 'MissingFromDisk'
         ? translate('MovieFileMissingTooltip')
         : translate('MovieFileDeletedTooltip');
     case 'movieFileRenamed':
-      return translate('MovieFileRenamedTooltip');
+    case 'episodeFileRenamed':
+      return translate(
+        isTv ? 'EpisodeFileRenamedTooltip' : 'MovieFileRenamedTooltip'
+      );
     case 'downloadIgnored':
-      return translate('DownloadIgnoredMovieTooltip');
+      return translate(
+        isTv ? 'DownloadIgnoredEpisodeTooltip' : 'DownloadIgnoredMovieTooltip'
+      );
     default:
       return translate('UnknownEventTooltip');
   }
@@ -72,12 +100,17 @@ function getTooltip(eventType: HistoryEventType, data: HistoryData) {
 interface HistoryEventTypeCellProps {
   eventType: HistoryEventType;
   data: HistoryData;
+  mediaKind?: MediaKind;
 }
 
-function HistoryEventTypeCell({ eventType, data }: HistoryEventTypeCellProps) {
+function HistoryEventTypeCell({
+  eventType,
+  data,
+  mediaKind = 'movies',
+}: HistoryEventTypeCellProps) {
   const iconName = getIconName(eventType, data);
   const iconKind = getIconKind(eventType);
-  const tooltip = getTooltip(eventType, data);
+  const tooltip = getTooltip(eventType, data, mediaKind);
 
   return (
     <TableRowCell className={styles.cell} title={tooltip}>

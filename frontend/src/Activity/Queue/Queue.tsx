@@ -23,11 +23,13 @@ import TableBody from 'Components/Table/TableBody';
 import TableOptionsModalWrapper from 'Components/Table/TableOptions/TableOptionsModalWrapper';
 import TablePager from 'Components/Table/TablePager';
 import usePaging from 'Components/Table/usePaging';
+import createEpisodesFetchingSelector from 'Episode/createEpisodesFetchingSelector';
 import useCurrentPage from 'Helpers/Hooks/useCurrentPage';
 import useSelectState from 'Helpers/Hooks/useSelectState';
 import { align, icons, kinds } from 'Helpers/Props';
 import createMoviesFetchingSelector from 'Movie/createMoviesFetchingSelector';
 import { executeCommand } from 'Store/Actions/commandActions';
+import { clearEpisodes, fetchEpisodes } from 'Store/Actions/episodeActions';
 import {
   clearQueue,
   fetchQueue,
@@ -42,7 +44,9 @@ import { createCustomFiltersSelector } from 'Store/Selectors/createClientSideCol
 import createCommandExecutingSelector from 'Store/Selectors/createCommandExecutingSelector';
 import { CheckInputChanged } from 'typings/inputs';
 import { SelectStateInputProps } from 'typings/props';
+import QueueItem from 'typings/Queue';
 import { TableOptionsChangePayload } from 'typings/Table';
+import selectUniqueIds from 'Utilities/Object/selectUniqueIds';
 import {
   registerPagePopulator,
   unregisterPagePopulator,
@@ -81,6 +85,8 @@ function Queue() {
   const { isMoviesFetching, isMoviesPopulated, moviesError } = useSelector(
     createMoviesFetchingSelector()
   );
+  const { isEpisodesFetching, isEpisodesPopulated, episodesError } =
+    useSelector(createEpisodesFetchingSelector());
   const customFilters = useSelector(createCustomFiltersSelector('queue'));
 
   const isRefreshMonitoredDownloadsExecuting = useSelector(
@@ -107,11 +113,15 @@ function Queue() {
     useState(false);
 
   const isRefreshing =
-    isFetching || isMoviesFetching || isRefreshMonitoredDownloadsExecuting;
+    isFetching ||
+    isMoviesFetching ||
+    isEpisodesFetching ||
+    isRefreshMonitoredDownloadsExecuting;
   const isAllPopulated =
     isPopulated &&
-    (isMoviesPopulated || !items.length || items.every((m) => !m.movieId));
-  const hasError = error || moviesError;
+    (isMoviesPopulated || !items.length || items.every((m) => !m.movieId)) &&
+    (isEpisodesPopulated || !items.length || items.every((e) => !e.episodeId));
+  const hasError = error || moviesError || episodesError;
   const selectedCount = selectedIds.length;
   const disableSelectedActions = selectedCount === 0;
 
@@ -220,6 +230,19 @@ function Queue() {
   }, [requestCurrentPage, dispatch]);
 
   useEffect(() => {
+    const episodeIds = selectUniqueIds<QueueItem, number | undefined>(
+      items,
+      'episodeId'
+    );
+
+    if (episodeIds.length) {
+      dispatch(fetchEpisodes({ episodeIds }));
+    } else {
+      dispatch(clearEpisodes());
+    }
+  }, [items, dispatch]);
+
+  useEffect(() => {
     const repopulate = () => {
       dispatch(fetchQueue());
     };
@@ -269,6 +292,8 @@ function Queue() {
                     <QueueRow
                       key={item.id}
                       movieId={item.movieId}
+                      seriesId={item.seriesId}
+                      episodeId={item.episodeId}
                       isSelected={selectedState[item.id]}
                       columns={columns}
                       {...item}
@@ -372,7 +397,10 @@ function Queue() {
           selectedIds.every((id) => {
             const item = items.find((i) => i.id === id);
 
-            return !!(item && item.movieId);
+            return !!(
+              item &&
+              (item.movieId || (item.seriesId && item.episodeId))
+            );
           })
         }
         isPending={

@@ -19,9 +19,11 @@ import QualityProfileFilterBuilderRowValue from './QualityProfileFilterBuilderRo
 import QueueStatusFilterBuilderRowValue from './QueueStatusFilterBuilderRowValue';
 import ReleaseStatusFilterBuilderRowValue from './ReleaseStatusFilterBuilderRowValue';
 import SeasonsMonitoredStatusFilterBuilderRowValue from './SeasonsMonitoredStatusFilterBuilderRowValue';
+import SeriesFilterBuilderRowValue from './SeriesFilterBuilderRowValue';
 import SeriesStatusFilterBuilderRowValue from './SeriesStatusFilterBuilderRowValue';
 import SeriesTypeFilterBuilderRowValue from './SeriesTypeFilterBuilderRowValue';
 import TagFilterBuilderRowValueConnector from './TagFilterBuilderRowValueConnector';
+import TvHistoryEventTypeFilterBuilderRowValue from './TvHistoryEventTypeFilterBuilderRowValue';
 import styles from './FilterBuilderRow.css';
 
 function getselectedFilterBuilderProp(filterBuilderProps, name) {
@@ -98,6 +100,12 @@ function getRowValueConnector(selectedFilterBuilderProp) {
 
     case filterBuilderValueTypes.SEASONS_MONITORED_STATUS:
       return SeasonsMonitoredStatusFilterBuilderRowValue;
+
+    case filterBuilderValueTypes.SERIES:
+      return SeriesFilterBuilderRowValue;
+
+    case filterBuilderValueTypes.TV_HISTORY_EVENT_TYPE:
+      return TvHistoryEventTypeFilterBuilderRowValue;
 
     case filterBuilderValueTypes.SERIES_STATUS:
       return SeriesStatusFilterBuilderRowValue;

@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from 'reselect';
 import AppState from 'App/State/AppState';
 import * as commandNames from 'Commands/commandNames';
+import MediaKindSwitcher from 'Components/MediaKindSwitcher';
 import FilterMenu from 'Components/Menu/FilterMenu';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
@@ -156,6 +157,8 @@ function CalendarPage() {
     <PageContent title={translate('Calendar')}>
       <PageToolbar>
         <PageToolbarSection>
+          <MediaKindSwitcher />
+
           <PageToolbarButton
             label={translate('ICalLink')}
             iconName={icons.CALENDAR}

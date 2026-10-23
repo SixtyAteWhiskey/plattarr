@@ -63,6 +63,8 @@ function CalendarHeader() {
       return timeMoment.format(longDateFormat);
     } else if (view === 'month') {
       return timeMoment.format('MMMM YYYY');
+    } else if (view === 'agenda') {
+      return translate('Agenda');
     }
 
     let startFormat = 'MMM D YYYY';

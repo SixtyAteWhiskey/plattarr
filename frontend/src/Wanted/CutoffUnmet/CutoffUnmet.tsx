@@ -4,6 +4,7 @@ import AppState, { Filter } from 'App/State/AppState';
 import * as commandNames from 'Commands/commandNames';
 import Alert from 'Components/Alert';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import MediaKindSwitcher from 'Components/MediaKindSwitcher';
 import FilterMenu from 'Components/Menu/FilterMenu';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
 import PageContent from 'Components/Page/PageContent';
@@ -258,6 +259,8 @@ function CutoffUnmet() {
     <PageContent title={translate('CutoffUnmet')}>
       <PageToolbar>
         <PageToolbarSection>
+          <MediaKindSwitcher />
+
           <PageToolbarButton
             label={
               itemsSelected

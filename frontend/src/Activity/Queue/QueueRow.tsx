@@ -12,6 +12,9 @@ import Column from 'Components/Table/Column';
 import TableRow from 'Components/Table/TableRow';
 import Tooltip from 'Components/Tooltip/Tooltip';
 import DownloadProtocol from 'DownloadClient/DownloadProtocol';
+import EpisodeTitleLink from 'Episode/EpisodeTitleLink';
+import SeasonEpisodeNumber from 'Episode/SeasonEpisodeNumber';
+import useEpisode from 'Episode/useEpisode';
 import { icons, kinds, tooltipPositions } from 'Helpers/Props';
 import InteractiveImportModal from 'InteractiveImport/InteractiveImportModal';
 import Language from 'Language/Language';
@@ -21,6 +24,8 @@ import MovieQuality from 'Movie/MovieQuality';
 import MovieTitleLink from 'Movie/MovieTitleLink';
 import useMovie from 'Movie/useMovie';
 import { QualityModel } from 'Quality/Quality';
+import SeriesTitleLink from 'Series/SeriesTitleLink';
+import useSeries from 'Series/useSeries';
 import { grabQueueItem, removeQueueItem } from 'Store/Actions/queueActions';
 import createUISettingsSelector from 'Store/Selectors/createUISettingsSelector';
 import CustomFormat from 'typings/CustomFormat';
@@ -41,6 +46,8 @@ import styles from './QueueRow.css';
 interface QueueRowProps {
   id: number;
   movieId?: number;
+  seriesId?: number;
+  episodeId?: number;
   downloadId?: string;
   title: string;
   status: string;
@@ -75,6 +82,8 @@ function QueueRow(props: QueueRowProps) {
   const {
     id,
     movieId,
+    seriesId,
+    episodeId,
     downloadId,
     title,
     status,
@@ -107,6 +116,8 @@ function QueueRow(props: QueueRowProps) {
 
   const dispatch = useDispatch();
   const movie = useMovie(movieId);
+  const series = useSeries(seriesId);
+  const episode = useEpisode(episodeId, 'episodes');
   const { showRelativeDates, shortDateFormat, timeFormat } = useSelector(
     createUISettingsSelector()
   );
@@ -194,10 +205,75 @@ function QueueRow(props: QueueRowProps) {
                   title={movie.title}
                 />
               ) : (
-                title
+                (!seriesId && title) || ''
               )}
             </TableRowCell>
           );
+        }
+
+        if (name === 'series.sortTitle') {
+          return (
+            <TableRowCell key={name}>
+              {series ? (
+                <SeriesTitleLink
+                  titleSlug={series.titleSlug}
+                  title={series.title}
+                />
+              ) : (
+                ''
+              )}
+            </TableRowCell>
+          );
+        }
+
+        if (name === 'episode') {
+          return (
+            <TableRowCell key={name}>
+              {episode ? (
+                <SeasonEpisodeNumber
+                  seasonNumber={episode.seasonNumber}
+                  episodeNumber={episode.episodeNumber}
+                  absoluteEpisodeNumber={episode.absoluteEpisodeNumber}
+                  seriesType={series?.seriesType}
+                  alternateTitles={series?.alternateTitles}
+                  sceneSeasonNumber={episode.sceneSeasonNumber}
+                  sceneEpisodeNumber={episode.sceneEpisodeNumber}
+                  sceneAbsoluteEpisodeNumber={
+                    episode.sceneAbsoluteEpisodeNumber
+                  }
+                  unverifiedSceneNumbering={episode.unverifiedSceneNumbering}
+                />
+              ) : (
+                ''
+              )}
+            </TableRowCell>
+          );
+        }
+
+        if (name === 'episodes.title') {
+          return (
+            <TableRowCell key={name}>
+              {series && episode ? (
+                <EpisodeTitleLink
+                  episodeId={episode.id}
+                  seriesId={series.id}
+                  episodeTitle={episode.title}
+                  episodeEntity="episodes"
+                  showOpenSeriesButton={true}
+                />
+              ) : (
+                ''
+              )}
+            </TableRowCell>
+          );
+        }
+
+        if (name === 'episodes.airDateUtc') {
+          if (episode) {
+            return <RelativeDateCell key={name} date={episode.airDateUtc} />;
+          }
+
+          return <TableRowCell key={name} />;
         }
 
         if (name === 'year') {
@@ -349,7 +425,7 @@ function QueueRow(props: QueueRowProps) {
         isOpen={isRemoveQueueItemModalOpen}
         sourceTitle={title}
         canChangeCategory={!!downloadClientHasPostImportCategory}
-        canIgnore={!!movie}
+        canIgnore={!!movie || !!series}
         isPending={isPending}
         onRemovePress={handleRemoveQueueItemModalConfirmed}
         onModalClose={handleRemoveQueueItemModalClose}
