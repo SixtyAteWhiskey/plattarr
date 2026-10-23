@@ -1912,6 +1912,40 @@ profile score, `episodeHasFile` dropped); all four were killed.
 Results (Release, full solution builds with 0 warnings): Core 8,233 passed and 29 skipped, Host 41 and 5
 skipped, Api 47, 0 failed.
 
+**Live proof (2026-10-23, image `4a31542`, dev stack on SERVER01).** Every step went through the new API; no
+SQL seeding and no fake indexer were needed.
+
+1. `POST tv/rootfolder`, `PUT tv/config/naming` (`renameEpisodes` true), a qBittorrent client and a Webhook
+   notification (all `on*` flags) were created through the API. The Webhook fired `SeriesAdd` with a
+   series-shaped payload.
+2. `series/lookup?term=tvdb:121361` returned Game of Thrones; `POST series` added it (128 episodes after the
+   refresh). **`addOptions.monitor: "none"` leaves the series itself unmonitored** (Sonarr's rule), so the first
+   push was rejected with "Series is not monitored"; `PUT series/{id}` with `monitored: true` fixed it.
+3. `POST release/tv/push` (Sintel torrent, title `Game.of.Thrones.S01E01.1080p.WEB-DL.x264-BLENDER`) returned
+   approved and grabbed. History (`history/tv`) showed `grabbed` with `seriesId`/`episodeId`; the `Grab`
+   webhook carried `series`, `episodes`, `release` and `downloadId`.
+4. The shared `GET queue` listed the TV item **without** `includeUnknownMovieItems`, with `seriesId`,
+   `episodeId`, `seasonNumber`, and `series`/`episode` with the include flags; `queue/details?seriesId=5` and
+   `queue/status` counted it. Before the torrent was renamed the item was `importBlocked` ("Unable to parse
+   file") and a `ManualInteractionRequired` webhook arrived.
+5. After renaming the torrent to the release title, the import ran: `downloadFolderImported` in `history/tv`,
+   `episodefile?seriesId=5` returned the renamed file (`Season 1/Game of Thrones - S01E01 - Winter Is Coming
+   WEBDL-480p.mp4`, scene name kept, media info read), the episode showed `hasFile`, and the `Download`
+   webhook carried `episodeFile` and `isUpgrade: false`. The queue emptied.
+6. Failure path: S01E02 pushed with the Cosmos Laundromat torrent, then `DELETE queue/{id}?removeFromClient=true
+   &blocklist=true&skipRedownload=true` gave `downloadFailed` in `history/tv` and a `Blocklist` row with
+   `MediaKind` 2, `ParentId` 5 and `ItemIds` `[569]`.
+7. Regression: `RssSync` ran; `GET release?movieId=1` still returned 70 releases, 56 approved, 63 mapped; the
+   movie queue was empty as before.
+8. `DELETE series?deleteFiles=true`, the root folder, client and notification all returned 200. Torrents,
+   the qBittorrent stack and the hook listener were removed. The only Warn lines were "root folder is empty"
+   (expected) and four `Unknown video format: 'AVC'` lines logged when `PUT tv/config/naming` built its
+   examples (the ported `FileNameSampleService` uses the same `VideoFormat = "AVC"` sample as Sonarr; it
+   follows the upstream code, so it is noise, not a regression). No Error lines.
+
+Still open after the proof: the webhook `Test` payload is movie-shaped; the quality of the imported file
+comes from the real file (480p), as in Sonarr; the checked-in `openapi.json` is stale.
+
 
 ## Decision record
 
