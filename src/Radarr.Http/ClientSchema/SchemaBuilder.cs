@@ -90,6 +90,14 @@ namespace Radarr.Http.ClientSchema
                 }
             }
 
+            // A caller may leave out the fields of a media type. The client still needs its entry.
+            if (target is IModuleCategorySettings categorySettings)
+            {
+                var defaultPriority = targetType.GetCustomAttribute<ModuleCategoryFieldsAttribute>()?.DefaultPriority ?? 0;
+
+                categorySettings.EnsureEntries(_modules.Select(m => m.Kind), defaultPriority);
+            }
+
             return target;
         }
 

@@ -6,8 +6,10 @@ using NzbDrone.Core.Modules;
 namespace NzbDrone.Core.Download.Clients
 {
     // Base of the settings of every client that routes by category. A new client starts with the
-    // Movies entry (the only media type there is); the form adds an entry for every other
-    // registered media type when it is saved. The settings class carries [ModuleCategoryFields].
+    // Movies entry; the schema reader (SchemaBuilder.ReadFromSchema) adds an entry for every other
+    // registered media type when a client is saved, whichever fields the caller sent. Anything
+    // else that writes clients (an importer) calls EnsureEntries. The settings class carries
+    // [ModuleCategoryFields].
     public abstract class ModuleDownloadClientSettings<TSettings> : DownloadClientSettingsBase<TSettings>, IModuleCategorySettings
         where TSettings : ModuleDownloadClientSettings<TSettings>
     {

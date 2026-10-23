@@ -131,6 +131,41 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests
         }
 
         [Test]
+        public void EnsureEntries_should_add_the_missing_kinds_in_kind_order_and_keep_the_existing_ones()
+        {
+            _settings.Movies().RecentPriority = 3;
+
+            _settings.EnsureEntries(new[] { MediaKind.Music, MediaKind.Tv, MediaKind.Movies }, 1);
+
+            _settings.ModuleCategories.Select(c => c.Kind).Should().Equal(MediaKind.Movies, MediaKind.Tv, MediaKind.Music);
+            _settings.For(MediaKind.Movies).Category.Should().Be("movies");
+            _settings.For(MediaKind.Movies).RecentPriority.Should().Be(3);
+            _settings.For(MediaKind.Tv).Category.Should().Be("plattarr-tv");
+            _settings.For(MediaKind.Tv).RecentPriority.Should().Be(1);
+            _settings.For(MediaKind.Music).OlderPriority.Should().Be(1);
+        }
+
+        [Test]
+        public void EnsureEntries_should_not_replace_an_entry_whose_category_is_empty()
+        {
+            _settings.AddTv("");
+
+            _settings.EnsureEntries(new[] { MediaKind.Movies, MediaKind.Tv }, 0);
+
+            _settings.For(MediaKind.Tv).Category.Should().BeEmpty();
+        }
+
+        [Test]
+        public void EnsureEntries_should_create_the_list_when_there_is_none()
+        {
+            _settings.ModuleCategories = null;
+
+            _settings.EnsureEntries(new[] { MediaKind.Movies }, 0);
+
+            _settings.ModuleCategories.Should().ContainSingle().Which.Kind.Should().Be(MediaKind.Movies);
+        }
+
+        [Test]
         public void entries_should_be_equal_when_their_values_are()
         {
             var a = new ModuleCategorySettings { Kind = MediaKind.Tv, Category = "tv", ImportedCategory = "done", RecentPriority = 1, OlderPriority = 2 };

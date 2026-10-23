@@ -29,6 +29,33 @@ namespace NzbDrone.Core.Download.Clients
             return entry;
         }
 
+        // Gives the client an entry for every media type in kinds, each with its default category
+        // and the client's default priority. Entries that exist are left as they are. A client made
+        // through the API (or by an importer) may name only some media types; without an entry for
+        // a type, a grab of that type fails and the client never lists that type's downloads.
+        public static void EnsureEntries(this IModuleCategorySettings settings, IEnumerable<MediaKind> kinds, int defaultPriority)
+        {
+            settings.ModuleCategories ??= new List<ModuleCategorySettings>();
+
+            var added = false;
+
+            foreach (var kind in kinds)
+            {
+                if (settings.ModuleCategories.Any(c => c.Kind == kind))
+                {
+                    continue;
+                }
+
+                settings.ModuleCategories.Add(ModuleCategorySettings.CreateDefault(kind, defaultPriority));
+                added = true;
+            }
+
+            if (added)
+            {
+                settings.ModuleCategories = settings.ModuleCategories.OrderBy(c => c.Kind).ToList();
+            }
+        }
+
         // The media type a download in this category belongs to: the one whose entry carries the
         // category. Null for an empty category or one no entry uses. Tracked download routing rule 2.
         public static MediaKind? KindForCategory(this IModuleCategorySettings settings, string category)
