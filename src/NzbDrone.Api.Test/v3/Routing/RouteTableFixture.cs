@@ -82,7 +82,8 @@ namespace NzbDrone.Api.Test.v3.Routing
                 "api/v3/calendar/tv",
                 "api/v3/blocklist/tv",
                 "api/v3/parse/tv",
-                "api/v3/history/tv"
+                "api/v3/history/tv",
+                "api/v3/manualimport/tv"
             });
         }
 
