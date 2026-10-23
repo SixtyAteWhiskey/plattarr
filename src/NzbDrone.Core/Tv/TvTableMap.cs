@@ -5,6 +5,10 @@ using NzbDrone.Core.Datastore.Converters;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Tv.Blocklisting;
 using NzbDrone.Core.Tv.DataAugmentation.Scene;
+using NzbDrone.Core.Tv.Extras.Metadata;
+using NzbDrone.Core.Tv.Extras.Metadata.Files;
+using NzbDrone.Core.Tv.Extras.Others;
+using NzbDrone.Core.Tv.Extras.Subtitles;
 using NzbDrone.Core.Tv.History;
 using NzbDrone.Core.Tv.MediaFiles;
 using NzbDrone.Core.Tv.Organizer;
@@ -58,6 +62,14 @@ namespace NzbDrone.Core.Tv
                   .Ignore(e => e.HasFile)
                   .Ignore(e => e.AbsoluteEpisodeNumberAdded)
                   .HasOne(e => e.EpisodeFile, e => e.EpisodeFileId);
+
+            mapper.Entity<MetadataDefinition>("Tv_Metadata").RegisterModel()
+                  .Ignore(x => x.ImplementationName)
+                  .Ignore(d => d.Tags);
+
+            mapper.Entity<MetadataFile>("Tv_MetadataFiles").RegisterModel();
+            mapper.Entity<SubtitleFile>("Tv_SubtitleFiles").RegisterModel();
+            mapper.Entity<OtherExtraFile>("Tv_ExtraFiles").RegisterModel();
 
             mapper.Entity<SceneMapping>("Tv_SceneMappings").RegisterModel();
             mapper.Entity<NamingConfig>("Tv_NamingConfig").RegisterModel();

@@ -1,10 +1,10 @@
-﻿using System.Net;
+using System.Net;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Http;
-using NzbDrone.Core.Movies.Covers;
+using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.MediaCoverTests

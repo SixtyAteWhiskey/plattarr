@@ -3,7 +3,7 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
 using NzbDrone.Core.Configuration;
-using NzbDrone.Core.Movies.MediaFiles;
+using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.ProviderTests.RecycleBinProviderTests

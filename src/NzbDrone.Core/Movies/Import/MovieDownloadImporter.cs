@@ -48,6 +48,8 @@ namespace NzbDrone.Core.Movies.Import
 
         public MediaKind Kind => MediaKind.Movies;
 
+        public bool BlocksImportAfterRejection => false;
+
         public DownloadImportCheck Check(TrackedDownload trackedDownload)
         {
             var historyItem = GetGrabbedHistory(trackedDownload).MaxBy(h => h.Date);

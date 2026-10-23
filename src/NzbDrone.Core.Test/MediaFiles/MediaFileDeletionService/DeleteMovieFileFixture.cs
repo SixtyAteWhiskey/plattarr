@@ -4,6 +4,7 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
 using NzbDrone.Core.Exceptions;
+using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.MediaFiles;

@@ -109,6 +109,47 @@ namespace NzbDrone.App.Test
         }
 
         [Test]
+        public void should_resolve_the_tv_download_contracts()
+        {
+            _container.GetServices<IDownloadImporter>().Should().ContainSingle(i => i.Kind == MediaKind.Tv)
+                .Which.Should().BeOfType<NzbDrone.Core.Tv.Import.TvDownloadImporter>();
+            _container.GetServices<ITrackedDownloadMatcher>().Should().ContainSingle(m => m.Kind == MediaKind.Tv)
+                .Which.Should().BeOfType<NzbDrone.Core.Tv.Downloads.TvTrackedDownloadMatcher>();
+            _container.GetRequiredService<ICompletedDownloadService>().Should().NotBeNull();
+            _container.GetRequiredService<ITrackedDownloadService>().Should().NotBeNull();
+        }
+
+        [Test]
+        public void should_resolve_the_tv_import_and_media_file_services()
+        {
+            _container.GetRequiredService<NzbDrone.Core.Tv.MediaFiles.IDownloadedEpisodesImportService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Tv.MediaFiles.IDiskScanService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Tv.MediaFiles.IMediaFileService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Tv.MediaFiles.IRenameEpisodeFileService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Tv.MediaFiles.IMoveEpisodeFiles>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Tv.Organizer.IBuildFileNames>().Should().BeOfType<NzbDrone.Core.Tv.Organizer.FileNameBuilder>();
+            _container.GetRequiredService<NzbDrone.Core.Tv.Extras.IExtraService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Tv.Extras.Metadata.IMetadataFactory>().Should().NotBeNull();
+        }
+
+        [Test]
+        public void should_resolve_the_tv_media_file_command_executors()
+        {
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Tv.MediaFiles.Commands.DownloadedEpisodesScanCommand>>().Should().NotBeNull();
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Tv.MediaFiles.Commands.RescanSeriesCommand>>().Should().NotBeNull();
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Tv.MediaFiles.Commands.RenameEpisodeFilesCommand>>().Should().NotBeNull();
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Tv.MediaFiles.Commands.RenameSeriesCommand>>().Should().NotBeNull();
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Tv.MediaFiles.Commands.DeleteSeriesFilesCommand>>().Should().NotBeNull();
+        }
+
+        [Test]
+        public void should_keep_tracked_downloads_in_step_with_the_series_library()
+        {
+            _container.GetServices<IHandle<NzbDrone.Core.Tv.Events.SeriesAddedEvent>>().OfType<NzbDrone.Core.Tv.Downloads.TvTrackedDownloadRefresher>().Should().ContainSingle();
+            _container.GetServices<IHandle<NzbDrone.Core.Tv.MediaFiles.Events.EpisodeImportedEvent>>().OfType<NzbDrone.Core.Tv.Downloads.TvTrackedDownloadRefresher>().Should().ContainSingle();
+        }
+
+        [Test]
         public void should_be_able_to_resolve_downloadclients()
         {
             _container.GetRequiredService<IEnumerable<IDownloadClient>>().Should().NotBeEmpty();

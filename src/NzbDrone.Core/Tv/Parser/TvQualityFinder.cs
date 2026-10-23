@@ -72,6 +72,20 @@ namespace NzbDrone.Core.Tv.Parser
             return TvQualitySource.Unknown;
         }
 
+        // The resolution Sonarr gives a quality; 0 for a catalog quality Sonarr does not define.
+        public static int ResolutionOf(Quality quality)
+        {
+            foreach (var entry in Table)
+            {
+                if (entry.Quality == quality)
+                {
+                    return entry.Resolution;
+                }
+            }
+
+            return 0;
+        }
+
         public static Quality FindBySourceAndResolution(TvQualitySource source, int resolution)
         {
             var matches = Table.Where(t => t.Source == source && t.Resolution == resolution).ToList();

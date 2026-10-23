@@ -10,6 +10,11 @@ namespace NzbDrone.Core.Modules
     {
         MediaKind Kind { get; }
 
+        // True when a single rejected result (already warned about, or failed, by the core) also
+        // moves the download to ImportBlocked, so the manual-interaction notification goes out once.
+        // False leaves it pending and retried (Radarr's behavior); True is Sonarr's.
+        bool BlocksImportAfterRejection { get; }
+
         // Called for a completed download whose output path is valid. Warns on the tracked download
         // when it returns Skip or Blocked; the core sets the state.
         DownloadImportCheck Check(TrackedDownload trackedDownload);

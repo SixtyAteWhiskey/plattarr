@@ -18,5 +18,10 @@ namespace NzbDrone.Core.Modules
         // The indexer FailDownloads option this rejection falls under, or null. The core fails
         // the download when the grabbing indexer has that option set.
         FailDownloads? FailsDownloadAs { get; }
+
+        // True when this result alone makes automatic import impossible (for example a TV release
+        // that spans several seasons): the core warns with the result's errors and blocks the
+        // download for manual import, even when the release was not grabbed by Plattarr.
+        bool BlocksAutomaticImport { get; }
     }
 }
