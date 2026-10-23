@@ -26,6 +26,8 @@ import qualityDefinitions from './Settings/qualityDefinitions';
 import qualityProfiles from './Settings/qualityProfiles';
 import releaseProfiles from './Settings/releaseProfiles';
 import remotePathMappings from './Settings/remotePathMappings';
+import tvNaming from './Settings/tvNaming';
+import tvNamingExamples from './Settings/tvNamingExamples';
 import ui from './Settings/ui';
 
 export * from './Settings/autoTaggingSpecifications';
@@ -53,6 +55,8 @@ export * from './Settings/qualityDefinitions';
 export * from './Settings/qualityProfiles';
 export * from './Settings/releaseProfiles';
 export * from './Settings/remotePathMappings';
+export * from './Settings/tvNaming';
+export * from './Settings/tvNamingExamples';
 export * from './Settings/ui';
 
 //
@@ -90,6 +94,8 @@ export const defaultState = {
   qualityProfiles: qualityProfiles.defaultState,
   releaseProfiles: releaseProfiles.defaultState,
   remotePathMappings: remotePathMappings.defaultState,
+  tvNaming: tvNaming.defaultState,
+  tvNamingExamples: tvNamingExamples.defaultState,
   ui: ui.defaultState
 };
 
@@ -137,6 +143,8 @@ export const actionHandlers = handleThunks({
   ...qualityProfiles.actionHandlers,
   ...releaseProfiles.actionHandlers,
   ...remotePathMappings.actionHandlers,
+  ...tvNaming.actionHandlers,
+  ...tvNamingExamples.actionHandlers,
   ...ui.actionHandlers
 });
 
@@ -174,6 +182,8 @@ export const reducers = createHandleActions({
   ...qualityProfiles.reducers,
   ...releaseProfiles.reducers,
   ...remotePathMappings.reducers,
+  ...tvNaming.reducers,
+  ...tvNamingExamples.reducers,
   ...ui.reducers
 
 }, defaultState, section);

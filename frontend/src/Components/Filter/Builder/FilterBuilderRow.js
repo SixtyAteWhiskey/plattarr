@@ -18,6 +18,9 @@ import QualityFilterBuilderRowValueConnector from './QualityFilterBuilderRowValu
 import QualityProfileFilterBuilderRowValue from './QualityProfileFilterBuilderRowValue';
 import QueueStatusFilterBuilderRowValue from './QueueStatusFilterBuilderRowValue';
 import ReleaseStatusFilterBuilderRowValue from './ReleaseStatusFilterBuilderRowValue';
+import SeasonsMonitoredStatusFilterBuilderRowValue from './SeasonsMonitoredStatusFilterBuilderRowValue';
+import SeriesStatusFilterBuilderRowValue from './SeriesStatusFilterBuilderRowValue';
+import SeriesTypeFilterBuilderRowValue from './SeriesTypeFilterBuilderRowValue';
 import TagFilterBuilderRowValueConnector from './TagFilterBuilderRowValueConnector';
 import styles from './FilterBuilderRow.css';
 
@@ -92,6 +95,15 @@ function getRowValueConnector(selectedFilterBuilderProp) {
 
     case filterBuilderValueTypes.MINIMUM_AVAILABILITY:
       return MinimumAvailabilityFilterBuilderRowValue;
+
+    case filterBuilderValueTypes.SEASONS_MONITORED_STATUS:
+      return SeasonsMonitoredStatusFilterBuilderRowValue;
+
+    case filterBuilderValueTypes.SERIES_STATUS:
+      return SeriesStatusFilterBuilderRowValue;
+
+    case filterBuilderValueTypes.SERIES_TYPES:
+      return SeriesTypeFilterBuilderRowValue;
 
     case filterBuilderValueTypes.TAG:
       return TagFilterBuilderRowValueConnector;

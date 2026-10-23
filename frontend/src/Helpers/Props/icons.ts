@@ -48,6 +48,9 @@ import {
   faChevronCircleUp as fasChevronCircleUp,
   faCircle as fasCircle,
   faCircleDown as fasCircleDown,
+  faCirclePause as fasCirclePause,
+  faCirclePlay as fasCirclePlay,
+  faCircleStop as fasCircleStop,
   faCloud as fasCloud,
   faCloudDownloadAlt as fasCloudDownloadAlt,
   faCog as fasCog,
@@ -115,6 +118,7 @@ import {
   faTimes as fasTimes,
   faTimesCircle as fasTimesCircle,
   faTrashAlt as fasTrashAlt,
+  faTv as fasTv,
   faUser as fasUser,
   faUserPlus as fasUserPlus,
   faVial as fasVial,
@@ -159,6 +163,7 @@ export const DOWNLOADED = fasDownload;
 export const DOWNLOADING = fasCloudDownloadAlt;
 export const DRIVE = farHdd;
 export const EDIT = fasWrench;
+export const EPISODE_FILE = farFileVideo;
 export const MOVIE_FILE = farFileVideo;
 export const EXPAND = fasChevronCircleDown;
 export const EXPAND_INDETERMINATE = fasChevronCircleRight;
@@ -169,6 +174,8 @@ export const FILE = farFile;
 export const FILE_MISSING = fasFileCircleQuestion;
 export const FILM = fasFilm;
 export const FILTER = fasFilter;
+export const FINALE_SEASON = fasCirclePause;
+export const FINALE_SERIES = fasCircleStop;
 export const FLAG = fasFlag;
 export const FOOTNOTE = fasAsterisk;
 export const FOLDER = farFolder;
@@ -207,6 +214,7 @@ export const PARSE = fasCalculator;
 export const PAUSED = fasPause;
 export const PENDING = farClock;
 export const PLAY = fasPlay;
+export const PREMIERE = fasCirclePlay;
 export const PROFILE = fasUser;
 export const POPULAR = fasFire;
 export const POSTER = fasTh;
@@ -225,8 +233,11 @@ export const SCHEDULED = farClock;
 export const SCORE = fasUserPlus;
 export const SEARCH = fasSearch;
 export const MOVIE_CONTINUING = fasPlay;
+export const SERIES_CONTINUING = fasPlay;
 export const SERIES_ENDED = fasStop;
 export const MOVIE_DELETED = fasExclamationTriangle;
+export const SERIES_DELETED = fasExclamationTriangle;
+export const SCENE_MAPPING = fasSitemap;
 export const SETTINGS = fasCogs;
 export const SHUTDOWN = fasPowerOff;
 export const SORT = fasSort;
@@ -238,6 +249,7 @@ export const SQUARE_MINUS = fasSquareMinus;
 export const STUDIO = fasBuilding;
 export const SUBTRACT = fasMinus;
 export const SYSTEM = fasLaptop;
+export const TV = fasTv;
 export const TABLE = fasTable;
 export const TAGS = fasTags;
 export const TBA = fasQuestionCircle;

@@ -14,3 +14,6 @@ export const RELEASE_STATUS = 'releaseStatus';
 export const MINIMUM_AVAILABILITY = 'minimumAvailability';
 export const TAG = 'tag';
 export const IMPORTLIST = 'importList';
+export const SEASONS_MONITORED_STATUS = 'seasonsMonitoredStatus';
+export const SERIES_STATUS = 'seriesStatus';
+export const SERIES_TYPES = 'seriesType';

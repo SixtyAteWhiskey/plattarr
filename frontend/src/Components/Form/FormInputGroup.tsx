@@ -32,9 +32,15 @@ import IndexerSelectInput, {
 import LanguageSelectInput, {
   LanguageSelectInputProps,
 } from './Select/LanguageSelectInput';
+import MonitorEpisodesSelectInput, {
+  MonitorEpisodesSelectInputProps,
+} from './Select/MonitorEpisodesSelectInput';
 import MonitorMoviesSelectInput, {
   MonitorMoviesSelectInputProps,
 } from './Select/MonitorMoviesSelectInput';
+import MonitorNewItemsSelectInput, {
+  MonitorNewItemsSelectInputProps,
+} from './Select/MonitorNewItemsSelectInput';
 import ProviderDataSelectInput, {
   ProviderOptionSelectInputProps,
 } from './Select/ProviderOptionSelectInput';
@@ -44,9 +50,13 @@ import QualityProfileSelectInput, {
 import RootFolderSelectInput, {
   RootFolderSelectInputProps,
 } from './Select/RootFolderSelectInput';
+import SeriesTypeSelectInput, {
+  SeriesTypeSelectInputProps,
+} from './Select/SeriesTypeSelectInput';
 import UMaskInput, { UMaskInputProps } from './Select/UMaskInput';
 import DeviceInput, { DeviceInputProps } from './Tag/DeviceInput';
 import MovieTagInput, { MovieTagInputProps } from './Tag/MovieTagInput';
+import SeriesTagInput, { SeriesTagInputProps } from './Tag/SeriesTagInput';
 import TagSelectInput, { TagSelectInputProps } from './Tag/TagSelectInput';
 import TextTagInput, { TextTagInputProps } from './Tag/TextTagInput';
 import TextArea, { TextAreaProps } from './TextArea';
@@ -68,7 +78,9 @@ const componentMap: Record<InputType, ElementType> = {
   indexerSelect: IndexerSelectInput,
   keyValueList: KeyValueListInput,
   languageSelect: LanguageSelectInput,
+  monitorEpisodesSelect: MonitorEpisodesSelectInput,
   monitorMoviesSelect: MonitorMoviesSelectInput,
+  monitorNewItemsSelect: MonitorNewItemsSelectInput,
   movieTag: MovieTagInput,
   number: NumberInput,
   oauth: OAuthInput,
@@ -77,6 +89,8 @@ const componentMap: Record<InputType, ElementType> = {
   qualityProfileSelect: QualityProfileSelectInput,
   rootFolderSelect: RootFolderSelectInput,
   select: EnhancedSelectInput,
+  seriesTag: SeriesTagInput,
+  seriesTypeSelect: SeriesTypeSelectInput,
   tag: MovieTagInput,
   tagSelect: TagSelectInput,
   text: TextInput,
@@ -117,8 +131,12 @@ type PickProps<V, C extends InputType> = C extends 'text'
   ? KeyValueListInputProps
   : C extends 'languageSelect'
   ? LanguageSelectInputProps
+  : C extends 'monitorEpisodesSelect'
+  ? MonitorEpisodesSelectInputProps
   : C extends 'monitorMoviesSelect'
   ? MonitorMoviesSelectInputProps
+  : C extends 'monitorNewItemsSelect'
+  ? MonitorNewItemsSelectInputProps
   : C extends 'movieTag'
   ? MovieTagInputProps<V>
   : C extends 'number'
@@ -136,6 +154,10 @@ type PickProps<V, C extends InputType> = C extends 'text'
   : C extends 'select'
   ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
     EnhancedSelectInputProps<any, V>
+  : C extends 'seriesTag'
+  ? SeriesTagInputProps
+  : C extends 'seriesTypeSelect'
+  ? SeriesTypeSelectInputProps
   : C extends 'tag'
   ? MovieTagInputProps<V>
   : C extends 'tagSelect'

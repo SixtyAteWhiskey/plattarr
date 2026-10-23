@@ -9,6 +9,9 @@ export type HistoryEventType =
   | 'movieFileDeleted'
   | 'movieFolderImported'
   | 'movieFileRenamed'
+  | 'seriesFolderImported'
+  | 'episodeFileDeleted'
+  | 'episodeFileRenamed'
   | 'downloadIgnored';
 
 export interface GrabbedHistoryData {
@@ -24,11 +27,15 @@ export interface GrabbedHistoryData {
   size: string;
   downloadUrl: string;
   guid: string;
-  tmdbId: string;
-  imdbId: string;
+  tmdbId?: string;
+  imdbId?: string;
+  tvdbId?: string;
+  tvRageId?: string;
   protocol: string;
   customFormatScore?: string;
-  movieMatchType: string;
+  movieMatchType?: string;
+  seriesMatchType?: string;
+  releaseType?: string;
   releaseSource: string;
   indexerFlags: string;
 }
@@ -60,6 +67,10 @@ export interface MovieFileRenamedHistory {
   relativePath: string;
 }
 
+export type EpisodeFileDeletedHistory = MovieFileDeletedHistory;
+
+export type EpisodeFileRenamedHistory = MovieFileRenamedHistory;
+
 export interface DownloadIgnoredHistory {
   message: string;
 }
@@ -85,4 +96,9 @@ export default interface History {
   eventType: HistoryEventType;
   data: HistoryData;
   id: number;
+}
+
+export interface SeriesHistory extends Omit<History, 'movieId'> {
+  seriesId: number;
+  episodeId: number;
 }

@@ -9,9 +9,11 @@ import { fetchCommands, finishCommand, updateCommand } from 'Store/Actions/comma
 import { fetchMovies } from 'Store/Actions/movieActions';
 import { fetchQueue, fetchQueueDetails } from 'Store/Actions/queueActions';
 import { fetchRootFolders } from 'Store/Actions/rootFolderActions';
+import { fetchSeries } from 'Store/Actions/seriesActions';
 import { fetchQualityDefinitions } from 'Store/Actions/settingsActions';
 import { fetchHealth } from 'Store/Actions/systemActions';
 import { fetchTagDetails, fetchTags } from 'Store/Actions/tagActions';
+import { fetchTvRootFolders } from 'Store/Actions/tvRootFolderActions';
 import { repopulatePage } from 'Utilities/pagePopulator';
 import titleCase from 'Utilities/String/titleCase';
 
@@ -51,7 +53,9 @@ const mapDispatchToProps = {
   dispatchFetchQueue: fetchQueue,
   dispatchFetchQueueDetails: fetchQueueDetails,
   dispatchFetchRootFolders: fetchRootFolders,
+  dispatchFetchTvRootFolders: fetchTvRootFolders,
   dispatchFetchMovies: fetchMovies,
+  dispatchFetchSeries: fetchSeries,
   dispatchFetchTags: fetchTags,
   dispatchFetchTagDetails: fetchTagDetails
 };
@@ -257,6 +261,44 @@ class SignalRConnector extends Component {
     }
   };
 
+  handleSeries = (body) => {
+    const action = body.action;
+    const section = 'series';
+
+    if (action === 'updated') {
+      this.props.dispatchUpdateItem({ section, ...body.resource });
+
+      repopulatePage('seriesUpdated');
+    } else if (action === 'deleted') {
+      this.props.dispatchRemoveItem({ section, id: body.resource.id });
+    }
+  };
+
+  handleEpisode = (body) => {
+    if (body.action === 'updated') {
+      this.props.dispatchUpdateItem({
+        section: 'episodes',
+        updateOnly: true,
+        ...body.resource
+      });
+    }
+  };
+
+  handleEpisodefile = (body) => {
+    const section = 'episodeFiles';
+
+    if (body.action === 'updated') {
+      this.props.dispatchUpdateItem({ section, ...body.resource });
+
+      // Repopulate the page to handle recently imported file
+      repopulatePage('episodeFileUpdated');
+    } else if (body.action === 'deleted') {
+      this.props.dispatchRemoveItem({ section, id: body.resource.id });
+
+      repopulatePage('episodeFileDeleted');
+    }
+  };
+
   handleCollection = (body) => {
     const action = body.action;
     const section = 'movieCollections';
@@ -322,6 +364,10 @@ class SignalRConnector extends Component {
     this.props.dispatchFetchRootFolders();
   };
 
+  handleTvRootfolder = () => {
+    this.props.dispatchFetchTvRootFolders();
+  };
+
   handleTag = (body) => {
     if (body.action === 'sync') {
       this.props.dispatchFetchTags();
@@ -365,6 +411,7 @@ class SignalRConnector extends Component {
     const {
       dispatchFetchCommands,
       dispatchFetchMovies,
+      dispatchFetchSeries,
       dispatchSetAppValue
     } = this.props;
 
@@ -378,6 +425,7 @@ class SignalRConnector extends Component {
     // Repopulate the page (if a repopulator is set) to ensure things
     // are in sync after reconnecting.
     dispatchFetchMovies();
+    dispatchFetchSeries();
     dispatchFetchCommands();
     repopulatePage();
   };
@@ -417,7 +465,9 @@ SignalRConnector.propTypes = {
   dispatchFetchQueue: PropTypes.func.isRequired,
   dispatchFetchQueueDetails: PropTypes.func.isRequired,
   dispatchFetchRootFolders: PropTypes.func.isRequired,
+  dispatchFetchTvRootFolders: PropTypes.func.isRequired,
   dispatchFetchMovies: PropTypes.func.isRequired,
+  dispatchFetchSeries: PropTypes.func.isRequired,
   dispatchFetchTags: PropTypes.func.isRequired,
   dispatchFetchTagDetails: PropTypes.func.isRequired
 };

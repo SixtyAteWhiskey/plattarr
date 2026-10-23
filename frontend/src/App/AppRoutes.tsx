@@ -5,6 +5,7 @@ import History from 'Activity/History/History';
 import Queue from 'Activity/Queue/Queue';
 import AddNewMovieConnector from 'AddMovie/AddNewMovie/AddNewMovieConnector';
 import ImportMovies from 'AddMovie/ImportMovie/ImportMovies';
+import AddNewSeries from 'AddSeries/AddNewSeries/AddNewSeries';
 import CalendarPage from 'Calendar/CalendarPage';
 import CollectionConnector from 'Collection/CollectionConnector';
 import NotFound from 'Components/NotFound';
@@ -12,6 +13,8 @@ import Switch from 'Components/Router/Switch';
 import DiscoverMovieConnector from 'DiscoverMovie/DiscoverMovieConnector';
 import MovieDetailsPage from 'Movie/Details/MovieDetailsPage';
 import MovieIndex from 'Movie/Index/MovieIndex';
+import SeriesDetailsPage from 'Series/Details/SeriesDetailsPage';
+import SeriesIndex from 'Series/Index/SeriesIndex';
 import CustomFormatSettingsPage from 'Settings/CustomFormats/CustomFormatSettingsPage';
 import DownloadClientSettingsConnector from 'Settings/DownloadClients/DownloadClientSettingsConnector';
 import GeneralSettings from 'Settings/General/GeneralSettings';
@@ -68,6 +71,16 @@ function AppRoutes() {
       <Route path="/add/discover" component={DiscoverMovieConnector} />
 
       <Route path="/movie/:titleSlug" component={MovieDetailsPage} />
+
+      {/*
+        Series
+      */}
+
+      <Route exact={true} path="/tv" component={SeriesIndex} />
+
+      <Route path="/tv/add/new" component={AddNewSeries} />
+
+      <Route path="/series/:titleSlug" component={SeriesDetailsPage} />
 
       {/*
         Calendar

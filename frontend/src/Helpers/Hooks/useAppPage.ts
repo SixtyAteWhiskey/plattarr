@@ -7,6 +7,7 @@ import { fetchTranslations } from 'Store/Actions/appActions';
 import { fetchCustomFilters } from 'Store/Actions/customFilterActions';
 import { fetchMovies } from 'Store/Actions/movieActions';
 import { fetchMovieCollections } from 'Store/Actions/movieCollectionActions';
+import { fetchSeries } from 'Store/Actions/seriesActions';
 import {
   fetchImportLists,
   fetchIndexerFlags,
@@ -21,6 +22,7 @@ const createErrorsSelector = () =>
   createSelector(
     (state: AppState) => state.movies.error,
     (state: AppState) => state.movieCollections.error,
+    (state: AppState) => state.series.error,
     (state: AppState) => state.customFilters.error,
     (state: AppState) => state.tags.error,
     (state: AppState) => state.settings.ui.error,
@@ -33,6 +35,7 @@ const createErrorsSelector = () =>
     (
       moviesError,
       movieCollectionsError,
+      seriesError,
       customFiltersError,
       tagsError,
       uiSettingsError,
@@ -46,6 +49,7 @@ const createErrorsSelector = () =>
       const hasError = !!(
         moviesError ||
         movieCollectionsError ||
+        seriesError ||
         customFiltersError ||
         tagsError ||
         uiSettingsError ||
@@ -62,6 +66,7 @@ const createErrorsSelector = () =>
         errors: {
           moviesError,
           movieCollectionsError,
+          seriesError,
           customFiltersError,
           tagsError,
           uiSettingsError,
@@ -85,6 +90,7 @@ const useAppPage = () => {
     (state: AppState) =>
       state.movies.isPopulated &&
       state.movieCollections.isPopulated &&
+      state.series.isPopulated &&
       state.customFilters.isPopulated &&
       state.tags.isPopulated &&
       state.settings.ui.isPopulated &&
@@ -114,6 +120,7 @@ const useAppPage = () => {
   useEffect(() => {
     dispatch(fetchMovies());
     dispatch(fetchMovieCollections());
+    dispatch(fetchSeries());
     dispatch(fetchCustomFilters());
     dispatch(fetchTags());
     dispatch(fetchQualityProfiles());
