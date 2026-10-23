@@ -6,7 +6,6 @@ using NUnit.Framework;
 using NzbDrone.Common.Disk;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
-using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Parser.Model;
@@ -233,11 +232,13 @@ namespace NzbDrone.Core.Test.TvTests.Import
             Subject.ImportBlocked(_trackedDownload);
 
             Mocker.GetMock<IEventAggregator>()
-                  .Verify(e => e.PublishEvent(It.Is<ManualInteractionRequiredEvent>(m =>
-                      m.Kind == MediaKind.Tv &&
-                      m.TrackedDownload == _trackedDownload &&
-                      ((TvNotificationData)m.Data).Series == _series &&
-                      ((TvNotificationData)m.Data).Release.Indexer == "MyIndexer")), Times.Once());
+                  .Verify(
+                      e => e.PublishEvent(It.Is<ManualInteractionRequiredEvent>(m =>
+                          m.Kind == MediaKind.Tv &&
+                          m.TrackedDownload == _trackedDownload &&
+                          ((TvNotificationData)m.Data).Series == _series &&
+                          ((TvNotificationData)m.Data).Release.Indexer == "MyIndexer")),
+                      Times.Once());
         }
 
         [Test]
