@@ -69,6 +69,11 @@ namespace NzbDrone.Core.Notifications.Webhook
             _proxy.SendWebhook(BuildManualInteractionRequiredPayload(message), Settings);
         }
 
+        public override void OnImportComplete(ImportCompleteMessage message)
+        {
+            _proxy.SendWebhook(BuildOnImportCompletePayload(message), Settings);
+        }
+
         public override string Name => "Webhook";
 
         public override ValidationResult Test()
@@ -84,7 +89,10 @@ namespace NzbDrone.Core.Notifications.Webhook
         {
             try
             {
-                _proxy.SendWebhook(BuildTestPayload(), Settings);
+                foreach (var payload in BuildTestPayloads())
+                {
+                    _proxy.SendWebhook(payload, Settings);
+                }
             }
             catch (WebhookException ex)
             {

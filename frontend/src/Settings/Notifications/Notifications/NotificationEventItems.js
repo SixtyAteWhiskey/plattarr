@@ -27,6 +27,7 @@ function NotificationEventItems(props) {
     onHealthRestored,
     onApplicationUpdate,
     onManualInteractionRequired,
+    onImportComplete,
     supportsOnGrab,
     supportsOnDownload,
     supportsOnUpgrade,
@@ -37,6 +38,7 @@ function NotificationEventItems(props) {
     supportsOnMovieFileDeleteForUpgrade,
     supportsOnApplicationUpdate,
     supportsOnManualInteractionRequired,
+    supportsOnImportComplete,
     supportsOnHealthIssue,
     supportsOnHealthRestored,
     includeHealthWarnings
@@ -199,6 +201,17 @@ function NotificationEventItems(props) {
               helpText={translate('OnManualInteractionRequired')}
               isDisabled={!supportsOnManualInteractionRequired.value}
               {...onManualInteractionRequired}
+              onChange={onInputChange}
+            />
+          </div>
+
+          <div>
+            <FormInputGroup
+              type={inputTypes.CHECK}
+              name="onImportComplete"
+              helpText={translate('OnImportComplete')}
+              isDisabled={!supportsOnImportComplete.value}
+              {...onImportComplete}
               onChange={onInputChange}
             />
           </div>

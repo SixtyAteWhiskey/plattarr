@@ -901,3 +901,121 @@
   "instanceName": "Plattarr-golden",
   "applicationUrl": "http://golden:7880"
 }
+=====
+{
+  "series": {
+    "id": 1,
+    "title": "Game of Thrones",
+    "titleSlug": "game-of-thrones",
+    "path": "/tv/Game of Thrones",
+    "tvdbId": 121361,
+    "tvMazeId": 82,
+    "tmdbId": 1399,
+    "imdbId": "tt0944947",
+    "malIds": [],
+    "aniListIds": [],
+    "type": "standard",
+    "year": 2011,
+    "genres": [
+      "Drama",
+      "Fantasy"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ],
+    "originalLanguage": {
+      "id": 14,
+      "name": "English"
+    },
+    "originalCountry": "us"
+  },
+  "episodes": [
+    {
+      "id": 101,
+      "episodeNumber": 1,
+      "seasonNumber": 1,
+      "title": "Winter Is Coming",
+      "overview": "Eddard Stark is torn between his family and an old friend.",
+      "airDate": "2011-04-17",
+      "airDateUtc": "2011-04-18T01:00:00Z",
+      "seriesId": 1,
+      "tvdbId": 3254641
+    },
+    {
+      "id": 102,
+      "episodeNumber": 2,
+      "seasonNumber": 1,
+      "title": "The Kingsroad",
+      "overview": "The Starks leave Winterfell.",
+      "airDate": "2011-04-24",
+      "airDateUtc": "2011-04-25T01:00:00Z",
+      "seriesId": 1,
+      "tvdbId": 3436411
+    }
+  ],
+  "episodeFiles": [
+    {
+      "id": 10,
+      "relativePath": "Season 01/Game of Thrones - S01E01-E02 WEBDL-1080p.mkv",
+      "path": "/tv/Game of Thrones/Season 01/Game of Thrones - S01E01-E02 WEBDL-1080p.mkv",
+      "quality": "WEBDL-1080p",
+      "qualityVersion": 2,
+      "releaseGroup": "GRP",
+      "sceneName": "Game.of.Thrones.S01E01E02.1080p.WEB-DL-GRP",
+      "size": 4294967296,
+      "dateAdded": "2026-10-02T03:04:05Z",
+      "languages": [
+        {
+          "id": 14,
+          "name": "English"
+        }
+      ],
+      "mediaInfo": {
+        "audioChannels": 6.0,
+        "audioCodec": "AC3",
+        "audioLanguages": [
+          "eng",
+          "fra"
+        ],
+        "height": 1080,
+        "width": 1920,
+        "subtitles": [
+          "eng",
+          "spa"
+        ],
+        "videoCodec": "h264",
+        "videoDynamicRange": "",
+        "videoDynamicRangeType": ""
+      }
+    }
+  ],
+  "downloadClient": "qb-main",
+  "downloadClientType": "qBittorrent",
+  "downloadId": "HASH123",
+  "release": {
+    "releaseTitle": "Game.of.Thrones.S01E01E02.1080p.WEB-DL-GRP",
+    "indexer": "Knaben",
+    "size": 4294967296,
+    "indexerFlags": [
+      "G_Freeleech"
+    ],
+    "releaseType": "multiEpisode"
+  },
+  "fileCount": 1,
+  "sourcePath": "/downloads/Game.of.Thrones.S01E01E02.1080p.WEB-DL-GRP",
+  "destinationPath": "/tv/Game of Thrones/Season 01",
+  "eventType": "Download",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}

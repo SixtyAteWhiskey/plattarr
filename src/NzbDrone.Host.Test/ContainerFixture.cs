@@ -228,6 +228,7 @@ namespace NzbDrone.App.Test
             _container.GetServices<IHandle<NzbDrone.Core.Tv.MediaFiles.Events.EpisodeFileDeletedEvent>>().OfType<NzbDrone.Core.Tv.Notifications.TvNotificationHandler>().Should().ContainSingle();
             _container.GetServices<IHandle<NzbDrone.Core.Tv.MediaFiles.Events.SeriesRenamedEvent>>().OfType<NzbDrone.Core.Tv.Notifications.TvNotificationHandler>().Should().ContainSingle();
             _container.GetServices<IHandle<ManualInteractionRequiredEvent>>().OfType<NzbDrone.Core.Tv.Notifications.TvNotificationHandler>().Should().ContainSingle();
+            _container.GetServices<IHandle<NzbDrone.Core.Download.DownloadCompletedEvent>>().OfType<NzbDrone.Core.Tv.Notifications.TvImportCompleteNotifier>().Should().ContainSingle();
         }
 
         [Test]

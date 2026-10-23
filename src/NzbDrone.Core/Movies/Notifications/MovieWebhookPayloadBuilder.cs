@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -131,6 +132,12 @@ namespace NzbDrone.Core.Movies.Notifications
             }
 
             return payload;
+        }
+
+        public WebhookPayload BuildImportComplete(ImportCompleteMessage message)
+        {
+            // A movie download imports one file, which OnDownload already reports.
+            throw new NotSupportedException("Movies send no import-complete event.");
         }
 
         public WebhookPayload BuildManualInteraction(ManualInteractionRequiredMessage message)

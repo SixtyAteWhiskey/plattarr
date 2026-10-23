@@ -333,6 +333,52 @@ namespace NzbDrone.Core.Test.TvTests.MediaFiles
         }
 
         [Test]
+        public void should_reprocess_a_file_whose_name_cannot_be_parsed_with_empty_parse_info_instead_of_failing()
+        {
+            var unparseable = "c:\\downloads\\video.mkv".AsOsAgnostic();
+            LocalEpisode augmented = null;
+
+            Mocker.GetMock<IAggregationService>()
+                  .Setup(s => s.Augment(It.IsAny<LocalEpisode>(), It.IsAny<DownloadClientItem>()))
+                  .Callback<LocalEpisode, DownloadClientItem>((local, item) => augmented = local)
+                  .Returns<LocalEpisode, DownloadClientItem>((local, item) => local);
+
+            Mocker.GetMock<IMakeImportDecision>()
+                  .Setup(m => m.GetDecision(It.IsAny<LocalEpisode>(), It.IsAny<DownloadClientItem>()))
+                  .Returns<LocalEpisode, DownloadClientItem>((local, item) => new ImportDecision(local));
+
+            var result = Subject.ReprocessItem(unparseable, null, 1, 1, new List<int> { 10 }, "CHOSEN", new QualityModel(Quality.Bluray1080p), new List<Language> { Language.English }, 0, ReleaseType.SingleEpisode);
+
+            augmented.FileEpisodeInfo.Should().NotBeNull();
+            augmented.FileEpisodeInfo.EpisodeNumbers.Should().BeEmpty();
+            result.Episodes.Select(e => e.Id).Should().Equal(10);
+            result.Rejections.Should().BeEmpty();
+        }
+
+        [Test]
+        public void should_use_the_parse_made_at_grab_time_for_a_tracked_download_the_client_renamed()
+        {
+            var tracked = GivenTrackedDownload("hash", _series, _episode1);
+            tracked.DownloadItem.Title = "Sintel";
+            var grabParse = new ParsedEpisodeInfo { SeriesTitle = "Show", EpisodeNumbers = new[] { 1 } };
+            tracked.RemoteRelease = new RemoteEpisode { Series = _series, Episodes = new List<Episode> { _episode1 }, ParsedEpisodeInfo = grabParse };
+            LocalEpisode augmented = null;
+
+            Mocker.GetMock<IAggregationService>()
+                  .Setup(s => s.Augment(It.IsAny<LocalEpisode>(), It.IsAny<DownloadClientItem>()))
+                  .Callback<LocalEpisode, DownloadClientItem>((local, item) => augmented = local)
+                  .Returns<LocalEpisode, DownloadClientItem>((local, item) => local);
+
+            Mocker.GetMock<IMakeImportDecision>()
+                  .Setup(m => m.GetDecision(It.IsAny<LocalEpisode>(), It.IsAny<DownloadClientItem>()))
+                  .Returns<LocalEpisode, DownloadClientItem>((local, item) => new ImportDecision(local));
+
+            Subject.ReprocessItem(_downloadFile, "hash", 1, 1, new List<int> { 10 }, null, new QualityModel(Quality.Unknown), new List<Language> { Language.Unknown }, 0, ReleaseType.SingleEpisode);
+
+            augmented.DownloadClientEpisodeInfo.Should().BeSameAs(grabParse);
+        }
+
+        [Test]
         public void should_return_no_items_for_a_download_the_client_no_longer_reports()
         {
             Mocker.GetMock<ITrackedDownloadService>().Setup(s => s.Find("gone")).Returns((TrackedDownload)null);

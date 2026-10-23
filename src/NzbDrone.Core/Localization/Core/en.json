@@ -1532,6 +1532,7 @@
   "OnGrab": "On Grab",
   "OnHealthIssue": "On Health Issue",
   "OnHealthRestored": "On Health Restored",
+  "OnImportComplete": "On Import Complete",
   "OnLatestVersion": "The latest version of {appName} is already installed",
   "OnManualInteractionRequired": "On Manual Interaction Required",
   "OnManualInteractionRequiredHelpText": "On Manual Interaction Required",

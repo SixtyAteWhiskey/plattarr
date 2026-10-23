@@ -96,11 +96,16 @@ namespace NzbDrone.Core.Notifications.Webhook
             return Stamp(BuilderFor(message.Data).BuildManualInteraction(message));
         }
 
-        // Which module's test payload "Test" sends is arbitrary; Movies is the only module in Phase 1 and
-        // the first by kind after that.
-        protected WebhookPayload BuildTestPayload()
+        protected WebhookPayload BuildOnImportCompletePayload(ImportCompleteMessage message)
         {
-            return Stamp(_payloadBuilders.OrderBy(b => b.Kind).First().BuildTest());
+            return Stamp(BuilderFor(message.Data).BuildImportComplete(message));
+        }
+
+        // One test payload per module, in kind order, so a receiver written for any module's shape sees
+        // one it can parse. "Test" fails if any of them is refused.
+        protected List<WebhookPayload> BuildTestPayloads()
+        {
+            return _payloadBuilders.OrderBy(b => b.Kind).Select(b => Stamp(b.BuildTest())).ToList();
         }
 
         private IWebhookPayloadBuilder BuilderFor(IMediaNotificationData data)

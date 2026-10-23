@@ -54,6 +54,11 @@ namespace NzbDrone.Core.Tv.Notifications
             return $"{series.Title} - {episodes[0].SeasonNumber}{episodeNumbers} - {episodeTitles} [{qualityString}]";
         }
 
+        public static string GetFullSeasonMessage(Series series, int seasonNumber, QualityModel quality)
+        {
+            return $"{series.Title} - Season {seasonNumber} [{GetQualityString(series, quality)}]";
+        }
+
         private static string GetQualityString(Series series, QualityModel quality)
         {
             var qualityString = quality.Quality.ToString();

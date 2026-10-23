@@ -246,6 +246,7 @@ namespace NzbDrone.Core.Test.NotificationTests
             public void MediaFileDelete(MediaFileDeleteMessage message) => _provider.OnMediaFileDelete(message);
             public void MediaDelete(MediaDeleteMessage message) => _provider.OnMediaDelete(message);
             public void ManualInteractionRequired(ManualInteractionRequiredMessage message) => _provider.OnManualInteractionRequired(message);
+            public void ImportComplete(ImportCompleteMessage message) => _provider.OnImportComplete(message);
         }
 
         // Publishes every movie event the handler turns into a notification.

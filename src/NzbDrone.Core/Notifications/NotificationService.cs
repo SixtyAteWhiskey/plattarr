@@ -83,6 +83,7 @@ namespace NzbDrone.Core.Notifications
                 NotificationEvent.MediaFileDelete => _notificationFactory.OnMovieFileDeleteEnabled().Any(),
                 NotificationEvent.MediaDelete => _notificationFactory.OnMovieDeleteEnabled().Any(),
                 NotificationEvent.ManualInteractionRequired => _notificationFactory.OnManualInteractionEnabled().Any(),
+                NotificationEvent.ImportComplete => _notificationFactory.OnImportCompleteEnabled().Any(),
                 _ => false
             };
         }
@@ -190,6 +191,28 @@ namespace NzbDrone.Core.Notifications
                 {
                     _notificationStatusService.RecordFailure(notification.Definition.Id);
                     _logger.Error(ex, "Unable to send OnManualInteractionRequired notification to {0}", notification.Definition.Name);
+                }
+            }
+        }
+
+        public void ImportComplete(ImportCompleteMessage message)
+        {
+            foreach (var notification in _notificationFactory.OnImportCompleteEnabled())
+            {
+                try
+                {
+                    if (!ShouldHandle(notification.Definition, message.Subject))
+                    {
+                        continue;
+                    }
+
+                    notification.OnImportComplete(message);
+                    _notificationStatusService.RecordSuccess(notification.Definition.Id);
+                }
+                catch (Exception ex)
+                {
+                    _notificationStatusService.RecordFailure(notification.Definition.Id);
+                    _logger.Warn(ex, "Unable to send OnImportComplete notification to: " + notification.Definition.Name);
                 }
             }
         }

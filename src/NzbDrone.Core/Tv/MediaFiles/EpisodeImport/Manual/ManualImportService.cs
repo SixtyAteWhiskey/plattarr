@@ -157,7 +157,8 @@ namespace NzbDrone.Core.Tv.MediaFiles.EpisodeImport.Manual
 
             if (episodeIds.Any())
             {
-                var downloadClientItem = GetTrackedDownload(downloadId)?.DownloadItem;
+                var trackedDownload = GetTrackedDownload(downloadId);
+                var downloadClientItem = trackedDownload?.DownloadItem;
                 var episodes = _episodeService.GetEpisodes(episodeIds);
                 var finalReleaseGroup = releaseGroup.IsNullOrWhiteSpace()
                     ? Parser.ReleaseGroupParser.ParseReleaseGroup(path)
@@ -171,8 +172,12 @@ namespace NzbDrone.Core.Tv.MediaFiles.EpisodeImport.Manual
                 var localEpisode = new LocalEpisode();
                 localEpisode.Series = series;
                 localEpisode.Episodes = episodes;
-                localEpisode.FileEpisodeInfo = Parser.Parser.ParsePath(path);
-                localEpisode.DownloadClientEpisodeInfo = downloadClientItem == null ? null : Parser.Parser.ParseTitle(downloadClientItem.Title);
+
+                // The aggregation refuses a media file with no parse info at all, which is what a file whose name
+                // cannot be parsed has. Execute starts from an empty one for the same reason; so does this, or
+                // reprocessing the file the user is fixing would fail. Sonarr fails here.
+                localEpisode.FileEpisodeInfo = Parser.Parser.ParsePath(path) ?? new ParsedEpisodeInfo();
+                localEpisode.DownloadClientEpisodeInfo = DownloadClientInfo(trackedDownload);
                 localEpisode.DownloadItem = downloadClientItem;
                 localEpisode.Path = path;
                 localEpisode.SceneSource = SceneSource(series, rootFolder);
@@ -206,16 +211,15 @@ namespace NzbDrone.Core.Tv.MediaFiles.EpisodeImport.Manual
 
             if (seasonNumber.HasValue)
             {
-                var downloadClientItem = GetTrackedDownload(downloadId)?.DownloadItem;
+                var trackedDownload = GetTrackedDownload(downloadId);
+                var downloadClientItem = trackedDownload?.DownloadItem;
 
                 var localEpisode = new LocalEpisode
                 {
                     Series = series,
                     Episodes = new List<Episode>(),
                     FileEpisodeInfo = Parser.Parser.ParsePath(path),
-                    DownloadClientEpisodeInfo = downloadClientItem == null
-                        ? null
-                        : Parser.Parser.ParseTitle(downloadClientItem.Title),
+                    DownloadClientEpisodeInfo = DownloadClientInfo(trackedDownload),
                     DownloadItem = downloadClientItem,
                     Path = path,
                     SceneSource = SceneSource(series, rootFolder),
@@ -398,6 +402,19 @@ namespace NzbDrone.Core.Tv.MediaFiles.EpisodeImport.Manual
         private bool SceneSource(Series series, string folder)
         {
             return !(series.Path.PathEquals(folder) || series.Path.IsParentPath(folder));
+        }
+
+        // The parse Plattarr made when it grabbed the release is a better source for a tracked download than the
+        // name the client gave the item, which can be anything (a torrent's own name, say). Sonarr parses the
+        // client's title here, so a release it grabbed but the client renamed cannot be reprocessed.
+        private static ParsedEpisodeInfo DownloadClientInfo(TrackedDownload trackedDownload)
+        {
+            if (trackedDownload == null)
+            {
+                return null;
+            }
+
+            return trackedDownload.GetRemoteEpisode()?.ParsedEpisodeInfo ?? Parser.Parser.ParseTitle(trackedDownload.DownloadItem.Title);
         }
 
         private TrackedDownload GetTrackedDownload(string downloadId)

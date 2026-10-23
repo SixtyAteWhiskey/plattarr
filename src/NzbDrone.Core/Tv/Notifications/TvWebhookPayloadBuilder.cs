@@ -126,6 +126,26 @@ namespace NzbDrone.Core.Tv.Notifications
             };
         }
 
+        public WebhookPayload BuildImportComplete(ImportCompleteMessage message)
+        {
+            var data = (TvNotificationData)message.Data;
+            var files = data.EpisodeFiles;
+
+            return new WebhookImportCompletePayload
+            {
+                EventType = WebhookEventType.Download,
+                Series = GetSeries(data.Series),
+                Episodes = data.Episodes.ConvertAll(x => new WebhookEpisode(x)),
+                EpisodeFiles = files.ConvertAll(x => new WebhookEpisodeFile(x)),
+                Release = new WebhookGrabbedRelease(data.Release, files[0].IndexerFlags, files[0].ReleaseType),
+                DownloadClient = message.DownloadClientInfo?.Name,
+                DownloadClientType = message.DownloadClientInfo?.Type,
+                DownloadId = message.DownloadId,
+                SourcePath = message.SourcePath,
+                DestinationPath = message.DestinationPath
+            };
+        }
+
         public WebhookPayload BuildManualInteraction(ManualInteractionRequiredMessage message)
         {
             var data = (TvNotificationData)message.Data;
