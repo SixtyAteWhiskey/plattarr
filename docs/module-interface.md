@@ -1630,6 +1630,101 @@ Results (Release, full solution builds with 0 warnings): Core 7,255 passed and 2
 656, Host 31, Api 38, 0 failed; Core `DbTest` on PostgreSQL 16: 444 passed, 0 failed.
 
 
+### TV step 5: as built
+
+Built in session 40 against Sonarr `b3d4bb8`. One migration (006), four tables. Calls made while
+building (each is reversible):
+
+- **Shared helpers moved to the core.** Both modules need the recycle bin and the cover plumbing, so
+  these moved out of `Movies` with `git mv` and kept their code: `RecycleBinProvider` (and its
+  exception), `MediaFileAttributeService`, `RootFolderNotFoundException`, `CleanUpRecycleBinCommand`
+  (`NzbDrone.Core.MediaFiles`), `ImageResizer`, `MediaCoverProxy` and
+  `CoverAlreadyExistsSpecification` (`NzbDrone.Core.MediaCover`). The recycle bin cleanup is still
+  scheduled by the movie module; a TV-only install would not run it. Move the schedule to the core
+  when the core owns scheduled tasks (owed).
+- **Contract 5 grew two members, both for Sonarr behavior.** `IImportResult.BlocksAutomaticImport`
+  (TV: a multi-season release; movies: never) and `IDownloadImporter.BlocksImportAfterRejection` (TV:
+  true, Sonarr's rule that one rejected result moves the download to `ImportBlocked`; movies:
+  false, Radarr's). `CompletedDownloadService` reads both; nothing else in the core knows either
+  module's rejection reasons. `FailDownloads` gained `UserDefinedExtensions` (value 2), mapped from
+  the TV `UserRejectedExtension` reason through `IImportResult.FailsDownloadAs`.
+- **The TV importer is Sonarr's `CompletedDownloadService` split at the seam.** `Tv.Import`:
+  `TvDownloadImporter` (`Check`: grab history, then the title, then the series on the grab; a match
+  made by ID outside an interactive search blocks, as Sonarr; `Import`: `ProcessPath` with the
+  matched series; `IsImported`: imported episode count against the release, then the history check)
+  and `TrackedDownloadAlreadyImported`. `Tv.Downloads`: `TvTrackedDownloadMatcher` (the series half
+  of Sonarr's `TrackedDownloadService.TrackDownload`, same order: title, then history, then the
+  special-episode parse) and `TvTrackedDownloadRefresher` (the library event handlers that
+  Sonarr had inside the tracked download service). `ManualInteractionRequiredEvent` carries a new
+  `Tv.Notifications.TvNotificationData` (series, remote episode, grabbed release); the TV
+  notification builders are step 6.
+- **Sonarr's import code is ported, not rewritten.** `Tv.MediaFiles`: `DiskScanService`,
+  `DownloadedEpisodesImportService`, `DownloadedEpisodesCommandService`, `EpisodeFileMovingService`,
+  `MediaFileService`, `MediaFileDeletionService`, `MediaFileTableCleanupService`,
+  `RenameEpisodeFileService`, `UpdateEpisodeFileService`, `UpgradeMediaFileService`, the script
+  import decider, and `EpisodeImport` (decision maker, 16 specifications, aggregators and
+  augmenters, `ImportApprovedEpisodes`, sample detection, `RejectedFileExtensionService`).
+  `LocalEpisode` is in `Tv.Parser.Model`. `Tv.Organizer.FileNameBuilder` is Sonarr's with all
+  episode tokens, multi-episode styles and the naming validators; `Tv.Extras` has the extra file
+  service, subtitles, other extras and the Kodi/XBMC consumer.
+- **Moves are limited to files that diff clean.** Sonarr's `EpisodeFileMovingService` and
+  `UpdateEpisodeFileService` are unchanged apart from namespaces and the config keys below.
+- **Config keys.** `EpisodeTitleRequired` (`Always`, `BulkSeasonReleases`, `Never`; default
+  `Always`), `UserRejectedExtensions` (default empty) and `EpisodeFileDate` (`None`, `LocalAirDate`,
+  `UtcAirDate`; default `None`) are new `IConfigService` members. The movie module's `FileDate`
+  keeps its own enum, so TV did not reuse the key.
+- **Command names stay unique.** The command queue and the API look a command up by its type name
+  without `Command`, so a second `RenameFilesCommand` would resolve to the movie one. TV's is
+  `RenameEpisodeFilesCommand`. `CommandNamesFixture` fails the build if any two commands share a name.
+- **Media info is not unified.** The plan said to unify `MediaInfo`; the two modules store it as an
+  embedded document on different file tables and the TV copy reads Sonarr's fields, so each
+  module keeps its `MediaInfoModel`, `VideoFileInfoReader` and `UpdateMediaInfoService`. The cost is
+  two copies of the ffprobe call. Unify when a third module needs it or when a fix has to be made
+  twice.
+- **Quality vocabulary.** Sonarr's import code reads a source and resolution from a `Quality`;
+  Plattarr's shared `Quality` has neither, so the import code uses `TvQualityFinder` and
+  `TvQualitySource` (step 4's vocabulary) and `TvQualityFinder.ResolutionOf`.
+- **Custom formats on a file use the neutral input.** `TvCustomFormatCalculationService` gained
+  `ParseCustomFormat(LocalEpisode, fileName)` (release title is the scene name or the file's name,
+  plus group, quality, size, languages, flags, release type).
+- **Migration 006 (`tv_extras_tables`).** `Tv_Metadata` (consumer settings), `Tv_MetadataFiles`,
+  `Tv_ExtraFiles` and `Tv_SubtitleFiles`, with Sonarr's property names and `SeriesId` where Movies
+  has `MovieId`. New tables only; no row changes.
+- **Not ported, on purpose.**
+  - Manual import (`ManualImport*`): it is an API feature, so it arrives with step 7.
+  - The WDTV and Roksbox metadata consumers and `TorrentFileInfoReader`: the movie module has
+    neither, and nothing in the import path uses them.
+  - Sonarr's "download client reports a rejected file" path in `CompletedDownloadService`
+    (`ProcessRejectedDownloadClientFiles`, which needs `IDownloadClient.GetFiles`). A download
+    whose only file is rejected by extension and which the folder scan does not see ends as "No files
+    found are eligible for import", not as a failed download. Port it with the client interface
+    change when a client supports it (owed).
+- **A bug I made and caught.** A bulk unused-using clean-up applied build-log line numbers after
+  `dotnet format` had already shifted them and deleted 116 needed `using` lines in 149 files. The
+  next compile showed 259 errors, all missing namespaces; restoring each file's header from Git
+  and the Sonarr original and re-running the formatter fixed it. Rule: a script that edits by
+  reported line number must run on a log produced by the files as they are, never after another
+  tool touched them.
+
+**Tests.** Sonarr's fixtures run under `TvTests` for `MediaFiles` (disk scan, import services,
+decision maker, specifications, aggregation, moving, renaming, deletion, upgrade, media info),
+`OrganizerTests` (file name builder and folders), `Extras` and `Download`. New fixtures:
+`TvDownloadImporterFixture` (check, import, imported judgment, blocked notification),
+`TvImportResultContractFixture`, `TvTrackedDownloadMatcherFixture` (Sonarr's tracked download
+tests plus ambiguity, failure and rematch), `TvTrackedDownloadRefresherFixture`,
+`TvExtraFileRepositoryFixture` (a round trip through each new table), migration 006,
+`CommandNamesFixture`, and four Host container tests that resolve the TV importer, matcher,
+media file services and command executors.
+
+**Mutation checks.** Seven mutations of the importer, refresher, result mapping, matcher and table
+map; the first run left one alive (the matcher's series lookup for an already imported download:
+the test mocked `Map` for any series). The test now requires the series with the history's
+parent ID and the mutation is killed.
+
+Results (Release, full solution builds with 0 warnings): Core 8,165 passed and 29 skipped, Common
+656, Host 35, Api 38, 0 failed; Core `DbTest` on PostgreSQL 16: 458 passed, 1 skipped, 0 failed (`DbTest` and `DbMigrationTest`).
+
+
 ## Decision record
 
 Owner answers, 2026-10-20, to the six questions in revision 1:
