@@ -5,18 +5,22 @@ namespace NzbDrone.Common.Cloud
     public interface ISonarrCloudRequestBuilder
     {
         IHttpRequestBuilderFactory Services { get; }
+        IHttpRequestBuilderFactory SkyHookTvdb { get; }
     }
 
-    // The TV module's scene mappings come from the Sonarr project's public data service
-    // (docs/module-interface.md, TV step 2). The metadata endpoint arrives with the metadata step.
     public class SonarrCloudRequestBuilder : ISonarrCloudRequestBuilder
     {
         public SonarrCloudRequestBuilder()
         {
             Services = new HttpRequestBuilder("https://services.sonarr.tv/v1/")
                 .CreateFactory();
+
+            SkyHookTvdb = new HttpRequestBuilder("https://skyhook.sonarr.tv/v2/tvdb/{route}/")
+                .CreateFactory();
         }
 
         public IHttpRequestBuilderFactory Services { get; }
+
+        public IHttpRequestBuilderFactory SkyHookTvdb { get; }
     }
 }
