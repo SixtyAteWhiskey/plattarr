@@ -6,6 +6,7 @@ using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.Messaging;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Tv.AutoTagging;
 using NzbDrone.Core.Tv.Commands;
 using NzbDrone.Core.Tv.Events;
 using NzbDrone.Core.Tv.Parser;
@@ -37,6 +38,7 @@ namespace NzbDrone.Core.Tv
         Series UpdateSeries(Series series, string sourcePath, string destinationPath, bool moveFiles);
         bool SeriesPathExists(string folder);
         void RemoveAddOptions(Series series);
+        bool UpdateAutoTaggingTags(Series series);
         void UpdateTags(List<Series> series);
     }
 
@@ -47,6 +49,7 @@ namespace NzbDrone.Core.Tv
         private readonly IEpisodeService _episodeService;
         private readonly IBuildSeriesPaths _seriesPathBuilder;
         private readonly IManageCommandQueue _commandQueueManager;
+        private readonly IAutoTaggingService _autoTaggingService;
         private readonly Logger _logger;
 
         public SeriesService(ISeriesRepository seriesRepository,
@@ -54,6 +57,7 @@ namespace NzbDrone.Core.Tv
                              IEpisodeService episodeService,
                              IBuildSeriesPaths seriesPathBuilder,
                              IManageCommandQueue commandQueueManager,
+                             IAutoTaggingService autoTaggingService,
                              Logger logger)
         {
             _seriesRepository = seriesRepository;
@@ -61,6 +65,7 @@ namespace NzbDrone.Core.Tv
             _episodeService = episodeService;
             _seriesPathBuilder = seriesPathBuilder;
             _commandQueueManager = commandQueueManager;
+            _autoTaggingService = autoTaggingService;
             _logger = logger;
         }
 
@@ -226,6 +231,7 @@ namespace NzbDrone.Core.Tv
 
             // Never update AddOptions when updating a series, keep it the same as the existing stored series.
             series.AddOptions = storedSeries.AddOptions;
+            UpdateAutoTaggingTags(series);
 
             var updatedSeries = _seriesRepository.Update(series);
             if (publishUpdatedEvent)
@@ -279,6 +285,8 @@ namespace NzbDrone.Core.Tv
                 {
                     _logger.Trace("Not changing path for: {0}", s.Title);
                 }
+
+                UpdateAutoTaggingTags(s);
             }
 
             _seriesRepository.UpdateMany(series);
@@ -408,6 +416,44 @@ namespace NzbDrone.Core.Tv
         public void RemoveAddOptions(Series series)
         {
             _seriesRepository.SetFields(series, s => s.AddOptions);
+        }
+
+        public bool UpdateAutoTaggingTags(Series series)
+        {
+            _logger.Trace("Updating tags for {0}", series);
+
+            var tagsAdded = new HashSet<int>();
+            var tagsRemoved = new HashSet<int>();
+            var changes = _autoTaggingService.GetTagChanges(series);
+
+            foreach (var tag in changes.TagsToRemove)
+            {
+                if (series.Tags.Contains(tag))
+                {
+                    series.Tags.Remove(tag);
+                    tagsRemoved.Add(tag);
+                }
+            }
+
+            foreach (var tag in changes.TagsToAdd)
+            {
+                if (!series.Tags.Contains(tag))
+                {
+                    series.Tags.Add(tag);
+                    tagsAdded.Add(tag);
+                }
+            }
+
+            if (tagsAdded.Any() || tagsRemoved.Any())
+            {
+                _logger.Debug("Updated tags for '{0}'. Added: {1}, Removed: {2}", series.Title, tagsAdded.Count, tagsRemoved.Count);
+
+                return true;
+            }
+
+            _logger.Debug("Tags not updated for '{0}'", series.Title);
+
+            return false;
         }
 
         public void UpdateTags(List<Series> series)

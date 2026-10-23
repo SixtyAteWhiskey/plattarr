@@ -8,6 +8,7 @@ using NzbDrone.Core.Datastore.Events;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Movies.AutoTagging;
 using NzbDrone.Core.Tags;
+using NzbDrone.Core.Tv.AutoTagging;
 using NzbDrone.SignalR;
 using Radarr.Http;
 using Radarr.Http.REST;
@@ -18,7 +19,8 @@ namespace Radarr.Api.V3.Tags
     [V3ApiController]
     public class TagController : RestControllerWithSignalR<TagResource, Tag>,
                                  IHandle<TagsUpdatedEvent>,
-                                 IHandle<AutoTagsUpdatedEvent>
+                                 IHandle<AutoTagsUpdatedEvent>,
+                                 IHandle<SeriesAutoTagsUpdatedEvent>
     {
         private readonly ITagService _tagService;
 
@@ -77,6 +79,12 @@ namespace Radarr.Api.V3.Tags
 
         [NonAction]
         public void Handle(AutoTagsUpdatedEvent message)
+        {
+            BroadcastResourceChange(ModelAction.Sync);
+        }
+
+        [NonAction]
+        public void Handle(SeriesAutoTagsUpdatedEvent message)
         {
             BroadcastResourceChange(ModelAction.Sync);
         }

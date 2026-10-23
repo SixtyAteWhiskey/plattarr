@@ -19,6 +19,10 @@ namespace NzbDrone.Core.Test.TvTests.SeriesServiceTests
         [SetUp]
         public void Setup()
         {
+            Mocker.GetMock<NzbDrone.Core.Tv.AutoTagging.IAutoTaggingService>()
+                .Setup(a => a.GetTagChanges(It.IsAny<Series>()))
+                .Returns(new NzbDrone.Core.Tv.AutoTagging.AutoTaggingChanges());
+
             _series = Builder<Series>.CreateNew()
                 .With(s => s.Path = @"C:\Test\source".AsOsAgnostic())
                 .With(s => s.PendingPath = null)

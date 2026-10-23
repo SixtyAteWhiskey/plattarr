@@ -7,7 +7,7 @@ namespace NzbDrone.Core.Tags
     // importer remaps the same column in the same tables. A test compares the list
     // with the mapped entities, so a new tag-using table cannot be forgotten.
     //
-    // AutoTagging also holds tag IDs inside its TagSpecification values; that is not
+    // AutoTagging and Tv_AutoTagging also hold tag IDs inside their TagSpecification values; that is not
     // a Tags column and is handled separately by both readers.
     public static class TagUsage
     {
@@ -15,6 +15,7 @@ namespace NzbDrone.Core.Tags
         {
             "Movies_Movies",
             "Tv_Series",
+            "Tv_AutoTagging",
             "Notifications",
             "DelayProfiles",
             "ReleaseProfiles",

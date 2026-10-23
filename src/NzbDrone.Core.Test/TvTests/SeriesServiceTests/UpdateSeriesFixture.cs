@@ -17,6 +17,10 @@ namespace NzbDrone.Core.Test.TvTests.SeriesServiceTests
         [SetUp]
         public void Setup()
         {
+            Mocker.GetMock<NzbDrone.Core.Tv.AutoTagging.IAutoTaggingService>()
+                .Setup(a => a.GetTagChanges(It.IsAny<Series>()))
+                .Returns(new NzbDrone.Core.Tv.AutoTagging.AutoTaggingChanges());
+
             _fakeSeries = Builder<Series>.CreateNew().Build();
             _existingSeries = Builder<Series>.CreateNew().Build();
 

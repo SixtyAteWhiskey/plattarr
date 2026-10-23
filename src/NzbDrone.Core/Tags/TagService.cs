@@ -41,6 +41,7 @@ namespace NzbDrone.Core.Tags
         private readonly IIndexerProxyFactory _indexerProxyFactory;
         private readonly IAutoTaggingService _autoTaggingService;
         private readonly IDownloadClientFactory _downloadClientFactory;
+        private readonly IEnumerable<IAutoTagUsageSource> _autoTagUsageSources;
 
         public TagService(ITagRepository repo,
                           IEventAggregator eventAggregator,
@@ -52,7 +53,8 @@ namespace NzbDrone.Core.Tags
                           IIndexerFactory indexerService,
                           IIndexerProxyFactory indexerProxyFactory,
                           IAutoTaggingService autoTaggingService,
-                          IDownloadClientFactory downloadClientFactory)
+                          IDownloadClientFactory downloadClientFactory,
+                          IEnumerable<IAutoTagUsageSource> autoTagUsageSources)
         {
             _repo = repo;
             _eventAggregator = eventAggregator;
@@ -65,6 +67,7 @@ namespace NzbDrone.Core.Tags
             _indexerProxyFactory = indexerProxyFactory;
             _autoTaggingService = autoTaggingService;
             _downloadClientFactory = downloadClientFactory;
+            _autoTagUsageSources = autoTagUsageSources;
         }
 
         public Tag GetTag(int tagId)
@@ -116,6 +119,7 @@ namespace NzbDrone.Core.Tags
                 IndexerIds = indexers.Select(c => c.Id).ToList(),
                 IndexerProxyIds = indexerProxies.Select(c => c.Id).ToList(),
                 AutoTagIds = autoTags.Select(c => c.Id).ToList(),
+                SeriesAutoTagIds = AutoTagIdsWithTag(MediaKind.Tv, tagId),
                 DownloadClientIds = downloadClients.Select(c => c.Id).ToList()
             };
         }
@@ -133,6 +137,7 @@ namespace NzbDrone.Core.Tags
             var indexerProxies = _indexerProxyFactory.All();
             var autoTags = _autoTaggingService.All();
             var downloadClients = _downloadClientFactory.All();
+            var seriesAutoTags = AutoTagUsages(MediaKind.Tv);
 
             var details = new List<TagDetails>();
 
@@ -151,6 +156,7 @@ namespace NzbDrone.Core.Tags
                     IndexerIds = indexers.Where(c => c.Tags.Contains(tag.Id)).Select(c => c.Id).ToList(),
                     IndexerProxyIds = indexerProxies.Where(c => c.Tags.Contains(tag.Id)).Select(c => c.Id).ToList(),
                     AutoTagIds = GetAutoTagIds(tag, autoTags),
+                    SeriesAutoTagIds = seriesAutoTags.Where(a => a.Uses(tag.Id)).Select(a => a.Id).ToList(),
                     DownloadClientIds = downloadClients.Where(c => c.Tags.Contains(tag.Id)).Select(c => c.Id).ToList(),
                 });
             }
@@ -205,6 +211,16 @@ namespace NzbDrone.Core.Tags
         private Dictionary<int, List<int>> AllItemTags(MediaKind kind)
         {
             return _taggedItemSources.Where(s => s.Kind == kind).SelectMany(s => s.AllItemTags()).ToDictionary(x => x.Key, x => x.Value);
+        }
+
+        private List<AutoTagUsage> AutoTagUsages(MediaKind kind)
+        {
+            return _autoTagUsageSources.Where(s => s.Kind == kind).SelectMany(s => s.All()).ToList();
+        }
+
+        private List<int> AutoTagIdsWithTag(MediaKind kind, int tagId)
+        {
+            return AutoTagUsages(kind).Where(a => a.Uses(tagId)).Select(a => a.Id).ToList();
         }
 
         private List<int> ItemsWithTag(MediaKind kind, int tagId)

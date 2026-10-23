@@ -205,6 +205,16 @@ namespace NzbDrone.Core.Tv
             }
         }
 
+        private void UpdateTags(Series series)
+        {
+            var tagsUpdated = _seriesService.UpdateAutoTaggingTags(series);
+
+            if (tagsUpdated)
+            {
+                _seriesService.UpdateSeries(series);
+            }
+        }
+
         public void Execute(RefreshSeriesCommand message)
         {
             var trigger = message.Trigger;
@@ -220,6 +230,7 @@ namespace NzbDrone.Core.Tv
                     try
                     {
                         series = RefreshSeriesInfo(seriesId);
+                        UpdateTags(series);
                         RescanSeries(series, isNew, trigger);
                     }
                     catch (SeriesNotFoundException)
@@ -233,6 +244,7 @@ namespace NzbDrone.Core.Tv
                     catch (Exception e)
                     {
                         _logger.Error(e, "Couldn't refresh info for {0}", series);
+                        UpdateTags(series);
                         RescanSeries(series, isNew, trigger);
 
                         // Mark the result as indeterminate so it's not marked as a full success,
@@ -264,11 +276,13 @@ namespace NzbDrone.Core.Tv
                             _logger.Error(e, "Couldn't refresh info for {0}", seriesLocal);
                         }
 
+                        UpdateTags(seriesLocal);
                         RescanSeries(seriesLocal, false, trigger);
                     }
                     else
                     {
                         _logger.Info("Skipping refresh of series: {0}", seriesLocal.Title);
+                        UpdateTags(seriesLocal);
                         RescanSeries(seriesLocal, false, trigger);
                     }
                 }
