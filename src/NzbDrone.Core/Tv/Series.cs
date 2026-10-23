@@ -19,6 +19,7 @@ namespace NzbDrone.Core.Tv
             Translations = new List<SeriesTranslation>();
             Seasons = new List<Season>();
             Tags = new HashSet<int>();
+            Language = Language.English;
             OriginalLanguage = Language.English;
             MalIds = new HashSet<int>();
             AniListIds = new HashSet<int>();
@@ -96,7 +97,7 @@ namespace NzbDrone.Core.Tv
             Tags = otherSeries.Tags;
             AddOptions = otherSeries.AddOptions;
 
-            Language = otherSeries.Language;
+            Language = otherSeries.Language ?? Language;
             SeasonType = otherSeries.SeasonType;
         }
     }

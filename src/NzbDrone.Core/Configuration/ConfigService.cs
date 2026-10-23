@@ -85,6 +85,12 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("AutoUnmonitorPreviouslyDownloadedMovies", value); }
         }
 
+        public bool AutoUnmonitorPreviouslyDownloadedEpisodes
+        {
+            get { return GetValueBoolean("AutoUnmonitorPreviouslyDownloadedEpisodes"); }
+            set { SetValue("AutoUnmonitorPreviouslyDownloadedEpisodes", value); }
+        }
+
         public int Retention
         {
             get { return GetValueInt("Retention", 0); }
@@ -216,6 +222,13 @@ namespace NzbDrone.Core.Configuration
             get { return GetValueBoolean("CreateEmptyMovieFolders", false); }
 
             set { SetValue("CreateEmptyMovieFolders", value); }
+        }
+
+        public bool CreateEmptySeriesFolders
+        {
+            get { return GetValueBoolean("CreateEmptySeriesFolders", false); }
+
+            set { SetValue("CreateEmptySeriesFolders", value); }
         }
 
         public bool DeleteEmptyFolders

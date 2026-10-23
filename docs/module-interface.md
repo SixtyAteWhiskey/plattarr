@@ -1456,6 +1456,72 @@ which has its own fixture) and `ParsingServiceTests` (deferred) run under
 `TvModuleFixture`. Mutation checks, each killed: removing the `[` from `RemuxRegex`, removing the
 sub-720p rule in `TvQualityFinder`, changing the task interval.
 
+### TV step 3: as built
+
+Built in session 38 against Sonarr `b3d4bb8`. No migration, no table change. Calls made while
+building (each is reversible):
+
+- **Ported into `NzbDrone.Core.Tv`**: `SeriesService`, `EpisodeService`, `AddSeriesService` and
+  `AddSeriesValidator`, `RefreshSeriesService`, `RefreshEpisodeService`, `EpisodeRefreshedService`,
+  `EpisodeMonitoredService`, `EpisodeCutoffService`, `SeriesEditedService`, `MoveSeriesService`,
+  `SeriesPathBuilder`, `SeriesAddedHandler`, `SeriesScannedHandler`, `SeriesTitleNormalizer`,
+  `SeriesTitleSlugValidator`, `SeriesTranslationService`, `ShouldRefreshSeries`, the commands
+  (`RefreshSeriesCommand`, `MoveSeriesCommand`, `BulkMoveSeriesCommand`), the events, the
+  validators and `RootFolderService`. `MetadataSource` holds `IProvideSeriesInfo`,
+  `ISearchForNewSeries`, `SearchSeriesComparer` and `SkyHook` (`SkyHookProxy` and its resources).
+  `DataAugmentation` gained `Xem` and `DailySeries`. `SeriesStats` holds the season statistics
+  query. `Parser/ParsingService` came with its tests.
+- **`ISonarrCloudRequestBuilder.SkyHookTvdb`** points at `https://skyhook.sonarr.tv/v2/tvdb/{route}/`.
+  Metadata for TV therefore comes from the Sonarr project's service (the plan's decision, as for
+  scene mappings). Series information is requested by three-letter language code, TVDB ID and
+  season type.
+- **Season statistics are a query, not a table.** `SeriesStatisticsRepository` aggregates
+  `Tv_Episodes` and `Tv_EpisodeFiles`; the raw SQL names the prefixed tables, and runs on SQLite and
+  PostgreSQL (both runs are in the test notes below). The airing columns come back as local-kind
+  dates because Sonarr parses them with `AssumeUniversal`; compare instants, not ticks.
+- **`RemoteEpisode` and `TvSearchRequest` now exist.** `RemoteEpisode` derives from `RemoteRelease`
+  (kind `Tv`, parent `Series`, item IDs the episode IDs, `Year` and `Studio` from the series).
+  `TvSearchRequest` derives from `ModuleSearchRequest` and replaces Sonarr's `SearchCriteriaBase`
+  in `ParsingService`. The search commands (`EpisodeSearchCommand`, `SeriesSearchCommand`,
+  `MissingEpisodeSearchCommand`, `CutoffUnmetEpisodeSearchCommand`, namespace `Tv.Search`) are data
+  only; their executors belong to step 4.
+- **Auto-tagging is not ported.** `SeriesService` and `RefreshSeriesService` lose Sonarr's
+  `IAutoTaggingService` calls; `UpdateTags(List<Series>)` stays. Auto-tagging stays a
+  Movies feature until someone wires TV specifications into it; nothing in TV calls it.
+- **Interim pieces so the metadata services compile and resolve.** `DiskScanService` only checks
+  the root and series folders, creates empty folders when asked, sets permissions and publishes
+  `SeriesScannedEvent` (the real scan is step 5). `FileNameBuilder` holds the series, season and
+  folder naming only (the episode file name tokens are step 5), with `NamingConfigService`.
+  Media covers are not ported; `Series.Images` holds the remote URLs.
+- **Language default.** `Tv_Series.Language` is NOT NULL (migration 004 is shipped and is not
+  edited), and Sonarr's constructor left it unset. `Series` now defaults `Language` to English and
+  `ApplyChanges` keeps the old value when the new one is null.
+- **Config additions.** `IConfigService.AutoUnmonitorPreviouslyDownloadedEpisodes` and
+  `CreateEmptySeriesFolders` (both default false), and `CommandResult.Indeterminate` (a refresh
+  that skipped a series TheTVDB no longer has is not a full success). New helpers:
+  `NullableExtensions.NonNegative`, `SeriesNotFoundException`.
+- **Events published.** `SeriesService.AddSeries` publishes `SeriesAddedEvent`, `AddSeries(list)`
+  publishes `SeriesImportedEvent`, and `RefreshSeriesService.Execute` publishes
+  `SeriesRefreshStartingEvent` (manual flag from the command trigger). Tested with mutation checks.
+- **Scheduled tasks.** `TvModule.ScheduledTasks` now has `UpdateSceneMappingCommand` (3 h) and
+  `RefreshSeriesCommand` (12 h). **Visible effect:** `Refresh Series` appears in `system/task`.
+  With no series it makes no outbound call; XEM and scene mapping refreshes are triggered only
+  by a manual refresh or by adding or updating a series. There is no scheduled daily-series task: Sonarr loads
+  that list on demand and caches it for an hour.
+
+**Tests.** Sonarr's fixtures for the ported classes run under `NzbDrone.Core.Test/TvTests`
+(series, episode, refresh, add, move, monitored, organizer, `ParsingService`, XEM, daily series). New: `SkyHookProxyFixture` (30 cases against a recorded response in
+`Files/SkyHook/tvdb-121361-official.json`; no network), `SeriesStatisticsFixture` (4),
+`AddSeriesEventsFixture` and `RefreshSeriesStartingEventFixture` (event publishing).
+`CoreTest.UseRealHttp` now also sets the Sonarr cloud request builder. Mutation checks, each
+killed: dropping the `Monitored` filter from the next and from the previous airing column,
+hard-coding the SkyHook language code, monitoring special seasons, and deleting each of the three
+event publishers. Two checks first survived (the unmonitored episode in the airing test was
+further from now than the monitored one) and the test was changed to make them fail.
+
+Results (Release, full solution builds with 0 warnings): Core 6,688 passed and 21 skipped, Common
+656, Host 29, Api 38, 0 failed; Core `DbTest` on PostgreSQL 16: 432 passed, 0 failed.
+
 ## Decision record
 
 Owner answers, 2026-10-20, to the six questions in revision 1:
