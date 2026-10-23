@@ -3,9 +3,10 @@ import AppSectionState, {
   PagedAppSectionState,
   TableAppSectionState,
 } from 'App/State/AppSectionState';
-import History from 'typings/History';
+import History, { SeriesHistory } from 'typings/History';
 
 export type MovieHistoryAppState = AppSectionState<History>;
+export type SeriesHistoryAppState = AppSectionState<SeriesHistory>;
 
 interface HistoryAppState
   extends AppSectionState<History>,

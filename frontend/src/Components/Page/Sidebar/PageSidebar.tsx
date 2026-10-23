@@ -70,6 +70,19 @@ const LINKS: SidebarItem[] = [
   },
 
   {
+    iconName: icons.TV,
+    title: () => translate('Series'),
+    to: '/tv',
+    alias: '/series',
+    children: [
+      {
+        title: () => translate('AddNew'),
+        to: '/tv/add/new',
+      },
+    ],
+  },
+
+  {
     iconName: icons.CALENDAR,
     title: () => translate('Calendar'),
     to: '/calendar',

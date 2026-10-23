@@ -7,8 +7,13 @@ import {
   addRootFolder,
   fetchRootFolders,
 } from 'Store/Actions/rootFolderActions';
+import {
+  addTvRootFolder,
+  fetchTvRootFolders,
+} from 'Store/Actions/tvRootFolderActions';
 import createRootFoldersSelector from 'Store/Selectors/createRootFoldersSelector';
 import { EnhancedSelectInputChanged, InputChanged } from 'typings/inputs';
+import MediaKind from 'typings/MediaKind';
 import translate from 'Utilities/String/translate';
 import EnhancedSelectInput, {
   EnhancedSelectInputProps,
@@ -35,15 +40,19 @@ export interface RootFolderSelectInputProps
   includeMissingValue?: boolean;
   includeNoChange?: boolean;
   includeNoChangeDisabled?: boolean;
+  mediaKind?: MediaKind;
 }
 
 function createRootFolderOptionsSelector(
   value: string | undefined,
   includeMissingValue: boolean,
   includeNoChange: boolean,
-  includeNoChangeDisabled: boolean
+  includeNoChangeDisabled: boolean,
+  mediaKind: MediaKind
 ) {
-  return createSelector(createRootFoldersSelector(), (rootFolders) => {
+  const section = mediaKind === 'tv' ? 'tvRootFolders' : 'rootFolders';
+
+  return createSelector(createRootFoldersSelector(section), (rootFolders) => {
     const values: RootFolderSelectInputValue[] = rootFolders.items.map(
       (rootFolder) => {
         return {
@@ -103,6 +112,7 @@ function RootFolderSelectInput({
   includeMissingValue = true,
   includeNoChange = false,
   includeNoChangeDisabled = true,
+  mediaKind = 'movies',
   onChange,
   ...otherProps
 }: RootFolderSelectInputProps) {
@@ -112,7 +122,8 @@ function RootFolderSelectInput({
       value,
       includeMissingValue,
       includeNoChange,
-      includeNoChangeDisabled
+      includeNoChangeDisabled,
+      mediaKind
     )
   );
   const [isAddNewRootFolderModalOpen, setIsAddNewRootFolderModalOpen] =
@@ -134,9 +145,13 @@ function RootFolderSelectInput({
   const handleNewRootFolderSelect = useCallback(
     ({ value: newValue }: InputChanged<string>) => {
       setNewRootFolderPath(newValue);
-      dispatch(addRootFolder({ path: newValue }));
+      dispatch(
+        mediaKind === 'tv'
+          ? addTvRootFolder({ path: newValue })
+          : addRootFolder({ path: newValue })
+      );
     },
-    [setNewRootFolderPath, dispatch]
+    [setNewRootFolderPath, mediaKind, dispatch]
   );
 
   const handleAddRootFolderModalClose = useCallback(() => {
@@ -193,8 +208,8 @@ function RootFolderSelectInput({
   }, []);
 
   useEffect(() => {
-    dispatch(fetchRootFolders());
-  }, [dispatch]);
+    dispatch(mediaKind === 'tv' ? fetchTvRootFolders() : fetchRootFolders());
+  }, [mediaKind, dispatch]);
 
   return (
     <>

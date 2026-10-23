@@ -8,6 +8,7 @@ interface ErrorPageProps {
   isLocalStorageSupported: boolean;
   translationsError?: Error;
   moviesError?: Error;
+  seriesError?: Error;
   customFiltersError?: Error;
   tagsError?: Error;
   qualityProfilesError?: Error;
@@ -22,6 +23,7 @@ function ErrorPage(props: ErrorPageProps) {
     isLocalStorageSupported,
     translationsError,
     moviesError,
+    seriesError,
     customFiltersError,
     tagsError,
     qualityProfilesError,
@@ -44,6 +46,11 @@ function ErrorPage(props: ErrorPageProps) {
     errorMessage = getErrorMessage(
       moviesError,
       'Failed to load movie from API'
+    );
+  } else if (seriesError) {
+    errorMessage = getErrorMessage(
+      seriesError,
+      'Failed to load series from API'
     );
   } else if (customFiltersError) {
     errorMessage = getErrorMessage(

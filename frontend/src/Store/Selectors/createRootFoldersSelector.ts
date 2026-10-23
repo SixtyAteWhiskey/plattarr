@@ -4,10 +4,12 @@ import createSortedSectionSelector from 'Store/Selectors/createSortedSectionSele
 import RootFolder from 'typings/RootFolder';
 import sortByProp from 'Utilities/Array/sortByProp';
 
-export default function createRootFoldersSelector() {
+export default function createRootFoldersSelector(
+  section: 'rootFolders' | 'tvRootFolders' = 'rootFolders'
+) {
   return createSelector(
     createSortedSectionSelector<RootFolder, RootFolderAppState>(
-      'rootFolders',
+      section,
       sortByProp('path')
     ),
     (rootFolders: RootFolderAppState) => rootFolders

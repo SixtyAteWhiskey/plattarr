@@ -1,8 +1,10 @@
 import ModelBase from 'App/ModelBase';
 import DownloadProtocol from 'DownloadClient/DownloadProtocol';
+import Episode from 'Episode/Episode';
 import Language from 'Language/Language';
 import Movie from 'Movie/Movie';
 import { QualityModel } from 'Quality/Quality';
+import Series from 'Series/Series';
 import CustomFormat from 'typings/CustomFormat';
 
 export type QueueTrackedDownloadStatus = 'ok' | 'warning' | 'error';
@@ -44,7 +46,13 @@ interface Queue extends ModelBase {
   outputPath: string;
   movieHasFile: boolean;
   movieId?: number;
+  episodeHasFile?: boolean;
+  seriesId?: number;
+  episodeId?: number;
+  seasonNumber?: number;
   downloadClientHasPostImportCategory: boolean;
   movie?: Movie;
+  series?: Series;
+  episode?: Episode;
 }
 export default Queue;

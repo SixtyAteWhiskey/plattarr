@@ -4,8 +4,13 @@ import CalendarAppState from './CalendarAppState';
 import CaptchaAppState from './CaptchaAppState';
 import CommandAppState from './CommandAppState';
 import CustomFiltersAppState from './CustomFiltersAppState';
+import EpisodeFilesAppState from './EpisodeFilesAppState';
+import EpisodesAppState from './EpisodesAppState';
 import ExtraFilesAppState from './ExtraFilesAppState';
-import HistoryAppState, { MovieHistoryAppState } from './HistoryAppState';
+import HistoryAppState, {
+  MovieHistoryAppState,
+  SeriesHistoryAppState,
+} from './HistoryAppState';
 import InteractiveImportAppState from './InteractiveImportAppState';
 import MessagesAppState from './MessagesAppState';
 import MovieCollectionAppState from './MovieCollectionAppState';
@@ -13,13 +18,16 @@ import MovieCreditAppState from './MovieCreditAppState';
 import MovieFilesAppState from './MovieFilesAppState';
 import MoviesAppState, { MovieIndexAppState } from './MoviesAppState';
 import OAuthAppState from './OAuthAppState';
-import OrganizePreviewAppState from './OrganizePreviewAppState';
+import OrganizePreviewAppState, {
+  SeriesOrganizePreviewAppState,
+} from './OrganizePreviewAppState';
 import ParseAppState from './ParseAppState';
 import PathsAppState from './PathsAppState';
 import ProviderOptionsAppState from './ProviderOptionsAppState';
 import QueueAppState from './QueueAppState';
 import ReleasesAppState from './ReleasesAppState';
 import RootFolderAppState from './RootFolderAppState';
+import SeriesAppState, { SeriesIndexAppState } from './SeriesAppState';
 import SettingsAppState from './SettingsAppState';
 import SystemAppState from './SystemAppState';
 import TagsAppState from './TagsAppState';
@@ -85,6 +93,10 @@ interface AppState {
   captcha: CaptchaAppState;
   commands: CommandAppState;
   customFilters: CustomFiltersAppState;
+  episodeFiles: EpisodeFilesAppState;
+  episodeHistory: HistoryAppState;
+  episodes: EpisodesAppState;
+  episodesSelection: EpisodesAppState;
   extraFiles: ExtraFilesAppState;
   history: HistoryAppState;
   interactiveImport: InteractiveImportAppState;
@@ -102,9 +114,14 @@ interface AppState {
   queue: QueueAppState;
   releases: ReleasesAppState;
   rootFolders: RootFolderAppState;
+  series: SeriesAppState;
+  seriesOrganizePreview: SeriesOrganizePreviewAppState;
+  seriesHistory: SeriesHistoryAppState;
+  seriesIndex: SeriesIndexAppState;
   settings: SettingsAppState;
   system: SystemAppState;
   tags: TagsAppState;
+  tvRootFolders: RootFolderAppState;
   wanted: WantedAppState;
 }
 

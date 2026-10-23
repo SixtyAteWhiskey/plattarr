@@ -6,6 +6,10 @@ import * as captcha from './captchaActions';
 import * as commands from './commandActions';
 import * as customFilters from './customFilterActions';
 import * as discoverMovie from './discoverMovieActions';
+import * as episodes from './episodeActions';
+import * as episodeFiles from './episodeFileActions';
+import * as episodeHistory from './episodeHistoryActions';
+import * as episodesSelection from './episodeSelectionActions';
 import * as extraFiles from './extraFileActions';
 import * as history from './historyActions';
 import * as importMovie from './importMovieActions';
@@ -24,9 +28,14 @@ import * as providerOptions from './providerOptionActions';
 import * as queue from './queueActions';
 import * as releases from './releaseActions';
 import * as rootFolders from './rootFolderActions';
+import * as series from './seriesActions';
+import * as seriesHistory from './seriesHistoryActions';
+import * as seriesIndex from './seriesIndexActions';
+import * as seriesOrganizePreview from './seriesOrganizePreviewActions';
 import * as settings from './settingsActions';
 import * as system from './systemActions';
 import * as tags from './tagActions';
+import * as tvRootFolders from './tvRootFolderActions';
 import * as wanted from './wantedActions';
 
 export default [
@@ -38,6 +47,10 @@ export default [
   commands,
   customFilters,
   discoverMovie,
+  episodeFiles,
+  episodeHistory,
+  episodes,
+  episodesSelection,
   movieFiles,
   extraFiles,
   history,
@@ -56,8 +69,13 @@ export default [
   movieHistory,
   movieIndex,
   movieCredits,
+  series,
+  seriesHistory,
+  seriesIndex,
+  seriesOrganizePreview,
   settings,
   system,
   tags,
+  tvRootFolders,
   wanted
 ];

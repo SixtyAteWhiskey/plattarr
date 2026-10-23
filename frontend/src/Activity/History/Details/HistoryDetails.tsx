@@ -42,6 +42,7 @@ function HistoryDetails(props: HistoryDetailsProps) {
       indexer,
       releaseGroup,
       movieMatchType,
+      seriesMatchType,
       releaseSource,
       customFormatScore,
       nzbInfoUrl,
@@ -113,6 +114,14 @@ function HistoryDetails(props: HistoryDetailsProps) {
             descriptionClassName={styles.description}
             title={translate('MovieMatchType')}
             data={movieMatchType}
+          />
+        ) : null}
+
+        {seriesMatchType ? (
+          <DescriptionListItem
+            descriptionClassName={styles.description}
+            title={translate('SeriesMatchType')}
+            data={seriesMatchType}
           />
         ) : null}
 
@@ -244,7 +253,7 @@ function HistoryDetails(props: HistoryDetailsProps) {
     );
   }
 
-  if (eventType === 'movieFileDeleted') {
+  if (eventType === 'movieFileDeleted' || eventType === 'episodeFileDeleted') {
     const { reason, customFormatScore, size } = data as MovieFileDeletedHistory;
 
     let reasonMessage = '';
@@ -254,7 +263,10 @@ function HistoryDetails(props: HistoryDetailsProps) {
         reasonMessage = translate('DeletedReasonManual');
         break;
       case 'MissingFromDisk':
-        reasonMessage = translate('DeletedReasonMovieMissingFromDisk');
+        reasonMessage =
+          eventType === 'episodeFileDeleted'
+            ? translate('DeletedReasonEpisodeMissingFromDisk')
+            : translate('DeletedReasonMovieMissingFromDisk');
         break;
       case 'Upgrade':
         reasonMessage = translate('DeletedReasonUpgrade');
@@ -286,7 +298,7 @@ function HistoryDetails(props: HistoryDetailsProps) {
     );
   }
 
-  if (eventType === 'movieFileRenamed') {
+  if (eventType === 'movieFileRenamed' || eventType === 'episodeFileRenamed') {
     const { sourcePath, sourceRelativePath, path, relativePath } =
       data as MovieFileRenamedHistory;
 
