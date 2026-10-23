@@ -1,13 +1,24 @@
 import { useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import AddSeries from 'AddSeries/AddSeries';
-import { AddSeriesOptions } from 'AddSeries/addSeriesOptionsStore';
 import useApiMutation from 'Helpers/Hooks/useApiMutation';
 import useApiQuery from 'Helpers/Hooks/useApiQuery';
-import Series from 'Series/Series';
+import Series, { SeriesMonitor, SeriesType } from 'Series/Series';
 import { updateItem } from 'Store/Actions/baseActions';
 
-type AddSeriesPayload = AddSeries & AddSeriesOptions;
+type AddSeriesPayload = AddSeries & {
+  rootFolderPath: string;
+  qualityProfileId: number;
+  seriesType: SeriesType;
+  seasonFolder: boolean;
+  tags: number[];
+  monitored: boolean;
+  addOptions: {
+    monitor: SeriesMonitor;
+    searchForMissingEpisodes: boolean;
+    searchForCutoffUnmetEpisodes: boolean;
+  };
+};
 
 export const useLookupSeries = (query: string) => {
   return useApiQuery<AddSeries[]>({
