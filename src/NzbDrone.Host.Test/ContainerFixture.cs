@@ -201,6 +201,15 @@ namespace NzbDrone.App.Test
         }
 
         [Test]
+        public void should_resolve_the_tv_extra_file_controller_and_its_three_services()
+        {
+            _container.GetRequiredService<NzbDrone.Core.Tv.Extras.Files.IExtraFileService<NzbDrone.Core.Tv.Extras.Subtitles.SubtitleFile>>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Tv.Extras.Files.IExtraFileService<NzbDrone.Core.Tv.Extras.Metadata.Files.MetadataFile>>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Tv.Extras.Files.IExtraFileService<NzbDrone.Core.Tv.Extras.Others.OtherExtraFile>>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Tv.ExtraFiles.TvExtraFileController>().Should().NotBeNull();
+        }
+
+        [Test]
         public void should_resolve_one_tagged_item_source_per_module_and_the_tag_service()
         {
             _container.GetServices<ITaggedItemSource>().Should().Contain(s => s.Kind == MediaKind.Movies).And.Contain(s => s.Kind == MediaKind.Tv);
