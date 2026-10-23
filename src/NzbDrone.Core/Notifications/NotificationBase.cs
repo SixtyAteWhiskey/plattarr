@@ -20,12 +20,12 @@ namespace NzbDrone.Core.Notifications
         protected const string MANUAL_INTERACTION_REQUIRED_TITLE_BRANDED = "Radarr - " + MANUAL_INTERACTION_REQUIRED_TITLE;
 
         // "Movie Grabbed", "Series Grabbed": the noun comes from the module, the rest is shared.
-        protected static string GrabbedTitle(ActivitySubject subject) => $"{subject.KindLabel} Grabbed";
-        protected static string DownloadedTitle(ActivitySubject subject) => $"{subject.KindLabel} Downloaded";
-        protected static string UpgradedTitle(ActivitySubject subject) => $"{subject.KindLabel} Upgraded";
+        protected static string GrabbedTitle(ActivitySubject subject) => $"{subject.ItemNoun} Grabbed";
+        protected static string DownloadedTitle(ActivitySubject subject) => $"{subject.ItemNoun} Downloaded";
+        protected static string UpgradedTitle(ActivitySubject subject) => $"{subject.ItemNoun} Upgraded";
         protected static string AddedTitle(ActivitySubject subject) => $"{subject.KindLabel} Added";
         protected static string DeletedTitle(ActivitySubject subject) => $"{subject.KindLabel} Deleted";
-        protected static string FileDeletedTitle(ActivitySubject subject) => $"{subject.KindLabel} File Deleted";
+        protected static string FileDeletedTitle(ActivitySubject subject) => $"{subject.ItemNoun} File Deleted";
         protected static string Branded(string title) => "Radarr - " + title;
 
         public abstract string Name { get; }

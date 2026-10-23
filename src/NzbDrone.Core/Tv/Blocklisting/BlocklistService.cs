@@ -3,16 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Download;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Tv.Events;
 using NzbDrone.Core.Tv.Parser;
 using NzbDrone.Core.Tv.Parser.Model;
 
 namespace NzbDrone.Core.Tv.Blocklisting
 {
-    // The blocklist reads and Block. The handlers that fill it from failed downloads and clear it
-    // on series delete arrive with TV step 6.
     public interface IBlocklistService
     {
         bool Blocklisted(int seriesId, ReleaseInfo release);
@@ -24,7 +25,12 @@ namespace NzbDrone.Core.Tv.Blocklisting
         void Delete(List<int> ids);
     }
 
-    public class BlocklistService : IBlocklistService
+    // Sonarr's blocklist service. A failed TV download is blocklisted for the series with the
+    // episodes it covered; the blocklist of a deleted series goes with it. The clear command is
+    // the movie module's until the TV API exists (it is a single-handler command).
+    public class BlocklistService : IBlocklistService,
+                                    IHandle<DownloadFailedEvent>,
+                                    IHandleAsync<SeriesDeletedEvent>
     {
         private readonly IBlocklistRepository _blocklistRepository;
 
@@ -110,6 +116,50 @@ namespace NzbDrone.Core.Tv.Blocklisting
         public void Delete(List<int> ids)
         {
             _blocklistRepository.DeleteMany(ids);
+        }
+
+        public void Handle(DownloadFailedEvent message)
+        {
+            if (message.Kind != MediaKind.Tv)
+            {
+                return;
+            }
+
+            var blocklist = new Blocklist
+            {
+                MediaKind = MediaKind.Tv,
+                ParentId = message.ParentId,
+                ItemIds = message.ItemIds,
+                SourceTitle = message.SourceTitle,
+                Quality = message.Quality,
+                Date = DateTime.UtcNow,
+                PublishedDate = DateTime.Parse(message.Data.GetValueOrDefault("publishedDate")),
+                Size = long.Parse(message.Data.GetValueOrDefault("size", "0")),
+                Indexer = message.Data.GetValueOrDefault("indexer"),
+                Protocol = (DownloadProtocol)Convert.ToInt32(message.Data.GetValueOrDefault("protocol")),
+                Message = message.Message,
+                Languages = message.Languages,
+                TorrentInfoHash = message.TrackedDownload?.Protocol == DownloadProtocol.Torrent
+                    ? message.TrackedDownload.DownloadItem.DownloadId
+                    : message.Data.GetValueOrDefault("torrentInfoHash", null)
+            };
+
+            if (Enum.TryParse(message.Data.GetValueOrDefault("indexerFlags"), true, out IndexerFlags flags))
+            {
+                blocklist.IndexerFlags = flags;
+            }
+
+            if (Enum.TryParse(message.Data.GetValueOrDefault("releaseType"), true, out ReleaseType releaseType))
+            {
+                blocklist.ReleaseType = releaseType;
+            }
+
+            _blocklistRepository.Insert(blocklist);
+        }
+
+        public void HandleAsync(SeriesDeletedEvent message)
+        {
+            _blocklistRepository.DeleteForSeriesIds(message.Series.Select(m => m.Id).ToList());
         }
 
         private bool SameNzb(Blocklist item, ReleaseInfo release)

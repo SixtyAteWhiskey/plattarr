@@ -1,0 +1,903 @@
+{
+  "series": {
+    "id": 1,
+    "title": "Game of Thrones",
+    "titleSlug": "game-of-thrones",
+    "path": "/tv/Game of Thrones",
+    "tvdbId": 121361,
+    "tvMazeId": 82,
+    "tmdbId": 1399,
+    "imdbId": "tt0944947",
+    "malIds": [],
+    "aniListIds": [],
+    "type": "standard",
+    "year": 2011,
+    "genres": [
+      "Drama",
+      "Fantasy"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ],
+    "originalLanguage": {
+      "id": 14,
+      "name": "English"
+    },
+    "originalCountry": "us"
+  },
+  "episodes": [
+    {
+      "id": 101,
+      "episodeNumber": 1,
+      "seasonNumber": 1,
+      "title": "Winter Is Coming",
+      "overview": "Eddard Stark is torn between his family and an old friend.",
+      "airDate": "2011-04-17",
+      "airDateUtc": "2011-04-18T01:00:00Z",
+      "seriesId": 1,
+      "tvdbId": 3254641
+    },
+    {
+      "id": 102,
+      "episodeNumber": 2,
+      "seasonNumber": 1,
+      "title": "The Kingsroad",
+      "overview": "The Starks leave Winterfell.",
+      "airDate": "2011-04-24",
+      "airDateUtc": "2011-04-25T01:00:00Z",
+      "seriesId": 1,
+      "tvdbId": 3436411
+    }
+  ],
+  "release": {
+    "quality": "WEBDL-1080p",
+    "qualityVersion": 2,
+    "releaseGroup": "GRP",
+    "releaseTitle": "Game.of.Thrones.S01E01E02.1080p.WEB-DL-GRP",
+    "indexer": "Knaben",
+    "size": 4294967296,
+    "customFormatScore": 150,
+    "customFormats": [
+      "WEB",
+      "x264"
+    ],
+    "languages": [
+      {
+        "id": 14,
+        "name": "English"
+      }
+    ],
+    "indexerFlags": []
+  },
+  "downloadClient": "qb-main",
+  "downloadClientType": "qBittorrent",
+  "downloadId": "HASH123",
+  "customFormatInfo": {
+    "customFormats": [
+      {
+        "id": 1,
+        "name": "WEB"
+      },
+      {
+        "id": 2,
+        "name": "x264"
+      }
+    ],
+    "customFormatScore": 150
+  },
+  "eventType": "Grab",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "series": {
+    "id": 1,
+    "title": "Game of Thrones",
+    "titleSlug": "game-of-thrones",
+    "path": "/tv/Game of Thrones",
+    "tvdbId": 121361,
+    "tvMazeId": 82,
+    "tmdbId": 1399,
+    "imdbId": "tt0944947",
+    "malIds": [],
+    "aniListIds": [],
+    "type": "standard",
+    "year": 2011,
+    "genres": [
+      "Drama",
+      "Fantasy"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ],
+    "originalLanguage": {
+      "id": 14,
+      "name": "English"
+    },
+    "originalCountry": "us"
+  },
+  "episodes": [
+    {
+      "id": 101,
+      "episodeNumber": 1,
+      "seasonNumber": 1,
+      "title": "Winter Is Coming",
+      "overview": "Eddard Stark is torn between his family and an old friend.",
+      "airDate": "2011-04-17",
+      "airDateUtc": "2011-04-18T01:00:00Z",
+      "seriesId": 1,
+      "tvdbId": 3254641
+    },
+    {
+      "id": 102,
+      "episodeNumber": 2,
+      "seasonNumber": 1,
+      "title": "The Kingsroad",
+      "overview": "The Starks leave Winterfell.",
+      "airDate": "2011-04-24",
+      "airDateUtc": "2011-04-25T01:00:00Z",
+      "seriesId": 1,
+      "tvdbId": 3436411
+    }
+  ],
+  "episodeFile": {
+    "id": 10,
+    "relativePath": "Season 01/Game of Thrones - S01E01-E02 WEBDL-1080p.mkv",
+    "path": "/tv/Game of Thrones/Season 01/Game of Thrones - S01E01-E02 WEBDL-1080p.mkv",
+    "quality": "WEBDL-1080p",
+    "qualityVersion": 2,
+    "releaseGroup": "GRP",
+    "sceneName": "Game.of.Thrones.S01E01E02.1080p.WEB-DL-GRP",
+    "size": 4294967296,
+    "dateAdded": "2026-10-02T03:04:05Z",
+    "languages": [
+      {
+        "id": 14,
+        "name": "English"
+      }
+    ],
+    "mediaInfo": {
+      "audioChannels": 6.0,
+      "audioCodec": "AC3",
+      "audioLanguages": [
+        "eng",
+        "fra"
+      ],
+      "height": 1080,
+      "width": 1920,
+      "subtitles": [
+        "eng",
+        "spa"
+      ],
+      "videoCodec": "h264",
+      "videoDynamicRange": "",
+      "videoDynamicRangeType": ""
+    },
+    "sourcePath": "/downloads/src.mkv"
+  },
+  "isUpgrade": false,
+  "downloadClient": "qb-main",
+  "downloadClientType": "qBittorrent",
+  "downloadId": "HASH123",
+  "customFormatInfo": {
+    "customFormats": [
+      {
+        "id": 1,
+        "name": "WEB"
+      }
+    ],
+    "customFormatScore": 75
+  },
+  "release": {
+    "releaseTitle": "Game.of.Thrones.S01E01E02.1080p.WEB-DL-GRP",
+    "indexer": "Knaben",
+    "size": 4294967296,
+    "indexerFlags": [
+      "G_Freeleech"
+    ],
+    "releaseType": "multiEpisode"
+  },
+  "eventType": "Download",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "series": {
+    "id": 1,
+    "title": "Game of Thrones",
+    "titleSlug": "game-of-thrones",
+    "path": "/tv/Game of Thrones",
+    "tvdbId": 121361,
+    "tvMazeId": 82,
+    "tmdbId": 1399,
+    "imdbId": "tt0944947",
+    "malIds": [],
+    "aniListIds": [],
+    "type": "standard",
+    "year": 2011,
+    "genres": [
+      "Drama",
+      "Fantasy"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ],
+    "originalLanguage": {
+      "id": 14,
+      "name": "English"
+    },
+    "originalCountry": "us"
+  },
+  "episodes": [
+    {
+      "id": 101,
+      "episodeNumber": 1,
+      "seasonNumber": 1,
+      "title": "Winter Is Coming",
+      "overview": "Eddard Stark is torn between his family and an old friend.",
+      "airDate": "2011-04-17",
+      "airDateUtc": "2011-04-18T01:00:00Z",
+      "seriesId": 1,
+      "tvdbId": 3254641
+    },
+    {
+      "id": 102,
+      "episodeNumber": 2,
+      "seasonNumber": 1,
+      "title": "The Kingsroad",
+      "overview": "The Starks leave Winterfell.",
+      "airDate": "2011-04-24",
+      "airDateUtc": "2011-04-25T01:00:00Z",
+      "seriesId": 1,
+      "tvdbId": 3436411
+    }
+  ],
+  "episodeFile": {
+    "id": 10,
+    "relativePath": "Season 01/Game of Thrones - S01E01-E02 WEBDL-1080p.mkv",
+    "path": "/tv/Game of Thrones/Season 01/Game of Thrones - S01E01-E02 WEBDL-1080p.mkv",
+    "quality": "WEBDL-1080p",
+    "qualityVersion": 2,
+    "releaseGroup": "GRP",
+    "sceneName": "Game.of.Thrones.S01E01E02.1080p.WEB-DL-GRP",
+    "size": 4294967296,
+    "dateAdded": "2026-10-02T03:04:05Z",
+    "languages": [
+      {
+        "id": 14,
+        "name": "English"
+      }
+    ],
+    "mediaInfo": {
+      "audioChannels": 6.0,
+      "audioCodec": "AC3",
+      "audioLanguages": [
+        "eng",
+        "fra"
+      ],
+      "height": 1080,
+      "width": 1920,
+      "subtitles": [
+        "eng",
+        "spa"
+      ],
+      "videoCodec": "h264",
+      "videoDynamicRange": "",
+      "videoDynamicRangeType": ""
+    },
+    "sourcePath": "/downloads/src.mkv"
+  },
+  "isUpgrade": true,
+  "downloadClient": "qb-main",
+  "downloadClientType": "qBittorrent",
+  "downloadId": "HASH123",
+  "deletedFiles": [
+    {
+      "id": 9,
+      "relativePath": "Season 01/Game of Thrones - S01E01-E02 HDTV-720p.mkv",
+      "path": "/tv/Game of Thrones/Season 01/Game of Thrones - S01E01-E02 HDTV-720p.mkv",
+      "quality": "WEBDL-1080p",
+      "qualityVersion": 2,
+      "releaseGroup": "GRP",
+      "sceneName": "Game.of.Thrones.S01E01E02.1080p.WEB-DL-GRP",
+      "size": 4294967296,
+      "dateAdded": "2026-10-02T03:04:05Z",
+      "languages": [
+        {
+          "id": 14,
+          "name": "English"
+        }
+      ],
+      "mediaInfo": {
+        "audioChannels": 6.0,
+        "audioCodec": "AC3",
+        "audioLanguages": [
+          "eng",
+          "fra"
+        ],
+        "height": 1080,
+        "width": 1920,
+        "subtitles": [
+          "eng",
+          "spa"
+        ],
+        "videoCodec": "h264",
+        "videoDynamicRange": "",
+        "videoDynamicRangeType": ""
+      },
+      "recycleBinPath": "/recycle/old.mkv"
+    }
+  ],
+  "customFormatInfo": {
+    "customFormats": [
+      {
+        "id": 1,
+        "name": "WEB"
+      }
+    ],
+    "customFormatScore": 75
+  },
+  "release": {
+    "releaseTitle": "Game.of.Thrones.S01E01E02.1080p.WEB-DL-GRP",
+    "indexer": "Knaben",
+    "size": 4294967296,
+    "indexerFlags": [
+      "G_Freeleech"
+    ],
+    "releaseType": "multiEpisode"
+  },
+  "eventType": "Download",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "series": {
+    "id": 1,
+    "title": "Game of Thrones",
+    "titleSlug": "game-of-thrones",
+    "path": "/tv/Game of Thrones",
+    "tvdbId": 121361,
+    "tvMazeId": 82,
+    "tmdbId": 1399,
+    "imdbId": "tt0944947",
+    "malIds": [],
+    "aniListIds": [],
+    "type": "standard",
+    "year": 2011,
+    "genres": [
+      "Drama",
+      "Fantasy"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ],
+    "originalLanguage": {
+      "id": 14,
+      "name": "English"
+    },
+    "originalCountry": "us"
+  },
+  "renamedEpisodeFiles": [
+    {
+      "previousRelativePath": "Season 01/old.mkv",
+      "previousPath": "/tv/Game of Thrones/Season 01/old.mkv",
+      "id": 10,
+      "relativePath": "Season 01/Game of Thrones - S01E01-E02 WEBDL-1080p.mkv",
+      "path": "/tv/Game of Thrones/Season 01/Game of Thrones - S01E01-E02 WEBDL-1080p.mkv",
+      "quality": "WEBDL-1080p",
+      "qualityVersion": 2,
+      "releaseGroup": "GRP",
+      "sceneName": "Game.of.Thrones.S01E01E02.1080p.WEB-DL-GRP",
+      "size": 4294967296,
+      "dateAdded": "2026-10-02T03:04:05Z",
+      "languages": [
+        {
+          "id": 14,
+          "name": "English"
+        }
+      ],
+      "mediaInfo": {
+        "audioChannels": 6.0,
+        "audioCodec": "AC3",
+        "audioLanguages": [
+          "eng",
+          "fra"
+        ],
+        "height": 1080,
+        "width": 1920,
+        "subtitles": [
+          "eng",
+          "spa"
+        ],
+        "videoCodec": "h264",
+        "videoDynamicRange": "",
+        "videoDynamicRangeType": ""
+      }
+    }
+  ],
+  "eventType": "Rename",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "series": {
+    "id": 1,
+    "title": "Game of Thrones",
+    "titleSlug": "game-of-thrones",
+    "path": "/tv/Game of Thrones",
+    "tvdbId": 121361,
+    "tvMazeId": 82,
+    "tmdbId": 1399,
+    "imdbId": "tt0944947",
+    "malIds": [],
+    "aniListIds": [],
+    "type": "standard",
+    "year": 2011,
+    "genres": [
+      "Drama",
+      "Fantasy"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ],
+    "originalLanguage": {
+      "id": 14,
+      "name": "English"
+    },
+    "originalCountry": "us"
+  },
+  "eventType": "SeriesAdd",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "series": {
+    "id": 1,
+    "title": "Game of Thrones",
+    "titleSlug": "game-of-thrones",
+    "path": "/tv/Game of Thrones",
+    "tvdbId": 121361,
+    "tvMazeId": 82,
+    "tmdbId": 1399,
+    "imdbId": "tt0944947",
+    "malIds": [],
+    "aniListIds": [],
+    "type": "standard",
+    "year": 2011,
+    "genres": [
+      "Drama",
+      "Fantasy"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ],
+    "originalLanguage": {
+      "id": 14,
+      "name": "English"
+    },
+    "originalCountry": "us"
+  },
+  "episodes": [
+    {
+      "id": 101,
+      "episodeNumber": 1,
+      "seasonNumber": 1,
+      "title": "Winter Is Coming",
+      "overview": "Eddard Stark is torn between his family and an old friend.",
+      "airDate": "2011-04-17",
+      "airDateUtc": "2011-04-18T01:00:00Z",
+      "seriesId": 1,
+      "tvdbId": 3254641
+    },
+    {
+      "id": 102,
+      "episodeNumber": 2,
+      "seasonNumber": 1,
+      "title": "The Kingsroad",
+      "overview": "The Starks leave Winterfell.",
+      "airDate": "2011-04-24",
+      "airDateUtc": "2011-04-25T01:00:00Z",
+      "seriesId": 1,
+      "tvdbId": 3436411
+    }
+  ],
+  "episodeFile": {
+    "id": 10,
+    "relativePath": "Season 01/Game of Thrones - S01E01-E02 WEBDL-1080p.mkv",
+    "path": "/tv/Game of Thrones/Season 01/Game of Thrones - S01E01-E02 WEBDL-1080p.mkv",
+    "quality": "WEBDL-1080p",
+    "qualityVersion": 2,
+    "releaseGroup": "GRP",
+    "sceneName": "Game.of.Thrones.S01E01E02.1080p.WEB-DL-GRP",
+    "size": 4294967296,
+    "dateAdded": "2026-10-02T03:04:05Z",
+    "languages": [
+      {
+        "id": 14,
+        "name": "English"
+      }
+    ],
+    "mediaInfo": {
+      "audioChannels": 6.0,
+      "audioCodec": "AC3",
+      "audioLanguages": [
+        "eng",
+        "fra"
+      ],
+      "height": 1080,
+      "width": 1920,
+      "subtitles": [
+        "eng",
+        "spa"
+      ],
+      "videoCodec": "h264",
+      "videoDynamicRange": "",
+      "videoDynamicRangeType": ""
+    }
+  },
+  "deleteReason": "manual",
+  "eventType": "EpisodeFileDelete",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "series": {
+    "id": 1,
+    "title": "Game of Thrones",
+    "titleSlug": "game-of-thrones",
+    "path": "/tv/Game of Thrones",
+    "tvdbId": 121361,
+    "tvMazeId": 82,
+    "tmdbId": 1399,
+    "imdbId": "tt0944947",
+    "malIds": [],
+    "aniListIds": [],
+    "type": "standard",
+    "year": 2011,
+    "genres": [
+      "Drama",
+      "Fantasy"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ],
+    "originalLanguage": {
+      "id": 14,
+      "name": "English"
+    },
+    "originalCountry": "us"
+  },
+  "episodes": [
+    {
+      "id": 101,
+      "episodeNumber": 1,
+      "seasonNumber": 1,
+      "title": "Winter Is Coming",
+      "overview": "Eddard Stark is torn between his family and an old friend.",
+      "airDate": "2011-04-17",
+      "airDateUtc": "2011-04-18T01:00:00Z",
+      "seriesId": 1,
+      "tvdbId": 3254641
+    },
+    {
+      "id": 102,
+      "episodeNumber": 2,
+      "seasonNumber": 1,
+      "title": "The Kingsroad",
+      "overview": "The Starks leave Winterfell.",
+      "airDate": "2011-04-24",
+      "airDateUtc": "2011-04-25T01:00:00Z",
+      "seriesId": 1,
+      "tvdbId": 3436411
+    }
+  ],
+  "episodeFile": {
+    "id": 10,
+    "relativePath": "Season 01/Game of Thrones - S01E01-E02 WEBDL-1080p.mkv",
+    "path": "/tv/Game of Thrones/Season 01/Game of Thrones - S01E01-E02 WEBDL-1080p.mkv",
+    "quality": "WEBDL-1080p",
+    "qualityVersion": 2,
+    "releaseGroup": "GRP",
+    "sceneName": "Game.of.Thrones.S01E01E02.1080p.WEB-DL-GRP",
+    "size": 4294967296,
+    "dateAdded": "2026-10-02T03:04:05Z",
+    "languages": [
+      {
+        "id": 14,
+        "name": "English"
+      }
+    ],
+    "mediaInfo": {
+      "audioChannels": 6.0,
+      "audioCodec": "AC3",
+      "audioLanguages": [
+        "eng",
+        "fra"
+      ],
+      "height": 1080,
+      "width": 1920,
+      "subtitles": [
+        "eng",
+        "spa"
+      ],
+      "videoCodec": "h264",
+      "videoDynamicRange": "",
+      "videoDynamicRangeType": ""
+    }
+  },
+  "deleteReason": "upgrade",
+  "eventType": "EpisodeFileDelete",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "series": {
+    "id": 1,
+    "title": "Game of Thrones",
+    "titleSlug": "game-of-thrones",
+    "path": "/tv/Game of Thrones",
+    "tvdbId": 121361,
+    "tvMazeId": 82,
+    "tmdbId": 1399,
+    "imdbId": "tt0944947",
+    "malIds": [],
+    "aniListIds": [],
+    "type": "standard",
+    "year": 2011,
+    "genres": [
+      "Drama",
+      "Fantasy"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ],
+    "originalLanguage": {
+      "id": 14,
+      "name": "English"
+    },
+    "originalCountry": "us"
+  },
+  "deletedFiles": true,
+  "eventType": "SeriesDelete",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "series": {
+    "id": 1,
+    "title": "Game of Thrones",
+    "titleSlug": "game-of-thrones",
+    "path": "/tv/Game of Thrones",
+    "tvdbId": 121361,
+    "tvMazeId": 82,
+    "tmdbId": 1399,
+    "imdbId": "tt0944947",
+    "malIds": [],
+    "aniListIds": [],
+    "type": "standard",
+    "year": 2011,
+    "genres": [
+      "Drama",
+      "Fantasy"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ],
+    "originalLanguage": {
+      "id": 14,
+      "name": "English"
+    },
+    "originalCountry": "us"
+  },
+  "deletedFiles": false,
+  "eventType": "SeriesDelete",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "series": {
+    "id": 1,
+    "title": "Game of Thrones",
+    "titleSlug": "game-of-thrones",
+    "path": "/tv/Game of Thrones",
+    "tvdbId": 121361,
+    "tvMazeId": 82,
+    "tmdbId": 1399,
+    "imdbId": "tt0944947",
+    "malIds": [],
+    "aniListIds": [],
+    "type": "standard",
+    "year": 2011,
+    "genres": [
+      "Drama",
+      "Fantasy"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ],
+    "originalLanguage": {
+      "id": 14,
+      "name": "English"
+    },
+    "originalCountry": "us"
+  },
+  "episodes": [
+    {
+      "id": 101,
+      "episodeNumber": 1,
+      "seasonNumber": 1,
+      "title": "Winter Is Coming",
+      "overview": "Eddard Stark is torn between his family and an old friend.",
+      "airDate": "2011-04-17",
+      "airDateUtc": "2011-04-18T01:00:00Z",
+      "seriesId": 1,
+      "tvdbId": 3254641
+    },
+    {
+      "id": 102,
+      "episodeNumber": 2,
+      "seasonNumber": 1,
+      "title": "The Kingsroad",
+      "overview": "The Starks leave Winterfell.",
+      "airDate": "2011-04-24",
+      "airDateUtc": "2011-04-25T01:00:00Z",
+      "seriesId": 1,
+      "tvdbId": 3436411
+    }
+  ],
+  "downloadInfo": {
+    "quality": "WEBDL-1080p",
+    "qualityVersion": 2,
+    "title": "Game.of.Thrones.S01E01E02.1080p.WEB-DL-GRP",
+    "size": 4294967296
+  },
+  "downloadClient": "qb-main",
+  "downloadClientType": "qBittorrent",
+  "downloadId": "HASH123",
+  "downloadStatus": "Ok",
+  "downloadStatusMessages": [],
+  "customFormatInfo": {
+    "customFormats": [
+      {
+        "id": 1,
+        "name": "WEB"
+      },
+      {
+        "id": 2,
+        "name": "x264"
+      }
+    ],
+    "customFormatScore": 150
+  },
+  "release": {
+    "releaseTitle": "Game.of.Thrones.S01E01E02.1080p.WEB-DL-GRP",
+    "indexer": "Knaben",
+    "size": 4294967296,
+    "indexerFlags": [
+      "G_Freeleech"
+    ],
+    "releaseType": "multiEpisode"
+  },
+  "eventType": "ManualInteractionRequired",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}

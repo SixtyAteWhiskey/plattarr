@@ -50,6 +50,8 @@ namespace NzbDrone.Core.Notifications.Emby
             var path = "/Items";
             var tmdbId = int.TryParse(subject.GetExternalId(ExternalIdTypes.Tmdb), out var parsedTmdbId) ? parsedTmdbId : 0;
             var imdbId = subject.GetExternalId(ExternalIdTypes.Imdb);
+            var tvdbId = int.TryParse(subject.GetExternalId(ExternalIdTypes.Tvdb), out var parsedTvdbId) ? parsedTvdbId : 0;
+            var tvMazeId = int.TryParse(subject.GetExternalId(ExternalIdTypes.TvMaze), out var parsedTvMazeId) ? parsedTvMazeId : 0;
 
             var request = BuildRequest(path, settings)
                 .AddQueryParam("recursive", "true")
@@ -68,6 +70,16 @@ namespace NzbDrone.Core.Notifications.Emby
                     }
 
                     if (item is { ProviderIds.Imdb: string imdbid } && imdbid == imdbId)
+                    {
+                        return MediaBrowserMatchQuality.Id;
+                    }
+
+                    if (item is { ProviderIds.Tvdb: int tvdbid } && tvdbid != 0 && tvdbid == tvdbId)
+                    {
+                        return MediaBrowserMatchQuality.Id;
+                    }
+
+                    if (item is { ProviderIds.TvMaze: int tvmazeid } && tvmazeid != 0 && tvmazeid == tvMazeId)
                     {
                         return MediaBrowserMatchQuality.Id;
                     }

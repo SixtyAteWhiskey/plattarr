@@ -13,6 +13,7 @@ namespace NzbDrone.Core.Download
         public DownloadFailedEvent()
         {
             Data = new Dictionary<string, string>();
+            ItemIds = new List<int>();
         }
 
         // The media type that grabbed the download. Handlers that write a module's own rows
@@ -21,6 +22,9 @@ namespace NzbDrone.Core.Download
 
         // The movie, series or artist the download was for.
         public int ParentId { get; set; }
+
+        // The library items the download covered: the movie itself, the episodes or the tracks.
+        public List<int> ItemIds { get; set; }
         public QualityModel Quality { get; set; }
         public string SourceTitle { get; set; }
         public string DownloadClient { get; set; }

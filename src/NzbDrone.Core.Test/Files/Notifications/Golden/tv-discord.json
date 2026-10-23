@@ -1,0 +1,435 @@
+{
+  "embeds": [
+    {
+      "description": "Episode Grabbed",
+      "title": "Game of Thrones - 1x01x02 - Winter Is Coming + The Kingsroad",
+      "color": 16761392,
+      "url": "https://www.thetvdb.com/?tab=series&id=121361",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "thumbnail": {
+        "url": "https://img.example/poster.jpg"
+      },
+      "image": {
+        "url": "https://img.example/fanart.jpg"
+      },
+      "timestamp": "T",
+      "fields": [
+        {
+          "name": "Overview",
+          "value": "Nine noble families fight for control over the lands of Westeros.",
+          "inline": false
+        },
+        {
+          "name": "Rating",
+          "value": "9.2",
+          "inline": false
+        },
+        {
+          "name": "Genres",
+          "value": "Drama, Fantasy",
+          "inline": false
+        },
+        {
+          "name": "Quality",
+          "value": "WEBDL-1080p",
+          "inline": true
+        },
+        {
+          "name": "Group",
+          "value": "GRP",
+          "inline": false
+        },
+        {
+          "name": "Size",
+          "value": "4 GB",
+          "inline": true
+        },
+        {
+          "name": "Links",
+          "value": "[TVDb](https://www.thetvdb.com/?tab=series&id=121361) / [TMDb](https://www.themoviedb.org/tv/1399) / [Trakt](https://trakt.tv/search/tvdb/121361?id_type=show) / [TVMaze](https://www.tvmaze.com/shows/82/_) / [IMDb](https://www.imdb.com/title/tt0944947)",
+          "inline": false
+        },
+        {
+          "name": "Release",
+          "value": "```Game.of.Thrones.S01E01E02.1080p.WEB-DL-GRP```",
+          "inline": false
+        },
+        {
+          "name": "Indexer",
+          "value": "Knaben",
+          "inline": false
+        },
+        {
+          "name": "Custom Formats",
+          "value": "WEB|x264",
+          "inline": false
+        },
+        {
+          "name": "Custom Format Score",
+          "value": "150",
+          "inline": false
+        },
+        {
+          "name": "Tags",
+          "value": "favorite, scifi",
+          "inline": false
+        }
+      ]
+    }
+  ]
+}
+=====
+{
+  "embeds": [
+    {
+      "description": "Episode Imported",
+      "title": "Game of Thrones - 1x01x02 - Winter Is Coming + The Kingsroad",
+      "color": 2605644,
+      "url": "https://www.thetvdb.com/?tab=series&id=121361",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "thumbnail": {
+        "url": "https://img.example/poster.jpg"
+      },
+      "image": {
+        "url": "https://img.example/fanart.jpg"
+      },
+      "timestamp": "T",
+      "fields": [
+        {
+          "name": "Overview",
+          "value": "Nine noble families fight for control over the lands of Westeros.",
+          "inline": false
+        },
+        {
+          "name": "Rating",
+          "value": "9.2",
+          "inline": false
+        },
+        {
+          "name": "Genres",
+          "value": "Drama, Fantasy",
+          "inline": false
+        },
+        {
+          "name": "Quality",
+          "value": "WEBDL-1080p",
+          "inline": true
+        },
+        {
+          "name": "Codecs",
+          "value": "h264 / AC3 6",
+          "inline": true
+        },
+        {
+          "name": "Group",
+          "value": "GRP",
+          "inline": false
+        },
+        {
+          "name": "Size",
+          "value": "4 GB",
+          "inline": true
+        },
+        {
+          "name": "Languages",
+          "value": "eng/fra",
+          "inline": false
+        },
+        {
+          "name": "Subtitles",
+          "value": "eng/spa",
+          "inline": false
+        },
+        {
+          "name": "Links",
+          "value": "[TVDb](https://www.thetvdb.com/?tab=series&id=121361) / [TMDb](https://www.themoviedb.org/tv/1399) / [Trakt](https://trakt.tv/search/tvdb/121361?id_type=show) / [TVMaze](https://www.tvmaze.com/shows/82/_) / [IMDb](https://www.imdb.com/title/tt0944947)",
+          "inline": false
+        },
+        {
+          "name": "Release",
+          "value": "```Game.of.Thrones.S01E01E02.1080p.WEB-DL-GRP```",
+          "inline": false
+        },
+        {
+          "name": "Tags",
+          "value": "favorite, scifi",
+          "inline": false
+        },
+        {
+          "name": "Custom Formats",
+          "value": "WEB",
+          "inline": false
+        },
+        {
+          "name": "Custom Format Score",
+          "value": "75",
+          "inline": false
+        }
+      ]
+    }
+  ]
+}
+=====
+{
+  "embeds": [
+    {
+      "description": "Episode Upgraded",
+      "title": "Game of Thrones - 1x01x02 - Winter Is Coming + The Kingsroad",
+      "color": 4089856,
+      "url": "https://www.thetvdb.com/?tab=series&id=121361",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "thumbnail": {
+        "url": "https://img.example/poster.jpg"
+      },
+      "image": {
+        "url": "https://img.example/fanart.jpg"
+      },
+      "timestamp": "T",
+      "fields": [
+        {
+          "name": "Overview",
+          "value": "Nine noble families fight for control over the lands of Westeros.",
+          "inline": false
+        },
+        {
+          "name": "Rating",
+          "value": "9.2",
+          "inline": false
+        },
+        {
+          "name": "Genres",
+          "value": "Drama, Fantasy",
+          "inline": false
+        },
+        {
+          "name": "Quality",
+          "value": "WEBDL-1080p",
+          "inline": true
+        },
+        {
+          "name": "Codecs",
+          "value": "h264 / AC3 6",
+          "inline": true
+        },
+        {
+          "name": "Group",
+          "value": "GRP",
+          "inline": false
+        },
+        {
+          "name": "Size",
+          "value": "4 GB",
+          "inline": true
+        },
+        {
+          "name": "Languages",
+          "value": "eng/fra",
+          "inline": false
+        },
+        {
+          "name": "Subtitles",
+          "value": "eng/spa",
+          "inline": false
+        },
+        {
+          "name": "Links",
+          "value": "[TVDb](https://www.thetvdb.com/?tab=series&id=121361) / [TMDb](https://www.themoviedb.org/tv/1399) / [Trakt](https://trakt.tv/search/tvdb/121361?id_type=show) / [TVMaze](https://www.tvmaze.com/shows/82/_) / [IMDb](https://www.imdb.com/title/tt0944947)",
+          "inline": false
+        },
+        {
+          "name": "Release",
+          "value": "```Game.of.Thrones.S01E01E02.1080p.WEB-DL-GRP```",
+          "inline": false
+        },
+        {
+          "name": "Tags",
+          "value": "favorite, scifi",
+          "inline": false
+        },
+        {
+          "name": "Custom Formats",
+          "value": "WEB",
+          "inline": false
+        },
+        {
+          "name": "Custom Format Score",
+          "value": "75",
+          "inline": false
+        }
+      ]
+    }
+  ]
+}
+=====
+{
+  "content": "Renamed",
+  "embeds": [
+    {
+      "description": "Season 01/old.mkv renamed to Season 01/Game of Thrones - S01E01-E02 WEBDL-1080p.mkv",
+      "title": "Game of Thrones",
+      "color": 0
+    }
+  ]
+}
+=====
+{
+  "embeds": [
+    {
+      "description": "Series Added",
+      "title": "Game of Thrones",
+      "color": 2605644,
+      "url": "https://www.thetvdb.com/?tab=series&id=121361",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "thumbnail": {
+        "url": "https://img.example/poster.jpg"
+      },
+      "image": {
+        "url": "https://img.example/fanart.jpg"
+      },
+      "fields": [
+        {
+          "name": "Links",
+          "value": "[TVDb](https://www.thetvdb.com/?tab=series&id=121361) / [TMDb](https://www.themoviedb.org/tv/1399) / [Trakt](https://trakt.tv/search/tvdb/121361?id_type=show) / [TVMaze](https://www.tvmaze.com/shows/82/_) / [IMDb](https://www.imdb.com/title/tt0944947)",
+          "inline": false
+        }
+      ]
+    }
+  ]
+}
+=====
+{
+  "embeds": [
+    {
+      "description": "Episode File Deleted",
+      "title": "Game of Thrones - 1x01x02 - Winter Is Coming + The Kingsroad",
+      "color": 15749200,
+      "url": "https://www.thetvdb.com/?tab=series&id=121361",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "timestamp": "T",
+      "fields": [
+        {
+          "name": "Reason",
+          "value": "Manual",
+          "inline": false
+        },
+        {
+          "name": "File name",
+          "value": "```/tv/Game of Thrones/Season 01/Game of Thrones - S01E01-E02 WEBDL-1080p.mkv```",
+          "inline": false
+        }
+      ]
+    }
+  ]
+}
+=====
+{
+  "embeds": [
+    {
+      "description": "Series removed and all files were deleted",
+      "title": "Game of Thrones",
+      "color": 15749200,
+      "url": "https://www.thetvdb.com/?tab=series&id=121361",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "thumbnail": {
+        "url": "https://img.example/poster.jpg"
+      },
+      "image": {
+        "url": "https://img.example/fanart.jpg"
+      },
+      "fields": [
+        {
+          "name": "Links",
+          "value": "[TVDb](https://www.thetvdb.com/?tab=series&id=121361) / [TMDb](https://www.themoviedb.org/tv/1399) / [Trakt](https://trakt.tv/search/tvdb/121361?id_type=show) / [TVMaze](https://www.tvmaze.com/shows/82/_) / [IMDb](https://www.imdb.com/title/tt0944947)",
+          "inline": false
+        }
+      ]
+    }
+  ]
+}
+=====
+{
+  "embeds": [
+    {
+      "description": "Manual interaction needed",
+      "title": "Game of Thrones - 1x01x02 - Winter Is Coming + The Kingsroad",
+      "color": 16761392,
+      "url": "https://www.thetvdb.com/?tab=series&id=121361",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "thumbnail": {
+        "url": "https://img.example/poster.jpg"
+      },
+      "image": {
+        "url": "https://img.example/fanart.jpg"
+      },
+      "timestamp": "T",
+      "fields": [
+        {
+          "name": "Overview",
+          "value": "Nine noble families fight for control over the lands of Westeros.",
+          "inline": false
+        },
+        {
+          "name": "Rating",
+          "value": "9.2",
+          "inline": false
+        },
+        {
+          "name": "Genres",
+          "value": "Drama, Fantasy",
+          "inline": false
+        },
+        {
+          "name": "Quality",
+          "value": "WEBDL-1080p",
+          "inline": true
+        },
+        {
+          "name": "Group",
+          "value": "GRP",
+          "inline": false
+        },
+        {
+          "name": "Size",
+          "value": "4 GB",
+          "inline": true
+        },
+        {
+          "name": "Links",
+          "value": "[TVDb](https://www.thetvdb.com/?tab=series&id=121361) / [TMDb](https://www.themoviedb.org/tv/1399) / [Trakt](https://trakt.tv/search/tvdb/121361?id_type=show) / [TVMaze](https://www.tvmaze.com/shows/82/_) / [IMDb](https://www.imdb.com/title/tt0944947)",
+          "inline": false
+        },
+        {
+          "name": "Download",
+          "value": "```Game.of.Thrones.S01E01E02.1080p.WEB-DL-GRP```",
+          "inline": false
+        },
+        {
+          "name": "Tags",
+          "value": "favorite, scifi",
+          "inline": false
+        }
+      ]
+    }
+  ]
+}
