@@ -20,6 +20,10 @@ namespace NzbDrone.Core.Tv.Notifications
         public QualityModel Quality { get; set; }
         public LocalEpisode LocalEpisode { get; set; }
         public EpisodeFile EpisodeFile { get; set; }
+
+        // Set on an import-complete message: every episode and file the download imported.
+        public List<Episode> Episodes { get; set; } = new();
+        public List<EpisodeFile> EpisodeFiles { get; set; } = new();
         public List<DeletedEpisodeFile> OldEpisodeFiles { get; set; } = new();
         public List<RenamedEpisodeFile> RenamedFiles { get; set; } = new();
         public GrabbedReleaseInfo Release { get; set; }

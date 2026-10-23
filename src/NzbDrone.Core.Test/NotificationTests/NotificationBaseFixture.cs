@@ -94,6 +94,11 @@ namespace NzbDrone.Core.Test.NotificationTests
             {
                 TestLogger.Info("OnManualInteractionRequired was called");
             }
+
+            public override void OnImportComplete(ImportCompleteMessage message)
+            {
+                TestLogger.Info("OnImportComplete was called");
+            }
         }
 
         private class TestNotificationWithNoEvents : NotificationBase<TestSetting>
@@ -136,6 +141,7 @@ namespace NzbDrone.Core.Test.NotificationTests
             notification.SupportsOnHealthRestored.Should().BeTrue();
             notification.SupportsOnApplicationUpdate.Should().BeTrue();
             notification.SupportsOnManualInteractionRequired.Should().BeTrue();
+            notification.SupportsOnImportComplete.Should().BeTrue();
         }
 
         [Test]
@@ -155,6 +161,7 @@ namespace NzbDrone.Core.Test.NotificationTests
             notification.SupportsOnHealthRestored.Should().BeFalse();
             notification.SupportsOnApplicationUpdate.Should().BeFalse();
             notification.SupportsOnManualInteractionRequired.Should().BeFalse();
+            notification.SupportsOnImportComplete.Should().BeFalse();
         }
     }
 }

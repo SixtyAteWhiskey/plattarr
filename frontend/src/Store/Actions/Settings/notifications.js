@@ -123,6 +123,7 @@ export default {
         selectedSchema.onMovieFileDeleteForUpgrade = selectedSchema.supportsOnMovieFileDeleteForUpgrade;
         selectedSchema.onApplicationUpdate = selectedSchema.supportsOnApplicationUpdate;
         selectedSchema.onManualInteractionRequired = selectedSchema.supportsOnManualInteractionRequired;
+        selectedSchema.onImportComplete = selectedSchema.supportsOnImportComplete;
 
         return selectedSchema;
       });

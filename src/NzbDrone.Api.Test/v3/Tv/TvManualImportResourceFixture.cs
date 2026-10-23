@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using FluentAssertions;
+using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Crypto;
 using NzbDrone.Core.CustomFormats;
@@ -122,6 +123,31 @@ namespace NzbDrone.Api.Test.v3.Tv
         {
             ((ManualImportItem)null).ToResource().Should().BeNull();
             ((ImportRejection)null).ToResource().Should().BeNull();
+        }
+
+        [Test]
+        public void should_reprocess_an_item_sent_without_quality_or_languages_as_unknown()
+        {
+            var service = new Mock<IManualImportService>();
+            service.Setup(m => m.ReprocessItem(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<List<int>>(), It.IsAny<string>(), It.IsAny<QualityModel>(), It.IsAny<List<Language>>(), It.IsAny<int>(), It.IsAny<ReleaseType>()))
+                   .Returns(_item);
+
+            var controller = new TvManualImportController(service.Object);
+
+            var result = (List<TvManualImportReprocessResource>)controller.ReprocessItems(new List<TvManualImportReprocessResource>
+            {
+                new TvManualImportReprocessResource { Path = "/downloads/video.mkv", SeriesId = 3, EpisodeIds = new List<int> { 40 } }
+            });
+
+            service.Verify(m => m.ReprocessItem("/downloads/video.mkv", null, 3, null, It.Is<List<int>>(ids => ids.Count == 1), null, It.Is<QualityModel>(q => q.Quality == Quality.Unknown), It.Is<List<Language>>(l => l.Count == 0), 0, ReleaseType.Unknown), Times.Once());
+
+            // What the service worked out fills what the client left unknown, and the episodes replace their ids.
+            result.Should().ContainSingle();
+            result[0].Quality.Quality.Should().Be(Quality.WEBDL1080p);
+            result[0].Languages.Should().Equal(Language.English);
+            result[0].ReleaseGroup.Should().Be("GRP");
+            result[0].Episodes.Should().ContainSingle().Which.Id.Should().Be(40);
+            result[0].EpisodeIds.Should().BeNull();
         }
     }
 }

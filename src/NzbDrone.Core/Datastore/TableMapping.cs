@@ -76,7 +76,8 @@ namespace NzbDrone.Core.Datastore
                   .Ignore(i => i.SupportsOnHealthIssue)
                   .Ignore(i => i.SupportsOnHealthRestored)
                   .Ignore(i => i.SupportsOnApplicationUpdate)
-                  .Ignore(i => i.SupportsOnManualInteractionRequired);
+                  .Ignore(i => i.SupportsOnManualInteractionRequired)
+                  .Ignore(i => i.SupportsOnImportComplete);
 
             Mapper.Entity<DownloadClientDefinition>("DownloadClients").RegisterModel()
                   .Ignore(x => x.ImplementationName)

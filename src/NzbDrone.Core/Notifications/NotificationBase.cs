@@ -81,6 +81,10 @@ namespace NzbDrone.Core.Notifications
         {
         }
 
+        public virtual void OnImportComplete(ImportCompleteMessage message)
+        {
+        }
+
         public virtual void ProcessQueue()
         {
         }
@@ -97,6 +101,7 @@ namespace NzbDrone.Core.Notifications
         public bool SupportsOnHealthRestored => HasConcreteImplementation("OnHealthRestored");
         public bool SupportsOnApplicationUpdate => HasConcreteImplementation("OnApplicationUpdate");
         public bool SupportsOnManualInteractionRequired => HasConcreteImplementation("OnManualInteractionRequired");
+        public bool SupportsOnImportComplete => HasConcreteImplementation("OnImportComplete");
 
         protected TSettings Settings => (TSettings)Definition.Settings;
 

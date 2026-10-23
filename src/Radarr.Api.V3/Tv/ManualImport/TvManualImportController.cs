@@ -47,6 +47,10 @@ namespace Radarr.Api.V3.Tv.ManualImport
 
             foreach (var item in items)
             {
+                // A client that leaves these out means "work it out", as Unknown does.
+                item.Quality ??= new QualityModel();
+                item.Languages ??= new List<Language>();
+
                 var processedItem = _manualImportService.ReprocessItem(item.Path, item.DownloadId, item.SeriesId, item.SeasonNumber, item.EpisodeIds ?? new List<int>(), item.ReleaseGroup, item.Quality, item.Languages, item.IndexerFlags, item.ReleaseType);
 
                 item.SeasonNumber = processedItem.SeasonNumber;

@@ -16,6 +16,9 @@ namespace NzbDrone.Core.Notifications.Webhook
         WebhookPayload BuildMediaDelete(MediaDeleteMessage message);
         WebhookPayload BuildManualInteraction(ManualInteractionRequiredMessage message);
 
+        // A module that never sends the event throws NotSupportedException.
+        WebhookPayload BuildImportComplete(ImportCompleteMessage message);
+
         // The payload "Test" sends, in the module's own shape.
         WebhookPayload BuildTest();
     }

@@ -16,6 +16,7 @@ namespace NzbDrone.Core.Notifications
         void OnHealthRestored(HealthCheck.HealthCheck previousCheck);
         void OnApplicationUpdate(ApplicationUpdateMessage updateMessage);
         void OnManualInteractionRequired(ManualInteractionRequiredMessage message);
+        void OnImportComplete(ImportCompleteMessage message);
         void ProcessQueue();
 
         // The Supports* names are the wire and database names (v3 API, NotificationDefinition columns) and keep Radarr's spelling.
@@ -31,5 +32,6 @@ namespace NzbDrone.Core.Notifications
         bool SupportsOnHealthRestored { get; }
         bool SupportsOnApplicationUpdate { get; }
         bool SupportsOnManualInteractionRequired { get; }
+        bool SupportsOnImportComplete { get; }
     }
 }

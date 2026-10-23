@@ -68,6 +68,7 @@ class Notification extends Component {
       onHealthRestored,
       onApplicationUpdate,
       onManualInteractionRequired,
+      onImportComplete,
       supportsOnGrab,
       supportsOnDownload,
       supportsOnUpgrade,
@@ -80,6 +81,7 @@ class Notification extends Component {
       supportsOnHealthRestored,
       supportsOnApplicationUpdate,
       supportsOnManualInteractionRequired,
+      supportsOnImportComplete,
       tags,
       tagList
     } = this.props;
@@ -191,7 +193,15 @@ class Notification extends Component {
         }
 
         {
-          !onGrab && !onDownload && !onRename && !onHealthIssue && !onHealthRestored && !onApplicationUpdate && !onMovieAdded && !onMovieDelete && !onMovieFileDelete && !onManualInteractionRequired ?
+          supportsOnImportComplete && onImportComplete ?
+            <Label kind={kinds.SUCCESS}>
+              {translate('OnImportComplete')}
+            </Label> :
+            null
+        }
+
+        {
+          !onGrab && !onDownload && !onRename && !onHealthIssue && !onHealthRestored && !onApplicationUpdate && !onMovieAdded && !onMovieDelete && !onMovieFileDelete && !onManualInteractionRequired && !onImportComplete ?
             <Label
               kind={kinds.DISABLED}
               outline={true}
@@ -242,6 +252,7 @@ Notification.propTypes = {
   onHealthRestored: PropTypes.bool.isRequired,
   onApplicationUpdate: PropTypes.bool.isRequired,
   onManualInteractionRequired: PropTypes.bool.isRequired,
+  onImportComplete: PropTypes.bool.isRequired,
   supportsOnGrab: PropTypes.bool.isRequired,
   supportsOnDownload: PropTypes.bool.isRequired,
   supportsOnMovieDelete: PropTypes.bool.isRequired,
@@ -254,6 +265,7 @@ Notification.propTypes = {
   supportsOnHealthRestored: PropTypes.bool.isRequired,
   supportsOnApplicationUpdate: PropTypes.bool.isRequired,
   supportsOnManualInteractionRequired: PropTypes.bool.isRequired,
+  supportsOnImportComplete: PropTypes.bool.isRequired,
   tags: PropTypes.arrayOf(PropTypes.number).isRequired,
   tagList: PropTypes.arrayOf(PropTypes.object).isRequired,
   onConfirmDeleteNotification: PropTypes.func.isRequired

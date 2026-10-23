@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using Moq;
 using NUnit.Framework;
+using NzbDrone.Common.Disk;
 using NzbDrone.Common.Processes;
 using NzbDrone.Common.Serializer;
 using NzbDrone.Core.CustomFormats;
@@ -151,7 +152,12 @@ namespace NzbDrone.Core.Test.NotificationTests
 
         public static GrabbedReleaseInfo Grabbed()
         {
-            return new GrabbedReleaseInfo(new List<EpisodeHistory>
+            return new GrabbedReleaseInfo(GrabbedHistory());
+        }
+
+        public static List<EpisodeHistory> GrabbedHistory()
+        {
+            return new List<EpisodeHistory>
             {
                 new EpisodeHistory
                 {
@@ -169,7 +175,7 @@ namespace NzbDrone.Core.Test.NotificationTests
                     ItemId = 102,
                     Data = new Dictionary<string, string> { { "indexer", "Knaben" }, { "size", "4294967296" }, { "indexerFlags", "G_Freeleech" }, { "releaseType", "MultiEpisode" } }
                 }
-            });
+            };
         }
 
         public static LocalEpisode Local(Series series, List<Episode> episodes)
@@ -234,6 +240,36 @@ namespace NzbDrone.Core.Test.NotificationTests
             }
 
             handler.Handle(new ManualInteractionRequiredEvent(Tracked(remote), new TvNotificationData { Release = Grabbed() }));
+
+            PlayImportComplete(provider, renderer, series, episodes, file, remote);
+        }
+
+        // The import-complete event, which a separate handler turns into a notification from the download's history.
+        private static void PlayImportComplete(INotification provider, TvActivityRenderer renderer, Series series, List<Episode> episodes, EpisodeFile file, RemoteEpisode remote)
+        {
+            episodes.ForEach(e => e.EpisodeFileId = file.Id);
+
+            var seriesService = new Mock<ISeriesService>();
+            seriesService.Setup(s => s.GetSeries(series.Id)).Returns(series);
+
+            var history = new Mock<IHistoryService>();
+            history.Setup(h => h.Find("HASH123", EpisodeHistoryEventType.DownloadFolderImported))
+                   .Returns(episodes.ConvertAll(e => new EpisodeHistory { ParentId = series.Id, ItemId = e.Id }));
+            history.Setup(h => h.Find("HASH123", EpisodeHistoryEventType.Grabbed)).Returns(GrabbedHistory());
+
+            var episodeService = new Mock<IEpisodeService>();
+            episodeService.Setup(s => s.GetEpisodes(It.IsAny<IEnumerable<int>>())).Returns(episodes);
+
+            var mediaFileService = new Mock<IMediaFileService>();
+            mediaFileService.Setup(s => s.GetFiles(It.IsAny<IEnumerable<int>>())).Returns(new List<EpisodeFile> { file });
+
+            var tracked = Tracked(remote);
+            tracked.Kind = MediaKind.Tv;
+            tracked.DownloadItem.OutputPath = new OsPath("/downloads/Game.of.Thrones.S01E01E02.1080p.WEB-DL-GRP");
+
+            var notifier = new TvImportCompleteNotifier(new GoldenData.ProviderDispatcher(provider), renderer, history.Object, seriesService.Object, episodeService.Object, mediaFileService.Object, NzbDrone.Common.Instrumentation.NzbDroneLogger.GetLogger(typeof(TvGoldenData)));
+
+            notifier.Handle(new DownloadCompletedEvent(tracked, series.Id));
         }
     }
 
