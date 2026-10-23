@@ -182,6 +182,26 @@ namespace NzbDrone.App.Test
         }
 
         [Test]
+        public void should_resolve_the_tv_wanted_calendar_blocklist_and_parse_controllers()
+        {
+            _container.GetRequiredService<Radarr.Api.V3.Tv.Wanted.TvMissingController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Tv.Wanted.TvCutoffController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Tv.Calendar.TvCalendarController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Tv.Calendar.TvCalendarFeedController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Tv.Blocklist.TvBlocklistController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Tv.Parse.TvParseController>().Should().NotBeNull();
+        }
+
+        [Test]
+        public void should_resolve_one_tagged_item_source_per_module_and_the_tag_service()
+        {
+            _container.GetServices<ITaggedItemSource>().Should().Contain(s => s.Kind == MediaKind.Movies).And.Contain(s => s.Kind == MediaKind.Tv);
+            _container.GetServices<ITaggedItemSource>().Select(s => s.Kind).Should().OnlyHaveUniqueItems();
+            _container.GetRequiredService<NzbDrone.Core.Tags.ITagService>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Tags.TagDetailsController>().Should().NotBeNull();
+        }
+
+        [Test]
         public void should_resolve_the_joined_pending_queue_and_the_queue_controllers_that_use_it()
         {
             _container.GetRequiredService<Radarr.Api.V3.Queue.IPendingQueueService>().Should().BeOfType<Radarr.Api.V3.Queue.PendingQueueService>();

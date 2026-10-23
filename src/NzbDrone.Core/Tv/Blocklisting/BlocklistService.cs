@@ -5,6 +5,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Parser.Model;
@@ -26,9 +27,10 @@ namespace NzbDrone.Core.Tv.Blocklisting
     }
 
     // Sonarr's blocklist service. A failed TV download is blocklisted for the series with the
-    // episodes it covered; the blocklist of a deleted series goes with it. The clear command is
-    // the movie module's until the TV API exists (it is a single-handler command).
+    // episodes it covered; the blocklist of a deleted series goes with it. Clearing purges the TV rows
+    // only (the repository is scoped to its media kind).
     public class BlocklistService : IBlocklistService,
+                                    IExecute<ClearTvBlocklistCommand>,
                                     IHandle<DownloadFailedEvent>,
                                     IHandleAsync<SeriesDeletedEvent>
     {
@@ -116,6 +118,11 @@ namespace NzbDrone.Core.Tv.Blocklisting
         public void Delete(List<int> ids)
         {
             _blocklistRepository.DeleteMany(ids);
+        }
+
+        public void Execute(ClearTvBlocklistCommand message)
+        {
+            _blocklistRepository.Purge();
         }
 
         public void Handle(DownloadFailedEvent message)

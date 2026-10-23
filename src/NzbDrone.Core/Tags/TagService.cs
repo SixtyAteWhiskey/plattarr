@@ -5,7 +5,7 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.IndexerProxies;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Messaging.Events;
-using NzbDrone.Core.Movies;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies.AutoTagging;
 using NzbDrone.Core.Movies.AutoTagging.Specifications;
 using NzbDrone.Core.Movies.ImportLists;
@@ -36,7 +36,7 @@ namespace NzbDrone.Core.Tags
         private readonly IImportListFactory _importListFactory;
         private readonly INotificationFactory _notificationFactory;
         private readonly IReleaseProfileService _releaseProfileService;
-        private readonly IMovieService _movieService;
+        private readonly IEnumerable<ITaggedItemSource> _taggedItemSources;
         private readonly IIndexerFactory _indexerService;
         private readonly IIndexerProxyFactory _indexerProxyFactory;
         private readonly IAutoTaggingService _autoTaggingService;
@@ -48,7 +48,7 @@ namespace NzbDrone.Core.Tags
                           IImportListFactory importListFactory,
                           INotificationFactory notificationFactory,
                           IReleaseProfileService releaseProfileService,
-                          IMovieService movieService,
+                          IEnumerable<ITaggedItemSource> taggedItemSources,
                           IIndexerFactory indexerService,
                           IIndexerProxyFactory indexerProxyFactory,
                           IAutoTaggingService autoTaggingService,
@@ -60,7 +60,7 @@ namespace NzbDrone.Core.Tags
             _importListFactory = importListFactory;
             _notificationFactory = notificationFactory;
             _releaseProfileService = releaseProfileService;
-            _movieService = movieService;
+            _taggedItemSources = taggedItemSources;
             _indexerService = indexerService;
             _indexerProxyFactory = indexerProxyFactory;
             _autoTaggingService = autoTaggingService;
@@ -96,7 +96,8 @@ namespace NzbDrone.Core.Tags
             var importLists = _importListFactory.AllForTag(tagId);
             var notifications = _notificationFactory.AllForTag(tagId);
             var releaseProfiles = _releaseProfileService.AllForTag(tagId);
-            var movies = _movieService.AllMovieTags().Where(x => x.Value.Contains(tagId)).Select(x => x.Key).ToList();
+            var movies = ItemsWithTag(MediaKind.Movies, tagId);
+            var series = ItemsWithTag(MediaKind.Tv, tagId);
             var indexers = _indexerService.AllForTag(tagId);
             var indexerProxies = _indexerProxyFactory.AllForTag(tagId);
             var autoTags = _autoTaggingService.AllForTag(tagId);
@@ -111,6 +112,7 @@ namespace NzbDrone.Core.Tags
                 NotificationIds = notifications.Select(c => c.Id).ToList(),
                 ReleaseProfileIds = releaseProfiles.Select(c => c.Id).ToList(),
                 MovieIds = movies,
+                SeriesIds = series,
                 IndexerIds = indexers.Select(c => c.Id).ToList(),
                 IndexerProxyIds = indexerProxies.Select(c => c.Id).ToList(),
                 AutoTagIds = autoTags.Select(c => c.Id).ToList(),
@@ -125,7 +127,8 @@ namespace NzbDrone.Core.Tags
             var importLists = _importListFactory.All();
             var notifications = _notificationFactory.All();
             var releaseProfiles = _releaseProfileService.All();
-            var movies = _movieService.AllMovieTags();
+            var movies = AllItemTags(MediaKind.Movies);
+            var series = AllItemTags(MediaKind.Tv);
             var indexers = _indexerService.All();
             var indexerProxies = _indexerProxyFactory.All();
             var autoTags = _autoTaggingService.All();
@@ -144,6 +147,7 @@ namespace NzbDrone.Core.Tags
                     NotificationIds = notifications.Where(c => c.Tags.Contains(tag.Id)).Select(c => c.Id).ToList(),
                     ReleaseProfileIds = releaseProfiles.Where(c => c.Tags.Contains(tag.Id)).Select(c => c.Id).ToList(),
                     MovieIds = movies.Where(c => c.Value.Contains(tag.Id)).Select(c => c.Key).ToList(),
+                    SeriesIds = series.Where(c => c.Value.Contains(tag.Id)).Select(c => c.Key).ToList(),
                     IndexerIds = indexers.Where(c => c.Tags.Contains(tag.Id)).Select(c => c.Id).ToList(),
                     IndexerProxyIds = indexerProxies.Where(c => c.Tags.Contains(tag.Id)).Select(c => c.Id).ToList(),
                     AutoTagIds = GetAutoTagIds(tag, autoTags),
@@ -196,6 +200,16 @@ namespace NzbDrone.Core.Tags
 
             _repo.Delete(tagId);
             _eventAggregator.PublishEvent(new TagsUpdatedEvent());
+        }
+
+        private Dictionary<int, List<int>> AllItemTags(MediaKind kind)
+        {
+            return _taggedItemSources.Where(s => s.Kind == kind).SelectMany(s => s.AllItemTags()).ToDictionary(x => x.Key, x => x.Value);
+        }
+
+        private List<int> ItemsWithTag(MediaKind kind, int tagId)
+        {
+            return AllItemTags(kind).Where(x => x.Value.Contains(tagId)).Select(x => x.Key).ToList();
         }
 
         private List<int> GetAutoTagIds(Tag tag, List<AutoTag> autoTags)
