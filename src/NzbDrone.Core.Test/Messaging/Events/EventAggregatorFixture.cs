@@ -75,6 +75,32 @@ namespace NzbDrone.Core.Test.Messaging.Events
 
             ExceptionVerification.ExpectedErrors(1);
         }
+
+        // Modules publish events with the same type name (each module has its own
+        // RssSyncCompleteEvent); subscribers are cached per type, not per name.
+        [Test]
+        public void should_publish_events_that_share_a_type_name_to_their_own_handlers()
+        {
+            var first = new EventsOne.SharedNameEvent();
+            var second = new EventsTwo.SharedNameEvent();
+            var firstHandler = new Mock<IHandle<EventsOne.SharedNameEvent>>();
+            var secondHandler = new Mock<IHandle<EventsTwo.SharedNameEvent>>();
+
+            Mocker.GetMock<IServiceFactory>()
+                  .Setup(c => c.BuildAll<IHandle<EventsOne.SharedNameEvent>>())
+                  .Returns(new List<IHandle<EventsOne.SharedNameEvent>> { firstHandler.Object });
+
+            Mocker.GetMock<IServiceFactory>()
+                  .Setup(c => c.BuildAll<IHandle<EventsTwo.SharedNameEvent>>())
+                  .Returns(new List<IHandle<EventsTwo.SharedNameEvent>> { secondHandler.Object });
+
+            Subject.PublishEvent(first);
+            Subject.PublishEvent(second);
+            Subject.PublishEvent(first);
+
+            firstHandler.Verify(c => c.Handle(first), Times.Exactly(2));
+            secondHandler.Verify(c => c.Handle(second), Times.Once());
+        }
     }
 
     public class EventA : IEvent
@@ -83,5 +109,19 @@ namespace NzbDrone.Core.Test.Messaging.Events
 
     public class EventB : IEvent
     {
+    }
+
+    public static class EventsOne
+    {
+        public class SharedNameEvent : IEvent
+        {
+        }
+    }
+
+    public static class EventsTwo
+    {
+        public class SharedNameEvent : IEvent
+        {
+        }
     }
 }

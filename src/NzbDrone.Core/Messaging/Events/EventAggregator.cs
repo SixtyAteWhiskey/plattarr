@@ -18,7 +18,7 @@ namespace NzbDrone.Core.Messaging.Events
         private readonly IServiceFactory _serviceFactory;
         private readonly IRuntimeInfo _runtimeInfo;
         private readonly TaskFactory _taskFactory;
-        private readonly Dictionary<string, object> _eventSubscribers;
+        private readonly Dictionary<Type, object> _eventSubscribers;
 
         private class EventSubscribers<TEvent>
             where TEvent : class, IEvent
@@ -47,7 +47,7 @@ namespace NzbDrone.Core.Messaging.Events
             _serviceFactory = serviceFactory;
             _runtimeInfo = runtimeInfo;
             _taskFactory = new TaskFactory();
-            _eventSubscribers = new Dictionary<string, object>();
+            _eventSubscribers = new Dictionary<Type, object>();
         }
 
         public void PublishEvent<TEvent>(TEvent @event)
@@ -91,11 +91,11 @@ namespace NzbDrone.Core.Messaging.Events
             EventSubscribers<TEvent> subscribers;
             lock (_eventSubscribers)
             {
-                if (!_eventSubscribers.TryGetValue(eventName, out var target))
+                if (!_eventSubscribers.TryGetValue(typeof(TEvent), out var target))
                 {
                     try
                     {
-                        _eventSubscribers[eventName] = target = new EventSubscribers<TEvent>(_serviceFactory);
+                        _eventSubscribers[typeof(TEvent)] = target = new EventSubscribers<TEvent>(_serviceFactory);
                     }
                     catch (Exception ex)
                     {
