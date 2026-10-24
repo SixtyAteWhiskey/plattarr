@@ -81,6 +81,32 @@ namespace NzbDrone.Core.Test.Configuration
             AssertUpsert("SeasonPackUpgradeThreshold", 75);
         }
 
+        [Test]
+        public void music_import_settings_should_default_to_leaving_the_files_untouched()
+        {
+            Subject.TrackFileDate.Should().Be(TrackFileDateType.None);
+            Subject.AllowFingerprinting.Should().Be(AllowFingerprinting.NewFiles);
+            Subject.WriteAudioTags.Should().Be(WriteAudioTagsType.No);
+            Subject.ScrubAudioTags.Should().BeFalse();
+            Subject.EmbedCoverArt.Should().BeTrue();
+        }
+
+        [Test]
+        public void music_import_settings_should_be_stored_under_their_own_keys()
+        {
+            Subject.TrackFileDate = TrackFileDateType.AlbumReleaseDate;
+            Subject.AllowFingerprinting = AllowFingerprinting.Never;
+            Subject.WriteAudioTags = WriteAudioTagsType.NewFiles;
+            Subject.ScrubAudioTags = true;
+            Subject.EmbedCoverArt = false;
+
+            AssertUpsert("TrackFileDate", "albumreleasedate");
+            AssertUpsert("AllowFingerprinting", "never");
+            AssertUpsert("WriteAudioTags", "newfiles");
+            AssertUpsert("ScrubAudioTags", true);
+            AssertUpsert("EmbedCoverArt", false);
+        }
+
         private void AssertUpsert(string key, object value)
         {
             Mocker.GetMock<IConfigRepository>().Verify(c => c.Upsert(key.ToLowerInvariant(), value.ToString()));

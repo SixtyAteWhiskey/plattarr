@@ -330,7 +330,7 @@ namespace NzbDrone.Core.Music.Covers
 
         // Lidarr keeps the extension on MediaCover. The shared MediaCover here has none, so Music reads it
         // from the remote URL (a local path for covers read back from disk), as Lidarr's setter does.
-        private static string GetCoverExtension(MediaCover.MediaCover cover)
+        internal static string GetCoverExtension(MediaCover.MediaCover cover)
         {
             return cover.RemoteUrl.IsNullOrWhiteSpace() ? string.Empty : Path.GetExtension(cover.RemoteUrl);
         }

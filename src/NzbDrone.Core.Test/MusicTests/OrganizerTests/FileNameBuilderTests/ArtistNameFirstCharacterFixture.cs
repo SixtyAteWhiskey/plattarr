@@ -5,6 +5,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Music;
 using NzbDrone.Core.Music.Organizer;
+using NzbDrone.Core.Music.Qualities;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
 
@@ -29,9 +30,9 @@ namespace NzbDrone.Core.Test.MusicTests.OrganizerTests.FileNameBuilderTests
             Mocker.GetMock<INamingConfigService>()
                   .Setup(c => c.GetConfig()).Returns(_namingConfig);
 
-            Mocker.GetMock<IQualityDefinitionService>()
-                .Setup(v => v.Get(Moq.It.IsAny<Quality>()))
-                .Returns<Quality>(v => Quality.DefaultQualityDefinitions.First(c => c.Quality == v));
+            Mocker.GetMock<IAudioQualityDefinitionService>()
+                .Setup(v => v.Get(Moq.It.IsAny<AudioQuality>()))
+                .Returns<AudioQuality>(v => AudioQuality.DefaultQualityDefinitions.First(c => c.Quality == v));
         }
 
         [TestCase("The Mist", "M", "The Mist")]

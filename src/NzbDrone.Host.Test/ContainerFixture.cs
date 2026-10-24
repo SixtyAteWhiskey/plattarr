@@ -448,5 +448,55 @@ namespace NzbDrone.App.Test
             _container.GetRequiredService<NzbDrone.Core.Music.Profiles.IAudioQualityProfileService>().Should().BeAssignableTo<IHandle<ApplicationStartedEvent>>();
             _container.GetRequiredService<NzbDrone.Core.Music.Profiles.IMetadataProfileService>().Should().BeAssignableTo<IHandle<ApplicationStartedEvent>>();
         }
+
+        [Test]
+        public void should_resolve_the_music_download_contracts()
+        {
+            _container.GetServices<IDownloadImporter>().Should().ContainSingle(i => i.Kind == MediaKind.Music)
+                .Which.Should().BeOfType<NzbDrone.Core.Music.Import.MusicDownloadImporter>();
+            _container.GetServices<ITrackedDownloadMatcher>().Should().ContainSingle(m => m.Kind == MediaKind.Music)
+                .Which.Should().BeOfType<NzbDrone.Core.Music.Downloads.MusicTrackedDownloadMatcher>();
+            _container.GetRequiredService<NzbDrone.Core.Music.Import.ITrackedDownloadAlreadyImported>().Should().NotBeNull();
+        }
+
+        [Test]
+        public void should_resolve_the_music_import_and_media_file_services()
+        {
+            _container.GetRequiredService<NzbDrone.Core.Music.MediaFiles.IDownloadedTracksImportService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.MediaFiles.TrackImport.IImportApprovedTracks>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.MediaFiles.TrackImport.IMakeImportDecision>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.MediaFiles.TrackImport.Identification.IIdentificationService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.MediaFiles.IMediaFileService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.MediaFiles.IRenameTrackFileService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.MediaFiles.IMoveTrackFiles>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.MediaFiles.IAudioTagService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.Parser.IFingerprintingService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.Organizer.IBuildFileNames>().Should().BeOfType<NzbDrone.Core.Music.Organizer.FileNameBuilder>();
+        }
+
+        [Test]
+        public void should_resolve_the_music_media_file_command_executors()
+        {
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Music.MediaFiles.Commands.DownloadedAlbumsScanCommand>>().Should().NotBeNull();
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Music.MediaFiles.Commands.RescanFoldersCommand>>().Should().NotBeNull();
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Music.MediaFiles.Commands.RenameArtistCommand>>().Should().NotBeNull();
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Music.MediaFiles.Commands.RenameTrackFilesCommand>>().Should().NotBeNull();
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Music.MediaFiles.Commands.RetagArtistCommand>>().Should().NotBeNull();
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Music.MediaFiles.Commands.RetagFilesCommand>>().Should().NotBeNull();
+        }
+
+        [Test]
+        public void should_keep_tracked_downloads_in_step_with_the_artist_library()
+        {
+            _container.GetServices<IHandle<NzbDrone.Core.Music.Events.ArtistAddedEvent>>().OfType<NzbDrone.Core.Music.Downloads.MusicTrackedDownloadRefresher>().Should().ContainSingle();
+            _container.GetServices<IHandle<NzbDrone.Core.Music.MediaFiles.Events.TrackImportedEvent>>().OfType<NzbDrone.Core.Music.Downloads.MusicTrackedDownloadRefresher>().Should().ContainSingle();
+        }
+
+        [Test]
+        public void should_write_music_download_history_in_the_music_module()
+        {
+            _container.GetServices<IHandle<NzbDrone.Core.Music.MediaFiles.Events.TrackImportedEvent>>().OfType<NzbDrone.Core.Music.Downloads.MusicDownloadHistoryHandler>().Should().ContainSingle();
+            _container.GetServices<IHandle<NzbDrone.Core.Music.Events.ArtistsDeletedEvent>>().OfType<NzbDrone.Core.Music.Downloads.MusicDownloadHistoryHandler>().Should().ContainSingle();
+        }
     }
 }

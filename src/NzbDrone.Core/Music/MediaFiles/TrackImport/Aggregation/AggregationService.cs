@@ -1,0 +1,85 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using NLog;
+using NzbDrone.Common.Disk;
+using NzbDrone.Core.Music.MediaFiles.TrackImport.Aggregation.Aggregators;
+using NzbDrone.Core.Music.Parser.Model;
+
+namespace NzbDrone.Core.Music.MediaFiles.TrackImport.Aggregation
+{
+    public interface IAugmentingService
+    {
+        LocalTrack Augment(LocalTrack localTrack, bool otherFiles);
+        LocalAlbumRelease Augment(LocalAlbumRelease localAlbum);
+    }
+
+    public class AugmentingService : IAugmentingService
+    {
+        private readonly IEnumerable<IAggregate<LocalTrack>> _trackAugmenters;
+        private readonly IEnumerable<IAggregate<LocalAlbumRelease>> _albumAugmenters;
+        private readonly IDiskProvider _diskProvider;
+        private readonly Logger _logger;
+
+        public AugmentingService(IEnumerable<IAggregate<LocalTrack>> trackAugmenters,
+                                 IEnumerable<IAggregate<LocalAlbumRelease>> albumAugmenters,
+                                 IDiskProvider diskProvider,
+                                 Logger logger)
+        {
+            _trackAugmenters = trackAugmenters.OrderBy(a => a.Order).ToList();
+            _albumAugmenters = albumAugmenters.OrderBy(a => a.Order).ToList();
+            _diskProvider = diskProvider;
+            _logger = logger;
+        }
+
+        public LocalTrack Augment(LocalTrack localTrack, bool otherFiles)
+        {
+            if (localTrack.DownloadClientAlbumInfo == null &&
+                localTrack.FolderAlbumInfo == null &&
+                localTrack.FileTrackInfo == null)
+            {
+                if (MediaFileExtensions.Extensions.Contains(Path.GetExtension(localTrack.Path)))
+                {
+                    throw new AugmentingFailedException("Unable to parse track info from path: {0}", localTrack.Path);
+                }
+            }
+
+            localTrack.Size = _diskProvider.GetFileSize(localTrack.Path);
+            localTrack.SceneName = localTrack.SceneSource ? SceneNameCalculator.GetSceneName(localTrack) : null;
+
+            foreach (var augmenter in _trackAugmenters)
+            {
+                try
+                {
+                    augmenter.Aggregate(localTrack, otherFiles);
+                }
+                catch (Exception ex)
+                {
+                    var message = $"Unable to augment information for file: '{localTrack.Path}'. Artist: {localTrack.Artist} Error: {ex.Message}";
+
+                    _logger.Warn(ex, message);
+                }
+            }
+
+            return localTrack;
+        }
+
+        public LocalAlbumRelease Augment(LocalAlbumRelease localAlbum)
+        {
+            foreach (var augmenter in _albumAugmenters)
+            {
+                try
+                {
+                    augmenter.Aggregate(localAlbum, false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warn(ex, ex.Message);
+                }
+            }
+
+            return localAlbum;
+        }
+    }
+}

@@ -1,0 +1,62 @@
+using System.Linq;
+using NLog;
+using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Download;
+using NzbDrone.Core.Music.Parser.Model;
+using NzbDrone.Core.Music.Qualities;
+using NzbDrone.Core.Qualities;
+
+namespace NzbDrone.Core.Music.MediaFiles.TrackImport.Specifications
+{
+    public class UpgradeSpecification : IImportDecisionEngineSpecification<LocalTrack>
+    {
+        private readonly IConfigService _configService;
+        private readonly Logger _logger;
+
+        public UpgradeSpecification(IConfigService configService, Logger logger)
+        {
+            _configService = configService;
+            _logger = logger;
+        }
+
+        public ImportSpecDecision IsSatisfiedBy(LocalTrack localTrack, DownloadClientItem downloadClientItem)
+        {
+            if (!localTrack.Tracks.Any(e => e.TrackFileId > 0))
+            {
+                // No existing tracks, skip.  This guards against new artists not having a QualityProfile.
+                return ImportSpecDecision.Accept();
+            }
+
+            var downloadPropersAndRepacks = _configService.DownloadPropersAndRepacks;
+            var qualityComparer = new AudioQualityModelComparer(localTrack.Artist.QualityProfile.Value);
+
+            foreach (var track in localTrack.Tracks.Where(e => e.TrackFileId > 0))
+            {
+                var trackFile = track.TrackFile.Value;
+
+                if (trackFile == null)
+                {
+                    _logger.Trace("Unable to get track file details from the DB. TrackId: {0} TrackFileId: {1}", track.Id, track.TrackFileId);
+                    continue;
+                }
+
+                var qualityCompare = qualityComparer.Compare(localTrack.Quality.Quality, trackFile.Quality.Quality);
+
+                if (qualityCompare < 0)
+                {
+                    _logger.Debug("This file isn't a quality upgrade for all tracks. New Quality is {0}. Skipping {1}", localTrack.Quality.Quality, localTrack.Path);
+                    return ImportSpecDecision.Reject(ImportRejectionReason.NotQualityUpgrade, "Not an upgrade for existing track file(s). New Quality is {0}", localTrack.Quality.Quality);
+                }
+
+                if (qualityCompare == 0 && downloadPropersAndRepacks != ProperDownloadTypes.DoNotPrefer &&
+                    localTrack.Quality.Revision.CompareTo(trackFile.Quality.Revision) < 0)
+                {
+                    _logger.Debug("This file isn't a quality upgrade for all tracks. Skipping {0}", localTrack.Path);
+                    return ImportSpecDecision.Reject(ImportRejectionReason.NotQualityUpgrade, "Not an upgrade for existing track file(s)");
+                }
+            }
+
+            return ImportSpecDecision.Accept();
+        }
+    }
+}

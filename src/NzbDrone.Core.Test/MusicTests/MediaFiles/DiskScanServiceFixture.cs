@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using FizzWare.NBuilder;
 using Moq;
@@ -10,14 +11,16 @@ using NzbDrone.Core.Music;
 using NzbDrone.Core.Music.MediaFiles;
 using NzbDrone.Core.Music.MediaFiles.Commands;
 using NzbDrone.Core.Music.MediaFiles.Events;
+using NzbDrone.Core.Music.MediaFiles.TrackImport;
+using NzbDrone.Core.Music.Parser.Model;
 using NzbDrone.Core.Music.RootFolders;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.MusicTests.MediaFiles
 {
-    // The interim scan of the metadata step: folder checks, artist folder creation and
-    // ArtistScannedEvent. Reading audio files is the import step's.
+    // The scan's folder checks, artist folder creation and ArtistScannedEvent, with a folder that has
+    // no audio files. Reading the files is ScanFixture's.
     [TestFixture]
     public class DiskScanServiceFixture : CoreTest<DiskScanService>
     {
@@ -34,6 +37,17 @@ namespace NzbDrone.Core.Test.MusicTests.MediaFiles
             Mocker.GetMock<IRootFolderService>().Setup(s => s.GetBestRootFolder(It.IsAny<string>())).Returns(new RootFolder { Path = RootPath });
             Mocker.GetMock<IRootFolderService>().Setup(s => s.All()).Returns(new List<RootFolder> { new RootFolder { Path = RootPath } });
             Mocker.GetMock<IArtistService>().Setup(s => s.GetArtists(It.IsAny<IEnumerable<int>>())).Returns(new List<Artist> { _artist });
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.GetFileInfos(It.IsAny<string>(), It.IsAny<bool>())).Returns(new List<FileInfo>());
+
+            Mocker.GetMock<IMakeImportDecision>()
+                .Setup(v => v.GetImportDecisions(It.IsAny<List<FileInfo>>(), It.IsAny<IdentificationOverrides>(), It.IsAny<ImportDecisionMakerInfo>(), It.IsAny<ImportDecisionMakerConfig>()))
+                .Returns(new List<ImportDecision<LocalTrack>>());
+
+            Mocker.GetMock<IMediaFileService>().Setup(v => v.GetFilesByArtist(It.IsAny<int>())).Returns(new List<TrackFile>());
+            Mocker.GetMock<IMediaFileService>().Setup(v => v.GetFilesWithBasePath(It.IsAny<string>())).Returns(new List<TrackFile>());
+            Mocker.GetMock<IMediaFileService>()
+                .Setup(v => v.FilterUnchangedFiles(It.IsAny<List<FileInfo>>(), It.IsAny<FilterFilesType>()))
+                .Returns((List<FileInfo> files, FilterFilesType filter) => files);
         }
 
         private void GivenFolders(bool rootExists, bool rootEmpty, bool artistExists)

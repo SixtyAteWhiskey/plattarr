@@ -34,6 +34,11 @@ namespace NzbDrone.Core.Configuration
         bool CreateEmptyMovieFolders { get; set; }
         bool CreateEmptySeriesFolders { get; set; }
         bool CreateEmptyArtistFolders { get; set; }
+        TrackFileDateType TrackFileDate { get; set; }
+        AllowFingerprinting AllowFingerprinting { get; set; }
+        WriteAudioTagsType WriteAudioTags { get; set; }
+        bool ScrubAudioTags { get; set; }
+        bool EmbedCoverArt { get; set; }
         bool AnimeStandardFormatSearch { get; set; }
         SeasonPackUpgradeType SeasonPackUpgrade { get; set; }
         int SeasonPackUpgradeThreshold { get; set; }

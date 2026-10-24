@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using NLog;
+using NzbDrone.Common;
 using NzbDrone.Core.Datastore.Events;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
@@ -23,6 +25,7 @@ namespace NzbDrone.Core.Music.MediaFiles
         List<TrackFile> GetFilesByAlbum(int albumId);
         List<TrackFile> GetFilesByRelease(int releaseId);
         List<TrackFile> GetUnmappedFiles();
+        List<FileInfo> FilterUnchangedFiles(List<FileInfo> files, FilterFilesType filter);
         TrackFile Get(int id);
         List<TrackFile> Get(IEnumerable<int> ids);
         List<TrackFile> GetFilesWithBasePath(string path);
@@ -93,6 +96,60 @@ namespace NzbDrone.Core.Music.MediaFiles
             {
                 _eventAggregator.PublishEvent(new TrackFileDeletedEvent(trackFile, reason));
             }
+        }
+
+        public List<FileInfo> FilterUnchangedFiles(List<FileInfo> files, FilterFilesType filter)
+        {
+            if (filter == FilterFilesType.None)
+            {
+                return files;
+            }
+
+            _logger.Debug($"Filtering {files.Count} files for unchanged files");
+
+            var knownFiles = GetFileWithPath(files.Select(x => x.FullName).ToList());
+            _logger.Trace($"Got {knownFiles.Count} existing files");
+
+            if (!knownFiles.Any())
+            {
+                return files;
+            }
+
+            var combined = files
+                .Join(knownFiles,
+                      f => f.FullName,
+                      af => af.Path,
+                      (f, af) => new { DiskFile = f, DbFile = af },
+                      PathEqualityComparer.Instance)
+                .ToList();
+            _logger.Trace($"Matched paths for {combined.Count} files");
+
+            List<FileInfo> unwanted = null;
+            if (filter == FilterFilesType.Known)
+            {
+                unwanted = combined
+                    .Where(x => x.DiskFile.Length == x.DbFile.Size &&
+                           Math.Abs((x.DiskFile.LastWriteTimeUtc - x.DbFile.Modified.ToUniversalTime()).TotalSeconds) <= 1)
+                    .Select(x => x.DiskFile)
+                    .ToList();
+                _logger.Trace($"{unwanted.Count} unchanged existing files");
+            }
+            else if (filter == FilterFilesType.Matched)
+            {
+                unwanted = combined
+                    .Where(x => x.DiskFile.Length == x.DbFile.Size &&
+                           Math.Abs((x.DiskFile.LastWriteTimeUtc - x.DbFile.Modified.ToUniversalTime()).TotalSeconds) <= 1 &&
+                           (x.DbFile.Tracks == null || (x.DbFile.Tracks.IsLoaded && x.DbFile.Tracks.Value.Any())))
+                    .Select(x => x.DiskFile)
+                    .ToList();
+                _logger.Trace($"{unwanted.Count} unchanged and matched files");
+            }
+            else
+            {
+                throw new ArgumentException("Unrecognised value of FilterFilesType filter");
+            }
+
+            return files.Except(unwanted).ToList();
         }
 
         public TrackFile Get(int id)
