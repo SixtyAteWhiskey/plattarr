@@ -229,6 +229,14 @@ namespace NzbDrone.App.Test
         }
 
         [Test]
+        public void should_resolve_the_music_manual_import_controller_and_command_executor()
+        {
+            _container.GetRequiredService<Radarr.Api.V3.Music.ManualImport.MusicManualImportController>().Should().NotBeNull();
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Music.MediaFiles.TrackImport.Manual.MusicManualImportCommand>>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.MediaFiles.TrackImport.Manual.IManualImportService>().Should().NotBeNull();
+        }
+
+        [Test]
         public void should_resolve_the_artist_statistics_service_and_the_audio_definition_reset_executor()
         {
             _container.GetRequiredService<NzbDrone.Core.Music.ArtistStats.IArtistStatisticsService>()

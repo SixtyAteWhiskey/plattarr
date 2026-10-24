@@ -8065,6 +8065,90 @@
         }
       }
     },
+    "/api/v3/manualimport/music": {
+      "post": {
+        "tags": [
+          "MusicManualImport"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MusicManualImportUpdateResource"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "MusicManualImport"
+        ],
+        "parameters": [
+          {
+            "name": "folder",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "downloadId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "artistId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "filterExistingFiles",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          {
+            "name": "replaceExistingFiles",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MusicManualImportResource"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v3/wanted/missing/music": {
       "get": {
         "tags": [
@@ -19222,6 +19306,175 @@
         },
         "additionalProperties": false
       },
+      "MusicImportRejectionResource": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "$ref": "#/components/schemas/RejectionType"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MusicManualImportResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "path": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "artist": {
+            "$ref": "#/components/schemas/ArtistResource"
+          },
+          "album": {
+            "$ref": "#/components/schemas/AlbumResource"
+          },
+          "albumReleaseId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tracks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrackResource"
+            },
+            "nullable": true
+          },
+          "quality": {
+            "$ref": "#/components/schemas/AudioQualityModel"
+          },
+          "releaseGroup": {
+            "type": "string",
+            "nullable": true
+          },
+          "qualityWeight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "downloadId": {
+            "type": "string",
+            "nullable": true
+          },
+          "indexerFlags": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rejections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MusicImportRejectionResource"
+            },
+            "nullable": true
+          },
+          "audioTags": {
+            "$ref": "#/components/schemas/ParsedTrackInfo"
+          },
+          "additionalFile": {
+            "type": "boolean"
+          },
+          "replaceExistingFiles": {
+            "type": "boolean"
+          },
+          "disableReleaseSwitching": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MusicManualImportUpdateResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "path": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "artistId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "albumId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "albumReleaseId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "tracks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrackResource"
+            },
+            "nullable": true
+          },
+          "trackIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "quality": {
+            "$ref": "#/components/schemas/AudioQualityModel"
+          },
+          "releaseGroup": {
+            "type": "string",
+            "nullable": true
+          },
+          "indexerFlags": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "downloadId": {
+            "type": "string",
+            "nullable": true
+          },
+          "additionalFile": {
+            "type": "boolean"
+          },
+          "replaceExistingFiles": {
+            "type": "boolean"
+          },
+          "disableReleaseSwitching": {
+            "type": "boolean"
+          },
+          "rejections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MusicImportRejectionResource"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "MusicMediaInfoModel": {
         "type": "object",
         "properties": {
@@ -23930,6 +24183,9 @@
     },
     {
       "name": "MusicCutoff"
+    },
+    {
+      "name": "MusicManualImport"
     },
     {
       "name": "MusicMissing"
