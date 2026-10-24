@@ -380,3 +380,66 @@
     }
   ]
 }
+=====
+{
+  "content": "Album Deleted",
+  "embeds": [
+    {
+      "description": "Album removed and all files were deleted",
+      "title": "The Black Keys - Brothers",
+      "color": 15749200,
+      "url": "https://musicbrainz.org/artist/d15721d8-56b4-453d-b506-fc915b14cba2",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "timestamp": "T"
+    }
+  ]
+}
+=====
+{
+  "content": "Download Failed: Failed download detected",
+  "embeds": [
+    {
+      "description": "Failed download detected",
+      "title": "The.Black.Keys-Brothers-2010-FLAC-GRP",
+      "color": 15749200,
+      "url": "https://musicbrainz.org/artist/d15721d8-56b4-453d-b506-fc915b14cba2",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "timestamp": "T",
+      "fields": [
+        {
+          "name": "Quality",
+          "value": "FLAC",
+          "inline": true
+        },
+        {
+          "name": "Download Client",
+          "value": "qb-main",
+          "inline": true
+        }
+      ]
+    }
+  ]
+}
+=====
+{
+  "content": "Track file tags updated: /music/The Black Keys/Brothers/01 - Everlasting Light.flac:\nTitle: Everlasting Lite -> Everlasting Light\nDisc: <missing> -> 1",
+  "embeds": [
+    {
+      "description": "/music/The Black Keys/Brothers/01 - Everlasting Light.flac:\nTitle: Everlasting Lite -> Everlasting Light\nDisc: <missing> -> 1",
+      "title": "Track File Tags Updated",
+      "color": 16761392,
+      "url": "https://musicbrainz.org/artist/d15721d8-56b4-453d-b506-fc915b14cba2",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "timestamp": "T"
+    }
+  ]
+}
