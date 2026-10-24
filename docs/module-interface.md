@@ -2694,7 +2694,7 @@ while building (each is reversible):
   to `Notifications` (default false). The internal names are neutral (`OnItemDelete`, `OnRetag`); the wire and
   column names are Lidarr's, which is also what the API and the UI carry.
   - **Webhook** (all three), **CustomScript** (album delete and retag) and **Discord** (all three; slice 7f)
-    implement them. The other providers are owed; Radarr's and Sonarr's own event flags are likewise implemented
+    implement them. Emby / Jellyfin got album delete and retag in slice 7i; Radarr's and Sonarr's own event flags are likewise implemented
     by only some providers (`OnImportComplete` and `OnManualInteractionRequired` exist on Webhook, CustomScript and
     Discord only).
   - Discord (7f): a danger embed titled "Artist - Album" with the files message and the content "Album Deleted";
@@ -2744,8 +2744,8 @@ Frontend: eslint clean on the three notification files.
 `CleanupUnusedTags`. `MusicWebhookPayloadBuilder` changes `artist.Metadata.Images` while it builds local URLs.
 Adding an artist with monitor `none` leaves it unmonitored.
 
-**Still open in step 7.** The three new events on the providers other than Webhook, CustomScript and Discord. The UI was built in
-slices U1 to U3 (next section).
+**Still open in step 7.** Nothing in the API. The provider events were closed in slice 7i and the UI was built in slices U1 to U3
+(next sections).
 
 
 ### Music step 7 (UI, slices U1 to U3): as built
@@ -2825,6 +2825,37 @@ translation key; saves reach `PUT config/mediamanagement`, `PUT music/config/nam
 profile add answers 201 and an empty one 400; the metadata profile, audio profile and root folder modals open with the
 right fields; the Queue shows a mocked Music item with working links; the iCal link and feed answer. Gates: eslint,
 stylelint, `tsc` (zero errors) and webpack clean; `tools/verify.sh` PASS (Api 201, Host 72, Core 10,650).
+
+### Music step 7 (provider events, slice 7i): as built
+
+Closes the notification events of step 7. Plattarr ships four providers: Webhook, CustomScript, Discord and Emby / Jellyfin
+(`MediaBrowser`). Lidarr's other providers were not ported, so the first three (7d, 7f) plus this slice cover every provider
+that exists. Calls made (each reversible):
+
+- **Follow Lidarr's provider, not the event list.** Lidarr's Emby / Jellyfin provider implements album delete (announce, then
+  refresh the library) and retag (announce only) and has **no** download-failure handler. `MediaBrowser` therefore overrides
+  `OnItemDelete` and `OnRetag` only; `SupportsOnDownloadFailure` stays false and the form disables that box for it.
+- **Titles.** `Branded(ItemDeletedTitle(subject))` is "Radarr - Album Deleted" (`ItemDeletedTitle` is `{ItemNoun} Deleted`, so
+  the Music subject's item noun supplies "Album"); a missing subject falls back to "Album Deleted". The retag title is the
+  shared constant `TRACK_RETAGGED_TITLE` ("Track Retagged"). Both are announced only when "Send Notifications" is on.
+- **Library refresh after an album delete is `Modified`, not `Deleted`.** The artist folder still exists; the queue batches
+  one refresh per artist (`Kind`, `ParentId`), and two different update types for one artist collapse to a null type so the
+  server decides, as for Movies. The refresh happens whether or not the files were deleted (Lidarr does the same) and only
+  when "Update Library" is on. A retag never refreshes the library.
+- **Lidarr defect not copied.** Its `MediaBrowserService.Update` assigns (`e.CollectionType = "music"`) instead of comparing
+  and posts `Created` for every music folder; Plattarr's service posts the subject's own path.
+- **Proxy fix (found while reading the Music path).** `MediaBrowserProxy.GetPaths` sent `years=<Year>` for every kind. A Music
+  subject has no year and a server artist has no production year, so the filter could never match and the refresh worked only
+  through the fallback that adds the mapped path. `years` is now sent only when the subject has a year (Movies and Series
+  requests are unchanged).
+
+**Tests.** `MediaBrowserMusicEventsFixture` (14: support flags, title, guards, update type, batching, mixed types, retag never
+refreshes, failed download does nothing, two through the real `MusicNotificationHandler`) and `MediaBrowserProxyFixture`
+(6: item type and `years` per kind, name match, no match, the update body). There is no Emby / Jellyfin golden file: the
+provider talks to a service interface and a proxy, so the request shape is pinned by the proxy fixture. 15 mutation checks
+(11 on the provider and base class, 4 on the proxy), all killed. `tools/verify.sh` PASS: Api 201, Host 72, Core 10,670
+(54 skipped).
+
 
 ## Decision record
 

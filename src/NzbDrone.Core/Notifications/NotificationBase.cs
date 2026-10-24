@@ -13,6 +13,7 @@ namespace NzbDrone.Core.Notifications
         protected const string HEALTH_RESTORED_TITLE = "Health Check Restored";
         protected const string APPLICATION_UPDATE_TITLE = "Application Updated";
         protected const string MANUAL_INTERACTION_REQUIRED_TITLE = "Manual Interaction";
+        protected const string TRACK_RETAGGED_TITLE = "Track Retagged";
 
         protected const string HEALTH_ISSUE_TITLE_BRANDED = "Radarr - " + HEALTH_ISSUE_TITLE;
         protected const string HEALTH_RESTORED_TITLE_BRANDED = "Radarr - " + HEALTH_RESTORED_TITLE;
@@ -26,6 +27,7 @@ namespace NzbDrone.Core.Notifications
         protected static string AddedTitle(ActivitySubject subject) => $"{subject.KindLabel} Added";
         protected static string DeletedTitle(ActivitySubject subject) => $"{subject.KindLabel} Deleted";
         protected static string FileDeletedTitle(ActivitySubject subject) => $"{subject.ItemNoun} File Deleted";
+        protected static string ItemDeletedTitle(ActivitySubject subject) => $"{subject.ItemNoun} Deleted";
         protected static string Branded(string title) => "Radarr - " + title;
 
         public abstract string Name { get; }

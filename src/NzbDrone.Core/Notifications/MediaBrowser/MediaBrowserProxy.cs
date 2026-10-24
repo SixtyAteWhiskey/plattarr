@@ -53,12 +53,18 @@ namespace NzbDrone.Core.Notifications.Emby
             var tvdbId = int.TryParse(subject.GetExternalId(ExternalIdTypes.Tvdb), out var parsedTvdbId) ? parsedTvdbId : 0;
             var tvMazeId = int.TryParse(subject.GetExternalId(ExternalIdTypes.TvMaze), out var parsedTvMazeId) ? parsedTvMazeId : 0;
 
-            var request = BuildRequest(path, settings)
+            var builder = BuildRequest(path, settings)
                 .AddQueryParam("recursive", "true")
                 .AddQueryParam("includeItemTypes", GetItemType(subject.Kind))
-                .AddQueryParam("fields", "Path,ProviderIds")
-                .AddQueryParam("years", subject.Year)
-                .Build();
+                .AddQueryParam("fields", "Path,ProviderIds");
+
+            // An artist has no production year on the server, so a year filter would hide it.
+            if (subject.Year > 0)
+            {
+                builder.AddQueryParam("years", subject.Year);
+            }
+
+            var request = builder.Build();
 
             try
             {
