@@ -2560,6 +2560,83 @@ the new release is not recent (the newest of the 71 is 73 days old). The new bas
 artist and a downloaded album can be fed through the importer.
 
 
+### Music step 6: as built
+
+Built in session 53 against Lidarr `aec88028`. No migration, no API, no UI, no scheduled task. The writers,
+the failed-download seam, the cleanup and the notification builders are registered and wired; nothing
+exposes them over HTTP until step 7. Calls made while building (each is reversible):
+
+- **History rows.** `Music.History.HistoryService` now writes Lidarr's rows into the shared `History` table
+  (`MediaKind` Music, `ParentId` = artist, `ItemId` = album). A grab, a failure and an ignored download write
+  **one row per album**; an import, a delete, a rename and a retag write **one row per track**. Every handler
+  that receives a core event (grab, failed, ignored, completed) returns at once for another media kind.
+  `DownloadFailed` and `DownloadIgnored` turn the event's video `QualityModel` display copy back with
+  `AudioQualityModel.FromDisplayModel`.
+- **`TrackId` lives in `Data`** (`AlbumHistory.TRACK_ID` = `"trackId"`), not in a new column. The shared table
+  has no such column and nothing filters on it, so there is no migration.
+- **`DownloadImported` row.** `DownloadCompletedEvent` (published by the core when every album of a download is
+  in) writes one `DownloadImported` row per album from `TrackedDownload.GetRemoteAlbum()`. This closes the gap
+  from step 5: `TrackedDownloadAlreadyImported` now finds a row to read.
+- **File delete skips.** `TrackFileDeletedEvent` writes nothing for the reasons `NoLinkedEpisodes` and
+  `ManualOverride` (Lidarr's rule), nor when the file's artist is already gone.
+- **Size.** A grab with no size writes `"0"`, so the blocklist handler can parse it back.
+- **Blocklist writers.** `Music.Blocklisting.BlocklistService` handles `DownloadFailedEvent` (kind-guarded; a
+  tracked torrent's download id wins as the info hash, as in TV) and `ArtistsDeletedEvent`
+  (`DeleteForArtistIds`). **The clear-music-blocklist command is deferred to step 7** with the API, as TV's was.
+- **Failed downloads.** `MusicFailedDownloadSource` is the TV source over `AlbumHistory`: one failure names every
+  album the release was grabbed for. Upstream quirk kept: a request to skip the redownload counts only for a
+  history row with **no** download id. `MusicRedownloadSearcher`: one album pushes `AlbumSearchCommand`; a
+  failure that covers every album of the artist pushes `ArtistSearchCommand`; any other set pushes
+  `AlbumSearchCommand` for those albums; a failure with no albums does nothing.
+- **Orphan cleanup.** `CleanupOrphanedMusicActivity` deletes Music-kind rows of `History`, `Blocklist` and
+  `PendingReleases` whose artist is gone, and `History` rows whose album is gone. **Lidarr's other orphan
+  housekeepers (albums, releases, tracks, track files, artist metadata) are not ported**: no Music housekeepers
+  existed before this step. Listed for step 7.
+- **Notifications.** `MusicNotificationHandler` sends: grab ("Artist - Album - [FLAC Proper]"), download
+  (once per imported album, "Artist - Album (12 Tracks Imported)"), artist added, rename, artist deleted (one
+  message per artist) and manual interaction. `MusicActivityRenderer` makes the subject: item label = album
+  titles joined with " + ", and an **untyped MusicBrainz link** (`MetadataLinkType` lists video databases, so the
+  link renders but cannot be picked in a provider's link list).
+- **Lidarr's wire shapes are kept**, including its inconsistencies: webhook events `Grab`, `Download` (an album
+  import), `Rename`, `ArtistAdd`, `ArtistDelete`, `Test` (`WebhookEventType` gained `ArtistAdd` and
+  `ArtistDelete`); script prefix `Lidarr_`, event types `Grab`, `AlbumDownload`, `Rename`, `ArtistAdd`,
+  `ArtistDeleted`, and `Lidarr_Artist_Title` for add and delete but `Lidarr_Artist_Name` elsewhere. Manual
+  interaction has no Lidarr script event; its variables follow the other modules (artist, then download).
+- **Not notified yet.** Lidarr also notifies on a deleted album, a failed download, an incomplete import and a
+  retag. The neutral contract has no event for them (a provider's event flags are columns on the definition), so
+  they arrive with the API and UI in step 7. A track file delete is never notified (Lidarr did not either), and
+  the Music builders throw `NotSupportedException` for the file-delete and import-complete messages.
+- **Shared provider fix.** The Discord `Codecs` field now drops an empty video codec, so a music file reads
+  "FLAC 2" instead of " / FLAC 2". Movies and TV output is unchanged (their goldens pass).
+
+**Tests.** Lidarr has no history, blocklist-writer or notification-builder fixtures to port (its pinned tree
+has none for these), so the fixtures are new, on the TV shapes: history events (21), blocklist handlers, failed
+download source, redownload searcher, orphan cleanup (a `DbTest` on the real tables), renderer, handler,
+builders (event-type map, refusals, Lidarr's test payload, tag labels, `Title` against `Name` variable), the
+Discord codecs, three Music goldens (`music-webhook.json`, `music-customscript.txt`, `music-discord.json`, the
+same Black Keys library through the real handler into one provider), the webhook test payload now sends Movies,
+TV and Music shapes, and four Host container tests (failed-download source and searcher by kind, history and
+blocklist writers, notification handler, payload and script builders). **A Host test that resolved every `IHousekeepingTask`
+hit an unrelated recursive-dependency fault (`LogDatabase` and `MainDatabase`) and was dropped**; the housekeeper
+is covered by its own `DbTest` and by the live `Housekeeping` run.
+
+**Mutation checks.** 22 mutations of the new behavior; all killed in the end. Four first escaped: the
+`DownloadCompleted` kind guard (the "other kind" case had no release, so the null check hid the mutant), the
+artist-search count check (`==` against `>=`, nothing named more albums than the artist has), and two cleanup
+mutations whose patterns did not apply (SQL in a verbatim string). Two tests were added and the patterns
+fixed; all four then died.
+
+Results (Release, full solution build, analyzers on, 0 warnings): Core 10,548 passed and 54 skipped (92 more
+than step 5), Host 63 (5 skipped), Api 90, 0 failed. No schema change, so no PostgreSQL pass.
+
+**Live (dev stack, image `733b463`).** Backup `config-musicstep6-20261024-1614.tgz` first. After the deploy:
+healthy, `system/status` migration 10 (unchanged), no `Warn`, `Error` or `Fatal` line in `docker logs`, `RssSync`
+completed (13 reports found, 0 grabbed), `Housekeeping` completed (so the new housekeeper resolves and runs),
+queue empty. **Movies baseline unchanged: 71 releases, 57 approved, 64 mapped.** Step 6 has no endpoint, so the
+history, blocklist and notification writers are proved by tests until step 7 can add an artist and feed a
+download through them.
+
+
 ## Decision record
 
 Owner answers, 2026-10-20, to the six questions in revision 1:
