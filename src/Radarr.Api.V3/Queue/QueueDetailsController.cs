@@ -8,6 +8,7 @@ using NzbDrone.Core.Datastore.Events;
 using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Music;
 using NzbDrone.Core.Queue;
 using NzbDrone.Core.Tv;
 using NzbDrone.SignalR;
@@ -43,7 +44,7 @@ namespace Radarr.Api.V3.Queue
 
         [HttpGet]
         [Produces("application/json")]
-        public Ok<List<QueueResource>> GetQueue(int? movieId, int? seriesId, bool includeMovie = false, bool includeSeries = false, bool includeEpisode = false)
+        public Ok<List<QueueResource>> GetQueue(int? movieId, int? seriesId, int? artistId, [FromQuery] int[] albumIds, bool includeMovie = false, bool includeSeries = false, bool includeEpisode = false, bool includeArtist = false, bool includeAlbum = false)
         {
             var queue = _queueService.GetQueue();
             var pending = _pendingReleaseService.GetPendingQueue();
@@ -51,15 +52,25 @@ namespace Radarr.Api.V3.Queue
 
             if (movieId.HasValue)
             {
-                return TypedResults.Ok(fullQueue.Where(q => q.GetMovie()?.Id == movieId.Value).ToResource(includeMovie, includeSeries, includeEpisode));
+                return TypedResults.Ok(fullQueue.Where(q => q.GetMovie()?.Id == movieId.Value).ToResource(includeMovie, includeSeries, includeEpisode, includeArtist, includeAlbum));
             }
 
             if (seriesId.HasValue)
             {
-                return TypedResults.Ok(fullQueue.Where(q => q.GetSeries()?.Id == seriesId.Value).ToResource(includeMovie, includeSeries, includeEpisode));
+                return TypedResults.Ok(fullQueue.Where(q => q.GetSeries()?.Id == seriesId.Value).ToResource(includeMovie, includeSeries, includeEpisode, includeArtist, includeAlbum));
             }
 
-            return TypedResults.Ok(fullQueue.ToResource(includeMovie, includeSeries, includeEpisode));
+            if (artistId.HasValue)
+            {
+                return TypedResults.Ok(fullQueue.Where(q => q.GetArtist()?.Id == artistId.Value).ToResource(includeMovie, includeSeries, includeEpisode, includeArtist, includeAlbum));
+            }
+
+            if (albumIds is { Length: > 0 })
+            {
+                return TypedResults.Ok(fullQueue.Where(q => q.GetRemoteAlbum()?.Albums != null && q.GetRemoteAlbum().Albums.Any(a => albumIds.Contains(a.Id))).ToResource(includeMovie, includeSeries, includeEpisode, includeArtist, includeAlbum));
+            }
+
+            return TypedResults.Ok(fullQueue.ToResource(includeMovie, includeSeries, includeEpisode, includeArtist, includeAlbum));
         }
 
         [NonAction]
