@@ -273,7 +273,7 @@ function HistoryDetails(props) {
         reasonMessage = 'File was deleted by via UI';
         break;
       case 'MissingFromDisk':
-        reasonMessage = 'Lidarr was unable to find the file on disk so the file was unlinked from the album/track in the database';
+        reasonMessage = translate('DeletedReasonTrackMissingFromDisk');
         break;
       case 'Upgrade':
         reasonMessage = 'File was deleted to import an upgrade';
