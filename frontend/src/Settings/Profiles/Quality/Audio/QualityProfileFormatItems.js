@@ -6,6 +6,7 @@ import FormInputHelpText from 'Components/Form/FormInputHelpText';
 import FormLabel from 'Components/Form/FormLabel';
 import Link from 'Components/Link/Link';
 import { sizes } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import QualityProfileFormatItem from './QualityProfileFormatItem';
 import styles from './QualityProfileFormatItems.css';
 
@@ -82,7 +83,7 @@ class QualityProfileFormatItems extends Component {
 
         <div>
           <FormInputHelpText
-            text="Lidarr scores each release using the sum of scores for matching custom formats. If a new release would improve the score, at the same or better quality, then LIdarr will grab it."
+            text={translate('CustomFormatHelpText')}
           />
 
           {
