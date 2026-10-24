@@ -1,7 +1,11 @@
 import React, { useCallback, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import ProtocolLabel from 'Activity/Queue/ProtocolLabel';
+import Album from 'Album/Album';
+import AlbumTitleLink from 'Album/AlbumTitleLink';
 import { Error } from 'App/State/AppSectionState';
+import Artist from 'Artist/Artist';
+import ArtistNameLink from 'Artist/ArtistNameLink';
 import IconButton from 'Components/Link/IconButton';
 import SpinnerIconButton from 'Components/Link/SpinnerIconButton';
 import ProgressBar from 'Components/ProgressBar';
@@ -17,6 +21,7 @@ import SeasonEpisodeNumber from 'Episode/SeasonEpisodeNumber';
 import useEpisode from 'Episode/useEpisode';
 import { icons, kinds, tooltipPositions } from 'Helpers/Props';
 import InteractiveImportModal from 'InteractiveImport/InteractiveImportModal';
+import MusicInteractiveImportModal from 'InteractiveImport/Music/InteractiveImportModal';
 import Language from 'Language/Language';
 import MovieFormats from 'Movie/MovieFormats';
 import MovieLanguages from 'Movie/MovieLanguages';
@@ -48,6 +53,9 @@ interface QueueRowProps {
   movieId?: number;
   seriesId?: number;
   episodeId?: number;
+  artistId?: number;
+  artist?: Artist;
+  album?: Album;
   downloadId?: string;
   title: string;
   status: string;
@@ -84,6 +92,9 @@ function QueueRow(props: QueueRowProps) {
     movieId,
     seriesId,
     episodeId,
+    artistId,
+    artist,
+    album,
     downloadId,
     title,
     status,
@@ -205,7 +216,7 @@ function QueueRow(props: QueueRowProps) {
                   title={movie.title}
                 />
               ) : (
-                (!seriesId && title) || ''
+                (!seriesId && !artistId && title) || ''
               )}
             </TableRowCell>
           );
@@ -224,6 +235,45 @@ function QueueRow(props: QueueRowProps) {
               )}
             </TableRowCell>
           );
+        }
+
+        if (name === 'artists.sortName') {
+          return (
+            <TableRowCell key={name}>
+              {artist ? (
+                <ArtistNameLink
+                  foreignArtistId={artist.foreignArtistId}
+                  artistName={artist.artistName}
+                />
+              ) : (
+                ''
+              )}
+            </TableRowCell>
+          );
+        }
+
+        if (name === 'albums.title') {
+          return (
+            <TableRowCell key={name}>
+              {album ? (
+                <AlbumTitleLink
+                  foreignAlbumId={album.foreignAlbumId}
+                  title={album.title}
+                  disambiguation={album.disambiguation}
+                />
+              ) : (
+                ''
+              )}
+            </TableRowCell>
+          );
+        }
+
+        if (name === 'albums.releaseDate') {
+          if (album) {
+            return <RelativeDateCell key={name} date={album.releaseDate} />;
+          }
+
+          return <TableRowCell key={name} />;
         }
 
         if (name === 'episode') {
@@ -414,18 +464,27 @@ function QueueRow(props: QueueRowProps) {
         return null;
       })}
 
-      <InteractiveImportModal
-        isOpen={isInteractiveImportModalOpen}
-        downloadId={downloadId}
-        modalTitle={title}
-        onModalClose={handleInteractiveImportModalClose}
-      />
+      {artistId ? (
+        <MusicInteractiveImportModal
+          isOpen={isInteractiveImportModalOpen}
+          downloadId={downloadId}
+          modalTitle={title}
+          onModalClose={handleInteractiveImportModalClose}
+        />
+      ) : (
+        <InteractiveImportModal
+          isOpen={isInteractiveImportModalOpen}
+          downloadId={downloadId}
+          modalTitle={title}
+          onModalClose={handleInteractiveImportModalClose}
+        />
+      )}
 
       <RemoveQueueItemModal
         isOpen={isRemoveQueueItemModalOpen}
         sourceTitle={title}
         canChangeCategory={!!downloadClientHasPostImportCategory}
-        canIgnore={!!movie || !!series}
+        canIgnore={!!movie || !!series || !!artistId}
         isPending={isPending}
         onRemovePress={handleRemoveQueueItemModalConfirmed}
         onModalClose={handleRemoveQueueItemModalClose}

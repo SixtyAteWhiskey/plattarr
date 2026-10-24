@@ -1,11 +1,13 @@
 export default interface MediaManagement {
   autoUnmonitorPreviouslyDownloadedMovies: boolean;
   autoUnmonitorPreviouslyDownloadedEpisodes: boolean;
+  autoUnmonitorPreviouslyDownloadedTracks: boolean;
   recycleBin: string;
   recycleBinCleanupDays: number;
   downloadPropersAndRepacks: string;
   createEmptyMovieFolders: boolean;
   createEmptySeriesFolders: boolean;
+  createEmptyArtistFolders: boolean;
   episodeTitleRequired: string;
   seasonPackUpgrade: string;
   seasonPackUpgradeThreshold: number;
@@ -13,6 +15,10 @@ export default interface MediaManagement {
   episodeFileDate: string;
   deleteEmptyFolders: boolean;
   fileDate: string;
+  trackFileDate: string;
+  allowFingerprinting: string;
+  writeAudioTags: string;
+  scrubAudioTags: boolean;
   rescanAfterRefresh: string;
   setPermissionsLinux: boolean;
   chmodFolder: string;

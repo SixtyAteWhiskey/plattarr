@@ -1,8 +1,10 @@
 import React from 'react';
 import { Redirect, Route } from 'react-router-dom';
 import Blocklist from 'Activity/Blocklist/Blocklist';
+import MusicBlocklist from 'Activity/Blocklist/Music/BlocklistConnector';
 import TvBlocklist from 'Activity/Blocklist/Tv/TvBlocklist';
 import History from 'Activity/History/History';
+import MusicHistory from 'Activity/History/Music/HistoryConnector';
 import TvHistory from 'Activity/History/Tv/TvHistory';
 import Queue from 'Activity/Queue/Queue';
 import AddNewItemConnector from 'AddArtist/AddNewItemConnector';
@@ -14,6 +16,7 @@ import AlbumDetailsPageConnector from 'Album/Details/AlbumDetailsPageConnector';
 import ArtistDetailsPageConnector from 'Artist/Details/ArtistDetailsPageConnector';
 import ArtistIndex from 'Artist/Index/ArtistIndex';
 import CalendarPage from 'Calendar/CalendarPage';
+import MusicCalendarPage from 'Calendar/Music/CalendarPageConnector';
 import TvCalendarPage from 'Calendar/Tv/CalendarPage';
 import CollectionConnector from 'Collection/CollectionConnector';
 import createMediaKindPage from 'Components/createMediaKindPage';
@@ -49,16 +52,30 @@ import CutoffUnmet from 'Wanted/CutoffUnmet/CutoffUnmet';
 import TvCutoffUnmet from 'Wanted/CutoffUnmet/Tv/TvCutoffUnmet';
 import Missing from 'Wanted/Missing/Missing';
 import TvMissing from 'Wanted/Missing/Tv/TvMissing';
+import MusicCutoffUnmet from 'Wanted/Music/CutoffUnmet/CutoffUnmetConnector';
+import MusicMissing from 'Wanted/Music/Missing/MissingConnector';
 
 function RedirectWithUrlBase() {
   return <Redirect to={getPathWithUrlBase('/')} />;
 }
 
-const CalendarRoutePage = createMediaKindPage(CalendarPage, TvCalendarPage);
-const BlocklistRoutePage = createMediaKindPage(Blocklist, TvBlocklist);
-const HistoryPage = createMediaKindPage(History, TvHistory);
-const MissingPage = createMediaKindPage(Missing, TvMissing);
-const CutoffUnmetPage = createMediaKindPage(CutoffUnmet, TvCutoffUnmet);
+const CalendarRoutePage = createMediaKindPage(
+  CalendarPage,
+  TvCalendarPage,
+  MusicCalendarPage
+);
+const BlocklistRoutePage = createMediaKindPage(
+  Blocklist,
+  TvBlocklist,
+  MusicBlocklist
+);
+const HistoryPage = createMediaKindPage(History, TvHistory, MusicHistory);
+const MissingPage = createMediaKindPage(Missing, TvMissing, MusicMissing);
+const CutoffUnmetPage = createMediaKindPage(
+  CutoffUnmet,
+  TvCutoffUnmet,
+  MusicCutoffUnmet
+);
 
 function AppRoutes() {
   return (

@@ -4,6 +4,7 @@ import SelectInput from 'Components/Form/SelectInput';
 import IconButton from 'Components/Link/IconButton';
 import { filterBuilderTypes, filterBuilderValueTypes, icons } from 'Helpers/Props';
 import sortByProp from 'Utilities/Array/sortByProp';
+import ArtistFilterBuilderRowValue from './ArtistFilterBuilderRowValue';
 import ArtistStatusFilterBuilderRowValue from './ArtistStatusFilterBuilderRowValue';
 import AudioQualityProfileFilterBuilderRowValue from './AudioQualityProfileFilterBuilderRowValue';
 import BoolFilterBuilderRowValue from './BoolFilterBuilderRowValue';
@@ -17,6 +18,7 @@ import MetadataProfileFilterBuilderRowValue from './MetadataProfileFilterBuilder
 import MinimumAvailabilityFilterBuilderRowValue from './MinimumAvailabilityFilterBuilderRowValue';
 import MonitorNewItemsFilterBuilderRowValue from './MonitorNewItemsFilterBuilderRowValue';
 import MovieFilterBuilderRowValue from './MovieFilterBuilderRowValue';
+import MusicHistoryEventTypeFilterBuilderRowValue from './MusicHistoryEventTypeFilterBuilderRowValue';
 import ProtocolFilterBuilderRowValue from './ProtocolFilterBuilderRowValue';
 import QualityFilterBuilderRowValueConnector from './QualityFilterBuilderRowValueConnector';
 import QualityProfileFilterBuilderRowValue from './QualityProfileFilterBuilderRowValue';
@@ -83,6 +85,12 @@ function getRowValueConnector(selectedFilterBuilderProp) {
 
     case filterBuilderValueTypes.PROTOCOL:
       return ProtocolFilterBuilderRowValue;
+
+    case filterBuilderValueTypes.ARTIST:
+      return ArtistFilterBuilderRowValue;
+
+    case filterBuilderValueTypes.MUSIC_HISTORY_EVENT_TYPE:
+      return MusicHistoryEventTypeFilterBuilderRowValue;
 
     case filterBuilderValueTypes.ARTIST_STATUS:
       return ArtistStatusFilterBuilderRowValue;

@@ -2,15 +2,15 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import * as releaseActions from 'Store/Actions/releaseActions';
+import * as releaseActions from 'Store/Actions/musicReleaseActions';
 import createClientSideCollectionSelector from 'Store/Selectors/createClientSideCollectionSelector';
 import createUISettingsSelector from 'Store/Selectors/createUISettingsSelector';
 import InteractiveSearch from './InteractiveSearch';
 
 function createMapStateToProps(appState, { type }) {
   return createSelector(
-    (state) => state.releases.items.length,
-    createClientSideCollectionSelector('releases', `releases.${type}`),
+    (state) => state.musicReleases.items.length,
+    createClientSideCollectionSelector('musicReleases', `musicReleases.${type}`),
     createUISettingsSelector(),
     (totalReleasesCount, releases, uiSettings) => {
       return {

@@ -1,6 +1,7 @@
 import { createAction } from 'redux-actions';
 import { handleThunks } from 'Store/thunks';
 import createHandleActions from './Creators/createHandleActions';
+import audioQualityDefinitions from './Settings/audioQualityDefinitions';
 import audioQualityProfiles from './Settings/audioQualityProfiles';
 import autoTaggings from './Settings/autoTaggings';
 import autoTaggingSpecifications from './Settings/autoTaggingSpecifications';
@@ -37,6 +38,7 @@ import tvNaming from './Settings/tvNaming';
 import tvNamingExamples from './Settings/tvNamingExamples';
 import ui from './Settings/ui';
 
+export * from './Settings/audioQualityDefinitions';
 export * from './Settings/audioQualityProfiles';
 export * from './Settings/autoTaggingSpecifications';
 export * from './Settings/autoTaggings';
@@ -83,6 +85,7 @@ export const section = 'settings';
 
 export const defaultState = {
   advancedSettings: false,
+  audioQualityDefinitions: audioQualityDefinitions.defaultState,
   audioQualityProfiles: audioQualityProfiles.defaultState,
   autoTaggingSpecifications: autoTaggingSpecifications.defaultState,
   autoTaggings: autoTaggings.defaultState,
@@ -139,6 +142,7 @@ export const toggleAdvancedSettings = createAction(TOGGLE_ADVANCED_SETTINGS);
 // Action Handlers
 
 export const actionHandlers = handleThunks({
+  ...audioQualityDefinitions.actionHandlers,
   ...audioQualityProfiles.actionHandlers,
   ...autoTaggingSpecifications.actionHandlers,
   ...autoTaggings.actionHandlers,
@@ -185,6 +189,7 @@ export const reducers = createHandleActions({
     return Object.assign({}, state, { advancedSettings: !state.advancedSettings });
   },
 
+  ...audioQualityDefinitions.reducers,
   ...audioQualityProfiles.reducers,
   ...autoTaggingSpecifications.reducers,
   ...autoTaggings.reducers,

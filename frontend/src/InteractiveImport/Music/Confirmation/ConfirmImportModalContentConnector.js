@@ -2,13 +2,13 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import { clearInteractiveImportTrackFiles, fetchInteractiveImportTrackFiles } from 'Store/Actions/interactiveImportActions';
+import { clearInteractiveImportTrackFiles, fetchInteractiveImportTrackFiles } from 'Store/Actions/musicInteractiveImportActions';
 import createClientSideCollectionSelector from 'Store/Selectors/createClientSideCollectionSelector';
 import ConfirmImportModalContent from './ConfirmImportModalContent';
 
 function createMapStateToProps() {
   return createSelector(
-    createClientSideCollectionSelector('interactiveImport.trackFiles'),
+    createClientSideCollectionSelector('musicInteractiveImport.trackFiles'),
     (trackFiles) => {
       return trackFiles;
     }

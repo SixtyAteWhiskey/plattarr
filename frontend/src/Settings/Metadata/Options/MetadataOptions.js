@@ -30,6 +30,7 @@ export const certificationCountryOptions = [
 
 function MetadataOptions(props) {
   const {
+    isMusic,
     isFetching,
     error,
     settings,
@@ -54,18 +55,32 @@ function MetadataOptions(props) {
       {
         hasSettings && !isFetching && !error &&
           <Form>
-            <FormGroup>
-              <FormLabel>{translate('CertificationCountry')}</FormLabel>
+            {
+              isMusic ?
+                <FormGroup>
+                  <FormLabel>{translate('MusicMetadataSource')}</FormLabel>
 
-              <FormInputGroup
-                type={inputTypes.SELECT}
-                name="certificationCountry"
-                values={certificationCountryOptions}
-                onChange={onInputChange}
-                helpText={translate('CertificationCountryHelpText')}
-                {...settings.certificationCountry}
-              />
-            </FormGroup>
+                  <FormInputGroup
+                    type={inputTypes.TEXT}
+                    name="musicMetadataSource"
+                    onChange={onInputChange}
+                    helpText={translate('MusicMetadataSourceHelpText')}
+                    {...settings.musicMetadataSource}
+                  />
+                </FormGroup> :
+                <FormGroup>
+                  <FormLabel>{translate('CertificationCountry')}</FormLabel>
+
+                  <FormInputGroup
+                    type={inputTypes.SELECT}
+                    name="certificationCountry"
+                    values={certificationCountryOptions}
+                    onChange={onInputChange}
+                    helpText={translate('CertificationCountryHelpText')}
+                    {...settings.certificationCountry}
+                  />
+                </FormGroup>
+            }
           </Form>
       }
     </FieldSet>
@@ -73,6 +88,7 @@ function MetadataOptions(props) {
 }
 
 MetadataOptions.propTypes = {
+  isMusic: PropTypes.bool,
   isFetching: PropTypes.bool.isRequired,
   error: PropTypes.object,
   settings: PropTypes.object.isRequired,

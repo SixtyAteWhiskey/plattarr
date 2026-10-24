@@ -21,6 +21,7 @@ import { clearPendingChanges } from 'Store/Actions/baseActions';
 import {
   fetchMediaManagementSettings,
   saveMediaManagementSettings,
+  saveMusicNamingSettings,
   saveNamingSettings,
   saveTvNamingSettings,
   setMediaManagementSettingsValue,
@@ -28,11 +29,14 @@ import {
 import createSettingsSectionSelector from 'Store/Selectors/createSettingsSectionSelector';
 import useIsWindows from 'System/useIsWindows';
 import { InputChanged } from 'typings/inputs';
+import MediaKind from 'typings/MediaKind';
 import isEmpty from 'Utilities/Object/isEmpty';
 import translate from 'Utilities/String/translate';
+import MusicNaming from './Naming/Music/NamingConnector';
 import Naming from './Naming/Naming';
 import TvNaming from './Naming/Tv/TvNaming';
 import AddRootFolder from './RootFolder/AddRootFolder';
+import MusicRootFolders from './RootFolder/Music/RootFoldersConnector';
 
 const SECTION = 'mediaManagement';
 
@@ -141,18 +145,87 @@ const fileDateOptions: EnhancedSelectInputValue<string>[] = [
   },
 ];
 
+const allowFingerprintingOptions: EnhancedSelectInputValue<string>[] = [
+  {
+    key: 'allFiles',
+    get value() {
+      return translate('Always');
+    },
+  },
+  {
+    key: 'newFiles',
+    get value() {
+      return translate('ForNewImportsOnly');
+    },
+  },
+  {
+    key: 'never',
+    get value() {
+      return translate('Never');
+    },
+  },
+];
+
+const trackFileDateOptions: EnhancedSelectInputValue<string>[] = [
+  {
+    key: 'none',
+    get value() {
+      return translate('None');
+    },
+  },
+  {
+    key: 'albumReleaseDate',
+    get value() {
+      return translate('AlbumReleaseDate');
+    },
+  },
+];
+
+const writeAudioTagsOptions: EnhancedSelectInputValue<string>[] = [
+  {
+    key: 'sync',
+    get value() {
+      return translate('WriteAudioTagsAllFilesSync');
+    },
+  },
+  {
+    key: 'allFiles',
+    get value() {
+      return translate('WriteAudioTagsAllFilesInitial');
+    },
+  },
+  {
+    key: 'newFiles',
+    get value() {
+      return translate('WriteAudioTagsNewDownloadsOnly');
+    },
+  },
+  {
+    key: 'no',
+    get value() {
+      return translate('Never');
+    },
+  },
+];
+
 function MediaManagement() {
   const dispatch = useDispatch();
   const showAdvancedSettings = useShowAdvancedSettings();
-  const isTv = useMediaKind() === 'tv';
-  const mediaKind = isTv ? 'tv' : 'movies';
+  const kind = useMediaKind();
+  const isTv = kind === 'tv';
+  const isMusic = kind === 'music';
   const hasNamingPendingChanges = !isEmpty(
-    useSelector((state: AppState) =>
-      isTv
+    useSelector((state: AppState) => {
+      if (isMusic) {
+        return state.settings.musicNaming.pendingChanges;
+      }
+
+      return isTv
         ? state.settings.tvNaming.pendingChanges
-        : state.settings.naming.pendingChanges
-    )
+        : state.settings.naming.pendingChanges;
+    })
   );
+  const byKind = <T,>(values: Record<MediaKind, T>): T => values[kind];
   const isWindows = useIsWindows();
   const {
     isFetching,
@@ -166,10 +239,33 @@ function MediaManagement() {
     validationWarnings,
   } = useSelector(createSettingsSectionSelector(SECTION));
 
+  const createEmptyFoldersName = byKind<
+    | 'createEmptyMovieFolders'
+    | 'createEmptySeriesFolders'
+    | 'createEmptyArtistFolders'
+  >({
+    movies: 'createEmptyMovieFolders',
+    tv: 'createEmptySeriesFolders',
+    music: 'createEmptyArtistFolders',
+  });
+  const createEmptyFolders = settings[createEmptyFoldersName];
+  const fileDateName = byKind<'fileDate' | 'episodeFileDate' | 'trackFileDate'>(
+    {
+      movies: 'fileDate',
+      tv: 'episodeFileDate',
+      music: 'trackFileDate',
+    }
+  );
+
   const handleSavePress = useCallback(() => {
     dispatch(saveMediaManagementSettings());
-    dispatch(isTv ? saveTvNamingSettings() : saveNamingSettings());
-  }, [dispatch, isTv]);
+
+    if (isMusic) {
+      dispatch(saveMusicNamingSettings());
+    } else {
+      dispatch(isTv ? saveTvNamingSettings() : saveNamingSettings());
+    }
+  }, [dispatch, isTv, isMusic]);
 
   const handleInputChange = useCallback(
     (change: InputChanged) => {
@@ -197,7 +293,9 @@ function MediaManagement() {
       />
 
       <PageContentBody>
-        {isTv ? <TvNaming /> : <Naming />}
+        {isMusic ? <MusicNaming /> : null}
+        {!isMusic && isTv ? <TvNaming /> : null}
+        {!isMusic && !isTv ? <Naming /> : null}
 
         {isFetching ? (
           <FieldSet legend={translate('NamingSettings')}>
@@ -228,9 +326,11 @@ function MediaManagement() {
                 >
                   <FormLabel>
                     {translate(
-                      isTv
-                        ? 'CreateEmptySeriesFolders'
-                        : 'CreateEmptyMovieFolders'
+                      byKind({
+                        movies: 'CreateEmptyMovieFolders',
+                        tv: 'CreateEmptySeriesFolders',
+                        music: 'CreateEmptyArtistFolders',
+                      })
                     )}
                   </FormLabel>
 
@@ -238,24 +338,18 @@ function MediaManagement() {
                     type={inputTypes.CHECK}
                     isDisabled={
                       settings.deleteEmptyFolders.value &&
-                      !(isTv
-                        ? settings.createEmptySeriesFolders.value
-                        : settings.createEmptyMovieFolders.value)
+                      !createEmptyFolders.value
                     }
-                    name={
-                      isTv
-                        ? 'createEmptySeriesFolders'
-                        : 'createEmptyMovieFolders'
-                    }
+                    name={createEmptyFoldersName}
                     helpText={translate(
-                      isTv
-                        ? 'CreateEmptySeriesFoldersHelpText'
-                        : 'CreateEmptyMovieFoldersHelpText'
+                      byKind({
+                        movies: 'CreateEmptyMovieFoldersHelpText',
+                        tv: 'CreateEmptySeriesFoldersHelpText',
+                        music: 'CreateEmptyArtistFoldersHelpText',
+                      })
                     )}
                     onChange={handleInputChange}
-                    {...(isTv
-                      ? settings.createEmptySeriesFolders
-                      : settings.createEmptyMovieFolders)}
+                    {...createEmptyFolders}
                   />
                 </FormGroup>
 
@@ -269,16 +363,16 @@ function MediaManagement() {
                   <FormInputGroup
                     type={inputTypes.CHECK}
                     isDisabled={
-                      (isTv
-                        ? settings.createEmptySeriesFolders.value
-                        : settings.createEmptyMovieFolders.value) &&
+                      createEmptyFolders.value &&
                       !settings.deleteEmptyFolders.value
                     }
                     name="deleteEmptyFolders"
                     helpText={translate(
-                      isTv
-                        ? 'DeleteEmptySeriesFoldersHelpText'
-                        : 'DeleteEmptyMovieFoldersHelpText'
+                      byKind({
+                        movies: 'DeleteEmptyMovieFoldersHelpText',
+                        tv: 'DeleteEmptySeriesFoldersHelpText',
+                        music: 'DeleteEmptyFoldersHelpText',
+                      })
                     )}
                     onChange={handleInputChange}
                     {...settings.deleteEmptyFolders}
@@ -354,9 +448,11 @@ function MediaManagement() {
                     type={inputTypes.CHECK}
                     name="copyUsingHardlinks"
                     helpText={translate(
-                      isTv
-                        ? 'CopyUsingHardlinksSeriesHelpText'
-                        : 'CopyUsingHardlinksMovieHelpText'
+                      byKind({
+                        movies: 'CopyUsingHardlinksMovieHelpText',
+                        tv: 'CopyUsingHardlinksSeriesHelpText',
+                        music: 'CopyUsingHardlinksHelpText',
+                      })
                     )}
                     helpTextWarning={translate(
                       'CopyUsingHardlinksHelpTextWarning'
@@ -407,9 +503,11 @@ function MediaManagement() {
                     type={inputTypes.CHECK}
                     name="importExtraFiles"
                     helpText={translate(
-                      isTv
-                        ? 'ImportExtraFilesEpisodeHelpText'
-                        : 'ImportExtraFilesMovieHelpText'
+                      byKind({
+                        movies: 'ImportExtraFilesMovieHelpText',
+                        tv: 'ImportExtraFilesEpisodeHelpText',
+                        music: 'ImportExtraFilesHelpText',
+                      })
                     )}
                     onChange={handleInputChange}
                     {...settings.importExtraFiles}
@@ -438,154 +536,230 @@ function MediaManagement() {
               </FieldSet>
             ) : null}
 
-            <FieldSet legend={translate('FileManagement')}>
-              <FormGroup size={sizes.MEDIUM}>
-                <FormLabel>
-                  {translate(
-                    isTv ? 'UnmonitorDeletedEpisodes' : 'UnmonitorDeletedMovies'
-                  )}
-                </FormLabel>
+            {isMusic && !showAdvancedSettings ? null : (
+              <FieldSet legend={translate('FileManagement')}>
+                {isMusic ? null : (
+                  <FormGroup size={sizes.MEDIUM}>
+                    <FormLabel>
+                      {translate(
+                        isTv
+                          ? 'UnmonitorDeletedEpisodes'
+                          : 'UnmonitorDeletedMovies'
+                      )}
+                    </FormLabel>
 
-                <FormInputGroup
-                  type={inputTypes.CHECK}
-                  name={
-                    isTv
-                      ? 'autoUnmonitorPreviouslyDownloadedEpisodes'
-                      : 'autoUnmonitorPreviouslyDownloadedMovies'
-                  }
-                  helpText={translate(
-                    isTv
-                      ? 'UnmonitorDeletedEpisodesHelpText'
-                      : 'UnmonitorDeletedMoviesHelpText'
-                  )}
-                  onChange={handleInputChange}
-                  {...(isTv
-                    ? settings.autoUnmonitorPreviouslyDownloadedEpisodes
-                    : settings.autoUnmonitorPreviouslyDownloadedMovies)}
-                />
-              </FormGroup>
+                    <FormInputGroup
+                      type={inputTypes.CHECK}
+                      name={
+                        isTv
+                          ? 'autoUnmonitorPreviouslyDownloadedEpisodes'
+                          : 'autoUnmonitorPreviouslyDownloadedMovies'
+                      }
+                      helpText={translate(
+                        isTv
+                          ? 'UnmonitorDeletedEpisodesHelpText'
+                          : 'UnmonitorDeletedMoviesHelpText'
+                      )}
+                      onChange={handleInputChange}
+                      {...(isTv
+                        ? settings.autoUnmonitorPreviouslyDownloadedEpisodes
+                        : settings.autoUnmonitorPreviouslyDownloadedMovies)}
+                    />
+                  </FormGroup>
+                )}
 
-              <FormGroup
-                advancedSettings={showAdvancedSettings}
-                isAdvanced={true}
-                size={sizes.MEDIUM}
-              >
-                <FormLabel>{translate('DownloadPropersAndRepacks')}</FormLabel>
+                <FormGroup
+                  advancedSettings={showAdvancedSettings}
+                  isAdvanced={true}
+                  size={sizes.MEDIUM}
+                >
+                  <FormLabel>
+                    {translate('DownloadPropersAndRepacks')}
+                  </FormLabel>
 
-                <FormInputGroup
-                  type={inputTypes.SELECT}
-                  name="downloadPropersAndRepacks"
-                  helpTexts={[
-                    translate('DownloadPropersAndRepacksHelpText'),
-                    translate('DownloadPropersAndRepacksHelpTextCustomFormat'),
-                  ]}
-                  helpTextWarning={
-                    settings.downloadPropersAndRepacks.value === 'doNotPrefer'
-                      ? translate('DownloadPropersAndRepacksHelpTextWarning')
-                      : undefined
-                  }
-                  values={downloadPropersAndRepacksOptions}
-                  onChange={handleInputChange}
-                  {...settings.downloadPropersAndRepacks}
-                />
-              </FormGroup>
+                  <FormInputGroup
+                    type={inputTypes.SELECT}
+                    name="downloadPropersAndRepacks"
+                    helpTexts={[
+                      translate('DownloadPropersAndRepacksHelpText'),
+                      translate(
+                        'DownloadPropersAndRepacksHelpTextCustomFormat'
+                      ),
+                    ]}
+                    helpTextWarning={
+                      settings.downloadPropersAndRepacks.value === 'doNotPrefer'
+                        ? translate('DownloadPropersAndRepacksHelpTextWarning')
+                        : undefined
+                    }
+                    values={downloadPropersAndRepacksOptions}
+                    onChange={handleInputChange}
+                    {...settings.downloadPropersAndRepacks}
+                  />
+                </FormGroup>
 
-              <FormGroup
-                advancedSettings={showAdvancedSettings}
-                isAdvanced={true}
-                size={sizes.MEDIUM}
-              >
-                <FormLabel>{translate('AnalyseVideoFiles')}</FormLabel>
+                {isMusic ? null : (
+                  <FormGroup
+                    advancedSettings={showAdvancedSettings}
+                    isAdvanced={true}
+                    size={sizes.MEDIUM}
+                  >
+                    <FormLabel>{translate('AnalyseVideoFiles')}</FormLabel>
 
-                <FormInputGroup
-                  type={inputTypes.CHECK}
-                  name="enableMediaInfo"
-                  helpText={translate('AnalyseVideoFilesHelpText')}
-                  onChange={handleInputChange}
-                  {...settings.enableMediaInfo}
-                />
-              </FormGroup>
+                    <FormInputGroup
+                      type={inputTypes.CHECK}
+                      name="enableMediaInfo"
+                      helpText={translate('AnalyseVideoFilesHelpText')}
+                      onChange={handleInputChange}
+                      {...settings.enableMediaInfo}
+                    />
+                  </FormGroup>
+                )}
 
-              <FormGroup
-                advancedSettings={showAdvancedSettings}
-                isAdvanced={true}
-              >
-                <FormLabel>
-                  {translate(
-                    isTv
-                      ? 'RescanSeriesFolderAfterRefresh'
-                      : 'RescanMovieFolderAfterRefresh'
-                  )}
-                </FormLabel>
+                <FormGroup
+                  advancedSettings={showAdvancedSettings}
+                  isAdvanced={true}
+                >
+                  <FormLabel>
+                    {translate(
+                      byKind({
+                        movies: 'RescanMovieFolderAfterRefresh',
+                        tv: 'RescanSeriesFolderAfterRefresh',
+                        music: 'RescanArtistFolderAfterRefresh',
+                      })
+                    )}
+                  </FormLabel>
 
-                <FormInputGroup
-                  type={inputTypes.SELECT}
-                  name="rescanAfterRefresh"
-                  helpText={translate(
-                    isTv
-                      ? 'RescanAfterRefreshSeriesHelpText'
-                      : 'RescanAfterRefreshMovieHelpText'
-                  )}
-                  helpTextWarning={translate(
-                    'RescanAfterRefreshHelpTextWarning'
-                  )}
-                  values={rescanAfterRefreshOptions}
-                  onChange={handleInputChange}
-                  {...settings.rescanAfterRefresh}
-                />
-              </FormGroup>
+                  <FormInputGroup
+                    type={inputTypes.SELECT}
+                    name="rescanAfterRefresh"
+                    helpText={translate(
+                      byKind({
+                        movies: 'RescanAfterRefreshMovieHelpText',
+                        tv: 'RescanAfterRefreshSeriesHelpText',
+                        music: 'RescanAfterRefreshHelpText',
+                      })
+                    )}
+                    helpTextWarning={translate(
+                      'RescanAfterRefreshHelpTextWarning'
+                    )}
+                    values={rescanAfterRefreshOptions}
+                    onChange={handleInputChange}
+                    {...settings.rescanAfterRefresh}
+                  />
+                </FormGroup>
 
-              <FormGroup
-                advancedSettings={showAdvancedSettings}
-                isAdvanced={true}
-              >
-                <FormLabel>{translate('ChangeFileDate')}</FormLabel>
+                <FormGroup
+                  advancedSettings={showAdvancedSettings}
+                  isAdvanced={true}
+                >
+                  <FormLabel>{translate('ChangeFileDate')}</FormLabel>
 
-                <FormInputGroup
-                  type={inputTypes.SELECT}
-                  name={isTv ? 'episodeFileDate' : 'fileDate'}
-                  helpText={translate('ChangeFileDateHelpText')}
-                  values={isTv ? episodeFileDateOptions : fileDateOptions}
-                  onChange={handleInputChange}
-                  {...(isTv ? settings.episodeFileDate : settings.fileDate)}
-                />
-              </FormGroup>
+                  <FormInputGroup
+                    type={inputTypes.SELECT}
+                    name={fileDateName}
+                    helpText={translate(
+                      isMusic ? 'FileDateHelpText' : 'ChangeFileDateHelpText'
+                    )}
+                    values={byKind({
+                      movies: fileDateOptions,
+                      tv: episodeFileDateOptions,
+                      music: trackFileDateOptions,
+                    })}
+                    onChange={handleInputChange}
+                    {...settings[fileDateName]}
+                  />
+                </FormGroup>
 
-              <FormGroup
-                advancedSettings={showAdvancedSettings}
-                isAdvanced={true}
-              >
-                <FormLabel>{translate('RecyclingBin')}</FormLabel>
+                {isMusic ? (
+                  <FormGroup
+                    advancedSettings={showAdvancedSettings}
+                    isAdvanced={true}
+                  >
+                    <FormLabel>{translate('AllowFingerprinting')}</FormLabel>
 
-                <FormInputGroup
-                  type={inputTypes.PATH}
-                  name="recycleBin"
-                  helpText={translate('RecyclingBinHelpText')}
-                  includeFiles={false}
-                  onChange={handleInputChange}
-                  {...settings.recycleBin}
-                />
-              </FormGroup>
+                    <FormInputGroup
+                      type={inputTypes.SELECT}
+                      name="allowFingerprinting"
+                      helpText={translate('AllowFingerprintingHelpText')}
+                      helpTextWarning={translate(
+                        'AllowFingerprintingHelpTextWarning'
+                      )}
+                      values={allowFingerprintingOptions}
+                      onChange={handleInputChange}
+                      {...settings.allowFingerprinting}
+                    />
+                  </FormGroup>
+                ) : null}
 
-              <FormGroup
-                advancedSettings={showAdvancedSettings}
-                isAdvanced={true}
-              >
-                <FormLabel>{translate('RecyclingBinCleanup')}</FormLabel>
+                <FormGroup
+                  advancedSettings={showAdvancedSettings}
+                  isAdvanced={true}
+                >
+                  <FormLabel>{translate('RecyclingBin')}</FormLabel>
 
-                <FormInputGroup
-                  type={inputTypes.NUMBER}
-                  name="recycleBinCleanupDays"
-                  helpText={translate('RecyclingBinCleanupHelpText')}
-                  helpTextWarning={translate(
-                    'RecyclingBinCleanupHelpTextWarning'
-                  )}
-                  min={0}
-                  onChange={handleInputChange}
-                  {...settings.recycleBinCleanupDays}
-                />
-              </FormGroup>
-            </FieldSet>
+                  <FormInputGroup
+                    type={inputTypes.PATH}
+                    name="recycleBin"
+                    helpText={translate(
+                      isMusic ? 'RecycleBinHelpText' : 'RecyclingBinHelpText'
+                    )}
+                    includeFiles={false}
+                    onChange={handleInputChange}
+                    {...settings.recycleBin}
+                  />
+                </FormGroup>
+
+                <FormGroup
+                  advancedSettings={showAdvancedSettings}
+                  isAdvanced={true}
+                >
+                  <FormLabel>{translate('RecyclingBinCleanup')}</FormLabel>
+
+                  <FormInputGroup
+                    type={inputTypes.NUMBER}
+                    name="recycleBinCleanupDays"
+                    helpText={translate('RecyclingBinCleanupHelpText')}
+                    helpTextWarning={translate(
+                      'RecyclingBinCleanupHelpTextWarning'
+                    )}
+                    min={0}
+                    onChange={handleInputChange}
+                    {...settings.recycleBinCleanupDays}
+                  />
+                </FormGroup>
+              </FieldSet>
+            )}
+
+            {isMusic ? (
+              <FieldSet legend={translate('WriteMetadataToAudioFiles')}>
+                <FormGroup>
+                  <FormLabel>
+                    {translate('TagAudioFilesWithMetadata')}
+                  </FormLabel>
+
+                  <FormInputGroup
+                    type={inputTypes.SELECT}
+                    name="writeAudioTags"
+                    helpTextWarning={translate('WriteAudioTagsHelpTextWarning')}
+                    values={writeAudioTagsOptions}
+                    onChange={handleInputChange}
+                    {...settings.writeAudioTags}
+                  />
+                </FormGroup>
+
+                <FormGroup>
+                  <FormLabel>{translate('ScrubExistingTags')}</FormLabel>
+
+                  <FormInputGroup
+                    type={inputTypes.CHECK}
+                    name="scrubAudioTags"
+                    helpText={translate('ScrubAudioTagsHelpText')}
+                    onChange={handleInputChange}
+                    {...settings.scrubAudioTags}
+                  />
+                </FormGroup>
+              </FieldSet>
+            ) : null}
 
             {showAdvancedSettings && !isWindows ? (
               <FieldSet legend={translate('Permissions')}>
@@ -645,8 +819,14 @@ function MediaManagement() {
         ) : null}
 
         <FieldSet legend={translate('RootFolders')}>
-          <RootFolders mediaKind={mediaKind} />
-          <AddRootFolder mediaKind={mediaKind} />
+          {isMusic ? (
+            <MusicRootFolders />
+          ) : (
+            <>
+              <RootFolders mediaKind={isTv ? 'tv' : 'movies'} />
+              <AddRootFolder mediaKind={isTv ? 'tv' : 'movies'} />
+            </>
+          )}
         </FieldSet>
       </PageContentBody>
     </PageContent>

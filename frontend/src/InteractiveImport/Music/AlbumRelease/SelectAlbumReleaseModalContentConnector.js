@@ -3,7 +3,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import {
   saveInteractiveImportItem,
-  updateInteractiveImportItem } from 'Store/Actions/interactiveImportActions';
+  updateInteractiveImportItem } from 'Store/Actions/musicInteractiveImportActions';
 import SelectAlbumReleaseModalContent from './SelectAlbumReleaseModalContent';
 
 function createMapStateToProps() {

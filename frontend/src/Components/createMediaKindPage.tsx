@@ -1,4 +1,5 @@
 import React, { ComponentType } from 'react';
+import { RouteComponentProps } from 'react-router-dom';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
 import { useMediaKind } from 'Helpers/mediaKindStore';
@@ -10,13 +11,17 @@ import translate from 'Utilities/String/translate';
 function createMediaKindPage(
   movies: ComponentType,
   tv: ComponentType,
-  music?: ComponentType
+  // The music screens are connector components typed loosely (PropTypes)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  music?: ComponentType<any>
 ) {
   const Movies = movies;
   const Tv = tv;
   const Music = music;
 
-  function MediaKindPage() {
+  // The route props go to the music page: its connector components read
+  // history and location from them.
+  function MediaKindPage(props: RouteComponentProps) {
     const mediaKind = useMediaKind();
 
     if (mediaKind === 'tv') {
@@ -25,7 +30,7 @@ function createMediaKindPage(
 
     if (mediaKind === 'music') {
       return Music ? (
-        <Music />
+        <Music {...props} />
       ) : (
         <PageContent title={translate('Music')}>
           <PageContentBody>{translate('NotAvailableForMusic')}</PageContentBody>

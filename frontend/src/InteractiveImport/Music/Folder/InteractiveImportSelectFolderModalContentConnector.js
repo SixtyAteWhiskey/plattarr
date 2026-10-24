@@ -4,12 +4,12 @@ import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
 import * as commandNames from 'Commands/commandNames';
 import { executeCommand } from 'Store/Actions/commandActions';
-import { addRecentFolder, removeRecentFolder } from 'Store/Actions/interactiveImportActions';
+import { addRecentFolder, removeRecentFolder } from 'Store/Actions/musicInteractiveImportActions';
 import InteractiveImportSelectFolderModalContent from './InteractiveImportSelectFolderModalContent';
 
 function createMapStateToProps() {
   return createSelector(
-    (state) => state.interactiveImport.recentFolders,
+    (state) => state.musicInteractiveImport.recentFolders,
     (recentFolders) => {
       return {
         recentFolders

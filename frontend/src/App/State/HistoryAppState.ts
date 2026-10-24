@@ -9,6 +9,12 @@ export type MovieHistoryAppState = AppSectionState<History>;
 export type SeriesHistoryAppState = AppSectionState<SeriesHistory>;
 export type AlbumHistoryAppState = AppSectionState<AlbumHistory>;
 
+export interface MusicHistoryAppState
+  extends AppSectionState<AlbumHistory>,
+    AppSectionFilterState<AlbumHistory>,
+    PagedAppSectionState,
+    TableAppSectionState {}
+
 interface HistoryAppState
   extends AppSectionState<History>,
     AppSectionFilterState<History>,

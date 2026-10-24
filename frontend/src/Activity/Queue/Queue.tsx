@@ -294,6 +294,7 @@ function Queue() {
                       movieId={item.movieId}
                       seriesId={item.seriesId}
                       episodeId={item.episodeId}
+                      artistId={item.artistId}
                       isSelected={selectedState[item.id]}
                       columns={columns}
                       {...item}
