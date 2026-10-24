@@ -2466,6 +2466,99 @@ mapped, the queue and `PendingReleases` are empty, and the log has no Warn or Er
 Search, decisions and pending releases for Music are proved by tests until the API (step 7) can
 add an artist and a fake Torznab indexer can serve album releases.
 
+### Music step 5: as built
+
+Built in session 52 against Lidarr `aec88028`. No migration, no API, no UI, no scheduled task; the
+import services and the album importer are registered and wired, but nothing routes `DownloadedAlbumsScanCommand`,
+the rename or the retag commands yet (step 7). Calls made while building (each is reversible):
+
+- **What is ported.** Tag reading (`AudioTagService`, TagLibSharp), identification and aggregation
+  (`IdentificationService`, `CandidateService`, `TrackGroupingService`, `DistanceCalculator`, `Munkres`,
+  `LocalTrack`, `LocalAlbumRelease`), the aggregators, `ImportDecisionMaker` with its 12
+  specifications, `ImportApprovedTracks`, `DownloadedTracksImportService`,
+  `DownloadedAlbumsCommandService`, `DiskScanService`, `MediaFileService`,
+  `TrackFileMovingService`, `UpgradeMediaFileService`, `RenameTrackFileService`, retag,
+  `MediaFileDeletionService`, `MediaFileTableCleanupService`, `ScriptImportDecider`, the full
+  `FileNameBuilder`, `NamingConfigService` and `FingerprintingService`. These replace the interim disk
+  scan, naming and tag services from step 3.
+- **`SameTracksSpecification` is used here.** Step 4 did not port it because its only caller was a stub;
+  the import's `SameTracksImportSpecification` does call it, so it now has a caller.
+- **Typed rejections.** `ImportRejection : Rejection<ImportRejectionReason>` and `ImportSpecDecision`
+  replace Lidarr's string-only rejections; the reason is never stored as an integer. Lidarr's
+  tests that asserted only a message gained `Reason` assertions.
+- **Album importer.** `Music.Import.MusicDownloadImporter` is the module's `IDownloadImporter`
+  (`Kind` Music, `BlocksImportAfterRejection` true). `Check` skips a download with no history and no
+  category, and blocks one whose title does not match the grabbed artist (manual import required).
+  `Import` runs `ProcessPath(..., ImportMode.Auto, artist, importItem)`. `IsImported` is true when
+  every result imported, or when the imported tracks reach the monitored releases' track count, else it asks
+  `TrackedDownloadAlreadyImported` (the latest history row of every album is a `DownloadImported` or
+  `TrackFileImported`). Nothing writes Music history rows until step 6, so that history check stays false.
+- **Tracked-download matching.** `MusicTrackedDownloadMatcher` maps the download title through
+  `ParsingService.Map` and falls back to the grabbed title in history, setting `Indexer`, `Added`,
+  `IndexerFlags` and `IndexerId`. `MatchesTitle` needs both an album-shaped title **and** a library artist
+  (or several), so a title that parses as an album but matches no artist stays unmatched and the core
+  falls back to the client category. `MusicTrackedDownloadRefresher` rematches Music downloads when
+  an artist is added, edited or deleted, when an album is deleted or removed in a refresh, and
+  requests a refresh after a track import.
+- **Download history.** `MusicDownloadHistoryHandler` writes a `FileImported` row for a new download
+  (`MediaKind` Music, `ParentId` = artist) and deletes an artist's rows when it is deleted.
+  `HistoryService.FindDownloadId` is Lidarr's: the single open grab per album, else null.
+  **Deviation from Lidarr and from the Movies handler:** a manual import has no download client item,
+  so the handler leaves the client fields empty instead of throwing a `NullReferenceException`.
+  The Movies handler has the same latent fault; not changed here.
+- **No `ImportFailed` state and no `AlbumImportIncompleteEvent`.** The core
+  `CompletedDownloadService` owns the state machine; the event Lidarr raised for an incomplete album
+  has no consumer here and was dropped.
+- **Notification data.** `MusicNotificationData` carries only the artist and the `RemoteAlbum`, and is set on
+  the manual-interaction message. Step 6 adds the other events and the builders.
+- **Command renamed.** The Music `RenameFilesCommand` is `RenameTrackFilesCommand`; commands resolve by
+  type name and the Movies command already has the other name (`CommandNamesFixture` guards it).
+- **Config.** `TrackFileDate` (None or AlbumReleaseDate, Lidarr's "FileDate"), `AllowFingerprinting`
+  (default NewFiles), `WriteAudioTags` (default No), `ScrubAudioTags` (default false) and `EmbedCoverArt`
+  (default true). Tag writing, scrubbing and cover embedding therefore do nothing until the owner turns them on.
+- **Not ported on purpose.** `ImportExtraFiles` (Music has no extra-file consumers), manual import
+  (`ManualImportService`; step 7), the `fpcalc` binary and its health check (the image does not ship it;
+  with it missing, fingerprinting finds nothing and identification falls back to tags), the naming UI
+  resources and the API controllers (step 7).
+- **Dependencies.** `TagLibSharp-Lidarr` comes from Lidarr's `Taglib` NuGet feed. `src/NuGet.config`
+  lists the feed with a package source mapping that allows only that one package from it.
+  `MostCommon` joined `IEnumerableExtensions` and `Compress` joined `NzbDrone.Common` as shared helpers.
+
+**Tests.** Lidarr's import, identification, disk scan, moving, renaming, upgrade, deletion, table
+cleanup, tag service and naming fixtures run under `MusicTests/MediaFiles` and `MusicTests/OrganizerTests`.
+Lidarr's tests used `MockFileSystem`; they run on a real temporary folder instead
+(`FileSystemTest<T>` with a `TestDiskProvider`, `AllowedFileShare` emulated with held file streams). That
+changed one expectation: a path case difference (`C:\drop` against `c:\drop`) is real on Linux, so the
+`_UNPACK_` test lowercases. The audio fixtures `nin.*` (16 MB) and the identification and fingerprint
+JSON are copied from Lidarr with its licence file. Five tests are skipped for platform reasons, as upstream.
+
+New fixtures: the album importer (`Check`, `Import`, `IsImported`, `ImportBlocked`), the import result
+contract, `TrackedDownloadAlreadyImported`, the matcher (source-title fallback, indexer and flags from the
+grab, `MatchesTitle`, warnings, rematch), the refresher, `FindDownloadId`, the history writer, the five
+config keys, `MostCommon`, `Compress`, and five Host container tests (download contracts, import and
+media file services, command executors, tracked downloads follow the artist library, history writer).
+
+**Mutation checks.** Eight mutations of the new behavior; all killed: importer track-count threshold,
+already-imported `All` to `Any`, matcher indexer from the grab, writer `NewDownload` inverted, writer
+media kind, `FindDownloadId` count check and processed-grab filter, refresher kind filter.
+
+Results (Release, full solution build, analyzers on, 0 warnings): Core 10,456 passed and 54 skipped
+(593 more than step 4), Host 59 (5 skipped), Api 90, Common's new fixtures 25 with the existing
+`NumberExtensionFixture`, 0 failed. No schema change, so no PostgreSQL pass.
+
+**PostgreSQL.** Not run: step 5 changes no schema.
+
+**Live (dev stack, image `9a312cb`).** Step 5 has no endpoint or task of its own, so the proof is that the
+stack starts with the new services wired and nothing else moves. After the deploy: healthy,
+`system/status` reports migration 10 (unchanged), `docker logs` has no Warn, Error or Fatal line,
+`RssSync` completed (8 reports, 0 grabbed), `Housekeeping` completed, the queue and `PendingReleases` are
+empty, `system/task` lists the same tasks as before, and the existing `DownloadHistory` rows are untouched.
+**The Movies baseline moved from 70/56/63 to 71/57/64**, and the cause is the indexer, not this change:
+the previous image (`3ffb3ca`), started on a copy of the same config, returns 71/57/64 as well, and
+the new release is not recent (the newest of the 71 is 73 days old). The new baseline is 71 releases,
+57 approved, 64 mapped. The import itself is proved by tests until the API (step 7) can add an
+artist and a downloaded album can be fed through the importer.
+
 
 ## Decision record
 
