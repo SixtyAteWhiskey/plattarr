@@ -1,0 +1,382 @@
+{
+  "embeds": [
+    {
+      "description": "Album Grabbed",
+      "title": "The Black Keys - Brothers",
+      "color": 16761392,
+      "url": "https://musicbrainz.org/artist/d15721d8-56b4-453d-b506-fc915b14cba2",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "thumbnail": {
+        "url": "https://img.example/poster.jpg"
+      },
+      "image": {
+        "url": "https://img.example/fanart.jpg"
+      },
+      "timestamp": "T",
+      "fields": [
+        {
+          "name": "Overview",
+          "value": "An American rock duo.",
+          "inline": false
+        },
+        {
+          "name": "Rating",
+          "value": "8.5",
+          "inline": false
+        },
+        {
+          "name": "Genres",
+          "value": "Rock, Blues",
+          "inline": false
+        },
+        {
+          "name": "Quality",
+          "value": "FLAC",
+          "inline": true
+        },
+        {
+          "name": "Group",
+          "value": "GRP",
+          "inline": false
+        },
+        {
+          "name": "Size",
+          "value": "300 MB",
+          "inline": true
+        },
+        {
+          "name": "Links",
+          "value": "[MusicBrainz](https://musicbrainz.org/artist/d15721d8-56b4-453d-b506-fc915b14cba2)",
+          "inline": false
+        },
+        {
+          "name": "Release",
+          "value": "```The.Black.Keys-Brothers-2010-FLAC-GRP```",
+          "inline": false
+        },
+        {
+          "name": "Indexer",
+          "value": "Knaben",
+          "inline": false
+        },
+        {
+          "name": "Custom Formats",
+          "value": "Lossless|Vinyl",
+          "inline": false
+        },
+        {
+          "name": "Custom Format Score",
+          "value": "150",
+          "inline": false
+        },
+        {
+          "name": "Tags",
+          "value": "favorite, scifi",
+          "inline": false
+        }
+      ]
+    }
+  ]
+}
+=====
+{
+  "embeds": [
+    {
+      "description": "Album Imported",
+      "title": "The Black Keys - Brothers",
+      "color": 2605644,
+      "url": "https://musicbrainz.org/artist/d15721d8-56b4-453d-b506-fc915b14cba2",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "thumbnail": {
+        "url": "https://img.example/poster.jpg"
+      },
+      "image": {
+        "url": "https://img.example/fanart.jpg"
+      },
+      "timestamp": "T",
+      "fields": [
+        {
+          "name": "Overview",
+          "value": "An American rock duo.",
+          "inline": false
+        },
+        {
+          "name": "Rating",
+          "value": "8.5",
+          "inline": false
+        },
+        {
+          "name": "Genres",
+          "value": "Rock, Blues",
+          "inline": false
+        },
+        {
+          "name": "Quality",
+          "value": "FLAC",
+          "inline": true
+        },
+        {
+          "name": "Codecs",
+          "value": "FLAC 2",
+          "inline": true
+        },
+        {
+          "name": "Group",
+          "value": "GRP",
+          "inline": false
+        },
+        {
+          "name": "Size",
+          "value": "30 MB",
+          "inline": true
+        },
+        {
+          "name": "Links",
+          "value": "[MusicBrainz](https://musicbrainz.org/artist/d15721d8-56b4-453d-b506-fc915b14cba2)",
+          "inline": false
+        },
+        {
+          "name": "Release",
+          "value": "```The.Black.Keys-Brothers-2010-FLAC-GRP```",
+          "inline": false
+        },
+        {
+          "name": "Tags",
+          "value": "favorite, scifi",
+          "inline": false
+        },
+        {
+          "name": "Custom Format Score",
+          "value": "0",
+          "inline": false
+        }
+      ]
+    }
+  ]
+}
+=====
+{
+  "embeds": [
+    {
+      "description": "Album Upgraded",
+      "title": "The Black Keys - Brothers",
+      "color": 4089856,
+      "url": "https://musicbrainz.org/artist/d15721d8-56b4-453d-b506-fc915b14cba2",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "thumbnail": {
+        "url": "https://img.example/poster.jpg"
+      },
+      "image": {
+        "url": "https://img.example/fanart.jpg"
+      },
+      "timestamp": "T",
+      "fields": [
+        {
+          "name": "Overview",
+          "value": "An American rock duo.",
+          "inline": false
+        },
+        {
+          "name": "Rating",
+          "value": "8.5",
+          "inline": false
+        },
+        {
+          "name": "Genres",
+          "value": "Rock, Blues",
+          "inline": false
+        },
+        {
+          "name": "Quality",
+          "value": "FLAC",
+          "inline": true
+        },
+        {
+          "name": "Codecs",
+          "value": "FLAC 2",
+          "inline": true
+        },
+        {
+          "name": "Group",
+          "value": "GRP",
+          "inline": false
+        },
+        {
+          "name": "Size",
+          "value": "30 MB",
+          "inline": true
+        },
+        {
+          "name": "Links",
+          "value": "[MusicBrainz](https://musicbrainz.org/artist/d15721d8-56b4-453d-b506-fc915b14cba2)",
+          "inline": false
+        },
+        {
+          "name": "Release",
+          "value": "```The.Black.Keys-Brothers-2010-FLAC-GRP```",
+          "inline": false
+        },
+        {
+          "name": "Tags",
+          "value": "favorite, scifi",
+          "inline": false
+        },
+        {
+          "name": "Custom Format Score",
+          "value": "0",
+          "inline": false
+        }
+      ]
+    }
+  ]
+}
+=====
+{
+  "content": "Renamed",
+  "embeds": [
+    {
+      "description": "Brothers/old-01 - Everlasting Light.flac renamed to Brothers/01 - Everlasting Light.flac",
+      "title": "The Black Keys",
+      "color": 0
+    },
+    {
+      "description": "Brothers/old-02 - Next Girl.flac renamed to Brothers/02 - Next Girl.flac",
+      "title": "The Black Keys",
+      "color": 0
+    }
+  ]
+}
+=====
+{
+  "embeds": [
+    {
+      "description": "Artist Added",
+      "title": "The Black Keys",
+      "color": 2605644,
+      "url": "https://musicbrainz.org/artist/d15721d8-56b4-453d-b506-fc915b14cba2",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "thumbnail": {
+        "url": "https://img.example/poster.jpg"
+      },
+      "image": {
+        "url": "https://img.example/fanart.jpg"
+      },
+      "fields": [
+        {
+          "name": "Links",
+          "value": "[MusicBrainz](https://musicbrainz.org/artist/d15721d8-56b4-453d-b506-fc915b14cba2)",
+          "inline": false
+        }
+      ]
+    }
+  ]
+}
+=====
+{
+  "embeds": [
+    {
+      "description": "Artist removed and all files were deleted",
+      "title": "The Black Keys",
+      "color": 15749200,
+      "url": "https://musicbrainz.org/artist/d15721d8-56b4-453d-b506-fc915b14cba2",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "thumbnail": {
+        "url": "https://img.example/poster.jpg"
+      },
+      "image": {
+        "url": "https://img.example/fanart.jpg"
+      },
+      "fields": [
+        {
+          "name": "Links",
+          "value": "[MusicBrainz](https://musicbrainz.org/artist/d15721d8-56b4-453d-b506-fc915b14cba2)",
+          "inline": false
+        }
+      ]
+    }
+  ]
+}
+=====
+{
+  "embeds": [
+    {
+      "description": "Manual interaction needed",
+      "title": "The Black Keys - Brothers",
+      "color": 16761392,
+      "url": "https://musicbrainz.org/artist/d15721d8-56b4-453d-b506-fc915b14cba2",
+      "author": {
+        "name": "Plattarr-golden",
+        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+      },
+      "thumbnail": {
+        "url": "https://img.example/poster.jpg"
+      },
+      "image": {
+        "url": "https://img.example/fanart.jpg"
+      },
+      "timestamp": "T",
+      "fields": [
+        {
+          "name": "Overview",
+          "value": "An American rock duo.",
+          "inline": false
+        },
+        {
+          "name": "Rating",
+          "value": "8.5",
+          "inline": false
+        },
+        {
+          "name": "Genres",
+          "value": "Rock, Blues",
+          "inline": false
+        },
+        {
+          "name": "Quality",
+          "value": "FLAC",
+          "inline": true
+        },
+        {
+          "name": "Group",
+          "value": "GRP",
+          "inline": false
+        },
+        {
+          "name": "Size",
+          "value": "300 MB",
+          "inline": true
+        },
+        {
+          "name": "Links",
+          "value": "[MusicBrainz](https://musicbrainz.org/artist/d15721d8-56b4-453d-b506-fc915b14cba2)",
+          "inline": false
+        },
+        {
+          "name": "Download",
+          "value": "```The.Black.Keys-Brothers-2010-FLAC-GRP```",
+          "inline": false
+        },
+        {
+          "name": "Tags",
+          "value": "favorite, scifi",
+          "inline": false
+        }
+      ]
+    }
+  ]
+}
