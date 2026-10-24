@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import { updateInteractiveImportItem } from 'Store/Actions/interactiveImportActions';
+import { updateInteractiveImportItem } from 'Store/Actions/musicInteractiveImportActions';
 import { clearTracks, fetchTracks, setTracksSort } from 'Store/Actions/trackActions';
 import createClientSideCollectionSelector from 'Store/Selectors/createClientSideCollectionSelector';
 import SelectTrackModalContent from './SelectTrackModalContent';
@@ -11,7 +11,7 @@ import SelectTrackModalContent from './SelectTrackModalContent';
 function createMapStateToProps() {
   return createSelector(
     createClientSideCollectionSelector('tracks'),
-    createClientSideCollectionSelector('interactiveImport'),
+    createClientSideCollectionSelector('musicInteractiveImport'),
     (tracks, interactiveImport) => {
 
       const selectedTracksByItem = _.map(interactiveImport.items, (item) => {

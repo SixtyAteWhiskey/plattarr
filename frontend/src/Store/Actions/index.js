@@ -28,7 +28,13 @@ import * as movieCredits from './movieCreditsActions';
 import * as movieFiles from './movieFileActions';
 import * as movieHistory from './movieHistoryActions';
 import * as movieIndex from './movieIndexActions';
+import * as musicBlocklist from './musicBlocklistActions';
+import * as musicCalendar from './musicCalendarActions';
+import * as musicHistory from './musicHistoryActions';
+import * as musicInteractiveImport from './musicInteractiveImportActions';
 import * as musicOrganizePreview from './musicOrganizePreviewActions';
+import * as musicReleases from './musicReleaseActions';
+import * as musicWanted from './musicWantedActions';
 import * as oAuth from './oAuthActions';
 import * as organizePreview from './organizePreviewActions';
 import * as parse from './parseActions';
@@ -102,7 +108,13 @@ export default [
   series,
   seriesHistory,
   seriesIndex,
+  musicBlocklist,
+  musicCalendar,
+  musicHistory,
+  musicInteractiveImport,
   musicOrganizePreview,
+  musicReleases,
+  musicWanted,
   seriesOrganizePreview,
   settings,
   system,

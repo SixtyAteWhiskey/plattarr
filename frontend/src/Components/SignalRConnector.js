@@ -366,6 +366,36 @@ class SignalRConnector extends Component {
     repopulatePage('trackFileUpdated');
   };
 
+  handleCalendarMusic = (body) => {
+    if (body.action === 'updated') {
+      this.props.dispatchUpdateItem({
+        section: 'musicCalendar',
+        updateOnly: true,
+        ...body.resource
+      });
+    }
+  };
+
+  handleWantedCutoffMusic = (body) => {
+    if (body.action === 'updated') {
+      this.props.dispatchUpdateItem({
+        section: 'musicWanted.cutoffUnmet',
+        updateOnly: true,
+        ...body.resource
+      });
+    }
+  };
+
+  handleWantedMissingMusic = (body) => {
+    if (body.action === 'updated') {
+      this.props.dispatchUpdateItem({
+        section: 'musicWanted.missing',
+        updateOnly: true,
+        ...body.resource
+      });
+    }
+  };
+
   handleCollection = (body) => {
     const action = body.action;
     const section = 'movieCollections';

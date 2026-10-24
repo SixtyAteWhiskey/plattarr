@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { saveInteractiveImportItem, updateInteractiveImportItems } from 'Store/Actions/interactiveImportActions';
+import { saveInteractiveImportItem, updateInteractiveImportItems } from 'Store/Actions/musicInteractiveImportActions';
 import SelectIndexerFlagsModalContent from './SelectIndexerFlagsModalContent';
 
 const mapDispatchToProps = {

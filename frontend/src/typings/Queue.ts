@@ -1,4 +1,6 @@
+import Album from 'Album/Album';
 import ModelBase from 'App/ModelBase';
+import Artist from 'Artist/Artist';
 import DownloadProtocol from 'DownloadClient/DownloadProtocol';
 import Episode from 'Episode/Episode';
 import Language from 'Language/Language';
@@ -58,5 +60,7 @@ interface Queue extends ModelBase {
   movie?: Movie;
   series?: Series;
   episode?: Episode;
+  artist?: Artist;
+  album?: Album;
 }
 export default Queue;

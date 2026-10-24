@@ -12,6 +12,7 @@ import ExtraFilesAppState from './ExtraFilesAppState';
 import HistoryAppState, {
   AlbumHistoryAppState,
   MovieHistoryAppState,
+  MusicHistoryAppState,
   SeriesHistoryAppState,
 } from './HistoryAppState';
 import ImportSeriesAppState from './ImportSeriesAppState';
@@ -21,6 +22,7 @@ import MovieCollectionAppState from './MovieCollectionAppState';
 import MovieCreditAppState from './MovieCreditAppState';
 import MovieFilesAppState from './MovieFilesAppState';
 import MoviesAppState, { MovieIndexAppState } from './MoviesAppState';
+import MusicCalendarAppState from './MusicCalendarAppState';
 import OAuthAppState from './OAuthAppState';
 import OrganizePreviewAppState, {
   SeriesOrganizePreviewAppState,
@@ -106,6 +108,8 @@ interface AppState {
   artistHistory: AlbumHistoryAppState;
   artistIndex: ArtistIndexAppState;
   blocklist: BlocklistAppState;
+  musicCalendar: MusicCalendarAppState;
+  musicHistory: MusicHistoryAppState;
   tvBlocklist: TvBlocklistAppState;
   calendar: CalendarAppState;
   captcha: CaptchaAppState;

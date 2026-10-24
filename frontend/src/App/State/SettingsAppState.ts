@@ -6,7 +6,9 @@ import AppSectionState, {
   AppSectionSchemaState,
   PagedAppSectionState,
 } from 'App/State/AppSectionState';
+import RootFolderAppState from 'App/State/RootFolderAppState';
 import Language from 'Language/Language';
+import AudioQualityDefinition from 'typings/AudioQualityDefinition';
 import AutoTagging, { AutoTaggingSpecification } from 'typings/AutoTagging';
 import CustomFormat from 'typings/CustomFormat';
 import DelayProfile from 'typings/DelayProfile';
@@ -22,6 +24,8 @@ import QualityProfile from 'typings/QualityProfile';
 import General from 'typings/Settings/General';
 import IndexerOptions from 'typings/Settings/IndexerOptions';
 import MediaManagement from 'typings/Settings/MediaManagement';
+import MusicNamingConfig from 'typings/Settings/MusicNamingConfig';
+import MusicNamingExample from 'typings/Settings/MusicNamingExample';
 import NamingConfig from 'typings/Settings/NamingConfig';
 import NamingExample from 'typings/Settings/NamingExample';
 import ReleaseProfile from 'typings/Settings/ReleaseProfile';
@@ -70,6 +74,13 @@ export interface NamingAppState
     AppSectionSaveState {}
 
 export type NamingExamplesAppState = AppSectionItemState<NamingExample>;
+
+export interface MusicNamingAppState
+  extends AppSectionItemState<MusicNamingConfig>,
+    AppSectionSaveState {}
+
+export type MusicNamingExamplesAppState =
+  AppSectionItemState<MusicNamingExample>;
 
 export interface TvNamingAppState
   extends AppSectionItemState<TvNamingConfig>,
@@ -142,6 +153,7 @@ export type UiSettingsAppState = AppSectionItemState<UiSettings>;
 
 interface SettingsAppState {
   advancedSettings: boolean;
+  audioQualityDefinitions: AppSectionState<AudioQualityDefinition>;
   audioQualityProfiles: AudioQualityProfilesAppState;
   autoTaggings: AutoTaggingAppState;
   autoTaggingSpecifications: AutoTaggingSpecificationAppState;
@@ -159,6 +171,9 @@ interface SettingsAppState {
   mediaManagement: MediaManagementAppState;
   metadata: MetadataAppState;
   metadataProfiles: MetadataProfilesAppState;
+  musicNaming: MusicNamingAppState;
+  musicNamingExamples: MusicNamingExamplesAppState;
+  musicRootFolders: RootFolderAppState;
   naming: NamingAppState;
   namingExamples: NamingExamplesAppState;
   tvAutoTaggings: AutoTaggingAppState;

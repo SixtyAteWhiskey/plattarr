@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { cancelFetchReleases, clearReleases } from 'Store/Actions/releaseActions';
+import { cancelFetchReleases, clearReleases } from 'Store/Actions/musicReleaseActions';
 import AlbumInteractiveSearchModal from './AlbumInteractiveSearchModal';
 
 function createMapDispatchToProps(dispatch, props) {

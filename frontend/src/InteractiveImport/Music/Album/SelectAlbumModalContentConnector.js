@@ -4,7 +4,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
 import { clearAlbums, fetchAlbums, setAlbumsSort } from 'Store/Actions/albumSelectionActions';
-import { saveInteractiveImportItem, updateInteractiveImportItem } from 'Store/Actions/interactiveImportActions';
+import { saveInteractiveImportItem, updateInteractiveImportItem } from 'Store/Actions/musicInteractiveImportActions';
 import createClientSideCollectionSelector from 'Store/Selectors/createClientSideCollectionSelector';
 import SelectAlbumModalContent from './SelectAlbumModalContent';
 

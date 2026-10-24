@@ -11,13 +11,13 @@ import {
   saveInteractiveImportItem,
   setInteractiveImportMode,
   setInteractiveImportSort,
-  updateInteractiveImportItem } from 'Store/Actions/interactiveImportActions';
+  updateInteractiveImportItem } from 'Store/Actions/musicInteractiveImportActions';
 import createClientSideCollectionSelector from 'Store/Selectors/createClientSideCollectionSelector';
 import InteractiveImportModalContent from './InteractiveImportModalContent';
 
 function createMapStateToProps() {
   return createSelector(
-    createClientSideCollectionSelector('interactiveImport'),
+    createClientSideCollectionSelector('musicInteractiveImport'),
     (interactiveImport) => {
       return interactiveImport;
     }

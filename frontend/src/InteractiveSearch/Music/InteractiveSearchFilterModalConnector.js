@@ -1,17 +1,17 @@
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
 import FilterModal from 'Components/Filter/FilterModal';
-import { setAlbumReleasesFilter, setArtistReleasesFilter } from 'Store/Actions/releaseActions';
+import { setAlbumReleasesFilter, setArtistReleasesFilter } from 'Store/Actions/musicReleaseActions';
 
 function createMapStateToProps() {
   return createSelector(
-    (state) => state.releases.items,
-    (state) => state.releases.filterBuilderProps,
+    (state) => state.musicReleases.items,
+    (state) => state.musicReleases.filterBuilderProps,
     (sectionItems, filterBuilderProps) => {
       return {
         sectionItems,
         filterBuilderProps,
-        customFilterType: 'releases'
+        customFilterType: 'musicReleases'
       };
     }
   );

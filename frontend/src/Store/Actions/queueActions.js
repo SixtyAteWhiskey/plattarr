@@ -97,6 +97,24 @@ export const defaultState = {
         isVisible: false
       },
       {
+        name: 'artists.sortName',
+        label: () => translate('Artist'),
+        isSortable: true,
+        isVisible: true
+      },
+      {
+        name: 'albums.title',
+        label: () => translate('AlbumTitle'),
+        isSortable: true,
+        isVisible: true
+      },
+      {
+        name: 'albums.releaseDate',
+        label: () => translate('ReleaseDate'),
+        isSortable: false,
+        isVisible: false
+      },
+      {
         name: 'year',
         label: () => translate('Year'),
         isSortable: true,
@@ -255,6 +273,10 @@ export const persistState = [
 
 function fetchDataAugmenter(getState, payload, data) {
   data.includeUnknownMovieItems = getState().queue.options.includeUnknownMovieItems;
+
+  // Music rows link to the artist and album, so the response embeds them.
+  data.includeArtist = true;
+  data.includeAlbum = true;
 }
 
 //
