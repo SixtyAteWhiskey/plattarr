@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -165,6 +166,21 @@ namespace NzbDrone.Core.Tv.Notifications
                 CustomFormatInfo = new WebhookCustomFormatInfo(remoteEpisode.CustomFormats, remoteEpisode.CustomFormatScore),
                 Release = new WebhookGrabbedRelease(data.Release)
             };
+        }
+
+        public WebhookPayload BuildItemDelete(ItemDeleteMessage message)
+        {
+            throw new NotSupportedException("TV has no album delete notification.");
+        }
+
+        public WebhookPayload BuildDownloadFailure(DownloadFailureMessage message)
+        {
+            throw new NotSupportedException("TV has no download failure notification.");
+        }
+
+        public WebhookPayload BuildRetag(RetagMessage message)
+        {
+            throw new NotSupportedException("TV has no retag notification.");
         }
 
         public WebhookPayload BuildTest()

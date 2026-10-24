@@ -17,5 +17,8 @@ namespace NzbDrone.Core.Notifications
         void MediaDelete(MediaDeleteMessage message);
         void ManualInteractionRequired(ManualInteractionRequiredMessage message);
         void ImportComplete(ImportCompleteMessage message);
+        void ItemDelete(ItemDeleteMessage message);
+        void DownloadFailure(DownloadFailureMessage message);
+        void Retag(RetagMessage message);
     }
 }

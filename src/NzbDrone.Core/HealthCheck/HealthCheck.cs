@@ -64,6 +64,8 @@ namespace NzbDrone.Core.HealthCheck
         DownloadClientSorting,
         DownloadClientStatusAllClients,
         DownloadClientStatusSingleClient,
+        FpcalcMissing,
+        FpcalcUpgrade,
         ImportListRootFolderMissing,
         ImportListRootFolderMultipleMissing,
         ImportListStatusAllUnavailable,

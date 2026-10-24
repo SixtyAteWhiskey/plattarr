@@ -101,6 +101,21 @@ namespace NzbDrone.Core.Notifications.Webhook
             return Stamp(BuilderFor(message.Data).BuildImportComplete(message));
         }
 
+        protected WebhookPayload BuildOnItemDeletePayload(ItemDeleteMessage message)
+        {
+            return Stamp(BuilderFor(message.Data).BuildItemDelete(message));
+        }
+
+        protected WebhookPayload BuildOnDownloadFailurePayload(DownloadFailureMessage message)
+        {
+            return Stamp(BuilderFor(message.Data).BuildDownloadFailure(message));
+        }
+
+        protected WebhookPayload BuildOnRetagPayload(RetagMessage message)
+        {
+            return Stamp(BuilderFor(message.Data).BuildRetag(message));
+        }
+
         // One test payload per module, in kind order, so a receiver written for any module's shape sees
         // one it can parse. "Test" fails if any of them is refused.
         protected List<WebhookPayload> BuildTestPayloads()

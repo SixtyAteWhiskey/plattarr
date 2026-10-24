@@ -22,6 +22,9 @@ namespace NzbDrone.Core.Notifications
         public bool OnApplicationUpdate { get; set; }
         public bool OnManualInteractionRequired { get; set; }
         public bool OnImportComplete { get; set; }
+        public bool OnAlbumDelete { get; set; }
+        public bool OnDownloadFailure { get; set; }
+        public bool OnTrackRetag { get; set; }
 
         [MemberwiseEqualityIgnore]
         public bool SupportsOnGrab { get; set; }
@@ -63,7 +66,16 @@ namespace NzbDrone.Core.Notifications
         public bool SupportsOnImportComplete { get; set; }
 
         [MemberwiseEqualityIgnore]
-        public override bool Enable => OnGrab || OnDownload || (OnDownload && OnUpgrade) || OnRename || OnMovieAdded || OnMovieDelete || OnMovieFileDelete || (OnMovieFileDelete && OnMovieFileDeleteForUpgrade) || OnHealthIssue || OnHealthRestored || OnApplicationUpdate || OnManualInteractionRequired || OnImportComplete;
+        public bool SupportsOnAlbumDelete { get; set; }
+
+        [MemberwiseEqualityIgnore]
+        public bool SupportsOnDownloadFailure { get; set; }
+
+        [MemberwiseEqualityIgnore]
+        public bool SupportsOnTrackRetag { get; set; }
+
+        [MemberwiseEqualityIgnore]
+        public override bool Enable => OnGrab || OnDownload || (OnDownload && OnUpgrade) || OnRename || OnMovieAdded || OnMovieDelete || OnMovieFileDelete || (OnMovieFileDelete && OnMovieFileDeleteForUpgrade) || OnHealthIssue || OnHealthRestored || OnApplicationUpdate || OnManualInteractionRequired || OnImportComplete || OnAlbumDelete || OnDownloadFailure || OnTrackRetag;
 
         public bool Equals(NotificationDefinition other)
         {

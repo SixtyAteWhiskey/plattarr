@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Common.Extensions;
@@ -5,6 +6,7 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Music.Events;
+using NzbDrone.Core.Music.MediaFiles;
 using NzbDrone.Core.Music.MediaFiles.Events;
 using NzbDrone.Core.Notifications;
 using NzbDrone.Core.Qualities;
@@ -14,9 +16,9 @@ namespace NzbDrone.Core.Music.Notifications
     // Contract 7. Music events become neutral notification messages for the core dispatcher. The message
     // text is Lidarr's own ("Artist - Album - [FLAC]", "Artist - Album (12 Tracks Imported)").
     //
-    // Lidarr also notifies on a deleted album, a failed download, an incomplete import and a retag. The
-    // neutral contract has no event for them yet (a provider's event flags are columns on the notification
-    // definition), so they arrive with the API and UI (step 7), as Sonarr's On Import Complete did for TV.
+    // Lidarr also notifies on a deleted album, a failed download and a retag (step 7 added the neutral
+    // events), and on an incomplete import. That one is not sent: its event was not ported, because the
+    // core blocks a partial import and raises manual interaction, which is notified above.
     // A file delete is not notified at all: Lidarr never did.
     public class MusicNotificationHandler
         : IHandle<ReleaseGrabbedEvent>,
@@ -24,7 +26,10 @@ namespace NzbDrone.Core.Music.Notifications
           IHandle<ArtistAddCompletedEvent>,
           IHandle<ArtistRenamedEvent>,
           IHandle<ArtistsDeletedEvent>,
-          IHandle<ManualInteractionRequiredEvent>
+          IHandle<ManualInteractionRequiredEvent>,
+          IHandle<AlbumDeletedEvent>,
+          IHandle<DownloadFailedEvent>,
+          IHandle<TrackFileRetaggedEvent>
     {
         private readonly INotificationDispatcher _dispatcher;
         private readonly MusicActivityRenderer _renderer;
@@ -52,6 +57,19 @@ namespace NzbDrone.Core.Music.Notifications
         public static string GetAlbumDownloadMessage(Artist artist, Album album, int trackCount)
         {
             return $"{artist.Metadata.Value.Name} - {album.Title} ({trackCount} Tracks Imported)";
+        }
+
+        // Lidarr's text, with an ASCII arrow (upstream's is a character that did not survive).
+        public static string GetRetagMessage(TrackFile trackFile, Dictionary<string, Tuple<string, string>> diff)
+        {
+            return $"{trackFile.Path}:\n{string.Join("\n", diff.Select(x => $"{x.Key}: {FormatMissing(x.Value.Item1)} -> {FormatMissing(x.Value.Item2)}"))}";
+        }
+
+        private static string FormatMissing(object value)
+        {
+            var text = value?.ToString();
+
+            return text.IsNullOrWhiteSpace() ? "<missing>" : text;
         }
 
         public void Handle(ReleaseGrabbedEvent message)
@@ -204,6 +222,82 @@ namespace NzbDrone.Core.Music.Notifications
                 DownloadClientInfo = trackedDownload.DownloadItem?.DownloadClientInfo,
                 DownloadId = trackedDownload.DownloadItem?.DownloadId,
                 Release = remoteAlbum == null ? null : _renderer.DescribeRelease(remoteAlbum)
+            });
+        }
+
+        public void Handle(AlbumDeletedEvent message)
+        {
+            var album = message.Album;
+            var artist = album.Artist?.Value;
+
+            if (artist == null || !_dispatcher.AnyEnabled(NotificationEvent.ItemDelete))
+            {
+                return;
+            }
+
+            var deletedFilesMessage = message.DeleteFiles
+                ? "Album removed and all files were deleted"
+                : "Album removed, files were not deleted";
+
+            _dispatcher.ItemDelete(new ItemDeleteMessage
+            {
+                Message = album.Title + " - " + deletedFilesMessage,
+                Subject = _renderer.Describe(artist, new List<Album> { album }),
+                Data = new MusicNotificationData { Artist = artist, Album = album },
+                DeletedFiles = message.DeleteFiles,
+                DeletedFilesMessage = deletedFilesMessage
+            });
+        }
+
+        public void Handle(DownloadFailedEvent message)
+        {
+            if (message.Kind != MediaKind.Music || !_dispatcher.AnyEnabled(NotificationEvent.DownloadFailure))
+            {
+                return;
+            }
+
+            var remoteAlbum = message.TrackedDownload?.GetRemoteAlbum();
+            var artist = remoteAlbum?.Artist;
+
+            _dispatcher.DownloadFailure(new DownloadFailureMessage
+            {
+                Message = message.Message,
+                Subject = _renderer.Describe(artist, remoteAlbum?.Albums),
+                Data = new MusicNotificationData { Artist = artist, RemoteAlbum = remoteAlbum },
+                SourceTitle = message.SourceTitle,
+                QualityName = message.Quality?.Quality?.Name,
+                QualityVersion = message.Quality?.Revision.Version ?? 0,
+                DownloadClient = message.DownloadClient,
+                DownloadId = message.DownloadId
+            });
+        }
+
+        public void Handle(TrackFileRetaggedEvent message)
+        {
+            if (!_dispatcher.AnyEnabled(NotificationEvent.Retag))
+            {
+                return;
+            }
+
+            var artist = message.Artist;
+            var trackFile = message.TrackFile;
+            var album = trackFile.Album?.Value;
+            var release = trackFile.Tracks?.Value?.FirstOrDefault()?.AlbumRelease?.Value;
+
+            _dispatcher.Retag(new RetagMessage
+            {
+                Message = GetRetagMessage(trackFile, message.Diff),
+                Subject = _renderer.Describe(artist, album == null ? null : new List<Album> { album }),
+                Data = new MusicNotificationData
+                {
+                    Artist = artist,
+                    Album = album,
+                    AlbumRelease = release,
+                    TrackFiles = new List<TrackFile> { trackFile }
+                },
+                File = _renderer.DescribeFile(artist, trackFile),
+                Diff = message.Diff,
+                Scrubbed = message.Scrubbed
             });
         }
     }

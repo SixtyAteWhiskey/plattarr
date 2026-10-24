@@ -22,6 +22,9 @@ namespace NzbDrone.Core.Notifications
         List<INotification> OnApplicationUpdateEnabled(bool filterBlockedNotifications = true);
         List<INotification> OnManualInteractionEnabled(bool filterBlockedNotifications = true);
         List<INotification> OnImportCompleteEnabled(bool filterBlockedNotifications = true);
+        List<INotification> OnAlbumDeleteEnabled(bool filterBlockedNotifications = true);
+        List<INotification> OnDownloadFailureEnabled(bool filterBlockedNotifications = true);
+        List<INotification> OnTrackRetagEnabled(bool filterBlockedNotifications = true);
     }
 
     public class NotificationFactory : ProviderFactory<INotification, NotificationDefinition>, INotificationFactory
@@ -171,6 +174,36 @@ namespace NzbDrone.Core.Notifications
             return GetAvailableProviders().Where(n => ((NotificationDefinition)n.Definition).OnImportComplete).ToList();
         }
 
+        public List<INotification> OnAlbumDeleteEnabled(bool filterBlockedNotifications = true)
+        {
+            if (filterBlockedNotifications)
+            {
+                return FilterBlockedNotifications(GetAvailableProviders().Where(n => ((NotificationDefinition)n.Definition).OnAlbumDelete)).ToList();
+            }
+
+            return GetAvailableProviders().Where(n => ((NotificationDefinition)n.Definition).OnAlbumDelete).ToList();
+        }
+
+        public List<INotification> OnDownloadFailureEnabled(bool filterBlockedNotifications = true)
+        {
+            if (filterBlockedNotifications)
+            {
+                return FilterBlockedNotifications(GetAvailableProviders().Where(n => ((NotificationDefinition)n.Definition).OnDownloadFailure)).ToList();
+            }
+
+            return GetAvailableProviders().Where(n => ((NotificationDefinition)n.Definition).OnDownloadFailure).ToList();
+        }
+
+        public List<INotification> OnTrackRetagEnabled(bool filterBlockedNotifications = true)
+        {
+            if (filterBlockedNotifications)
+            {
+                return FilterBlockedNotifications(GetAvailableProviders().Where(n => ((NotificationDefinition)n.Definition).OnTrackRetag)).ToList();
+            }
+
+            return GetAvailableProviders().Where(n => ((NotificationDefinition)n.Definition).OnTrackRetag).ToList();
+        }
+
         private IEnumerable<INotification> FilterBlockedNotifications(IEnumerable<INotification> notifications)
         {
             var blockedNotifications = _notificationStatusService.GetBlockedProviders().ToDictionary(v => v.ProviderId, v => v);
@@ -204,6 +237,9 @@ namespace NzbDrone.Core.Notifications
             definition.SupportsOnApplicationUpdate = provider.SupportsOnApplicationUpdate;
             definition.SupportsOnManualInteractionRequired = provider.SupportsOnManualInteractionRequired;
             definition.SupportsOnImportComplete = provider.SupportsOnImportComplete;
+            definition.SupportsOnAlbumDelete = provider.SupportsOnAlbumDelete;
+            definition.SupportsOnDownloadFailure = provider.SupportsOnDownloadFailure;
+            definition.SupportsOnTrackRetag = provider.SupportsOnTrackRetag;
         }
 
         public override ValidationResult Test(NotificationDefinition definition)

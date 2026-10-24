@@ -24,5 +24,9 @@ namespace NzbDrone.Core.Notifications.CustomScript
         StringDictionary BuildMediaFileDelete(MediaFileDeleteMessage message);
         StringDictionary BuildMediaDelete(MediaDeleteMessage message);
         StringDictionary BuildManualInteraction(ManualInteractionRequiredMessage message);
+
+        // A module that never sends the event throws NotSupportedException. Lidarr ran no script for a failed download.
+        StringDictionary BuildItemDelete(ItemDeleteMessage message);
+        StringDictionary BuildRetag(RetagMessage message);
     }
 }

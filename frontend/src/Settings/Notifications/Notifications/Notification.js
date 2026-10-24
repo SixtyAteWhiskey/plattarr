@@ -69,6 +69,9 @@ class Notification extends Component {
       onApplicationUpdate,
       onManualInteractionRequired,
       onImportComplete,
+      onAlbumDelete,
+      onDownloadFailure,
+      onTrackRetag,
       supportsOnGrab,
       supportsOnDownload,
       supportsOnUpgrade,
@@ -82,6 +85,9 @@ class Notification extends Component {
       supportsOnApplicationUpdate,
       supportsOnManualInteractionRequired,
       supportsOnImportComplete,
+      supportsOnAlbumDelete,
+      supportsOnDownloadFailure,
+      supportsOnTrackRetag,
       tags,
       tagList
     } = this.props;
@@ -201,7 +207,31 @@ class Notification extends Component {
         }
 
         {
-          !onGrab && !onDownload && !onRename && !onHealthIssue && !onHealthRestored && !onApplicationUpdate && !onMovieAdded && !onMovieDelete && !onMovieFileDelete && !onManualInteractionRequired && !onImportComplete ?
+          supportsOnAlbumDelete && onAlbumDelete ?
+            <Label kind={kinds.SUCCESS}>
+              {translate('OnAlbumDelete')}
+            </Label> :
+            null
+        }
+
+        {
+          supportsOnDownloadFailure && onDownloadFailure ?
+            <Label kind={kinds.SUCCESS}>
+              {translate('OnDownloadFailure')}
+            </Label> :
+            null
+        }
+
+        {
+          supportsOnTrackRetag && onTrackRetag ?
+            <Label kind={kinds.SUCCESS}>
+              {translate('OnTrackRetag')}
+            </Label> :
+            null
+        }
+
+        {
+          !onGrab && !onDownload && !onRename && !onHealthIssue && !onHealthRestored && !onApplicationUpdate && !onMovieAdded && !onMovieDelete && !onMovieFileDelete && !onManualInteractionRequired && !onImportComplete && !onAlbumDelete && !onDownloadFailure && !onTrackRetag ?
             <Label
               kind={kinds.DISABLED}
               outline={true}
@@ -253,6 +283,9 @@ Notification.propTypes = {
   onApplicationUpdate: PropTypes.bool.isRequired,
   onManualInteractionRequired: PropTypes.bool.isRequired,
   onImportComplete: PropTypes.bool.isRequired,
+  onAlbumDelete: PropTypes.bool.isRequired,
+  onDownloadFailure: PropTypes.bool.isRequired,
+  onTrackRetag: PropTypes.bool.isRequired,
   supportsOnGrab: PropTypes.bool.isRequired,
   supportsOnDownload: PropTypes.bool.isRequired,
   supportsOnMovieDelete: PropTypes.bool.isRequired,
@@ -266,6 +299,9 @@ Notification.propTypes = {
   supportsOnApplicationUpdate: PropTypes.bool.isRequired,
   supportsOnManualInteractionRequired: PropTypes.bool.isRequired,
   supportsOnImportComplete: PropTypes.bool.isRequired,
+  supportsOnAlbumDelete: PropTypes.bool.isRequired,
+  supportsOnDownloadFailure: PropTypes.bool.isRequired,
+  supportsOnTrackRetag: PropTypes.bool.isRequired,
   tags: PropTypes.arrayOf(PropTypes.number).isRequired,
   tagList: PropTypes.arrayOf(PropTypes.object).isRequired,
   onConfirmDeleteNotification: PropTypes.func.isRequired

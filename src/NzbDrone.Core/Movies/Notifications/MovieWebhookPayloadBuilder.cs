@@ -159,6 +159,21 @@ namespace NzbDrone.Core.Movies.Notifications
             };
         }
 
+        public WebhookPayload BuildItemDelete(ItemDeleteMessage message)
+        {
+            throw new NotSupportedException("Movies has no album delete notification.");
+        }
+
+        public WebhookPayload BuildDownloadFailure(DownloadFailureMessage message)
+        {
+            throw new NotSupportedException("Movies has no download failure notification.");
+        }
+
+        public WebhookPayload BuildRetag(RetagMessage message)
+        {
+            throw new NotSupportedException("Movies has no retag notification.");
+        }
+
         public WebhookPayload BuildTest()
         {
             return new WebhookGrabPayload

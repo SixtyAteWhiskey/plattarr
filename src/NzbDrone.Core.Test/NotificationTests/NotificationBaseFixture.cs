@@ -99,6 +99,57 @@ namespace NzbDrone.Core.Test.NotificationTests
             {
                 TestLogger.Info("OnImportComplete was called");
             }
+
+            public override void OnItemDelete(ItemDeleteMessage message)
+            {
+                TestLogger.Info("OnItemDelete was called");
+            }
+
+            public override void OnDownloadFailure(DownloadFailureMessage message)
+            {
+                TestLogger.Info("OnDownloadFailure was called");
+            }
+
+            public override void OnRetag(RetagMessage message)
+            {
+                TestLogger.Info("OnRetag was called");
+            }
+        }
+
+        private class TestNotificationWithItemDelete : NotificationBase<TestSetting>
+        {
+            public override string Name => "TestNotification";
+            public override string Link => "";
+
+            public override ValidationResult Test() => throw new NotImplementedException();
+
+            public override void OnItemDelete(ItemDeleteMessage message)
+            {
+            }
+        }
+
+        private class TestNotificationWithDownloadFailure : NotificationBase<TestSetting>
+        {
+            public override string Name => "TestNotification";
+            public override string Link => "";
+
+            public override ValidationResult Test() => throw new NotImplementedException();
+
+            public override void OnDownloadFailure(DownloadFailureMessage message)
+            {
+            }
+        }
+
+        private class TestNotificationWithRetag : NotificationBase<TestSetting>
+        {
+            public override string Name => "TestNotification";
+            public override string Link => "";
+
+            public override ValidationResult Test() => throw new NotImplementedException();
+
+            public override void OnRetag(RetagMessage message)
+            {
+            }
         }
 
         private class TestNotificationWithNoEvents : NotificationBase<TestSetting>
@@ -142,6 +193,9 @@ namespace NzbDrone.Core.Test.NotificationTests
             notification.SupportsOnApplicationUpdate.Should().BeTrue();
             notification.SupportsOnManualInteractionRequired.Should().BeTrue();
             notification.SupportsOnImportComplete.Should().BeTrue();
+            notification.SupportsOnAlbumDelete.Should().BeTrue();
+            notification.SupportsOnDownloadFailure.Should().BeTrue();
+            notification.SupportsOnTrackRetag.Should().BeTrue();
         }
 
         [Test]
@@ -162,6 +216,41 @@ namespace NzbDrone.Core.Test.NotificationTests
             notification.SupportsOnApplicationUpdate.Should().BeFalse();
             notification.SupportsOnManualInteractionRequired.Should().BeFalse();
             notification.SupportsOnImportComplete.Should().BeFalse();
+            notification.SupportsOnAlbumDelete.Should().BeFalse();
+            notification.SupportsOnDownloadFailure.Should().BeFalse();
+            notification.SupportsOnTrackRetag.Should().BeFalse();
+        }
+
+        // Each flag follows its own override and no other.
+        [Test]
+        public void should_support_only_the_album_delete_event_when_only_it_is_implemented()
+        {
+            var notification = new TestNotificationWithItemDelete();
+
+            notification.SupportsOnAlbumDelete.Should().BeTrue();
+            notification.SupportsOnDownloadFailure.Should().BeFalse();
+            notification.SupportsOnTrackRetag.Should().BeFalse();
+            notification.SupportsOnMovieDelete.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_support_only_the_download_failure_event_when_only_it_is_implemented()
+        {
+            var notification = new TestNotificationWithDownloadFailure();
+
+            notification.SupportsOnDownloadFailure.Should().BeTrue();
+            notification.SupportsOnAlbumDelete.Should().BeFalse();
+            notification.SupportsOnTrackRetag.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_support_only_the_retag_event_when_only_it_is_implemented()
+        {
+            var notification = new TestNotificationWithRetag();
+
+            notification.SupportsOnTrackRetag.Should().BeTrue();
+            notification.SupportsOnAlbumDelete.Should().BeFalse();
+            notification.SupportsOnDownloadFailure.Should().BeFalse();
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Common.Serializer;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Notifications;
 using NzbDrone.Core.Notifications.CustomScript;
@@ -38,6 +39,8 @@ namespace NzbDrone.Core.Music.Notifications
                 NotificationEvent.MediaAdded => "ArtistAdd",
                 NotificationEvent.MediaDelete => "ArtistDeleted",
                 NotificationEvent.ManualInteractionRequired => "ManualInteractionRequired",
+                NotificationEvent.ItemDelete => "AlbumDeleted",
+                NotificationEvent.Retag => "TrackRetag",
                 _ => throw new NotSupportedException($"The Music module never sends {notificationEvent}.")
             };
         }
@@ -157,6 +160,58 @@ namespace NzbDrone.Core.Music.Notifications
             environmentVariables.Add("Lidarr_Download_Id", message.DownloadId ?? string.Empty);
             environmentVariables.Add("Lidarr_Download_Size", message.TrackedDownload.DownloadItem?.TotalSize.ToString() ?? string.Empty);
             environmentVariables.Add("Lidarr_Download_Title", message.TrackedDownload.DownloadItem?.Title ?? string.Empty);
+
+            return environmentVariables;
+        }
+
+        public StringDictionary BuildItemDelete(ItemDeleteMessage message)
+        {
+            var data = (MusicNotificationData)message.Data;
+            var album = data.Album;
+            var environmentVariables = new StringDictionary();
+
+            AddArtistVariables(environmentVariables, data.Artist, "Name", includePath: true);
+
+            environmentVariables.Add("Lidarr_Album_Id", album.Id.ToString());
+            environmentVariables.Add("Lidarr_Album_Title", album.Title);
+            environmentVariables.Add("Lidarr_Album_Overview", album.Overview);
+            environmentVariables.Add("Lidarr_Album_MBId", album.ForeignAlbumId);
+            environmentVariables.Add("Lidarr_Album_ReleaseDate", album.ReleaseDate.ToString());
+
+            // Lidarr's name for this variable, although it is about the album's files.
+            environmentVariables.Add("Lidarr_Artist_DeletedFiles", message.DeletedFiles.ToString());
+
+            return environmentVariables;
+        }
+
+        public StringDictionary BuildRetag(RetagMessage message)
+        {
+            var data = (MusicNotificationData)message.Data;
+            var album = data.Album;
+            var trackFile = data.TrackFiles.Single();
+            var tracks = trackFile.Tracks.Value;
+            var environmentVariables = new StringDictionary();
+
+            AddArtistVariables(environmentVariables, data.Artist, "Name", includePath: true);
+
+            environmentVariables.Add("Lidarr_Album_Id", album.Id.ToString());
+            environmentVariables.Add("Lidarr_Album_Title", album.Title);
+            environmentVariables.Add("Lidarr_Album_Overview", album.Overview);
+            environmentVariables.Add("Lidarr_Album_MBId", album.ForeignAlbumId);
+            environmentVariables.Add("Lidarr_AlbumRelease_MBId", data.AlbumRelease?.ForeignReleaseId ?? string.Empty);
+            environmentVariables.Add("Lidarr_Album_ReleaseDate", album.ReleaseDate.ToString());
+            environmentVariables.Add("Lidarr_TrackFile_Id", trackFile.Id.ToString());
+            environmentVariables.Add("Lidarr_TrackFile_TrackCount", tracks.Count.ToString());
+            environmentVariables.Add("Lidarr_TrackFile_Path", trackFile.Path);
+            environmentVariables.Add("Lidarr_TrackFile_TrackIds", string.Join(",", tracks.Select(e => e.Id)));
+            environmentVariables.Add("Lidarr_TrackFile_TrackNumbers", string.Join(",", tracks.Select(e => e.TrackNumber)));
+            environmentVariables.Add("Lidarr_TrackFile_TrackTitles", string.Join("|", tracks.Select(e => e.Title)));
+            environmentVariables.Add("Lidarr_TrackFile_Quality", trackFile.Quality.Quality.Name);
+            environmentVariables.Add("Lidarr_TrackFile_QualityVersion", trackFile.Quality.Revision.Version.ToString());
+            environmentVariables.Add("Lidarr_TrackFile_ReleaseGroup", trackFile.ReleaseGroup ?? string.Empty);
+            environmentVariables.Add("Lidarr_TrackFile_SceneName", trackFile.SceneName ?? string.Empty);
+            environmentVariables.Add("Lidarr_Tags_Diff", message.Diff.ToJson());
+            environmentVariables.Add("Lidarr_Tags_Scrubbed", message.Scrubbed.ToString());
 
             return environmentVariables;
         }

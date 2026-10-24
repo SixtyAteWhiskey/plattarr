@@ -19,6 +19,9 @@ namespace Radarr.Api.V3.Notifications
         public bool OnApplicationUpdate { get; set; }
         public bool OnManualInteractionRequired { get; set; }
         public bool OnImportComplete { get; set; }
+        public bool OnAlbumDelete { get; set; }
+        public bool OnDownloadFailure { get; set; }
+        public bool OnTrackRetag { get; set; }
         public bool SupportsOnGrab { get; set; }
         public bool SupportsOnDownload { get; set; }
         public bool SupportsOnUpgrade { get; set; }
@@ -32,6 +35,9 @@ namespace Radarr.Api.V3.Notifications
         public bool SupportsOnApplicationUpdate { get; set; }
         public bool SupportsOnManualInteractionRequired { get; set; }
         public bool SupportsOnImportComplete { get; set; }
+        public bool SupportsOnAlbumDelete { get; set; }
+        public bool SupportsOnDownloadFailure { get; set; }
+        public bool SupportsOnTrackRetag { get; set; }
         public string TestCommand { get; set; }
     }
 
@@ -60,6 +66,9 @@ namespace Radarr.Api.V3.Notifications
             resource.OnApplicationUpdate = definition.OnApplicationUpdate;
             resource.OnManualInteractionRequired = definition.OnManualInteractionRequired;
             resource.OnImportComplete = definition.OnImportComplete;
+            resource.OnAlbumDelete = definition.OnAlbumDelete;
+            resource.OnDownloadFailure = definition.OnDownloadFailure;
+            resource.OnTrackRetag = definition.OnTrackRetag;
             resource.SupportsOnGrab = definition.SupportsOnGrab;
             resource.SupportsOnDownload = definition.SupportsOnDownload;
             resource.SupportsOnUpgrade = definition.SupportsOnUpgrade;
@@ -73,6 +82,9 @@ namespace Radarr.Api.V3.Notifications
             resource.SupportsOnApplicationUpdate = definition.SupportsOnApplicationUpdate;
             resource.SupportsOnManualInteractionRequired = definition.SupportsOnManualInteractionRequired;
             resource.SupportsOnImportComplete = definition.SupportsOnImportComplete;
+            resource.SupportsOnAlbumDelete = definition.SupportsOnAlbumDelete;
+            resource.SupportsOnDownloadFailure = definition.SupportsOnDownloadFailure;
+            resource.SupportsOnTrackRetag = definition.SupportsOnTrackRetag;
 
             return resource;
         }
@@ -100,6 +112,9 @@ namespace Radarr.Api.V3.Notifications
             definition.OnApplicationUpdate = resource.OnApplicationUpdate;
             definition.OnManualInteractionRequired = resource.OnManualInteractionRequired;
             definition.OnImportComplete = resource.OnImportComplete;
+            definition.OnAlbumDelete = resource.OnAlbumDelete;
+            definition.OnDownloadFailure = resource.OnDownloadFailure;
+            definition.OnTrackRetag = resource.OnTrackRetag;
             definition.SupportsOnGrab = resource.SupportsOnGrab;
             definition.SupportsOnDownload = resource.SupportsOnDownload;
             definition.SupportsOnUpgrade = resource.SupportsOnUpgrade;
@@ -113,6 +128,9 @@ namespace Radarr.Api.V3.Notifications
             definition.SupportsOnApplicationUpdate = resource.SupportsOnApplicationUpdate;
             definition.SupportsOnManualInteractionRequired = resource.SupportsOnManualInteractionRequired;
             definition.SupportsOnImportComplete = resource.SupportsOnImportComplete;
+            definition.SupportsOnAlbumDelete = resource.SupportsOnAlbumDelete;
+            definition.SupportsOnDownloadFailure = resource.SupportsOnDownloadFailure;
+            definition.SupportsOnTrackRetag = resource.SupportsOnTrackRetag;
 
             return definition;
         }

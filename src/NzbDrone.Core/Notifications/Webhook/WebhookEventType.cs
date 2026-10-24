@@ -23,6 +23,9 @@ namespace NzbDrone.Core.Notifications.Webhook
         SeriesDelete,
         EpisodeFileDelete,
         ArtistAdd,
-        ArtistDelete
+        ArtistDelete,
+        AlbumDelete,
+        DownloadFailure,
+        Retag
     }
 }
