@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Common.Serializer;
@@ -175,6 +176,61 @@ namespace NzbDrone.Api.Test.v3.Queue
             resource.CustomFormats.Should().HaveCount(1);
         }
 
+        private static AlbumRelease GivenRelease(bool monitored, params bool[] trackHasFile)
+        {
+            return new AlbumRelease
+            {
+                Monitored = monitored,
+                Tracks = trackHasFile.Select(hasFile => new Track { TrackFileId = hasFile ? 5 : 0 }).ToList()
+            };
+        }
+
+        [Test]
+        public void should_count_the_tracks_of_the_monitored_release_and_those_with_a_file()
+        {
+            var item = GivenMusicItem();
+            var album = ((RemoteAlbum)item.RemoteRelease).Albums[0];
+
+            album.AlbumReleases = new List<AlbumRelease>
+            {
+                GivenRelease(false, true, true, true, true, true, true, true, true, true, true),
+                GivenRelease(true, true, false, true)
+            };
+
+            var resource = item.ToResource(false);
+
+            resource.TrackFileCount.Should().Be(3);
+            resource.TrackHasFileCount.Should().Be(2);
+        }
+
+        [Test]
+        public void should_count_no_tracks_when_the_album_has_no_monitored_release()
+        {
+            var item = GivenMusicItem();
+            var album = ((RemoteAlbum)item.RemoteRelease).Albums[0];
+
+            album.AlbumReleases = new List<AlbumRelease> { GivenRelease(false, true, true) };
+
+            var resource = item.ToResource(false);
+
+            resource.TrackFileCount.Should().Be(0);
+            resource.TrackHasFileCount.Should().Be(0);
+        }
+
+        [Test]
+        public void should_write_the_track_counts_for_a_music_download()
+        {
+            var item = GivenMusicItem();
+            var album = ((RemoteAlbum)item.RemoteRelease).Albums[0];
+
+            album.AlbumReleases = new List<AlbumRelease> { GivenRelease(true, true) };
+
+            var json = STJson.ToJson(item.ToResource(false));
+
+            json.Should().Contain("\"trackFileCount\": 1");
+            json.Should().Contain("\"trackHasFileCount\": 1");
+        }
+
         [Test]
         public void should_include_artist_and_album_only_when_asked()
         {
@@ -203,6 +259,8 @@ namespace NzbDrone.Api.Test.v3.Queue
 
             foreach (var json in new[] { STJson.ToJson(movie.ToResource(false)), STJson.ToJson(GivenTvItem().ToResource(false)) })
             {
+                json.Should().NotContain("trackFileCount");
+                json.Should().NotContain("trackHasFileCount");
                 json.Should().NotContain("artistId");
                 json.Should().NotContain("albumId");
                 json.Should().NotContain("\"artist\"");

@@ -1,7 +1,7 @@
 .switcher {
   display: flex;
-  flex-shrink: 0;
   align-items: center;
+  flex-shrink: 0;
   margin-right: 10px;
   gap: 4px;
 }

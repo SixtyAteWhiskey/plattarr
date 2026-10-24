@@ -30,7 +30,7 @@ interface SidebarItem {
   iconName?: IconName;
   title: string | (() => string);
   to: string;
-  alias?: string;
+  alias?: string | string[];
   isActive?: boolean;
   isActiveParent?: boolean;
   isParentItem?: boolean;
@@ -82,6 +82,23 @@ const LINKS: SidebarItem[] = [
       {
         title: () => translate('ImportLibrary'),
         to: '/tv/add/import',
+      },
+    ],
+  },
+
+  {
+    iconName: icons.MUSIC,
+    title: () => translate('Music'),
+    to: '/music',
+    alias: ['/artist', '/album'],
+    children: [
+      {
+        title: () => translate('AddNew'),
+        to: '/music/add/new',
+      },
+      {
+        title: () => translate('UnmappedFiles'),
+        to: '/music/unmapped',
       },
     ],
   },
@@ -282,7 +299,8 @@ function PageSidebar({ isSidebarVisible, isSmallScreen }: PageSidebarProps) {
 
         if (
           (link.to !== '/' && pathname.startsWith(link.to)) ||
-          (link.alias && pathname.startsWith(link.alias))
+          (link.alias &&
+            [link.alias].flat().some((a) => pathname.startsWith(a)))
         ) {
           return true;
         }

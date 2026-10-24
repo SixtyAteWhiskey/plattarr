@@ -9,9 +9,12 @@ interface ErrorPageProps {
   translationsError?: Error;
   moviesError?: Error;
   seriesError?: Error;
+  artistError?: Error;
   customFiltersError?: Error;
   tagsError?: Error;
   qualityProfilesError?: Error;
+  audioQualityProfilesError?: Error;
+  metadataProfilesError?: Error;
   languagesError?: Error;
   uiSettingsError?: Error;
   systemStatusError?: Error;
@@ -24,9 +27,12 @@ function ErrorPage(props: ErrorPageProps) {
     translationsError,
     moviesError,
     seriesError,
+    artistError,
     customFiltersError,
     tagsError,
     qualityProfilesError,
+    audioQualityProfilesError,
+    metadataProfilesError,
     languagesError,
     uiSettingsError,
     systemStatusError,
@@ -52,6 +58,11 @@ function ErrorPage(props: ErrorPageProps) {
       seriesError,
       'Failed to load series from API'
     );
+  } else if (artistError) {
+    errorMessage = getErrorMessage(
+      artistError,
+      'Failed to load artists from API'
+    );
   } else if (customFiltersError) {
     errorMessage = getErrorMessage(
       customFiltersError,
@@ -63,6 +74,16 @@ function ErrorPage(props: ErrorPageProps) {
     errorMessage = getErrorMessage(
       qualityProfilesError,
       'Failed to load quality profiles from API'
+    );
+  } else if (audioQualityProfilesError) {
+    errorMessage = getErrorMessage(
+      audioQualityProfilesError,
+      'Failed to load audio quality profiles from API'
+    );
+  } else if (metadataProfilesError) {
+    errorMessage = getErrorMessage(
+      metadataProfilesError,
+      'Failed to load metadata profiles from API'
     );
   } else if (languagesError) {
     errorMessage = getErrorMessage(

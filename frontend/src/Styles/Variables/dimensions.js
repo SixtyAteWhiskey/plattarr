@@ -54,5 +54,8 @@ module.exports = {
   // Series
   seriesIndexColumnPadding: '10px',
   seriesIndexColumnPaddingSmallScreen: '5px',
-  seriesIndexOverviewInfoRowHeight: '21px'
+  seriesIndexOverviewInfoRowHeight: '21px',
+  artistIndexColumnPadding: '10px',
+  artistIndexColumnPaddingSmallScreen: '5px',
+  artistIndexOverviewInfoRowHeight: '21px'
 };

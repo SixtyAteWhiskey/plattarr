@@ -12,6 +12,7 @@ import {
   faDotCircle as farDotCircle,
   faFile as farFile,
   faFileArchive as farFileArchive,
+  faFileAudio as farFileAudio,
   faFileVideo as farFileVideo,
   faFolder as farFolder,
   faHdd as farHdd,
@@ -26,6 +27,7 @@ import {
 import {
   faArrowCircleLeft as fasArrowCircleLeft,
   faArrowCircleRight as fasArrowCircleRight,
+  faArrowCircleUp as fasArrowCircleUp,
   faArrowTrendUp as fasArrowTrendUp,
   faAsterisk as fasAsterisk,
   faBackward as fasBackward,
@@ -59,6 +61,7 @@ import {
   faCopy as fasCopy,
   faDesktop as fasDesktop,
   faDownload as fasDownload,
+  faEdit as fasEdit,
   faEllipsisH as fasEllipsisH,
   faExclamationCircle as fasExclamationCircle,
   faExclamationTriangle as fasExclamationTriangle,
@@ -68,6 +71,7 @@ import {
   faFastForward as fasFastForward,
   faFileCircleQuestion as fasFileCircleQuestion,
   faFileExport as fasFileExport,
+  faFileImport as fasFileImport,
   faFileInvoice as farFileInvoice,
   faFilm as fasFilm,
   faFilter as fasFilter,
@@ -84,8 +88,10 @@ import {
   faLaptop as fasLaptop,
   faLevelUpAlt as fasLevelUpAlt,
   faListCheck as fasListCheck,
+  faLongArrowAltRight as fasLongArrowAltRight,
   faMedkit as fasMedkit,
   faMinus as fasMinus,
+  faMusic as fasMusic,
   faPause as fasPause,
   faPlay as fasPlay,
   faPlus as fasPlus,
@@ -98,6 +104,7 @@ import {
   faRss as fasRss,
   faSave as fasSave,
   faSearch as fasSearch,
+  faSearchPlus as fasSearchPlus,
   faSignOutAlt as fasSignOutAlt,
   faSitemap as fasSitemap,
   faSort as fasSort,
@@ -106,6 +113,7 @@ import {
   faSpinner as fasSpinner,
   faSquareCheck as fasSquareCheck,
   faSquareMinus as fasSquareMinus,
+  faStar as fasStar,
   faStop as fasStop,
   faSync as fasSync,
   faTable as fasTable,
@@ -264,3 +272,16 @@ export const UNSAVED_SETTING = farDotCircle;
 export const VIEW = fasEye;
 export const WARNING = fasExclamationTriangle;
 export const WIKI = fasBookReader;
+export const ADD_MISSING_ARTISTS = fasSearchPlus;
+export const ARROW_RIGHT_NO_CIRCLE = fasLongArrowAltRight;
+export const ARROW_UP = fasArrowCircleUp;
+export const MUSIC = fasMusic;
+export const ARTIST_CONTINUING = fasPlay;
+export const ARTIST_DELETED = fasExclamationTriangle;
+export const ARTIST_ENDED = fasStop;
+export const BAN = fasBan;
+export const FILE_IMPORT = fasFileImport;
+export const RESCAN = fasFolderOpen;
+export const RETAG = fasEdit;
+export const STAR_FULL = fasStar;
+export const TRACK_FILE = farFileAudio;

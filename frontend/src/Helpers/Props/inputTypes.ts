@@ -29,6 +29,12 @@ export const TEXT_AREA = 'textArea';
 export const TEXT_TAG = 'textTag';
 export const TAG_SELECT = 'tagSelect';
 export const UMASK = 'umask';
+export const ALBUM_RELEASE_SELECT = 'albumReleaseSelect';
+export const ARTIST_MONITOR_NEW_ITEMS_SELECT = 'artistMonitorNewItemsSelect';
+export const ARTIST_TAG = 'artistTag';
+export const AUDIO_QUALITY_PROFILE_SELECT = 'audioQualityProfileSelect';
+export const METADATA_PROFILE_SELECT = 'metadataProfileSelect';
+export const MONITOR_ALBUMS_SELECT = 'monitorAlbumsSelect';
 
 export const all = [
   AUTO_COMPLETE,
@@ -62,6 +68,12 @@ export const all = [
   TEXT_TAG,
   TAG_SELECT,
   UMASK,
+  ALBUM_RELEASE_SELECT,
+  ARTIST_MONITOR_NEW_ITEMS_SELECT,
+  ARTIST_TAG,
+  AUDIO_QUALITY_PROFILE_SELECT,
+  METADATA_PROFILE_SELECT,
+  MONITOR_ALBUMS_SELECT,
 ];
 
 export type InputType =
@@ -97,4 +109,10 @@ export type InputType =
   | 'textArea'
   | 'textTag'
   | 'tagSelect'
-  | 'umask';
+  | 'umask'
+  | 'albumReleaseSelect'
+  | 'artistMonitorNewItemsSelect'
+  | 'artistTag'
+  | 'audioQualityProfileSelect'
+  | 'metadataProfileSelect'
+  | 'monitorAlbumsSelect';

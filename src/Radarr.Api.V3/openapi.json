@@ -8718,6 +8718,37 @@
         }
       }
     },
+    "/api/v3/search/music": {
+      "get": {
+        "tags": [
+          "MusicSearch"
+        ],
+        "parameters": [
+          {
+            "name": "term",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MusicSearchResource"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v3/config/naming": {
       "get": {
         "tags": [
@@ -19950,6 +19981,26 @@
         ],
         "type": "string"
       },
+      "MusicSearchResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "foreignId": {
+            "type": "string",
+            "nullable": true
+          },
+          "artist": {
+            "$ref": "#/components/schemas/ArtistResource"
+          },
+          "album": {
+            "$ref": "#/components/schemas/AlbumResource"
+          }
+        },
+        "additionalProperties": false
+      },
       "NamingConfigResource": {
         "type": "object",
         "properties": {
@@ -20875,6 +20926,16 @@
           },
           "album": {
             "$ref": "#/components/schemas/AlbumResource"
+          },
+          "trackFileCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "trackHasFileCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           },
           "languages": {
             "type": "array",
@@ -24311,6 +24372,9 @@
     },
     {
       "name": "MusicRootFolder"
+    },
+    {
+      "name": "MusicSearch"
     },
     {
       "name": "NamingConfig"

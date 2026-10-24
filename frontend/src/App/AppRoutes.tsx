@@ -5,10 +5,14 @@ import TvBlocklist from 'Activity/Blocklist/Tv/TvBlocklist';
 import History from 'Activity/History/History';
 import TvHistory from 'Activity/History/Tv/TvHistory';
 import Queue from 'Activity/Queue/Queue';
+import AddNewItemConnector from 'AddArtist/AddNewItemConnector';
 import AddNewMovieConnector from 'AddMovie/AddNewMovie/AddNewMovieConnector';
 import ImportMovies from 'AddMovie/ImportMovie/ImportMovies';
 import AddNewSeries from 'AddSeries/AddNewSeries/AddNewSeries';
 import ImportSeriesPage from 'AddSeries/ImportSeries/ImportSeriesPage';
+import AlbumDetailsPageConnector from 'Album/Details/AlbumDetailsPageConnector';
+import ArtistDetailsPageConnector from 'Artist/Details/ArtistDetailsPageConnector';
+import ArtistIndex from 'Artist/Index/ArtistIndex';
 import CalendarPage from 'Calendar/CalendarPage';
 import TvCalendarPage from 'Calendar/Tv/CalendarPage';
 import CollectionConnector from 'Collection/CollectionConnector';
@@ -39,6 +43,7 @@ import Logs from 'System/Logs/Logs';
 import Status from 'System/Status/Status';
 import Tasks from 'System/Tasks/Tasks';
 import Updates from 'System/Updates/Updates';
+import UnmappedFilesTableConnector from 'UnmappedFiles/UnmappedFilesTableConnector';
 import getPathWithUrlBase from 'Utilities/getPathWithUrlBase';
 import CutoffUnmet from 'Wanted/CutoffUnmet/CutoffUnmet';
 import TvCutoffUnmet from 'Wanted/CutoffUnmet/Tv/TvCutoffUnmet';
@@ -96,6 +101,26 @@ function AppRoutes() {
       <Route path="/tv/add/import" component={ImportSeriesPage} />
 
       <Route path="/series/:titleSlug" component={SeriesDetailsPage} />
+
+      {/*
+        Music
+      */}
+
+      <Route exact={true} path="/music" component={ArtistIndex} />
+
+      <Route path="/music/add/new" component={AddNewItemConnector} />
+
+      <Route path="/music/unmapped" component={UnmappedFilesTableConnector} />
+
+      <Route
+        path="/artist/:foreignArtistId"
+        component={ArtistDetailsPageConnector}
+      />
+
+      <Route
+        path="/album/:foreignAlbumId"
+        component={AlbumDetailsPageConnector}
+      />
 
       {/*
         Calendar

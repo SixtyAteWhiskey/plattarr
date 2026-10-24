@@ -4,13 +4,14 @@ import { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
 import { setAppValue, setVersion } from 'Store/Actions/appActions';
+import { fetchArtist } from 'Store/Actions/artistActions';
 import { removeItem, update, updateItem } from 'Store/Actions/baseActions';
 import { fetchCommands, finishCommand, updateCommand } from 'Store/Actions/commandActions';
 import { fetchMovies } from 'Store/Actions/movieActions';
 import { fetchQueue, fetchQueueDetails } from 'Store/Actions/queueActions';
 import { fetchRootFolders } from 'Store/Actions/rootFolderActions';
 import { fetchSeries } from 'Store/Actions/seriesActions';
-import { fetchQualityDefinitions } from 'Store/Actions/settingsActions';
+import { fetchMusicRootFolders, fetchQualityDefinitions } from 'Store/Actions/settingsActions';
 import { fetchHealth } from 'Store/Actions/systemActions';
 import { fetchTagDetails, fetchTags } from 'Store/Actions/tagActions';
 import { fetchTvRootFolders } from 'Store/Actions/tvRootFolderActions';
@@ -54,6 +55,8 @@ const mapDispatchToProps = {
   dispatchFetchQueueDetails: fetchQueueDetails,
   dispatchFetchRootFolders: fetchRootFolders,
   dispatchFetchTvRootFolders: fetchTvRootFolders,
+  dispatchFetchMusicRootFolders: fetchMusicRootFolders,
+  dispatchFetchArtist: fetchArtist,
   dispatchFetchMovies: fetchMovies,
   dispatchFetchSeries: fetchSeries,
   dispatchFetchTags: fetchTags,
@@ -307,6 +310,62 @@ class SignalRConnector extends Component {
     }
   };
 
+  handleArtist = (body) => {
+    const action = body.action;
+    const section = 'artist';
+
+    if (action === 'updated') {
+      this.props.dispatchUpdateItem({ section, ...body.resource });
+
+      repopulatePage('artistUpdated');
+    } else if (action === 'deleted') {
+      this.props.dispatchRemoveItem({ section, id: body.resource.id });
+    }
+  };
+
+  handleAlbum = (body) => {
+    const action = body.action;
+    const section = 'albums';
+
+    if (action === 'updated') {
+      this.props.dispatchUpdateItem({
+        section,
+        updateOnly: true,
+        ...body.resource
+      });
+    } else if (action === 'deleted') {
+      this.props.dispatchRemoveItem({
+        section,
+        id: body.resource.id
+      });
+    }
+  };
+
+  handleTrack = (body) => {
+    if (body.action === 'updated') {
+      this.props.dispatchUpdateItem({
+        section: 'tracks',
+        updateOnly: true,
+        ...body.resource
+      });
+    }
+  };
+
+  handleTrackfile = (body) => {
+    const section = 'trackFiles';
+
+    if (body.action === 'updated') {
+      this.props.dispatchUpdateItem({ section, ...body.resource });
+    } else if (body.action === 'deleted') {
+      this.props.dispatchRemoveItem({ section, id: body.resource.id });
+
+      repopulatePage('trackFileDeleted');
+    }
+
+    // Repopulate the page to handle recently imported file
+    repopulatePage('trackFileUpdated');
+  };
+
   handleCollection = (body) => {
     const action = body.action;
     const section = 'movieCollections';
@@ -406,6 +465,10 @@ class SignalRConnector extends Component {
     this.props.dispatchFetchTvRootFolders();
   };
 
+  handleMusicRootfolder = () => {
+    this.props.dispatchFetchMusicRootFolders();
+  };
+
   handleTag = (body) => {
     if (body.action === 'sync') {
       this.props.dispatchFetchTags();
@@ -450,6 +513,7 @@ class SignalRConnector extends Component {
       dispatchFetchCommands,
       dispatchFetchMovies,
       dispatchFetchSeries,
+      dispatchFetchArtist,
       dispatchSetAppValue
     } = this.props;
 
@@ -464,6 +528,7 @@ class SignalRConnector extends Component {
     // are in sync after reconnecting.
     dispatchFetchMovies();
     dispatchFetchSeries();
+    dispatchFetchArtist();
     dispatchFetchCommands();
     repopulatePage();
   };
@@ -504,6 +569,8 @@ SignalRConnector.propTypes = {
   dispatchFetchQueueDetails: PropTypes.func.isRequired,
   dispatchFetchRootFolders: PropTypes.func.isRequired,
   dispatchFetchTvRootFolders: PropTypes.func.isRequired,
+  dispatchFetchMusicRootFolders: PropTypes.func.isRequired,
+  dispatchFetchArtist: PropTypes.func.isRequired,
   dispatchFetchMovies: PropTypes.func.isRequired,
   dispatchFetchSeries: PropTypes.func.isRequired,
   dispatchFetchTags: PropTypes.func.isRequired,

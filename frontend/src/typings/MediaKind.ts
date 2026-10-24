@@ -1,3 +1,3 @@
-type MediaKind = 'movies' | 'tv';
+type MediaKind = 'movies' | 'tv' | 'music';
 
 export default MediaKind;

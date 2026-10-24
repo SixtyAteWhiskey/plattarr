@@ -71,7 +71,6 @@
   @add-mixin scrollbarTrack;
   @add-mixin scrollbarThumb;
 
-  overflow-x: hidden;
-  overflow-y: scroll;
+  overflow: hidden scroll;
   max-height: 165px;
 }

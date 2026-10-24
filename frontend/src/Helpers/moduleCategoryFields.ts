@@ -7,6 +7,7 @@ import MediaKind from 'typings/MediaKind';
 const CATEGORY_FIELD_NAMES: Record<MediaKind, string> = {
   movies: 'movieCategory',
   tv: 'tvCategory',
+  music: 'musicCategory',
 };
 
 export interface ProviderFieldValue {

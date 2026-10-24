@@ -102,3 +102,23 @@ export interface SeriesHistory extends Omit<History, 'movieId'> {
   seriesId: number;
   episodeId: number;
 }
+
+export type AlbumHistoryEventType =
+  | 'grabbed'
+  | 'artistFolderImported'
+  | 'trackFileImported'
+  | 'downloadFailed'
+  | 'trackFileDeleted'
+  | 'trackFileRenamed'
+  | 'albumImportIncomplete'
+  | 'downloadImported'
+  | 'trackFileRetagged'
+  | 'downloadIgnored';
+
+export interface AlbumHistory
+  extends Omit<History, 'movieId' | 'languages' | 'eventType'> {
+  albumId: number;
+  artistId: number;
+  trackId: number;
+  eventType: AlbumHistoryEventType;
+}

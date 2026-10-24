@@ -17,6 +17,9 @@ export interface CommandBody {
   seriesId?: number;
   seriesIds?: number[];
   seasonNumber?: number;
+  artistId?: number;
+  artistIds?: number[];
+  albumIds?: number[];
   episodeIds?: number[];
 }
 

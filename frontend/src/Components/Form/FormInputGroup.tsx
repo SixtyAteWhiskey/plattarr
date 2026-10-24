@@ -14,6 +14,15 @@ import NumberInput, { NumberInputProps } from './NumberInput';
 import OAuthInput, { OAuthInputProps } from './OAuthInput';
 import PasswordInput from './PasswordInput';
 import PathInput, { PathInputProps } from './PathInput';
+import AlbumReleaseSelectInput, {
+  AlbumReleaseSelectInputProps,
+} from './Select/AlbumReleaseSelectInput';
+import ArtistMonitorNewItemsSelectInput, {
+  ArtistMonitorNewItemsSelectInputProps,
+} from './Select/ArtistMonitorNewItemsSelectInput';
+import AudioQualityProfileSelectInput, {
+  AudioQualityProfileSelectInputProps,
+} from './Select/AudioQualityProfileSelectInput';
 import AvailabilitySelectInput, {
   AvailabilitySelectInputProps,
 } from './Select/AvailabilitySelectInput';
@@ -32,6 +41,12 @@ import IndexerSelectInput, {
 import LanguageSelectInput, {
   LanguageSelectInputProps,
 } from './Select/LanguageSelectInput';
+import MetadataProfileSelectInput, {
+  MetadataProfileSelectInputProps,
+} from './Select/MetadataProfileSelectInput';
+import MonitorAlbumsSelectInput, {
+  MonitorAlbumsSelectInputProps,
+} from './Select/MonitorAlbumsSelectInput';
 import MonitorEpisodesSelectInput, {
   MonitorEpisodesSelectInputProps,
 } from './Select/MonitorEpisodesSelectInput';
@@ -54,6 +69,7 @@ import SeriesTypeSelectInput, {
   SeriesTypeSelectInputProps,
 } from './Select/SeriesTypeSelectInput';
 import UMaskInput, { UMaskInputProps } from './Select/UMaskInput';
+import ArtistTagInput, { ArtistTagInputProps } from './Tag/ArtistTagInput';
 import DeviceInput, { DeviceInputProps } from './Tag/DeviceInput';
 import MovieTagInput, { MovieTagInputProps } from './Tag/MovieTagInput';
 import SeriesTagInput, { SeriesTagInputProps } from './Tag/SeriesTagInput';
@@ -64,6 +80,12 @@ import TextInput, { TextInputProps } from './TextInput';
 import styles from './FormInputGroup.css';
 
 const componentMap: Record<InputType, ElementType> = {
+  albumReleaseSelect: AlbumReleaseSelectInput,
+  artistMonitorNewItemsSelect: ArtistMonitorNewItemsSelectInput,
+  artistTag: ArtistTagInput,
+  audioQualityProfileSelect: AudioQualityProfileSelectInput,
+  metadataProfileSelect: MetadataProfileSelectInput,
+  monitorAlbumsSelect: MonitorAlbumsSelectInput,
   autoComplete: AutoCompleteInput,
   availabilitySelect: AvailabilitySelectInput,
   captcha: CaptchaInput,
@@ -103,6 +125,18 @@ const componentMap: Record<InputType, ElementType> = {
 
 type PickProps<V, C extends InputType> = C extends 'text'
   ? TextInputProps
+  : C extends 'albumReleaseSelect'
+  ? AlbumReleaseSelectInputProps
+  : C extends 'artistMonitorNewItemsSelect'
+  ? ArtistMonitorNewItemsSelectInputProps
+  : C extends 'artistTag'
+  ? ArtistTagInputProps
+  : C extends 'audioQualityProfileSelect'
+  ? AudioQualityProfileSelectInputProps
+  : C extends 'metadataProfileSelect'
+  ? MetadataProfileSelectInputProps
+  : C extends 'monitorAlbumsSelect'
+  ? MonitorAlbumsSelectInputProps
   : C extends 'autoComplete'
   ? AutoCompleteInputProps
   : C extends 'availabilitySelect'

@@ -1,3 +1,5 @@
+export const ARTIST_STATUS = 'artistStatus';
+export const AUDIO_QUALITY_PROFILE = 'audioQualityProfile';
 export const BOOL = 'bool';
 export const BYTES = 'bytes';
 export const DATE = 'date';
@@ -9,6 +11,8 @@ export const PROTOCOL = 'protocol';
 export const QUALITY = 'quality';
 export const QUALITY_PROFILE = 'qualityProfile';
 export const QUEUE_STATUS = 'queueStatus';
+export const METADATA_PROFILE = 'metadataProfile';
+export const MONITOR_NEW_ITEMS = 'monitorNewItems';
 export const MOVIE = 'movie';
 export const RELEASE_STATUS = 'releaseStatus';
 export const MINIMUM_AVAILABILITY = 'minimumAvailability';

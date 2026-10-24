@@ -16,6 +16,7 @@ import ImportListExclusion from 'typings/ImportListExclusion';
 import ImportListOptionsSettings from 'typings/ImportListOptionsSettings';
 import Indexer from 'typings/Indexer';
 import IndexerFlag from 'typings/IndexerFlag';
+import MetadataProfile from 'typings/MetadataProfile';
 import Notification from 'typings/Notification';
 import QualityProfile from 'typings/QualityProfile';
 import General from 'typings/Settings/General';
@@ -104,6 +105,14 @@ export interface QualityProfilesAppState
   extends AppSectionState<QualityProfile>,
     AppSectionItemSchemaState<QualityProfile> {}
 
+export interface AudioQualityProfilesAppState
+  extends AppSectionState<QualityProfile>,
+    AppSectionItemSchemaState<QualityProfile> {}
+
+export interface MetadataProfilesAppState
+  extends AppSectionState<MetadataProfile>,
+    AppSectionItemSchemaState<MetadataProfile> {}
+
 export interface ReleaseProfilesAppState
   extends AppSectionState<ReleaseProfile>,
     AppSectionSaveState {
@@ -133,6 +142,7 @@ export type UiSettingsAppState = AppSectionItemState<UiSettings>;
 
 interface SettingsAppState {
   advancedSettings: boolean;
+  audioQualityProfiles: AudioQualityProfilesAppState;
   autoTaggings: AutoTaggingAppState;
   autoTaggingSpecifications: AutoTaggingSpecificationAppState;
   customFormats: CustomFormatAppState;
@@ -148,6 +158,7 @@ interface SettingsAppState {
   languages: LanguageSettingsAppState;
   mediaManagement: MediaManagementAppState;
   metadata: MetadataAppState;
+  metadataProfiles: MetadataProfilesAppState;
   naming: NamingAppState;
   namingExamples: NamingExamplesAppState;
   tvAutoTaggings: AutoTaggingAppState;

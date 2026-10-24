@@ -1,4 +1,6 @@
+import AlbumAppState from './AlbumAppState';
 import { Error } from './AppSectionState';
+import ArtistAppState, { ArtistIndexAppState } from './ArtistAppState';
 import BlocklistAppState from './BlocklistAppState';
 import CalendarAppState from './CalendarAppState';
 import CaptchaAppState from './CaptchaAppState';
@@ -8,6 +10,7 @@ import EpisodeFilesAppState from './EpisodeFilesAppState';
 import EpisodesAppState from './EpisodesAppState';
 import ExtraFilesAppState from './ExtraFilesAppState';
 import HistoryAppState, {
+  AlbumHistoryAppState,
   MovieHistoryAppState,
   SeriesHistoryAppState,
 } from './HistoryAppState';
@@ -32,6 +35,8 @@ import SeriesAppState, { SeriesIndexAppState } from './SeriesAppState';
 import SettingsAppState from './SettingsAppState';
 import SystemAppState from './SystemAppState';
 import TagsAppState from './TagsAppState';
+import TrackFilesAppState from './TrackFilesAppState';
+import TracksAppState from './TracksAppState';
 import TvBlocklistAppState from './TvBlocklistAppState';
 import TvCalendarAppState from './TvCalendarAppState';
 import TvHistoryAppState from './TvHistoryAppState';
@@ -94,7 +99,12 @@ export interface AppSectionState {
 }
 
 interface AppState {
+  albumHistory: AlbumHistoryAppState;
+  albums: AlbumAppState;
   app: AppSectionState;
+  artist: ArtistAppState;
+  artistHistory: AlbumHistoryAppState;
+  artistIndex: ArtistIndexAppState;
   blocklist: BlocklistAppState;
   tvBlocklist: TvBlocklistAppState;
   calendar: CalendarAppState;
@@ -129,6 +139,8 @@ interface AppState {
   settings: SettingsAppState;
   system: SystemAppState;
   tags: TagsAppState;
+  trackFiles: TrackFilesAppState;
+  tracks: TracksAppState;
   importSeries: ImportSeriesAppState;
   tvCalendar: TvCalendarAppState;
   tvHistory: TvHistoryAppState;
