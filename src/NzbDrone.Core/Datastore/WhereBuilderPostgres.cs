@@ -273,7 +273,13 @@ namespace NzbDrone.Core.Datastore
         {
             var list = expression.Object;
 
-            if (list != null && list.Type == typeof(string))
+            // A List<string> column is stored as a JSON array, so asking it whether it contains a
+            // value is a text search of that array (Lidarr's OldForeignArtistIds lookup). It matches
+            // a substring, which is exact enough for foreign IDs. A list that resolves to a value
+            // is an ordinary IN or ANY.
+            if (list != null &&
+                (list.Type == typeof(string) ||
+                (list.Type == typeof(List<string>) && !TryGetRightValue(list, out var _))))
             {
                 ParseStringContains(expression);
                 return;

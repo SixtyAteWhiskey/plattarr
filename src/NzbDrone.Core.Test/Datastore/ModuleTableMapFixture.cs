@@ -74,8 +74,8 @@ namespace NzbDrone.Core.Test.Datastore
         {
             RuntimeHelpers.RunClassConstructor(typeof(DbFactory).TypeHandle);
 
-            TableMapping.Mapper.ModuleTablePrefixes.Should().Equal("Movies_", "Tv_");
-            TableMapping.Mapper.TableMap.Values.Should().Contain(new[] { "Movies_Movies", "Tv_Series", "Tv_Episodes", "Tv_EpisodeFiles", "History", "Blocklist", "PendingReleases" });
+            TableMapping.Mapper.ModuleTablePrefixes.Should().BeEquivalentTo("Movies_", "Tv_", "Music_");
+            TableMapping.Mapper.TableMap.Values.Should().Contain(new[] { "Movies_Movies", "Tv_Series", "Tv_Episodes", "Tv_EpisodeFiles", "Music_Artists", "Music_TrackFiles", "History", "Blocklist", "PendingReleases" });
         }
     }
 }

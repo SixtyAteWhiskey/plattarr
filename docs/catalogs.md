@@ -159,6 +159,11 @@ As built (Music step 0): `AudioQuality`, `AudioQualityDefinition` and `AudioQual
 `NzbDrone.Core.Qualities`, with `LidarrQualityIds` beside the other two maps. `Unknown` is 0 and the
 37 audio qualities are 201 to 237. `module-interface.md` ("Music step 0: as built") has the details.
 
+As built (Music step 1): `Music_QualityDefinitions` and `Music_QualityProfiles` store audio qualities as
+catalog IDs, through `AudioQualityIntConverter` (JSON) and `DapperAudioQualityIntConverter`. Music's
+history and blocklist rows use the shared `History` and `Blocklist` tables, so an audio ID (201 to 237)
+can sit in `Quality` beside video IDs; the disjoint ranges keep it unambiguous.
+
 ## Decisions
 
 | Choice | Decision | Reason |

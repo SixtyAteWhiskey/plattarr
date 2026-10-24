@@ -36,9 +36,9 @@ namespace NzbDrone.Core.Test.Localization
         }
 
         [Test]
-        public void should_find_both_modules()
+        public void should_find_every_module()
         {
-            Modules().Select(m => m.Kind).Should().BeEquivalentTo(new[] { MediaKind.Movies, MediaKind.Tv });
+            Modules().Select(m => m.Kind).Should().BeEquivalentTo(new[] { MediaKind.Movies, MediaKind.Tv, MediaKind.Music });
         }
 
         [Test]
