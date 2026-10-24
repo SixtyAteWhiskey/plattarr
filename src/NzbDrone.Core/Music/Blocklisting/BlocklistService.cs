@@ -5,6 +5,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Music.Events;
@@ -28,9 +29,9 @@ namespace NzbDrone.Core.Music.Blocklisting
 
     // Lidarr's blocklist service on the TV module's shape (Lidarr splits the same logic across a
     // class per protocol). The reads and Block are step 4; step 6 adds the handlers that write a row
-    // when a Music download fails and that clear a deleted artist's rows. The clear-blocklist command
-    // arrives with the API (step 7), as TV's did.
+    // when a Music download fails and that clear a deleted artist's rows; step 7 adds the clear command.
     public class BlocklistService : IBlocklistService,
+                                    IExecute<ClearMusicBlocklistCommand>,
                                     IHandle<DownloadFailedEvent>,
                                     IHandleAsync<ArtistsDeletedEvent>
     {
@@ -116,6 +117,11 @@ namespace NzbDrone.Core.Music.Blocklisting
         public void Delete(List<int> ids)
         {
             _blocklistRepository.DeleteMany(ids);
+        }
+
+        public void Execute(ClearMusicBlocklistCommand message)
+        {
+            _blocklistRepository.Purge();
         }
 
         public void Handle(DownloadFailedEvent message)

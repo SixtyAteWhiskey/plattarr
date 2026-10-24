@@ -120,6 +120,14 @@ namespace NzbDrone.Core.Test.MusicTests
         }
 
         [Test]
+        public void should_purge_the_music_blocklist_when_cleared()
+        {
+            Subject.Execute(new ClearMusicBlocklistCommand());
+
+            Mocker.GetMock<IBlocklistRepository>().Verify(v => v.Purge(false), Times.Once());
+        }
+
+        [Test]
         public void should_delete_the_blocklist_of_deleted_artists()
         {
             Subject.HandleAsync(new ArtistsDeletedEvent(new List<Artist> { new Artist { Id = 7 }, new Artist { Id = 8 } }, false, false));

@@ -5,6 +5,7 @@ using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Serializer;
+using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
@@ -17,6 +18,7 @@ namespace NzbDrone.Core.Music.History
 {
     public interface IHistoryService
     {
+        PagingSpec<AlbumHistory> Paged(PagingSpec<AlbumHistory> pagingSpec, int[] qualities);
         AlbumHistory Get(int historyId);
         List<AlbumHistory> GetByArtist(int artistId, AlbumHistoryEventType? eventType);
         List<AlbumHistory> GetByAlbum(int albumId, AlbumHistoryEventType? eventType);
@@ -56,6 +58,11 @@ namespace NzbDrone.Core.Music.History
         {
             _historyRepository = historyRepository;
             _logger = logger;
+        }
+
+        public PagingSpec<AlbumHistory> Paged(PagingSpec<AlbumHistory> pagingSpec, int[] qualities)
+        {
+            return _historyRepository.GetPaged(pagingSpec, qualities);
         }
 
         public AlbumHistory Get(int historyId)
