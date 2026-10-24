@@ -98,6 +98,34 @@ namespace NzbDrone.Core.Notifications.Emby
             UpdateIfEnabled(deleteMessage.Subject, Deleted);
         }
 
+        // As Lidarr's provider: an album removed from an artist is announced and the library is refreshed,
+        // a retag is announced only. A failed download has no handler here (Lidarr's has none either).
+        // The artist folder still exists after an album goes, so the refresh is "Modified", not "Deleted".
+        public override void OnItemDelete(ItemDeleteMessage deleteMessage)
+        {
+            var subject = deleteMessage.Subject;
+
+            if (Settings.Notify)
+            {
+                var title = subject == null ? "Album Deleted" : ItemDeletedTitle(subject);
+
+                _mediaBrowserService.Notify(Settings, Branded(title), deleteMessage.Message);
+            }
+
+            if (subject != null)
+            {
+                UpdateIfEnabled(subject, Modified);
+            }
+        }
+
+        public override void OnRetag(RetagMessage message)
+        {
+            if (Settings.Notify)
+            {
+                _mediaBrowserService.Notify(Settings, Branded(TRACK_RETAGGED_TITLE), message.Message);
+            }
+        }
+
         public override void ProcessQueue()
         {
             _updateQueue.ProcessQueue(Settings.Host, (items) =>
