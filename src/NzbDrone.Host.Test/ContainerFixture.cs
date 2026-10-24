@@ -219,6 +219,16 @@ namespace NzbDrone.App.Test
         }
 
         [Test]
+        public void should_resolve_the_music_wanted_calendar_and_parse_api_controllers()
+        {
+            _container.GetRequiredService<Radarr.Api.V3.Music.Wanted.MusicMissingController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Music.Wanted.MusicCutoffController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Music.Calendar.MusicCalendarController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Music.Calendar.MusicCalendarFeedController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Music.Parse.MusicParseController>().Should().NotBeNull();
+        }
+
+        [Test]
         public void should_resolve_the_artist_statistics_service_and_the_audio_definition_reset_executor()
         {
             _container.GetRequiredService<NzbDrone.Core.Music.ArtistStats.IArtistStatisticsService>()
