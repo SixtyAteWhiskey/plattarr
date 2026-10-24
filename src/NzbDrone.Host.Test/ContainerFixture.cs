@@ -397,6 +397,52 @@ namespace NzbDrone.App.Test
         }
 
         [Test]
+        public void should_resolve_the_music_decision_and_search_contracts()
+        {
+            _container.GetRequiredService<IEnumerable<IRssReleaseHandler>>().Should().ContainSingle(h => h.Kind == MediaKind.Music)
+                .Which.Should().BeOfType<NzbDrone.Core.Music.Search.MusicRssReleaseHandler>();
+            _container.GetServices<IReleaseMatcher>().Should().ContainSingle(m => m.Kind == MediaKind.Music)
+                .Which.Should().BeOfType<NzbDrone.Core.Music.Search.MusicReleaseMatcher>();
+            _container.GetServices<IPendingReleaseHandler>().Should().ContainSingle(h => h.Kind == MediaKind.Music)
+                .Which.Should().BeOfType<NzbDrone.Core.Music.Pending.PendingReleaseService>();
+            _container.GetServices<IDownloadDecisionPrioritizer>().Should().ContainSingle(p => p.Kind == MediaKind.Music)
+                .Which.Should().BeOfType<NzbDrone.Core.Music.DecisionEngine.DownloadDecisionPriorizationService>();
+            _container.GetRequiredService<ISearchTranslator<NzbDrone.Core.Music.Search.MusicSearchRequest>>().Should().BeOfType<NzbDrone.Core.Music.Search.MusicSearchTranslator>();
+            _container.GetRequiredService<NzbDrone.Core.Music.DecisionEngine.IMakeDownloadDecision>().Should().BeOfType<NzbDrone.Core.Music.DecisionEngine.DownloadDecisionMaker>();
+            _container.GetRequiredService<NzbDrone.Core.Music.Search.ISearchForReleases>().Should().BeOfType<NzbDrone.Core.Music.Search.ReleaseSearchService>();
+            _container.GetRequiredService<NzbDrone.Core.Music.Pending.IPendingReleaseService>().Should().BeOfType<NzbDrone.Core.Music.Pending.PendingReleaseService>();
+        }
+
+        [Test]
+        public void should_run_every_music_specification_with_the_decision_maker()
+        {
+            var specifications = _container.GetServices<NzbDrone.Core.Music.DecisionEngine.Specifications.IDownloadDecisionEngineSpecification>().ToList();
+
+            specifications.Should().HaveCount(22);
+            specifications.Select(s => s.GetType().Name).Should().OnlyHaveUniqueItems();
+        }
+
+        [Test]
+        public void should_resolve_the_music_search_command_executors()
+        {
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Music.Search.AlbumSearchCommand>>().Should().BeOfType<NzbDrone.Core.Music.Search.AlbumSearchService>();
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Music.Search.MissingAlbumSearchCommand>>().Should().BeOfType<NzbDrone.Core.Music.Search.AlbumSearchService>();
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Music.Search.CutoffUnmetAlbumSearchCommand>>().Should().BeOfType<NzbDrone.Core.Music.Search.AlbumSearchService>();
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Music.Search.ArtistSearchCommand>>().Should().BeOfType<NzbDrone.Core.Music.Search.ArtistSearchService>();
+        }
+
+        [Test]
+        public void should_keep_the_music_pending_releases_current_from_the_events_that_change_them()
+        {
+            _container.GetServices<IHandle<ReleaseGrabbedEvent>>().OfType<NzbDrone.Core.Music.Pending.PendingReleaseService>().Should().ContainSingle();
+            _container.GetServices<IHandle<NzbDrone.Core.Music.Search.RssSyncCompleteEvent>>().OfType<NzbDrone.Core.Music.Pending.PendingReleaseService>().Should().ContainSingle();
+            _container.GetServices<IHandle<NzbDrone.Core.Music.Events.ArtistsDeletedEvent>>().OfType<NzbDrone.Core.Music.Pending.PendingReleaseService>().Should().ContainSingle();
+
+            // Host tests cannot resolve IEnumerable<IHandle<ApplicationStartedEvent>>: check the service itself.
+            _container.GetRequiredService<NzbDrone.Core.Music.Pending.IPendingReleaseService>().Should().BeAssignableTo<IHandle<ApplicationStartedEvent>>();
+        }
+
+        [Test]
         public void should_seed_the_default_music_profiles_when_the_application_starts()
         {
             _container.GetRequiredService<NzbDrone.Core.Music.Profiles.IAudioQualityProfileService>().Should().BeAssignableTo<IHandle<ApplicationStartedEvent>>();

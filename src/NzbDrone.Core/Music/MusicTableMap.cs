@@ -8,6 +8,8 @@ using NzbDrone.Core.Music.Blocklisting;
 using NzbDrone.Core.Music.History;
 using NzbDrone.Core.Music.MediaFiles;
 using NzbDrone.Core.Music.Organizer;
+using NzbDrone.Core.Music.Parser.Model;
+using NzbDrone.Core.Music.Pending;
 using NzbDrone.Core.Music.Profiles;
 using NzbDrone.Core.Music.RootFolders;
 using NzbDrone.Core.Qualities;
@@ -31,6 +33,11 @@ namespace NzbDrone.Core.Music
             SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<List<ProfilePrimaryAlbumTypeItem>>(new PrimaryAlbumTypeIntConverter()));
             SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<List<ProfileSecondaryAlbumTypeItem>>(new SecondaryAlbumTypeIntConverter()));
             SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<List<ProfileReleaseStatusItem>>(new ReleaseStatusIntConverter()));
+
+            // The pending releases table keeps the parsed album info and the match information as
+            // documents, like Tv's ParsedEpisodeInfo.
+            SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<ParsedAlbumInfo>(new AudioQualityIntConverter()));
+            SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<PendingReleaseAdditionalInfo>());
         }
 
         public void MapTables(TableMapper mapper)
@@ -109,6 +116,7 @@ namespace NzbDrone.Core.Music
             // every query to Music.
             mapper.Entity<AlbumHistory>("History").RegisterModel();
             mapper.Entity<Blocklist>("Blocklist").RegisterModel();
+            mapper.Entity<PendingRelease>("PendingReleases").RegisterModel();
         }
     }
 }

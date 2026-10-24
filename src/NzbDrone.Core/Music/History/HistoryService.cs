@@ -6,6 +6,8 @@ namespace NzbDrone.Core.Music.History
     {
         List<AlbumHistory> GetByArtist(int artistId, AlbumHistoryEventType? eventType);
         List<AlbumHistory> GetByAlbum(int albumId, AlbumHistoryEventType? eventType);
+        AlbumHistory MostRecentForAlbum(int albumId);
+        List<AlbumHistory> FindByAlbumId(int albumId);
         void UpdateMany(List<AlbumHistory> toUpdate);
     }
 
@@ -29,6 +31,16 @@ namespace NzbDrone.Core.Music.History
         public List<AlbumHistory> GetByAlbum(int albumId, AlbumHistoryEventType? eventType)
         {
             return _historyRepository.GetByAlbum(albumId, eventType);
+        }
+
+        public AlbumHistory MostRecentForAlbum(int albumId)
+        {
+            return _historyRepository.MostRecentForAlbum(albumId);
+        }
+
+        public List<AlbumHistory> FindByAlbumId(int albumId)
+        {
+            return _historyRepository.FindByAlbumId(albumId);
         }
 
         public void UpdateMany(List<AlbumHistory> toUpdate)

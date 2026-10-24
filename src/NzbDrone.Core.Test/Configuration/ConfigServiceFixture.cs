@@ -51,6 +51,20 @@ namespace NzbDrone.Core.Test.Configuration
         }
 
         [Test]
+        public void auto_unmonitor_previously_downloaded_tracks_should_default_to_off()
+        {
+            Subject.AutoUnmonitorPreviouslyDownloadedTracks.Should().BeFalse();
+        }
+
+        [Test]
+        public void auto_unmonitor_previously_downloaded_tracks_should_be_stored()
+        {
+            Subject.AutoUnmonitorPreviouslyDownloadedTracks = true;
+
+            AssertUpsert("AutoUnmonitorPreviouslyDownloadedTracks", true);
+        }
+
+        [Test]
         public void season_pack_upgrade_should_default_to_all_episodes_with_a_50_percent_threshold()
         {
             Subject.SeasonPackUpgrade.Should().Be(SeasonPackUpgradeType.All);

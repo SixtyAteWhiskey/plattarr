@@ -27,6 +27,7 @@ namespace NzbDrone.Core.Configuration
         // Media Management
         bool AutoUnmonitorPreviouslyDownloadedMovies { get; set; }
         bool AutoUnmonitorPreviouslyDownloadedEpisodes { get; set; }
+        bool AutoUnmonitorPreviouslyDownloadedTracks { get; set; }
         string RecycleBin { get; set; }
         int RecycleBinCleanupDays { get; set; }
         ProperDownloadTypes DownloadPropersAndRepacks { get; set; }

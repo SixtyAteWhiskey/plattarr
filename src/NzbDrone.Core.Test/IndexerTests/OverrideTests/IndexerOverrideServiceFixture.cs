@@ -71,6 +71,23 @@ namespace NzbDrone.Core.Test.IndexerTests.OverrideTests
         }
 
         [Test]
+        public void should_default_the_early_release_limit_to_off()
+        {
+            Subject.Get(5, MediaKind.Music).EarlyReleaseLimit.Should().BeNull();
+        }
+
+        [Test]
+        public void should_round_trip_the_early_release_limit_on_a_music_row()
+        {
+            Subject.Upsert(new IndexerOverride { IndexerId = 1, MediaKind = MediaKind.Music, EarlyReleaseLimit = 7 });
+            Subject.Upsert(new IndexerOverride { IndexerId = 1, MediaKind = MediaKind.Tv, SeasonSearchMaximumSingleEpisodeAge = 365 });
+
+            Db.All<IndexerOverride>().Single(o => o.MediaKind == MediaKind.Music).EarlyReleaseLimit.Should().Be(7);
+            Subject.Get(1, MediaKind.Music).EarlyReleaseLimit.Should().Be(7);
+            Subject.Get(1, MediaKind.Tv).EarlyReleaseLimit.Should().BeNull();
+        }
+
+        [Test]
         public void should_replace_existing_row_for_same_indexer_and_media_type()
         {
             Subject.Upsert(new IndexerOverride { IndexerId = 1, MediaKind = MediaKind.Movies, RemoveYear = true });

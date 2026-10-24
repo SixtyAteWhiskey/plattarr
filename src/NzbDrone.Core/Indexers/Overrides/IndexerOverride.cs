@@ -36,5 +36,9 @@ namespace NzbDrone.Core.Indexers.Overrides
         // TV: days after a season's last episode aired that this indexer's single episodes are
         // refused in favor of a season pack (Sonarr's SeasonSearchMaximumSingleEpisodeAge). 0 is off.
         public int SeasonSearchMaximumSingleEpisodeAge { get; set; }
+
+        // Music: days before an album's release date that this indexer's releases are still
+        // accepted (Lidarr's EarlyReleaseLimit). Null is off.
+        public int? EarlyReleaseLimit { get; set; }
     }
 }

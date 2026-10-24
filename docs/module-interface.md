@@ -2363,6 +2363,98 @@ survived the first time, the whole-group rule, the group cutoff and the Studio r
 Full verify: 0 warnings, 0 errors; Core 9,486 passed (413 more than step 2), 49 skipped; Api 89; Host 50
 (5 skipped). No schema change, so the PostgreSQL pass was not repeated.
 
+### Music step 4: as built
+
+Built in session 51 against Lidarr `aec88028`. One migration (010), one column. No API, no UI, no
+scheduled task; the search commands are registered but nothing routes or schedules them yet (step 7).
+Calls made while building (each is reversible):
+
+- **Rejection reasons are appended.** `DownloadRejectionReason` gained the Music reasons at the end, so
+  existing numeric values are unchanged. Lidarr's reason-less decision tests were strengthened to
+  assert the reason (for example `MinimumAgeDelay`, `NoMatchingTag`, `DiskHigherPreference`,
+  `ArtistNotMonitored`, `WrongArtist`, `YearMismatch`).
+- **Specifications are Lidarr's (22).** They live in `Music.DecisionEngine.Specifications` (root,
+  `RssSync`, `Search`) behind the module's own `IDownloadDecisionEngineSpecification`, and run in one
+  priority order with the core release specifications: 13 root, 6 RSS-sync, 3 search. **Not ported:**
+  `SameTracksGrabSpecification` is a stub in Lidarr (`IsSatisfiedBy` throws
+  `NotImplementedException`, with a TODO to rework it for tracks), and `SameTracksSpecification` is
+  its only caller. Porting a specification that throws would reject every release it runs on.
+- **Matching.** `MusicReleaseMatcher` is Lidarr's title parse and artist/album lookup moved out of
+  `DownloadDecisionMaker` (contract 2). `DownloadDecisionMaker` rejects a release that matches no
+  artist or no album before any specification runs. The Host container test resolves the real
+  matcher, because a decision-maker test that mocks `IParsingService` only never reaches it.
+- **Custom formats score on audio profiles.** `MusicCustomFormatCalculationService` builds the neutral
+  `CustomFormatInput` from a `RemoteAlbum`, a track file, a blocklist row or a history row (TV step 4a
+  shape). `CustomFormatAllowedByProfileSpecification` and the comparer read the audio profile's
+  format scores.
+- **`UpgradableSpecification` is Music-specific.** It compares `AudioQualityModel` through
+  `AudioQualityModelComparer` and the audio profile's quality groups. The core
+  `NzbDrone.Core.DecisionEngine.UpgradableSpecification` stays Movies- and TV-only; fixtures that see
+  both alias one of them.
+- **Search criteria.** `MusicSearchRequest` (`AlbumSearchRequest`, `ArtistSearchRequest`) reaches the
+  specifications through `ReleaseDecisionInformation`. `MusicSearchTranslator` is an ordered-tier
+  `ISearchTranslator<MusicSearchRequest>`; a tier is skipped when the request lacks the data it needs.
+- **A search goes through the shared fetcher.** `Music.Search.ReleaseSearchService.Dispatch` calls
+  `IIndexerReleaseFetcher.Search(request, artist.Tags, MediaKind.Music, translator)`. Lidarr's
+  per-indexer tag tests became one test that the tags reach the fetcher. `LastSearchTime` is set,
+  and saved, only when `IndexersSearched` is above 0.
+- **Executors.** `AlbumSearchService` (`AlbumSearchCommand`, `MissingAlbumSearchCommand`,
+  `CutoffUnmetAlbumSearchCommand`), `ArtistSearchService` and `MusicRssReleaseHandler`
+  (`IRssReleaseHandler`, `Kind` `Music`). **Deviation from Lidarr:** the missing and cutoff executors
+  also filter by `ArtistId` when the command carries one; Lidarr's ignore it. `userInvoked` follows
+  `CommandTrigger.Manual`. The Music `RssSyncCompleteEvent` is its own type in `Music.Search`
+  (the event aggregator keys subscribers by type since TV step 4).
+- **Early-release limit moved to the indexer override (migration 010).** Lidarr keeps
+  `EarlyReleaseLimit` on the indexer. Plattarr has one global indexer, so the value is
+  `IndexerOverrides.EarlyReleaseLimit` (nullable int, a Music row, null is off). Existing rows are
+  unchanged. There is no API resource for it yet.
+- **Protocol comparison uses the delay profile.** The comparer and the prioritizer compare protocols
+  with the delay profile's `PreferredProtocol`, as in TV step 4, not Lidarr's per-indexer logic.
+- **Size limits** come from the shared quality definitions. Audio limits are kbit/s, so
+  `NumberExtensions.Kilobits()` (× 128 bytes) converts them.
+- **Pending releases are ported on the shared `PendingReleases` table.** `Music.Pending.PendingReleaseService`
+  keeps the static in-memory cache, rebuilt by `UpdatePendingReleases()` on `ApplicationStartedEvent`,
+  artist-edited, artist-updated, artist-deleted, grab, RSS-sync-complete and config-saved events. **Deviation from Lidarr:** one queue item per
+  release, not per album, with the queue id `HashConverter.GetHashInt31("pending-{Id}")`. Releases
+  that cover the same album-id set are de-duplicated with `AudioQualityModelComparer`, then by the
+  delay profile's `PreferredProtocol`. `PendingQueueService` now joins Movies, TV and Music pending items.
+- **History and blocklist.** `Music.History.HistoryService` and `Music.Blocklisting.BlocklistService`
+  are read services plus `Block(RemoteAlbum, message)`, which sets `MediaKind`, `ParentId` (artist),
+  `ItemIds` (albums) and the release fields. The handlers that write rows are step 6.
+- **Config.** `IConfigService.AutoUnmonitorPreviouslyDownloadedTracks` (default false), Lidarr's
+  setting of the same name.
+
+**Tests.** Lidarr's decision, prioritizer, pending and search fixtures run under
+`MusicTests/DecisionEngineTests`, `MusicTests/PendingTests` and `MusicTests/SearchTests`, adapted to
+the module seams. Two adaptations are worth knowing:
+
+- `MusicTestData.DefaultQualities()` with no arguments **allows every quality**, as Lidarr's helper
+  does. A profile that allows nothing must be built explicitly.
+- Lidarr's pending tests predate its cache, so they were rewritten on the TV-style fixture base
+  (`LoadCache()` raises `ApplicationStartedEvent`).
+
+New fixtures: migration 010, the override round trip, the config default, `Kilobits`, the pending
+repository (round trip, media-kind refusal, isolation from Movie rows), `PendingQueueService`,
+translator tiers, the matcher, the RSS handler, the album and artist executors, and four Host
+container tests (contracts, all 22 specifications, command executors, pending-cache event wiring).
+
+**Known limit.** Host tests cannot resolve `IEnumerable<IHandle<ApplicationStartedEvent>>` from
+DryIoc; the wiring test asserts the service type instead.
+
+**Mutation checks.** 15 mutations of the new behavior; all killed. They cover the early-release limit
+(null test, sign of the window, rejection reason, override media kind), both `Kilobits` overloads,
+the executor `ArtistId` filter, both translator tiers' gates, the pending queue (fallback exclusion,
+album-set grouping, quality order, protocol order, queue id hash) and the delay reason. One survived
+the first time: the `double` `Kilobits` overload, which the size specification uses. Every Music
+size test used 3 to 20 percent margins, so a 125 instead of 128 factor passed. A test at the exact
+byte boundaries of the limits kills it (`should_convert_the_kbit_per_second_limits_to_exact_byte_boundaries`).
+
+Results (Release, full solution build, analyzers on, 0 warnings): Core 9,863 passed and 49 skipped,
+Host 54 (5 skipped), Api 90, 0 failed. The first full run failed two of the new tests (a Music
+specification count of 21 where the real count is 22, and a `DBNull` check in the migration test);
+both were test mistakes.
+
+
 ## Decision record
 
 Owner answers, 2026-10-20, to the six questions in revision 1:

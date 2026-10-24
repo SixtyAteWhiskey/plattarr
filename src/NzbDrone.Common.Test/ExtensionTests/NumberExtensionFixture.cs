@@ -23,5 +23,21 @@ namespace NzbDrone.Common.Test.ExtensionTests
         {
             bytes.SizeSuffix().Should().Be(expected);
         }
+
+        [TestCase(0, 0)]
+        [TestCase(1, 128)]
+        [TestCase(320, 40960)]
+        public void should_convert_whole_kilobits_to_bytes(int kilobits, long expected)
+        {
+            kilobits.Kilobits().Should().Be(expected);
+        }
+
+        [TestCase(0.5, 64)]
+        [TestCase(1.5, 192)]
+        [TestCase(256.0, 32768)]
+        public void should_convert_fractional_kilobits_to_bytes(double kilobits, long expected)
+        {
+            kilobits.Kilobits().Should().Be(expected);
+        }
     }
 }
