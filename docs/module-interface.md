@@ -2636,11 +2636,11 @@ queue empty. **Movies baseline unchanged: 71 releases, 57 approved, 64 mapped.**
 history, blocklist and notification writers are proved by tests until step 7 can add an artist and feed a
 download through them.
 
-### Music step 7 (API, slices a to d): as built
+### Music step 7 (API, slices a to e): as built
 
-Built after step 6 against Lidarr `aec88028`. Slices 7a to 7d are the Music API and the back-end
-leftovers of steps 5 and 6; the queue kinds, the Music views of download history and pending releases, and the
-whole UI are still open (see the end of this section). Migration 11 is the only schema change. Calls made
+Built after step 6 against Lidarr `aec88028`. Slices 7a to 7e are the Music API and the back-end
+leftovers of steps 5 and 6; the per-provider notification events and the whole UI are still open (see the end of
+this section). Migration 11 is the only schema change. Calls made
 while building (each is reversible):
 
 - **Route scheme.** Music sits beside Movies' routes with a `/music` suffix (`history/music`, `blocklist/music`,
@@ -2665,6 +2665,19 @@ while building (each is reversible):
   import is imported as plain files instead of throwing. `GET manualimport/music` answers 400 without a folder
   or a download id (the service failed with a 500 on the empty path). A command with `albumReleaseId` 0 fails
   with `ModelNotFoundException`, as in Lidarr; left alone.
+- **Queue (slice 7e).** The shared queue endpoints are kind-neutral already (`IsMatched`, `PendingQueueService`
+  joins the Music pending list). `QueueResource` gained `artistId`, `albumId`, `artist`, `album`, written only
+  when set (the serializer already skips nulls, so the attributes only document it). `GET queue` takes
+  `includeArtist`, `includeAlbum`, `artistIds`, `albumIds` (a download matches an album filter when **any** of its
+  albums is listed) and sorts by `artists.sortName` and `albums.title`; `queue/details` takes `artistId`,
+  `albumIds` and the include flags. A custom format score uses the artist's audio quality profile. **Fix:**
+  deleting a pending Music release with `blocklist=true` fell through to the movie blocklist and would have
+  thrown; it now goes to the Music blocklist. `QueueController` takes the Music `IBlocklistService`. The
+  "Music views of `DownloadHistory` and `PendingReleases`" listed in step 6 need no API of their own: neither
+  Radarr nor Lidarr exposes `DownloadHistory`, and pending releases are the pending part of the queue.
+- **Commands and schedule.** A Host test proves every concrete command in `NzbDrone.Core.Music` has an executor,
+  so each can be queued by name through `POST command`. The only scheduled Music tasks are Lidarr's (artist
+  refresh and folder rescan, 24 hours each); the album searches and the download scan run on request.
 - **Orphan housekeepers (slice 7d).** `CleanupOrphanedAlbums`, `CleanupOrphanedReleases`,
   `CleanupOrphanedTracks`, `CleanupOrphanedArtistMetadata` and `CleanupOrphanedTrackFiles`, raw SQL on the
   `Music_` tables as in Lidarr. The track-file task **unlinks** (`AlbumId` and the track's `TrackFileId` go to 0)
@@ -2691,7 +2704,9 @@ while building (each is reversible):
   The notification form shows the three events (labels "On Album Delete", "On Download Failure", "On Track
   Retag"); a provider that does not support one has the box disabled.
 
-**Tests.** 7d adds: housekeepers (10, a `DbTest`; a spare metadata row keeps the ids from coinciding), Fpcalc
+**Tests.** 7e adds a queue controller and details fixture (resource mapping, filters, sorts with three distinct
+orders, includes, the three pending blocklist paths) and 17 mutation checks over it (one equivalent: the null-write
+attribute). 7d adds: housekeepers (10, a `DbTest`; a spare metadata row keeps the ids from coinciding), Fpcalc
 check (9), migration 011 (2), notification service scenarios (15), factory characteristics (2), base fixture,
 handler fixtures, the goldens (`music-webhook.json` and `music-customscript.txt` regenerated with additions
 only), resource mapping (4), and one Host test for the scheduled-task executors. Earlier slices: manual
@@ -2704,7 +2719,9 @@ characteristics fixture was added), the housekeeper album join (ids coincided; s
 mutants, left:** the `AlbumId <> 0` guard of the track-file task and the Fpcalc null-version check (`null <
 Version` is true in .NET).
 
-**Live (scratch instance, SQLite).** Migration 11 applied to a version 10 database and kept an existing webhook
+**Live (scratch instance, SQLite).** Queue: a pending Music release listed with `artistId` and `albumId`, the include
+flags, the artist and album filters, both sort keys, `queue/details` by artist and by album, and
+`DELETE queue/{id}?blocklist=true` wrote one Music blocklist row and left the movie blocklist empty. Migration 11 applied to a version 10 database and kept an existing webhook
 row with the new flags false. The schema shows Webhook supporting all three events, CustomScript two, and no
 other provider any. A real album delete sent an `AlbumDelete` payload to a local receiver. `system/task` lists
 "Rescan Folders" at 1440 minutes and the command ran. A `Housekeeping` run removed seeded orphan albums,
@@ -2713,8 +2730,8 @@ deleting the file row. The health list showed `FpcalcCheck` (fpcalc missing) nex
 no-client warnings. **Not proved live:** the download-failure and retag notifications (they need a grab and a
 tagged file); the handler and golden tests cover them.
 
-Results (Release, full solution build, analyzers on, 0 warnings): Core 10,644 passed and 54 skipped, Host 71
-passed (5 skipped), Api 173, 0 failed. Migration 011, the housekeepers and the notification service tests also
+Results (Release, full solution build, analyzers on, 0 warnings, after slice 7e): Core 10,644 passed and 54 skipped,
+Host 72 passed (5 skipped), Api 193, 0 failed. Migration 011, the housekeepers and the notification service tests also
 ran on PostgreSQL 16 (108 passed; a wrong password fails the migration fixture, so Postgres was in use).
 Frontend: eslint clean on the three notification files.
 
@@ -2722,8 +2739,7 @@ Frontend: eslint clean on the three notification files.
 `CleanupUnusedTags`. `MusicWebhookPayloadBuilder` changes `artist.Metadata.Images` while it builds local URLs.
 Adding an artist with monitor `none` leaves it unmonitored.
 
-**Still open in step 7.** Queue kinds, and the Music views of `DownloadHistory` and `PendingReleases`;
-per-provider implementations of the three new events; the UI (the `'music'` media kind in the switcher and
+**Still open in step 7.** Per-provider implementations of the three new events; the UI (the `'music'` media kind in the switcher and
 the Music pages and settings; Lidarr's checkout here has no frontend, so the UI is built on Plattarr's own).
 
 

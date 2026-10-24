@@ -252,6 +252,23 @@ namespace NzbDrone.App.Test
             }
         }
 
+        // A command the API can queue by name must have something that runs it.
+        [Test]
+        public void should_execute_every_music_command()
+        {
+            var commands = typeof(Command).Assembly.GetTypes()
+                .Where(t => typeof(Command).IsAssignableFrom(t) && !t.IsAbstract && t.Namespace != null && t.Namespace.StartsWith("NzbDrone.Core.Music"))
+                .ToList();
+
+            commands.Should().NotBeEmpty();
+
+            foreach (var command in commands)
+            {
+                _container.GetService(typeof(IExecute<>).MakeGenericType(command))
+                    .Should().NotBeNull($"{command.FullName} has no executor");
+            }
+        }
+
         [Test]
         public void should_resolve_the_artist_statistics_service_and_the_audio_definition_reset_executor()
         {

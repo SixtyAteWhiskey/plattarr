@@ -15,6 +15,7 @@ using NzbDrone.Core.Languages;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Music;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Queue;
@@ -41,6 +42,7 @@ namespace Radarr.Api.V3.Queue
         private readonly IProvideDownloadClient _downloadClientProvider;
         private readonly NzbDrone.Core.Movies.Blocklisting.IBlocklistService _movieBlocklistService;
         private readonly NzbDrone.Core.Tv.Blocklisting.IBlocklistService _tvBlocklistService;
+        private readonly NzbDrone.Core.Music.Blocklisting.IBlocklistService _musicBlocklistService;
 
         public QueueController(IBroadcastSignalRMessage broadcastSignalRMessage,
                            IQueueService queueService,
@@ -51,7 +53,8 @@ namespace Radarr.Api.V3.Queue
                            IIgnoredDownloadService ignoredDownloadService,
                            IProvideDownloadClient downloadClientProvider,
                            NzbDrone.Core.Movies.Blocklisting.IBlocklistService movieBlocklistService,
-                           NzbDrone.Core.Tv.Blocklisting.IBlocklistService tvBlocklistService)
+                           NzbDrone.Core.Tv.Blocklisting.IBlocklistService tvBlocklistService,
+                           NzbDrone.Core.Music.Blocklisting.IBlocklistService musicBlocklistService)
             : base(broadcastSignalRMessage)
         {
             _queueService = queueService;
@@ -62,6 +65,7 @@ namespace Radarr.Api.V3.Queue
             _downloadClientProvider = downloadClientProvider;
             _movieBlocklistService = movieBlocklistService;
             _tvBlocklistService = tvBlocklistService;
+            _musicBlocklistService = musicBlocklistService;
 
             _qualityComparer = new QualityModelComparer(qualityProfileService.GetDefaultProfile(string.Empty));
         }
@@ -146,7 +150,7 @@ namespace Radarr.Api.V3.Queue
 
         [HttpGet]
         [Produces("application/json")]
-        public Ok<PagingResource<QueueResource>> GetQueue([FromQuery] PagingRequestResource paging, bool includeUnknownMovieItems = false, bool includeMovie = false, bool includeSeries = false, bool includeEpisode = false, [FromQuery] int[] movieIds = null, [FromQuery] int[] seriesIds = null, DownloadProtocol? protocol = null, [FromQuery] int[] languages = null, [FromQuery] int[] quality = null, [FromQuery] QueueStatus[] status = null)
+        public Ok<PagingResource<QueueResource>> GetQueue([FromQuery] PagingRequestResource paging, bool includeUnknownMovieItems = false, bool includeMovie = false, bool includeSeries = false, bool includeEpisode = false, bool includeArtist = false, bool includeAlbum = false, [FromQuery] int[] movieIds = null, [FromQuery] int[] seriesIds = null, [FromQuery] int[] artistIds = null, [FromQuery] int[] albumIds = null, DownloadProtocol? protocol = null, [FromQuery] int[] languages = null, [FromQuery] int[] quality = null, [FromQuery] QueueStatus[] status = null)
         {
             var pagingResource = new PagingResource<QueueResource>(paging);
             var pagingSpec = pagingResource.MapToPagingSpec<QueueResource, NzbDrone.Core.Queue.Queue>(
@@ -159,6 +163,8 @@ namespace Radarr.Api.V3.Queue
                     "languages",
                     "movies.sortTitle",
                     "series.sortTitle",
+                    "artists.sortName",
+                    "albums.title",
                     "progress",
                     "protocol",
                     "quality",
@@ -171,10 +177,10 @@ namespace Radarr.Api.V3.Queue
                 "timeleft",
                 SortDirection.Ascending);
 
-            return TypedResults.Ok(pagingSpec.ApplyToPage((spec) => GetQueue(spec, movieIds?.ToHashSet(), seriesIds?.ToHashSet(), protocol, languages?.ToHashSet(), quality?.ToHashSet(), status?.ToHashSet(), includeUnknownMovieItems), (q) => MapToResource(q, includeMovie, includeSeries, includeEpisode)));
+            return TypedResults.Ok(pagingSpec.ApplyToPage((spec) => GetQueue(spec, movieIds?.ToHashSet(), seriesIds?.ToHashSet(), artistIds?.ToHashSet(), albumIds?.ToHashSet(), protocol, languages?.ToHashSet(), quality?.ToHashSet(), status?.ToHashSet(), includeUnknownMovieItems), (q) => MapToResource(q, includeMovie, includeSeries, includeEpisode, includeArtist, includeAlbum)));
         }
 
-        private PagingSpec<NzbDrone.Core.Queue.Queue> GetQueue(PagingSpec<NzbDrone.Core.Queue.Queue> pagingSpec, HashSet<int> movieIds, HashSet<int> seriesIds, DownloadProtocol? protocol, HashSet<int> languages, HashSet<int> quality, HashSet<QueueStatus> status, bool includeUnknownMovieItems)
+        private PagingSpec<NzbDrone.Core.Queue.Queue> GetQueue(PagingSpec<NzbDrone.Core.Queue.Queue> pagingSpec, HashSet<int> movieIds, HashSet<int> seriesIds, HashSet<int> artistIds, HashSet<int> albumIds, DownloadProtocol? protocol, HashSet<int> languages, HashSet<int> quality, HashSet<QueueStatus> status, bool includeUnknownMovieItems)
         {
             var ascending = pagingSpec.SortDirection == SortDirection.Ascending;
             var orderByFunc = GetOrderByFunc(pagingSpec);
@@ -185,6 +191,8 @@ namespace Radarr.Api.V3.Queue
 
             var hasMovieIdFilter = movieIds is { Count: > 0 };
             var hasSeriesIdFilter = seriesIds is { Count: > 0 };
+            var hasArtistIdFilter = artistIds is { Count: > 0 };
+            var hasAlbumIdFilter = albumIds is { Count: > 0 };
             var hasLanguageFilter = languages is { Count: > 0 };
             var hasQualityFilter = quality is { Count: > 0 };
             var hasStatusFilter = status is { Count: > 0 };
@@ -201,6 +209,16 @@ namespace Radarr.Api.V3.Queue
                 if (hasSeriesIdFilter)
                 {
                     include &= q.GetSeries() != null && seriesIds.Contains(q.GetSeries().Id);
+                }
+
+                if (hasArtistIdFilter)
+                {
+                    include &= q.GetArtist() != null && artistIds.Contains(q.GetArtist().Id);
+                }
+
+                if (hasAlbumIdFilter)
+                {
+                    include &= q.GetRemoteAlbum()?.Albums != null && q.GetRemoteAlbum().Albums.Any(a => albumIds.Contains(a.Id));
                 }
 
                 if (include && protocol.HasValue)
@@ -307,6 +325,10 @@ namespace Radarr.Api.V3.Queue
                     return q => q.GetMovie()?.MovieMetadata.Value.SortTitle ?? q.Title;
                 case "series.sortTitle":
                     return q => q.GetSeries()?.SortTitle ?? q.Title;
+                case "artists.sortName":
+                    return q => q.GetArtist()?.SortName ?? q.Title;
+                case "albums.title":
+                    return q => q.GetAlbum()?.Title ?? q.Title;
                 case "title":
                     return q => q.Title;
                 case "year":
@@ -332,6 +354,10 @@ namespace Radarr.Api.V3.Queue
                 if (pendingRelease.IsKind(MediaKind.Tv))
                 {
                     _tvBlocklistService.Block(pendingRelease.GetRemoteEpisode(), "Pending release manually blocklisted");
+                }
+                else if (pendingRelease.IsKind(MediaKind.Music))
+                {
+                    _musicBlocklistService.Block(pendingRelease.GetRemoteAlbum(), "Pending release manually blocklisted");
                 }
                 else
                 {
@@ -402,9 +428,9 @@ namespace Radarr.Api.V3.Queue
             return trackedDownload;
         }
 
-        private QueueResource MapToResource(NzbDrone.Core.Queue.Queue queueItem, bool includeMovie, bool includeSeries, bool includeEpisode)
+        private QueueResource MapToResource(NzbDrone.Core.Queue.Queue queueItem, bool includeMovie, bool includeSeries, bool includeEpisode, bool includeArtist, bool includeAlbum)
         {
-            return queueItem.ToResource(includeMovie, includeSeries, includeEpisode);
+            return queueItem.ToResource(includeMovie, includeSeries, includeEpisode, includeArtist, includeAlbum);
         }
 
         [NonAction]

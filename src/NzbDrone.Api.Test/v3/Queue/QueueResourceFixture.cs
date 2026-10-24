@@ -6,6 +6,9 @@ using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Parser.Model;
+using NzbDrone.Core.Music;
+using NzbDrone.Core.Music.Parser.Model;
+using NzbDrone.Core.Music.Profiles;
 using NzbDrone.Core.Profiles;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
@@ -118,6 +121,100 @@ namespace NzbDrone.Api.Test.v3.Queue
             json.Should().NotContain("episodeId");
             json.Should().NotContain("seasonNumber");
             json.Should().NotContain("episodeHasFile");
+        }
+
+        private NzbDrone.Core.Queue.Queue GivenMusicItem()
+        {
+            return new NzbDrone.Core.Queue.Queue
+            {
+                Id = 21,
+                Title = "The Black Keys - Brothers [FLAC]",
+                Quality = new QualityModel(Quality.Unknown),
+                Languages = new List<NzbDrone.Core.Languages.Language>(),
+                RemoteRelease = new RemoteAlbum
+                {
+                    Artist = new Artist
+                    {
+                        Id = 12,
+                        SortName = "black keys",
+                        Metadata = new ArtistMetadata { Name = "The Black Keys", Images = new List<NzbDrone.Core.MediaCover.MediaCover>() },
+                        Tags = new HashSet<int>(),
+                        QualityProfile = new AudioQualityProfile
+                        {
+                            Name = "Lossless",
+                            FormatItems = new List<ProfileFormatItem> { new ProfileFormatItem { Format = _format, Score = 40 } }
+                        }
+                    },
+                    Albums = new List<Album>
+                    {
+                        new Album { Id = 101, Title = "Brothers", Images = new List<NzbDrone.Core.MediaCover.MediaCover>(), SecondaryTypes = new List<SecondaryAlbumType>(), Genres = new List<string>() },
+                        new Album { Id = 102, Title = "El Camino", Images = new List<NzbDrone.Core.MediaCover.MediaCover>(), SecondaryTypes = new List<SecondaryAlbumType>(), Genres = new List<string>() }
+                    },
+                    CustomFormats = new List<CustomFormat> { _format }
+                }
+            };
+        }
+
+        [Test]
+        public void should_map_the_artist_and_first_album_of_a_music_download()
+        {
+            var resource = GivenMusicItem().ToResource(false);
+
+            resource.ArtistId.Should().Be(12);
+            resource.AlbumId.Should().Be(101);
+            resource.MovieId.Should().BeNull();
+            resource.SeriesId.Should().BeNull();
+        }
+
+        [Test]
+        public void should_score_a_music_download_with_the_artist_quality_profile()
+        {
+            var resource = GivenMusicItem().ToResource(false);
+
+            resource.CustomFormatScore.Should().Be(40);
+            resource.CustomFormats.Should().HaveCount(1);
+        }
+
+        [Test]
+        public void should_include_artist_and_album_only_when_asked()
+        {
+            GivenMusicItem().ToResource(false).Artist.Should().BeNull();
+            GivenMusicItem().ToResource(false).Album.Should().BeNull();
+
+            var resource = GivenMusicItem().ToResource(false, false, false, true, true);
+
+            resource.Artist.Should().NotBeNull();
+            resource.Artist.ArtistName.Should().Be("The Black Keys");
+            resource.Album.Should().NotBeNull();
+            resource.Album.Title.Should().Be("Brothers");
+        }
+
+        [Test]
+        public void should_not_write_music_fields_for_a_movie_or_tv_download()
+        {
+            var movie = new NzbDrone.Core.Queue.Queue
+            {
+                Id = 4,
+                Title = "Movie.2020.1080p",
+                Quality = new QualityModel(Quality.WEBDL1080p),
+                Languages = new List<NzbDrone.Core.Languages.Language>(),
+                RemoteRelease = new RemoteMovie { Movie = new Movie { Id = 8 } }
+            };
+
+            foreach (var json in new[] { STJson.ToJson(movie.ToResource(false)), STJson.ToJson(GivenTvItem().ToResource(false)) })
+            {
+                json.Should().NotContain("artistId");
+                json.Should().NotContain("albumId");
+                json.Should().NotContain("\"artist\"");
+                json.Should().NotContain("\"album\"");
+            }
+        }
+
+        [Test]
+        public void is_matched_should_be_true_for_an_artist_and_false_for_an_unmatched_album()
+        {
+            GivenMusicItem().IsMatched().Should().BeTrue();
+            new NzbDrone.Core.Queue.Queue { RemoteRelease = new RemoteAlbum() }.IsMatched().Should().BeFalse();
         }
 
         [Test]
