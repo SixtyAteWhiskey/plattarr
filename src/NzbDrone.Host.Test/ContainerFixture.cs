@@ -183,6 +183,43 @@ namespace NzbDrone.App.Test
         }
 
         [Test]
+        public void should_resolve_the_music_library_api_controllers()
+        {
+            _container.GetRequiredService<Radarr.Api.V3.Music.Artist.ArtistController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Music.Artist.ArtistLookupController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Music.Artist.ArtistEditorController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Music.Albums.AlbumController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Music.Albums.AlbumLookupController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Music.AlbumStudio.AlbumStudioController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Music.Tracks.TrackController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Music.Tracks.RenameTrackController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Music.Tracks.RetagTrackController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Music.TrackFiles.TrackFileController>().Should().NotBeNull();
+        }
+
+        [Test]
+        public void should_resolve_the_music_settings_api_controllers()
+        {
+            _container.GetRequiredService<Radarr.Api.V3.Music.RootFolders.MusicRootFolderController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Music.Config.MusicNamingConfigController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Music.Profiles.Quality.AudioQualityProfileController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Music.Profiles.Quality.AudioQualityProfileSchemaController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Music.Profiles.Metadata.MetadataProfileController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Music.Profiles.Metadata.MetadataProfileSchemaController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Music.Qualities.AudioQualityDefinitionController>().Should().NotBeNull();
+        }
+
+        [Test]
+        public void should_resolve_the_artist_statistics_service_and_the_audio_definition_reset_executor()
+        {
+            _container.GetRequiredService<NzbDrone.Core.Music.ArtistStats.IArtistStatisticsService>()
+                .Should().BeAssignableTo<IHandle<NzbDrone.Core.Music.Events.ArtistAddedEvent>>()
+                .And.BeAssignableTo<IHandle<NzbDrone.Core.Music.MediaFiles.Events.TrackFileDeletedEvent>>();
+            _container.GetRequiredService<NzbDrone.Core.Music.Qualities.IAudioQualityDefinitionService>()
+                .Should().BeAssignableTo<IExecute<NzbDrone.Core.Music.Qualities.ResetAudioQualityDefinitionsCommand>>();
+        }
+
+        [Test]
         public void should_resolve_the_tv_wanted_calendar_blocklist_and_parse_controllers()
         {
             _container.GetRequiredService<Radarr.Api.V3.Tv.Wanted.TvMissingController>().Should().NotBeNull();
@@ -223,7 +260,7 @@ namespace NzbDrone.App.Test
         [Test]
         public void should_resolve_one_tagged_item_source_per_module_and_the_tag_service()
         {
-            _container.GetServices<ITaggedItemSource>().Should().Contain(s => s.Kind == MediaKind.Movies).And.Contain(s => s.Kind == MediaKind.Tv);
+            _container.GetServices<ITaggedItemSource>().Should().Contain(s => s.Kind == MediaKind.Movies).And.Contain(s => s.Kind == MediaKind.Tv).And.Contain(s => s.Kind == MediaKind.Music);
             _container.GetServices<ITaggedItemSource>().Select(s => s.Kind).Should().OnlyHaveUniqueItems();
             _container.GetRequiredService<NzbDrone.Core.Tags.ITagService>().Should().NotBeNull();
             _container.GetRequiredService<Radarr.Api.V3.Tags.TagDetailsController>().Should().NotBeNull();

@@ -9,6 +9,7 @@ namespace NzbDrone.Core.Tags
         public string Label { get; set; }
         public List<int> MovieIds { get; set; } = new();
         public List<int> SeriesIds { get; set; } = new();
+        public List<int> ArtistIds { get; set; } = new();
         public List<int> NotificationIds { get; set; }
         public List<int> ReleaseProfileIds { get; set; }
         public List<int> DelayProfileIds { get; set; }
@@ -21,6 +22,7 @@ namespace NzbDrone.Core.Tags
 
         public bool InUse => MovieIds.Any() ||
                              SeriesIds.Any() ||
+                             ArtistIds.Any() ||
                              NotificationIds.Any() ||
                              ReleaseProfileIds.Any() ||
                              DelayProfileIds.Any() ||

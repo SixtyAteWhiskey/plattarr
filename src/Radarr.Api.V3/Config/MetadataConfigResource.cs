@@ -7,6 +7,9 @@ namespace Radarr.Api.V3.Config
     public class MetadataConfigResource : RestResource
     {
         public TMDbCountryCode CertificationCountry { get; set; }
+
+        // Music: base URL of the artist and album metadata service; empty uses the Lidarr project's.
+        public string MusicMetadataSource { get; set; }
     }
 
     public static class MetadataConfigResourceMapper
@@ -16,6 +19,7 @@ namespace Radarr.Api.V3.Config
             return new MetadataConfigResource
             {
                 CertificationCountry = model.CertificationCountry,
+                MusicMetadataSource = model.MusicMetadataSource,
             };
         }
     }

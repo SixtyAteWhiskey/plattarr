@@ -37,6 +37,7 @@ namespace NzbDrone.App.Test
 
             document.Components.Schemas.Keys.Should().Contain("MonitorTypes");
             document.Components.Schemas.Keys.Should().Contain("TvMonitorTypes");
+            document.Components.Schemas.Keys.Should().Contain("MusicMonitorTypes");
         }
 
         [Test]
@@ -45,6 +46,16 @@ namespace NzbDrone.App.Test
             OpenApiSchemaIds.Get(typeof(NzbDrone.Core.Movies.MonitorTypes)).Should().Be("MonitorTypes");
             OpenApiSchemaIds.Get(typeof(NzbDrone.Core.Tv.MonitorTypes)).Should().Be("TvMonitorTypes");
             OpenApiSchemaIds.Get(typeof(NzbDrone.Core.Tv.Series)).Should().Be("Series");
+        }
+
+        [Test]
+        public void should_prefix_only_the_music_core_types_that_share_a_name_and_not_move_the_tv_ids()
+        {
+            OpenApiSchemaIds.Get(typeof(NzbDrone.Core.Music.MonitorTypes)).Should().Be("MusicMonitorTypes");
+            OpenApiSchemaIds.Get(typeof(NzbDrone.Core.Music.Artist)).Should().Be("Artist");
+            OpenApiSchemaIds.Get(typeof(NzbDrone.Core.Tv.MonitorTypes)).Should().Be("TvMonitorTypes");
+            OpenApiSchemaIds.Get(typeof(NzbDrone.Core.Music.NewItemMonitorTypes)).Should().Be("MusicNewItemMonitorTypes");
+            OpenApiSchemaIds.Get(typeof(NzbDrone.Core.Tv.NewItemMonitorTypes)).Should().Be("NewItemMonitorTypes");
         }
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using NLog;
 using NzbDrone.Common.Cache;
 using NzbDrone.Core.Lifecycle;
+using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Qualities;
 
@@ -20,7 +21,7 @@ namespace NzbDrone.Core.Music.Qualities
 
     // Keeps one definition row per audio quality in Music_QualityDefinitions (Lidarr's
     // QualityDefinitionService). Weight and group come from the code defaults, not the row.
-    public class AudioQualityDefinitionService : IAudioQualityDefinitionService, IHandle<ApplicationStartedEvent>
+    public class AudioQualityDefinitionService : IAudioQualityDefinitionService, IExecute<ResetAudioQualityDefinitionsCommand>, IHandle<ApplicationStartedEvent>
     {
         private readonly IAudioQualityDefinitionRepository _repo;
         private readonly ICached<Dictionary<AudioQuality, AudioQualityDefinition>> _cache;
@@ -113,6 +114,30 @@ namespace NzbDrone.Core.Music.Qualities
             _logger.Debug("Setting up default audio quality config");
 
             InsertMissingDefinitions();
+        }
+
+        public void Execute(ResetAudioQualityDefinitionsCommand message)
+        {
+            var updateList = new List<AudioQualityDefinition>();
+
+            var allDefinitions = AudioQuality.DefaultQualityDefinitions.OrderBy(d => d.Weight).ToList();
+            var existingDefinitions = _repo.All().ToList();
+
+            foreach (var definition in allDefinitions)
+            {
+                var existing = existingDefinitions.Single(d => d.Quality == definition.Quality);
+
+                existing.MinSize = definition.MinSize;
+                existing.MaxSize = definition.MaxSize;
+                existing.PreferredSize = definition.PreferredSize;
+                existing.Title = message.ResetTitles ? definition.Title : existing.Title;
+
+                updateList.Add(existing);
+            }
+
+            _repo.UpdateMany(updateList);
+
+            _cache.Clear();
         }
     }
 }
