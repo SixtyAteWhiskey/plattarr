@@ -2454,6 +2454,18 @@ Host 54 (5 skipped), Api 90, 0 failed. The first full run failed two of the new 
 specification count of 21 where the real count is 22, and a `DBNull` check in the migration test);
 both were test mistakes.
 
+**PostgreSQL.** The migration 010 test, the indexer override tests and the pending release tests ran
+on PostgreSQL 16 (34 `DbTest`s, 0 failed). The full `DbTest` pass was not repeated: the only schema
+change is one nullable column.
+
+**Live (dev stack, image `3ffb3ca`).** Step 4 has no endpoint or task of its own, so the proof is
+that the migration and the new services do not disturb the running stack: `system/status` reports
+migration 10, `IndexerOverrides` has the `EarlyReleaseLimit` column, `RssSync` completed (8 reports,
+0 grabbed), `Housekeeping` completed, `GET release?movieId=1` is still 70 releases, 56 approved, 63
+mapped, the queue and `PendingReleases` are empty, and the log has no Warn or Error line.
+Search, decisions and pending releases for Music are proved by tests until the API (step 7) can
+add an artist and a fake Torznab indexer can serve album releases.
+
 
 ## Decision record
 
