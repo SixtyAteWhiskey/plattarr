@@ -224,6 +224,13 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("CreateEmptyMovieFolders", value); }
         }
 
+        public bool CreateEmptyArtistFolders
+        {
+            get { return GetValueBoolean("CreateEmptyArtistFolders", false); }
+
+            set { SetValue("CreateEmptyArtistFolders", value); }
+        }
+
         public bool CreateEmptySeriesFolders
         {
             get { return GetValueBoolean("CreateEmptySeriesFolders", false); }
@@ -385,6 +392,13 @@ namespace NzbDrone.Core.Configuration
             get { return GetValueEnum("RescanAfterRefresh", RescanAfterRefreshType.Always); }
 
             set { SetValue("RescanAfterRefresh", value); }
+        }
+
+        public string MusicMetadataSource
+        {
+            get { return GetValue("MusicMetadataSource", ""); }
+
+            set { SetValue("MusicMetadataSource", value); }
         }
 
         public bool SetPermissionsLinux

@@ -2279,6 +2279,90 @@ live-album rule (12 mutations; one survived the first time, the three-letter cod
 Full verify: 0 warnings, 0 errors; Core 9,073 passed (502 more than before), 48 skipped; Api 89; Host
 48. The Music `DbTest`s (78) also pass on PostgreSQL 16.
 
+### Music step 3: as built
+
+Built in session 50 against Lidarr `aec88028`. No migration and no table change. One scheduled task
+(`RefreshArtist`), two config keys, no API, no UI. Calls made while building (each is reversible):
+
+- **Metadata source.** `Music.MetadataSource.SkyHook.SkyHookProxy` implements `IProvideArtistInfo`,
+  `IProvideAlbumInfo`, `ISearchForNewArtist` and `ISearchForNewAlbum` against the Lidarr metadata service,
+  `https://api.lidarr.audio/api/v0.4/{route}` (`artist/{mbid}`, `album/{mbid}`, `search?type=&query=`,
+  `recent/artist`, `recent/album`). The base URL comes from `ILidarrCloudRequestBuilder`
+  (`NzbDrone.Common.Cloud`, new, same shape as the Radarr and Sonarr builders). The new config key
+  `MusicMetadataSource` (default empty) overrides it, the same way `MetadataSource` does for Movies. The
+  album filter is Lidarr's: the metadata profile's allowed primary types, secondary types (an album with
+  no secondary type counts as `Studio`) and release statuses. The service's `Logo` image maps to
+  Plattarr's `Clearlogo`.
+- **Services ported** (all in `NzbDrone.Core.Music`): `ArtistService` (`FindByName`, `FindByNameInexact`,
+  `GetCandidates`), `AlbumService`, `ReleaseService`, `TrackService`, `ArtistMetadataService`,
+  `AddArtistService`, `AddAlbumService`, `RefreshArtistService`, `RefreshAlbumService`,
+  `RefreshAlbumReleaseService`, `RefreshTrackService`, `ShouldRefreshArtist`, `ShouldRefreshAlbum`,
+  `MonitorNewAlbumService`, `AlbumMonitoredService`, `AlbumAddedService`, `AlbumEditedService`,
+  `ArtistEditedService`, `AlbumCutoffService`, `ArtistPathBuilder`, `MoveArtistService`,
+  `Music.Parser.ParsingService` with its three fixtures, `MetadataProfileService`,
+  `AudioQualityProfileService`, `Music.RootFolders.RootFolderService`, `Music.MediaFiles.MediaFileService`,
+  `Music.Covers.MediaCoverService`, plus the commands and events they publish
+  (`Music.Commands`, `Music.Events`, `Music.Search` data-only commands).
+- **Default profiles.** On `ApplicationStartedEvent`, when the table is empty, `AudioQualityProfileService`
+  seeds **Any, Lossless, Standard** and `MetadataProfileService` seeds Lidarr's two metadata profiles
+  (**Standard**: albums, studio, official; and an empty **None**). A quality group is allowed whole when any of its members is
+  (Lidarr's rule), so "Lossless" also allows APE and WavPack. The cutoff is the id of the group that holds
+  the cutoff quality (group ids start at 1000). Visible effect: on first start of an existing instance,
+  `Music_QualityProfiles` and `Music_MetadataProfiles` gain rows. Nothing else reads them yet.
+- **`RefreshArtist` task.** `MusicModule.ScheduledTasks` returns `RefreshArtistCommand` at
+  **24 h** (Lidarr's interval; Sonarr's is 12 h). The task shows in `GET /api/v3/system/task`. Until the
+  library has artists, it does nothing.
+- **Interim services.** Lidarr's disk scan, file naming, tag reading and history are step 5 and 6 work.
+  Step 3 needs a working shape of each, so the Music module has these, to be completed there:
+  `MediaFiles.DiskScanService` (publishes `ArtistScannedEvent`; creates a missing artist folder only when
+  the new key `CreateEmptyArtistFolders` is on and `DeleteEmptyFolders` is off), `Organizer.FileNameBuilder`
+  and `NamingConfigService` (the artist folder and the parts `AddArtistService` and `MoveArtistService`
+  use), `MediaFiles.AudioTagService`, and `History.HistoryService` (reads and `UpdateMany` over
+  `IAlbumHistoryRepository`).
+- **Config keys.** `MusicMetadataSource` (string, default empty) and `CreateEmptyArtistFolders`
+  (bool, default false), both in `IConfigService`. Plattarr config is a single table, so nothing else
+  changes.
+- **Shared helpers moved into `NzbDrone.Common`.** `FuzzyContains.cs` and, in `StringExtensions`,
+  `FuzzyMatch`, `FuzzyMatchComponents` and `LevenshteinCoefficient`; in `IEnumerableExtensions`,
+  `ExclusiveOrDefault` (two overloads). Lidarr has them in its own `NzbDrone.Common`, which Plattarr
+  shares with Movies and TV, so they are not Music-only. `AlbumRepository.FindByTitle` is new on the
+  repository (the services need it).
+- **Equality trap.** `Artist` now implements `IMediaParent` explicitly (`Kind` is `Music`, `Title` is the
+  name). Equ compares non-public members, so both are marked `[MemberwiseEqualityIgnore]`; without that two
+  copies of one artist differ by whether the metadata is loaded, and two upstream tests fail.
+- **Covers.** Lidarr's cover service ported with Lidarr's folder layout, `MediaCover/Artists/{id}` and
+  `MediaCover/Albums/{id}`. **Finding (not fixed):** the Movies and TV cover services both write
+  `MediaCover/{id}`, so a movie and a series with the same id share one folder (and `MediaCoverController`
+  serves `MediaCover/{movieId}` only). Music does not join that collision, because of its sub-folders, but
+  Movies and TV should be split when the covers are next touched. Lidarr's `MediaCover` has an `Extension`
+  property that Plattarr's does not; the Music service takes the extension from the URL.
+- **Not ported on purpose** (each needs a table or a surface Plattarr does not have yet): import-list
+  exclusions (the `addImportListExclusion` flag still rides on the artist and album delete events; nothing
+  consumes it), auto-tagging on refresh, and the root folder file watcher. They come back with the surface
+  that needs them.
+- **Test dependency.** Lidarr's refresh tests use **AutoFixture**; `Radarr.Core.Test.csproj` gains
+  `AutoFixture` 4.17.0. It is a test-only package.
+- **Core test helper.** `CoreTest.UseRealHttp` also registers `ILidarrCloudRequestBuilder` (as it already
+  does for the Radarr and Sonarr builders), because the metadata proxy resolves it.
+
+**Tests.** Lidarr's metadata, refresh, add, monitor, move, album, artist, media file, root folder,
+file-name and parsing-service fixtures run under `MusicTests` (the Music suite was 930 passing, 20
+skipped before the new fixtures below). The hermetic SkyHook tests replay three recorded payloads from the
+real service (`Files/SkyHook/lidarr-*.json`, 2026-10-24: an artist, an album and a search), as the TV
+`SkyHookTestData` does; Lidarr's own proxy fixture needs the live service, so it is replaced, not
+ported. New in Plattarr: SkyHook proxy (routes, override, errors, filter), `FindByTitle`, default
+profile group and cutoff rules (and a seeding `DbTest` on the real tables), `MusicModule` schedule,
+`DiskScanService` (11), cover download and skip rules, `HistoryService`, `RemoteAlbum`,
+`MusicSearchRequest` query titles, `Artist` as `IMediaParent`, the config defaults, the helper
+extensions in `NzbDrone.Common.Test`, and a Host container test that resolves the new services and the
+`RefreshArtist` executor. Each new behavior was checked by breaking the code under test and seeing a
+test fail (13 mutations: `FindByTitle` twice, `ExclusiveOrDefault`, the fuzzy index penalty, the task
+interval, the cover skip rule for artists and for albums, the whole-group rule, the group cutoff, the
+Studio rule, the release-status filter, the empty-folder setting, and the `Artist` equality ignore; three
+survived the first time, the whole-group rule, the group cutoff and the Studio rule, and got a test each).
+Full verify: 0 warnings, 0 errors; Core 9,486 passed (413 more than step 2), 49 skipped; Api 89; Host 50
+(5 skipped). No schema change, so the PostgreSQL pass was not repeated.
+
 ## Decision record
 
 Owner answers, 2026-10-20, to the six questions in revision 1:

@@ -1,8 +1,10 @@
+using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Music;
+using NzbDrone.Core.Music.Commands;
 
 namespace NzbDrone.Core.Test.MusicTests
 {
@@ -19,12 +21,17 @@ namespace NzbDrone.Core.Test.MusicTests
             module.DefaultCategories.Should().Equal(NewznabStandardCategory.Audio.Id);
         }
 
-        // A task whose command nothing executes fails on every run, so the module schedules none
-        // until the services that run them exist.
+        // A task whose command nothing executes fails on every run, so the module schedules only
+        // the artist refresh that step 3 added with the services that run it. The interval is
+        // Lidarr's pinned value.
         [Test]
-        public void should_schedule_nothing_yet()
+        public void should_schedule_the_artist_refresh_every_24_hours()
         {
-            new MusicModule().ScheduledTasks.Should().BeEmpty();
+            var tasks = new MusicModule().ScheduledTasks.ToList();
+
+            tasks.Should().ContainSingle();
+            tasks[0].TypeName.Should().Be(typeof(RefreshArtistCommand).FullName);
+            tasks[0].Interval.Should().Be(24 * 60);
         }
 
         [Test]

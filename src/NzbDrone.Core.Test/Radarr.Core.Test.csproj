@@ -3,6 +3,7 @@
     <TargetFrameworks>net10.0</TargetFrameworks>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="AutoFixture" Version="4.17.0" />
     <PackageReference Include="Dapper" Version="2.1.89" />
     <PackageReference Include="NBuilder" Version="6.1.0" />
   </ItemGroup>
