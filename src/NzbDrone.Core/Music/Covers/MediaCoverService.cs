@@ -95,10 +95,9 @@ namespace NzbDrone.Core.Music.Covers
                 return;
             }
 
-            if (!covers.Any())
-            {
-                PopulateCoverWithCache(entityId, coverEntity, covers);
-            }
+            // The stored list is empty when the metadata source sent no images for the entity (an album refresh
+            // sends the artist without them), so the covers on disk stand in for it.
+            var diskCovers = covers.Any() ? new List<MediaCover.MediaCover>() : PopulateCoverWithCache(entityId, coverEntity, covers);
 
             foreach (var mediaCover in covers)
             {
@@ -123,6 +122,13 @@ namespace NzbDrone.Core.Music.Covers
                     var lastWrite = _diskProvider.FileGetLastWrite(filePath);
                     mediaCover.Url += "?lastWrite=" + lastWrite.Ticks;
                 }
+            }
+
+            // A cover rebuilt from disk carries its file path as RemoteUrl, which the loop above reads the file
+            // extension from. It is not a remote URL and must not reach the API or a webhook.
+            foreach (var diskCover in diskCovers)
+            {
+                diskCover.RemoteUrl = null;
             }
         }
 
@@ -194,8 +200,9 @@ namespace NzbDrone.Core.Music.Covers
             return updated;
         }
 
-        private void PopulateCoverWithCache(int entityId, MediaCoverEntity coverEntity, ICollection<MediaCover.MediaCover> covers)
+        private List<MediaCover.MediaCover> PopulateCoverWithCache(int entityId, MediaCoverEntity coverEntity, ICollection<MediaCover.MediaCover> covers)
         {
+            var added = new List<MediaCover.MediaCover>();
             var folderPath = coverEntity == MediaCoverEntity.Album ? GetAlbumCoverPath(entityId) : GetArtistCoverPath(entityId);
 
             if (_diskProvider.FolderExists(folderPath))
@@ -218,9 +225,12 @@ namespace NzbDrone.Core.Music.Covers
                         };
 
                         covers.Add(diskCover);
+                        added.Add(diskCover);
                     }
                 }
             }
+
+            return added;
         }
 
         public bool EnsureAlbumCovers(Album album)

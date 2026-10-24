@@ -485,7 +485,7 @@ namespace NzbDrone.Core.Music.MetadataSource.SkyHook
         {
             var album = new Album();
             album.ForeignAlbumId = resource.Id;
-            album.OldForeignAlbumIds = resource.OldIds;
+            album.OldForeignAlbumIds = OrEmpty(resource.OldIds);
             album.Title = resource.Title;
             album.Overview = resource.Overview;
             album.Disambiguation = resource.Disambiguation;
@@ -499,8 +499,8 @@ namespace NzbDrone.Core.Music.MetadataSource.SkyHook
             album.AlbumType = resource.Type;
             album.SecondaryTypes = resource.SecondaryTypes.Select(MapSecondaryTypes).ToList();
             album.Ratings = MapRatings(resource.Rating);
-            album.Links = resource.Links?.Select(MapLink).ToList();
-            album.Genres = resource.Genres;
+            album.Links = resource.Links?.Select(MapLink).ToList() ?? new List<Links>();
+            album.Genres = OrEmpty(resource.Genres);
             album.CleanTitle = Parser.Parser.CleanArtistName(album.Title);
 
             if (resource.Releases != null)
@@ -528,12 +528,12 @@ namespace NzbDrone.Core.Music.MetadataSource.SkyHook
         {
             var release = new AlbumRelease();
             release.ForeignReleaseId = resource.Id;
-            release.OldForeignReleaseIds = resource.OldIds;
+            release.OldForeignReleaseIds = OrEmpty(resource.OldIds);
             release.Title = resource.Title;
             release.Status = resource.Status;
-            release.Label = resource.Label;
+            release.Label = OrEmpty(resource.Label);
             release.Disambiguation = resource.Disambiguation;
-            release.Country = resource.Country;
+            release.Country = OrEmpty(resource.Country);
             release.ReleaseDate = resource.ReleaseDate;
 
             // Get the complete set of media/tracks returned by the API, adding missing media if necessary
@@ -582,9 +582,9 @@ namespace NzbDrone.Core.Music.MetadataSource.SkyHook
                 ArtistMetadata = artistDict[resource.ArtistId],
                 Title = resource.TrackName,
                 ForeignTrackId = resource.Id,
-                OldForeignTrackIds = resource.OldIds,
+                OldForeignTrackIds = OrEmpty(resource.OldIds),
                 ForeignRecordingId = resource.RecordingId,
-                OldForeignRecordingIds = resource.OldRecordingIds,
+                OldForeignRecordingIds = OrEmpty(resource.OldRecordingIds),
                 TrackNumber = resource.TrackNumber,
                 AbsoluteTrackNumber = resource.TrackPosition,
                 Duration = resource.DurationMs,
@@ -599,17 +599,17 @@ namespace NzbDrone.Core.Music.MetadataSource.SkyHook
             var artist = new ArtistMetadata();
 
             artist.Name = resource.ArtistName;
-            artist.Aliases = resource.ArtistAliases;
+            artist.Aliases = OrEmpty(resource.ArtistAliases);
             artist.ForeignArtistId = resource.Id;
-            artist.OldForeignArtistIds = resource.OldIds;
-            artist.Genres = resource.Genres;
+            artist.OldForeignArtistIds = OrEmpty(resource.OldIds);
+            artist.Genres = OrEmpty(resource.Genres);
             artist.Overview = resource.Overview;
             artist.Disambiguation = resource.Disambiguation;
             artist.Type = resource.Type;
             artist.Status = MapArtistStatus(resource.Status);
             artist.Ratings = MapRatings(resource.Rating);
-            artist.Images = resource.Images?.Select(MapImage).ToList();
-            artist.Links = resource.Links?.Select(MapLink).ToList();
+            artist.Images = resource.Images?.Select(MapImage).ToList() ?? new List<MediaCover.MediaCover>();
+            artist.Links = resource.Links?.Select(MapLink).ToList() ?? new List<Links>();
             return artist;
         }
 
@@ -649,6 +649,13 @@ namespace NzbDrone.Core.Music.MetadataSource.SkyHook
                 RemoteUrl = arg.Url,
                 CoverType = MapCoverType(arg.CoverType)
             };
+        }
+
+        // The embedded collection columns are NOT NULL (default '[]'): a remote resource that omits a
+        // collection must map to an empty one, never null.
+        private static List<T> OrEmpty<T>(List<T> list)
+        {
+            return list ?? new List<T>();
         }
 
         private static Links MapLink(LinkResource arg)

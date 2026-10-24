@@ -113,6 +113,34 @@ namespace NzbDrone.Core.Test.MusicTests.MediaCoverTests
             covers.Single().Url.Should().Be("/MediaCover/Artists/12/banner" + extension);
         }
 
+        [Test]
+        public void should_rebuild_covers_from_disk_when_the_stored_list_is_empty_without_exposing_their_file_paths()
+        {
+            var covers = new List<MediaCover.MediaCover>();
+
+            Mocker.GetMock<IDiskProvider>().Setup(c => c.FolderExists(It.IsAny<string>())).Returns(true);
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(c => c.GetFileInfos(It.IsAny<string>(), false))
+                  .Returns(new List<FileInfo>
+                  {
+                      new FileInfo("/cache/Artists/12/poster.jpg"),
+                      new FileInfo("/cache/Artists/12/poster-250.jpg"),
+                      new FileInfo("/cache/Artists/12/clearlogo.png")
+                  });
+            Mocker.GetMock<IDiskProvider>().Setup(c => c.FileExists(It.IsAny<string>())).Returns(false);
+
+            Subject.ConvertToLocalUrls(12, MediaCoverEntity.Artist, covers);
+
+            covers.Select(c => (c.CoverType, c.Url)).Should().BeEquivalentTo(new[]
+            {
+                (MediaCoverTypes.Poster, "/MediaCover/Artists/12/poster.jpg"),
+                (MediaCoverTypes.Clearlogo, "/MediaCover/Artists/12/clearlogo.png")
+            });
+
+            // The file path read the extension from is not a remote URL: it must not reach the API.
+            covers.Should().OnlyContain(c => c.RemoteUrl == null);
+        }
+
         private void GivenCoverUrls()
         {
             _artist.Metadata.Value.Images = new List<MediaCover.MediaCover> { new MediaCover.MediaCover(MediaCoverTypes.Poster, "https://img.example/artist.jpg") };

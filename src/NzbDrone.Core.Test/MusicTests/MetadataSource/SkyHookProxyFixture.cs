@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using FluentAssertions;
 using Moq;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Configuration;
@@ -399,6 +400,101 @@ namespace NzbDrone.Core.Test.MusicTests.MetadataSource
             var withStudio = _proxy.FilterAlbums(albums, 1).ToList();
 
             withStudio.Should().ContainSingle().Which.SecondaryTypes.Should().BeEmpty();
+        }
+
+        // The embedded collection columns are NOT NULL: a remote resource that omits a collection
+        // (links, images, genres, old ids, labels, countries) must map to an empty list. Found live: an
+        // artist refresh failed with "NOT NULL constraint failed: Music_Albums.Links".
+        private static string WithoutOptionalCollections(string json)
+        {
+            var omitted = new[] { "links", "images", "genres", "oldids", "oldrecordingids", "artistaliases", "label", "country" };
+
+            void Strip(JToken token)
+            {
+                if (token is JObject obj)
+                {
+                    foreach (var property in obj.Properties().ToList())
+                    {
+                        if (omitted.Contains(property.Name.ToLowerInvariant()))
+                        {
+                            property.Remove();
+                        }
+                        else
+                        {
+                            Strip(property.Value);
+                        }
+                    }
+                }
+                else if (token is JArray array)
+                {
+                    foreach (var item in array)
+                    {
+                        Strip(item);
+                    }
+                }
+            }
+
+            var root = JToken.Parse(json);
+            Strip(root);
+
+            return root.ToString();
+        }
+
+        private static void AssertArtistMetadataHasNoNullCollections(ArtistMetadata metadata)
+        {
+            metadata.OldForeignArtistIds.Should().NotBeNull();
+            metadata.Aliases.Should().NotBeNull();
+            metadata.Genres.Should().NotBeNull();
+            metadata.Images.Should().NotBeNull();
+            metadata.Links.Should().NotBeNull();
+        }
+
+        [Test]
+        public void should_map_an_artist_whose_resource_omits_every_optional_collection_to_empty_lists()
+        {
+            GivenArtistResponse(json: WithoutOptionalCollections(SkyHookMusicTestData.BlackKeysJson));
+
+            var artist = _proxy.GetArtistInfo(SkyHookMusicTestData.BlackKeysId, 1);
+
+            AssertArtistMetadataHasNoNullCollections(artist.Metadata.Value);
+
+            foreach (var album in artist.Albums.Value)
+            {
+                album.OldForeignAlbumIds.Should().NotBeNull();
+                album.Genres.Should().NotBeNull();
+                album.Images.Should().NotBeNull();
+                album.Links.Should().NotBeNull();
+            }
+        }
+
+        [Test]
+        public void should_map_an_album_whose_resource_omits_every_optional_collection_to_empty_lists()
+        {
+            GivenAlbumResponse(json: WithoutOptionalCollections(SkyHookMusicTestData.ThickfreaknessJson));
+
+            var (_, album, artists) = _proxy.GetAlbumInfo(SkyHookMusicTestData.ThickfreaknessId);
+
+            album.OldForeignAlbumIds.Should().NotBeNull();
+            album.Genres.Should().NotBeNull();
+            album.Images.Should().NotBeNull();
+            album.Links.Should().NotBeNull();
+            artists.Should().NotBeEmpty();
+            artists.ForEach(AssertArtistMetadataHasNoNullCollections);
+
+            album.AlbumReleases.Value.Should().NotBeEmpty();
+
+            foreach (var release in album.AlbumReleases.Value)
+            {
+                release.OldForeignReleaseIds.Should().NotBeNull();
+                release.Label.Should().NotBeNull();
+                release.Country.Should().NotBeNull();
+                release.Tracks.Value.Should().NotBeEmpty();
+                release.Tracks.Value.ForEach(track =>
+                {
+                    track.OldForeignTrackIds.Should().NotBeNull();
+                    track.OldForeignRecordingIds.Should().NotBeNull();
+                });
+            }
         }
     }
 }

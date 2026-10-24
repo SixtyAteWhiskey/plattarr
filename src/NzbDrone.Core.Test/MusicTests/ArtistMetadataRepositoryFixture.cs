@@ -4,6 +4,7 @@ using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Music;
 using NzbDrone.Core.Test.Framework;
 
@@ -54,6 +55,26 @@ namespace NzbDrone.Core.Test.MusicTests
             updated = Subject.UpsertMany(_metadataList);
             updated.Should().BeTrue();
             AllStoredModels.Should().HaveCount(_metadataList.Count);
+        }
+
+        [Test]
+        public void upsert_many_should_replace_the_images_of_an_existing_row()
+        {
+            var first = MusicTestData.NewMetadata();
+            first.Images = new List<MediaCover.MediaCover> { new MediaCover.MediaCover(MediaCoverTypes.Poster, "https://img.example/old.jpg") };
+            Subject.UpsertMany(new List<ArtistMetadata> { first });
+
+            var second = MusicTestData.NewMetadata();
+            second.Images = new List<MediaCover.MediaCover>
+            {
+                new MediaCover.MediaCover(MediaCoverTypes.Poster, "https://img.example/new-poster.jpg"),
+                new MediaCover.MediaCover(MediaCoverTypes.Fanart, "https://img.example/new-fanart.jpg")
+            };
+
+            Subject.UpsertMany(new List<ArtistMetadata> { second }).Should().BeTrue();
+
+            AllStoredModels.Should().ContainSingle().Which.Images.Select(i => i.RemoteUrl)
+                .Should().Equal("https://img.example/new-poster.jpg", "https://img.example/new-fanart.jpg");
         }
 
         [Test]
