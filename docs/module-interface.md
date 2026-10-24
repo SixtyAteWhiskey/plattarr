@@ -2857,6 +2857,52 @@ provider talks to a service interface and a proxy, so the request shape is pinne
 (54 skipped).
 
 
+**Live proof (session 56, dev stack on `a4a0e47`, migration 11).** Everything went through the API on the dev stack with real
+data and no SQL seeding: a Music root folder; a throwaway qBittorrent client with a Music category; a proof Torznab indexer
+(`t=music`) serving two hand-built torrents of generated, tagged FLAC (a bencode builder; the files were pre-placed in the
+save path so the torrents completed at once); a Webhook, an Emby / Jellyfin and a CustomScript notification, the first two
+pointed at small listeners that log each request. Real metadata: The Black Keys from the Lidarr metadata service (14 albums).
+The real Knaben indexer also returned Music rows for an interactive search (`release/music?albumId=`), so the search path was
+exercised against a live indexer.
+
+| Flow | Observed |
+|---|---|
+| Add artist | `ArtistAdd` webhook; album and track rows refreshed |
+| Grab (`release/music` after a search) | `Grab` webhook; Emby "Album Grabbed"; queue item with `artist`, `album`, track counts |
+| Import and rename | 10 tracks imported with `renameTracks` on; `Retag` webhooks (10, one per track), Emby "Track Retagged" x10; one `Download` webhook and one Emby "Album Downloaded (10 Tracks Imported)"; `Rename` webhook |
+| Library refresh after import | Emby `GET /Items?...includeItemTypes=MusicArtist&fields=Path,ProviderIds` (no `years`), then `POST /Library/Media/Updated` with `Created` for the mapped and the reported path |
+| Album delete with files | `AlbumDelete` webhook; Emby "Album Deleted" ("Album removed and all files were deleted"); refresh posted as `Modified` |
+| Failed download | queue item removed with `blocklist=true`: `DownloadFailure` webhook, one Music blocklist row, `downloadFailed` history; **Emby received nothing** (by design, matches Lidarr) |
+| Regrab and reimport | `Grab`, then `Download` again |
+| Artist delete | one `AlbumDelete` webhook and one Emby "Album Deleted" per album (14), then `ArtistDelete` / "Artist Deleted" |
+
+The album events during an artist delete say "files were not deleted" while the artist event says "all files were deleted".
+That is Lidarr's behavior, kept: `AlbumService.Handle(ArtistsDeletedEvent)` calls `DeleteMany`, which publishes
+`AlbumDeletedEvent(album, false, false)` for each album (checked in the pinned tree).
+
+**Findings from the live run (none fixed in this slice):**
+
+1. **Hardlink import plus tag writing damages seeding.** With `copyUsingHardlinks` on and `writeAudioTags` set to `newFiles`,
+   the retag rewrites the hardlinked file in place, so the seeding copy changes and qBittorrent's recheck drops from 100% to
+   0%. Upstream parity (Lidarr has the same pairing). The default `writeAudioTags` is `no`, so a fresh install is not affected.
+   Decision for the owner: leave as is, or make tag writing force a copy.
+2. **`FpcalcCheck` warns permanently on a default install.** `allowFingerprinting` defaults to `newFiles` and `fpcalc` is not
+   shipped, so the health page shows the warning as soon as a Music root folder exists. Either ship `fpcalc` or default
+   fingerprinting to `never`.
+3. **The `Retag` webhook payload has `trackFile.id` 0.** The path and tag changes are correct; the cause was not
+   investigated.
+4. **An empty album folder remains after an album delete with files.** The track files go; the folder stays.
+5. **`DELETE /api/v3/blocklist/{id}` does nothing for a Music row** (it is the Movies route and answers without an error). The
+   Music route is `DELETE /api/v3/blocklist/music/{id}`. The shared route should answer 404 for an id it does not own.
+6. **The header search box has no Music entry.** It searches Movies and Series only (`ADD_NEW_KINDS` is `movies`, `tv`), so a
+   typed artist name finds no library artist and offers no "add artist" suggestion. The Music add page is reached from the
+   sidebar.
+
+**Clean-up.** The proof objects were removed (artist with files, notifications, indexer, client, Music root folder, queue and
+blocklist rows, torrents), `renameTracks` and `writeAudioTags` were put back, the owner's qBittorrent client and the Knaben
+flags were restored, and the listeners and the throwaway qBittorrent stack were stopped. `RssSync` and `Housekeeping`
+completed; the Movies baseline is unchanged at 71 / 57 / 64 and the health page is empty.
+
 ## Decision record
 
 Owner answers, 2026-10-20, to the six questions in revision 1:
