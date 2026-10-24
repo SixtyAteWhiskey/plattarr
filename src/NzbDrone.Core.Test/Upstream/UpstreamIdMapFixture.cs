@@ -10,7 +10,7 @@ using NzbDrone.Core.Test.Framework;
 namespace NzbDrone.Core.Test.Upstream
 {
     // The cases are the upstream apps' own ID and name tables, copied from
-    // Radarr 14afe52 and Sonarr 7ccafd3, not from the maps under test. A map entry
+    // Radarr 14afe52, Sonarr 7ccafd3 and Lidarr aec88028, not from the maps under test. A map entry
     // is right when the catalog entry it points at has the upstream name.
     [TestFixture]
     public class UpstreamIdMapFixture : CoreTest
@@ -73,6 +73,48 @@ namespace NzbDrone.Core.Test.Upstream
             new object[] { 20, "Bluray-1080p Remux" },
             new object[] { 21, "Bluray-2160p Remux" },
             new object[] { 22, "Bluray-576p" },
+        };
+
+        private static readonly object[] LidarrQualities =
+        {
+            new object[] { 0, "Unknown" },
+            new object[] { 1, "MP3-192" },
+            new object[] { 2, "MP3-VBR-V0" },
+            new object[] { 3, "MP3-256" },
+            new object[] { 4, "MP3-320" },
+            new object[] { 5, "MP3-160" },
+            new object[] { 6, "FLAC" },
+            new object[] { 7, "ALAC" },
+            new object[] { 8, "MP3-VBR-V2" },
+            new object[] { 9, "AAC-192" },
+            new object[] { 10, "AAC-256" },
+            new object[] { 11, "AAC-320" },
+            new object[] { 12, "AAC-VBR" },
+            new object[] { 13, "WAV" },
+            new object[] { 14, "OGG Vorbis Q10" },
+            new object[] { 15, "OGG Vorbis Q9" },
+            new object[] { 16, "OGG Vorbis Q8" },
+            new object[] { 17, "OGG Vorbis Q7" },
+            new object[] { 18, "OGG Vorbis Q6" },
+            new object[] { 19, "OGG Vorbis Q5" },
+            new object[] { 20, "WMA" },
+            new object[] { 21, "FLAC 24bit" },
+            new object[] { 22, "MP3-128" },
+            new object[] { 23, "MP3-96" },
+            new object[] { 24, "MP3-80" },
+            new object[] { 25, "MP3-64" },
+            new object[] { 26, "MP3-56" },
+            new object[] { 27, "MP3-48" },
+            new object[] { 28, "MP3-40" },
+            new object[] { 29, "MP3-32" },
+            new object[] { 30, "MP3-24" },
+            new object[] { 31, "MP3-16" },
+            new object[] { 32, "MP3-8" },
+            new object[] { 33, "MP3-112" },
+            new object[] { 34, "MP3-224" },
+            new object[] { 35, "APE" },
+            new object[] { 36, "WavPack" },
+            new object[] { 37, "ALAC 24bit" }
         };
 
         private static readonly object[] RadarrLanguages =
@@ -226,6 +268,16 @@ namespace NzbDrone.Core.Test.Upstream
             back.Should().Be(sonarrId);
         }
 
+        [TestCaseSource(nameof(LidarrQualities))]
+        public void lidarr_quality_should_map_to_audio_catalog_entry_with_same_name(int lidarrId, string name)
+        {
+            var catalog = AudioQuality.FindById(LidarrQualityIds.ToCatalog(lidarrId));
+
+            catalog.Name.Should().Be(name);
+            LidarrQualityIds.TryToUpstream(catalog.Id, out var back).Should().BeTrue();
+            back.Should().Be(lidarrId);
+        }
+
         [TestCaseSource(nameof(RadarrLanguages))]
         public void radarr_language_should_map_to_catalog_entry_with_same_name(int radarrId, string name)
         {
@@ -251,6 +303,7 @@ namespace NzbDrone.Core.Test.Upstream
         {
             RadarrQualityIds.UpstreamToCatalog.Keys.Should().BeEquivalentTo(RadarrQualities.Cast<object[]>().Select(c => (int)c[0]));
             SonarrQualityIds.UpstreamToCatalog.Keys.Should().BeEquivalentTo(SonarrQualities.Cast<object[]>().Select(c => (int)c[0]));
+            LidarrQualityIds.UpstreamToCatalog.Keys.Should().BeEquivalentTo(LidarrQualities.Cast<object[]>().Select(c => (int)c[0]));
             RadarrLanguageIds.UpstreamToCatalog.Keys.Should().BeEquivalentTo(RadarrLanguages.Cast<object[]>().Select(c => (int)c[0]));
             SonarrLanguageIds.UpstreamToCatalog.Keys.Should().BeEquivalentTo(SonarrLanguages.Cast<object[]>().Select(c => (int)c[0]));
         }
@@ -261,6 +314,11 @@ namespace NzbDrone.Core.Test.Upstream
             foreach (var quality in Quality.All)
             {
                 (RadarrQualityIds.TryToUpstream(quality.Id, out _) || SonarrQualityIds.TryToUpstream(quality.Id, out _)).Should().BeTrue(quality.Name);
+            }
+
+            foreach (var quality in AudioQuality.All)
+            {
+                LidarrQualityIds.TryToUpstream(quality.Id, out _).Should().BeTrue(quality.Name);
             }
 
             foreach (var language in Language.All)
@@ -276,10 +334,30 @@ namespace NzbDrone.Core.Test.Upstream
         }
 
         [Test]
+        public void lidarr_should_have_no_id_for_video_qualities()
+        {
+            foreach (var quality in Quality.All.Where(q => q.Id != 0))
+            {
+                LidarrQualityIds.TryToUpstream(quality.Id, out _).Should().BeFalse(quality.Name);
+            }
+        }
+
+        [Test]
+        public void radarr_and_sonarr_should_have_no_id_for_audio_qualities()
+        {
+            foreach (var quality in AudioQuality.All.Where(q => q.Id != 0))
+            {
+                RadarrQualityIds.TryToUpstream(quality.Id, out _).Should().BeFalse(quality.Name);
+                SonarrQualityIds.TryToUpstream(quality.Id, out _).Should().BeFalse(quality.Name);
+            }
+        }
+
+        [Test]
         public void unknown_upstream_id_should_throw()
         {
             Assert.Throws<System.Collections.Generic.KeyNotFoundException>(() => RadarrQualityIds.ToCatalog(11));
             Assert.Throws<System.Collections.Generic.KeyNotFoundException>(() => SonarrQualityIds.ToCatalog(11));
+            Assert.Throws<System.Collections.Generic.KeyNotFoundException>(() => LidarrQualityIds.ToCatalog(38));
         }
     }
 }

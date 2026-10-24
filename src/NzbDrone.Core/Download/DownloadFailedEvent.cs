@@ -23,7 +23,7 @@ namespace NzbDrone.Core.Download
         // The movie, series or artist the download was for.
         public int ParentId { get; set; }
 
-        // The library items the download covered: the movie itself, the episodes or the tracks.
+        // The library items the download covered: the movie itself, the episodes or the albums.
         public List<int> ItemIds { get; set; }
         public QualityModel Quality { get; set; }
         public string SourceTitle { get; set; }
