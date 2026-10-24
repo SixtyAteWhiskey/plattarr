@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json.Serialization;
 using NzbDrone.Core.Datastore;
 
 namespace NzbDrone.Core.Qualities
@@ -16,6 +17,13 @@ namespace NzbDrone.Core.Qualities
         public AudioQuality Quality { get; set; }
 
         public Revision Revision { get; set; }
+
+        // How the parser reached the quality and the revision. Not stored.
+        [JsonIgnore]
+        public QualityDetectionSource QualityDetectionSource { get; set; }
+
+        [JsonIgnore]
+        public QualityDetectionSource RevisionDetectionSource { get; set; }
 
         public AudioQualityModel()
             : this(AudioQuality.Unknown, new Revision())

@@ -5,6 +5,7 @@ namespace NzbDrone.Core.Qualities
         Unknown,
         Name,
         Extension,
-        MediaInfo
+        MediaInfo,
+        TagLib
     }
 }

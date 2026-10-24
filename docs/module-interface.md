@@ -2223,6 +2223,62 @@ weight, the history and blocklist kind, the monitored filter on `GetFilesByArtis
 type converter, the default categories and a table name. Lesson: a mutation run restores the source
 file but not the built assembly, so rebuild before the next test run.
 
+### Music step 2: as built
+
+Built in session 49 against Lidarr `aec88028`. No migration, no table change, no service, no API, no
+scheduled task. Calls made while building (each is reversible):
+
+- **Ported into `NzbDrone.Core.Music.Parser`**: `Parser` (static: `ParseMusicPath`, `ParseMusicTitle`,
+  `ParseAlbumTitle`, `ParseAlbumTitleWithSearchCriteria`, `ParseReleaseGroup`, `ParseArtistName`,
+  `RemoveFileExtension`, and the extensions `CleanArtistName`, `CleanAlbumTitle`, `CleanTrackTitle`,
+  `NormalizeTrackTitle`, `RemoveBracketsAndContents`, `RemoveAfterDash`), `QualityParser` with the
+  `Codec`, `BitRate` and `SampleSize` enums, `SceneChecker`, `IsoCountries`, `IsoCountry`; in
+  `Music.Parser.Model`: `ParsedAlbumInfo`, `ParsedTrackInfo`, `ArtistTitleInfo`. Lidarr keeps its release
+  group parsing inside `Parser`, so there is no Music `ReleaseGroupParser` or `ParserCommon`.
+  `RegexReplace` and `InvalidDateException` are the core ones (identical to Lidarr's).
+- **Also ported because the parser needs them:** `Music.MediaFiles.MediaFileExtensions` (the audio
+  extensions and the quality each one implies; step 5 adds nothing to it, it is the whole file), and in
+  `NzbDrone.Core.Music` the `AlbumYearMatcher`, `IAlbumYearMatcher`, `AlbumYearMatchingOptions`,
+  `AlbumYearMatchResult` and `YearMatchConfidence` (`ParsedAlbumInfo.YearConfidence` is one). The matcher
+  is used by album lookup in step 3.
+- **Quality output is the audio catalog.** `QualityParser.ParseQuality` returns an `AudioQualityModel`;
+  every `Quality.X` of Lidarr became `AudioQuality.X` with no change of name or logic (the catalog names
+  are Lidarr's, step 0). `parsing_our_own_quality_enum_name` proves all 13 names re-parse.
+- **Detection sources (core change).** (a) `QualityDetectionSource.TagLib = 4` is appended (Lidarr's enum
+  was `Name, Extension, TagLib`, so its value would have collided with Plattarr's `MediaInfo = 3`).
+  (b) `AudioQualityModel` gains `QualityDetectionSource` and `RevisionDetectionSource`, both
+  `[JsonIgnore]`, so nothing about them is stored. (c) **Lidarr's `Name` was the enum's zero value, so a
+  title-based result needed no assignment. Plattarr's enum starts at `Unknown`, so the Music
+  `QualityParser` now sets `Name` explicitly** (empty title, and the model built by
+  `ParseQualityModifiers`); the extension and tag branches overwrite it as before. Without this, the
+  upstream `should_parse_quality_from_name` fails (it did on the first run).
+- **Kept as ported (Lidarr quirk):** a title with no codec and no known extension records
+  `Extension` as the source though the quality stays `Unknown`. Pinned by a test.
+- **Finding a clean name.** Lidarr's artist lookup is `ArtistService.FindByName`
+  (`ArtistRepository.FindByName(title.CleanArtistName())`) and `FindByNameInexact`. The repository method
+  has existed since step 1; the service is step 3. What step 2 changes: the test helper
+  `MusicTestData.Clean`, which stood in for `CleanArtistName`, now calls it, and a repository test proves
+  that the clean name stored for an artist and the one looked up agree for accents, case and punctuation
+  (`Beyoncé`, `Motörhead`, `Earth, Wind & Fire`, `Florence + The Machine`).
+- **Deferred on purpose.** `ParsingService` (needs `ArtistService` and `AlbumService`, step 3; its
+  fixtures `GetArtistFixture`, `GetAlbumsFixture`, `GetAlbumsWithYearFixture` go with it),
+  `FingerprintingService` and its fixture (step 5, with the `fpcalc` decision), `LocalTrack` and
+  `LocalAlbumRelease` (step 5), `RemoteAlbum` (step 4, as `RemoteRelease`), `ImportListItemInfo` (no Music
+  import lists). `ReleaseInfo` and `TorrentInfo` are the shared core types.
+
+**Tests.** Eleven of Lidarr's `ParserTests` fixtures run under `MusicTests/ParserTests`
+(`ArtistTitleInfo`, `CrapParser`, `ExtendedQualityParserRegex`, `HashedRelease`, `MusicParser`,
+`NormalizeTitle`, `Parser`, `PathParser`, `QualityParser`, `ReleaseGroupParser`, `YearParsing`): 455 cases,
+19 of them `[Ignore]`d upstream with Lidarr's own reasons (kept ignored). New in Plattarr: 9 for the
+detection sources, 19 for the file extensions, 13 for countries (two-letter, three-letter and name),
+19 for the year matcher, 2 for the stored model and the enum value, 4 for the artist lookup. Each new
+behavior was checked by breaking the code under test and seeing a test fail: the `Name` default in
+both places, the tag source, the stored-JSON flag, 24-bit FLAC, the any-release rule, the close-year
+bonus, a file extension, the accent removal, the enum value, the three-letter country code and the
+live-album rule (12 mutations; one survived the first time, the three-letter code, and got a test).
+Full verify: 0 warnings, 0 errors; Core 9,073 passed (502 more than before), 48 skipped; Api 89; Host
+48. The Music `DbTest`s (78) also pass on PostgreSQL 16.
+
 ## Decision record
 
 Owner answers, 2026-10-20, to the six questions in revision 1:
