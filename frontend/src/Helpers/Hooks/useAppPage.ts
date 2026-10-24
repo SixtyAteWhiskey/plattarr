@@ -4,14 +4,17 @@ import { createSelector } from 'reselect';
 import AppState from 'App/State/AppState';
 import { useInitializeLanguage } from 'Language/useLanguageName';
 import { fetchTranslations } from 'Store/Actions/appActions';
+import { fetchArtist } from 'Store/Actions/artistActions';
 import { fetchCustomFilters } from 'Store/Actions/customFilterActions';
 import { fetchMovies } from 'Store/Actions/movieActions';
 import { fetchMovieCollections } from 'Store/Actions/movieCollectionActions';
 import { fetchSeries } from 'Store/Actions/seriesActions';
 import {
+  fetchAudioQualityProfiles,
   fetchImportLists,
   fetchIndexerFlags,
   fetchLanguages,
+  fetchMetadataProfiles,
   fetchQualityProfiles,
   fetchUISettings,
 } from 'Store/Actions/settingsActions';
@@ -23,10 +26,13 @@ const createErrorsSelector = () =>
     (state: AppState) => state.movies.error,
     (state: AppState) => state.movieCollections.error,
     (state: AppState) => state.series.error,
+    (state: AppState) => state.artist.error,
     (state: AppState) => state.customFilters.error,
     (state: AppState) => state.tags.error,
     (state: AppState) => state.settings.ui.error,
     (state: AppState) => state.settings.qualityProfiles.error,
+    (state: AppState) => state.settings.audioQualityProfiles.error,
+    (state: AppState) => state.settings.metadataProfiles.error,
     (state: AppState) => state.settings.languages.error,
     (state: AppState) => state.settings.importLists.error,
     (state: AppState) => state.settings.indexerFlags.error,
@@ -36,10 +42,13 @@ const createErrorsSelector = () =>
       moviesError,
       movieCollectionsError,
       seriesError,
+      artistError,
       customFiltersError,
       tagsError,
       uiSettingsError,
       qualityProfilesError,
+      audioQualityProfilesError,
+      metadataProfilesError,
       languagesError,
       importListsError,
       indexerFlagsError,
@@ -50,10 +59,13 @@ const createErrorsSelector = () =>
         moviesError ||
         movieCollectionsError ||
         seriesError ||
+        artistError ||
         customFiltersError ||
         tagsError ||
         uiSettingsError ||
         qualityProfilesError ||
+        audioQualityProfilesError ||
+        metadataProfilesError ||
         languagesError ||
         importListsError ||
         indexerFlagsError ||
@@ -67,10 +79,13 @@ const createErrorsSelector = () =>
           moviesError,
           movieCollectionsError,
           seriesError,
+          artistError,
           customFiltersError,
           tagsError,
           uiSettingsError,
           qualityProfilesError,
+          audioQualityProfilesError,
+          metadataProfilesError,
           languagesError,
           importListsError,
           indexerFlagsError,
@@ -91,10 +106,13 @@ const useAppPage = () => {
       state.movies.isPopulated &&
       state.movieCollections.isPopulated &&
       state.series.isPopulated &&
+      state.artist.isPopulated &&
       state.customFilters.isPopulated &&
       state.tags.isPopulated &&
       state.settings.ui.isPopulated &&
       state.settings.qualityProfiles.isPopulated &&
+      state.settings.audioQualityProfiles.isPopulated &&
+      state.settings.metadataProfiles.isPopulated &&
       state.settings.languages.isPopulated &&
       state.settings.importLists.isPopulated &&
       state.settings.indexerFlags.isPopulated &&
@@ -121,9 +139,12 @@ const useAppPage = () => {
     dispatch(fetchMovies());
     dispatch(fetchMovieCollections());
     dispatch(fetchSeries());
+    dispatch(fetchArtist());
     dispatch(fetchCustomFilters());
     dispatch(fetchTags());
     dispatch(fetchQualityProfiles());
+    dispatch(fetchAudioQualityProfiles());
+    dispatch(fetchMetadataProfiles());
     dispatch(fetchLanguages());
     dispatch(fetchImportLists());
     dispatch(fetchIndexerFlags());

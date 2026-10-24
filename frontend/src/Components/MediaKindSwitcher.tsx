@@ -9,6 +9,7 @@ import styles from './MediaKindSwitcher.css';
 const OPTIONS: { kind: MediaKind; label: () => string }[] = [
   { kind: 'movies', label: () => translate('Movies') },
   { kind: 'tv', label: () => translate('Series') },
+  { kind: 'music', label: () => translate('Music') },
 ];
 
 function MediaKindSwitcher() {

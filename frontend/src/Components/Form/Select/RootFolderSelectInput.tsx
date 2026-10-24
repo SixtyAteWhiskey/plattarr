@@ -7,6 +7,7 @@ import {
   addRootFolder,
   fetchRootFolders,
 } from 'Store/Actions/rootFolderActions';
+import { fetchMusicRootFolders } from 'Store/Actions/settingsActions';
 import {
   addTvRootFolder,
   fetchTvRootFolders,
@@ -50,7 +51,12 @@ function createRootFolderOptionsSelector(
   includeNoChangeDisabled: boolean,
   mediaKind: MediaKind
 ) {
-  const section = mediaKind === 'tv' ? 'tvRootFolders' : 'rootFolders';
+  const sections = {
+    movies: 'rootFolders',
+    tv: 'tvRootFolders',
+    music: 'settings.musicRootFolders',
+  } as const;
+  const section = sections[mediaKind];
 
   return createSelector(createRootFoldersSelector(section), (rootFolders) => {
     const values: RootFolderSelectInputValue[] = rootFolders.items.map(
@@ -93,10 +99,14 @@ function createRootFolderOptionsSelector(
       });
     }
 
-    values.push({
-      key: ADD_NEW_KEY,
-      value: translate('AddANewPath'),
-    });
+    // Music root folders carry required defaults (name, profiles), so they are
+    // created on Settings > Media Management rather than from a bare path.
+    if (mediaKind !== 'music') {
+      values.push({
+        key: ADD_NEW_KEY,
+        value: translate('AddANewPath'),
+      });
+    }
 
     return {
       values,
@@ -145,6 +155,10 @@ function RootFolderSelectInput({
   const handleNewRootFolderSelect = useCallback(
     ({ value: newValue }: InputChanged<string>) => {
       setNewRootFolderPath(newValue);
+      if (mediaKind === 'music') {
+        return;
+      }
+
       dispatch(
         mediaKind === 'tv'
           ? addTvRootFolder({ path: newValue })
@@ -208,7 +222,13 @@ function RootFolderSelectInput({
   }, []);
 
   useEffect(() => {
-    dispatch(mediaKind === 'tv' ? fetchTvRootFolders() : fetchRootFolders());
+    if (mediaKind === 'tv') {
+      dispatch(fetchTvRootFolders());
+    } else if (mediaKind === 'music') {
+      dispatch(fetchMusicRootFolders());
+    } else {
+      dispatch(fetchRootFolders());
+    }
   }, [mediaKind, dispatch]);
 
   return (

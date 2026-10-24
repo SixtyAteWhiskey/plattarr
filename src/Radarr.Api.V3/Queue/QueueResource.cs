@@ -56,6 +56,14 @@ namespace Radarr.Api.V3.Queue
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public AlbumResource Album { get; set; }
+
+        // Tracks of the album's monitored release and how many of them have a file (Lidarr's queue fields; the
+        // artist views add the queued tracks to their progress). Written only for a Music download.
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? TrackFileCount { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? TrackHasFileCount { get; set; }
         public List<Language> Languages { get; set; }
         public QualityModel Quality { get; set; }
         public List<CustomFormatResource> CustomFormats { get; set; }
@@ -101,6 +109,7 @@ namespace Radarr.Api.V3.Queue
             var episode = model.GetEpisode();
             var artist = model.GetArtist();
             var album = model.GetAlbum();
+            var albumTracks = album?.AlbumReleases?.Value?.FirstOrDefault(x => x.Monitored)?.Tracks?.Value;
             var customFormats = model.RemoteRelease?.CustomFormats;
             var customFormatScore = model.GetMovie()?.QualityProfile?.CalculateCustomFormatScore(customFormats)
                                     ?? series?.QualityProfile?.Value?.CalculateCustomFormatScore(customFormats)
@@ -122,6 +131,8 @@ namespace Radarr.Api.V3.Queue
                 AlbumId = album?.Id,
                 Artist = includeArtist && artist != null ? artist.ToResource() : null,
                 Album = includeAlbum && album != null ? album.ToResource() : null,
+                TrackFileCount = album == null ? null : albumTracks?.Count ?? 0,
+                TrackHasFileCount = album == null ? null : albumTracks?.Count(x => x.HasFile) ?? 0,
                 Languages = model.Languages,
                 Quality = model.Quality,
                 CustomFormats = customFormats?.ToResource(false),

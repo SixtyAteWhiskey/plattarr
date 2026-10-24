@@ -32,6 +32,7 @@ namespace NzbDrone.Api.Test.v3.Music
                 "api/v3/artist/editor",
                 "api/v3/artist/lookup",
                 "api/v3/album/lookup",
+                "api/v3/search/music",
                 "api/v3/metadataprofile/schema"
             });
         }

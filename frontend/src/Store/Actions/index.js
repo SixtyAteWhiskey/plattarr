@@ -1,5 +1,12 @@
+import * as addArtist from './addArtistActions';
 import * as addMovie from './addMovieActions';
+import * as albums from './albumActions';
+import * as albumHistory from './albumHistoryActions';
+import * as albumSelection from './albumSelectionActions';
 import * as app from './appActions';
+import * as artist from './artistActions';
+import * as artistHistory from './artistHistoryActions';
+import * as artistIndex from './artistIndexActions';
 import * as blocklist from './blocklistActions';
 import * as calendar from './calendarActions';
 import * as captcha from './captchaActions';
@@ -21,6 +28,7 @@ import * as movieCredits from './movieCreditsActions';
 import * as movieFiles from './movieFileActions';
 import * as movieHistory from './movieHistoryActions';
 import * as movieIndex from './movieIndexActions';
+import * as musicOrganizePreview from './musicOrganizePreviewActions';
 import * as oAuth from './oAuthActions';
 import * as organizePreview from './organizePreviewActions';
 import * as parse from './parseActions';
@@ -28,6 +36,7 @@ import * as paths from './pathActions';
 import * as providerOptions from './providerOptionActions';
 import * as queue from './queueActions';
 import * as releases from './releaseActions';
+import * as retagPreview from './retagPreviewActions';
 import * as rootFolders from './rootFolderActions';
 import * as series from './seriesActions';
 import * as seriesHistory from './seriesHistoryActions';
@@ -36,6 +45,8 @@ import * as seriesOrganizePreview from './seriesOrganizePreviewActions';
 import * as settings from './settingsActions';
 import * as system from './systemActions';
 import * as tags from './tagActions';
+import * as tracks from './trackActions';
+import * as trackFiles from './trackFileActions';
 import * as tvBlocklist from './tvBlocklistActions';
 import * as tvCalendar from './tvCalendarActions';
 import * as tvHistory from './tvHistoryActions';
@@ -46,6 +57,16 @@ import * as tvWanted from './tvWantedActions';
 import * as wanted from './wantedActions';
 
 export default [
+  addArtist,
+  albums,
+  albumHistory,
+  albumSelection,
+  artist,
+  artistHistory,
+  artistIndex,
+  retagPreview,
+  trackFiles,
+  tracks,
   addMovie,
   app,
   blocklist,
@@ -81,6 +102,7 @@ export default [
   series,
   seriesHistory,
   seriesIndex,
+  musicOrganizePreview,
   seriesOrganizePreview,
   settings,
   system,

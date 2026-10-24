@@ -46,6 +46,10 @@ interface Queue extends ModelBase {
   outputPath: string;
   movieHasFile: boolean;
   movieId?: number;
+  artistId?: number;
+  albumId?: number;
+  trackFileCount?: number;
+  trackHasFileCount?: number;
   episodeHasFile?: boolean;
   seriesId?: number;
   episodeId?: number;

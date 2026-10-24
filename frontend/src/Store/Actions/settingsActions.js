@@ -1,6 +1,7 @@
 import { createAction } from 'redux-actions';
 import { handleThunks } from 'Store/thunks';
 import createHandleActions from './Creators/createHandleActions';
+import audioQualityProfiles from './Settings/audioQualityProfiles';
 import autoTaggings from './Settings/autoTaggings';
 import autoTaggingSpecifications from './Settings/autoTaggingSpecifications';
 import customFormats from './Settings/customFormats';
@@ -19,6 +20,10 @@ import languages from './Settings/languages';
 import mediaManagement from './Settings/mediaManagement';
 import metadata from './Settings/metadata';
 import metadataOptions from './Settings/metadataOptions';
+import metadataProfiles from './Settings/metadataProfiles';
+import musicNaming from './Settings/musicNaming';
+import musicNamingExamples from './Settings/musicNamingExamples';
+import musicRootFolders from './Settings/musicRootFolders';
 import naming from './Settings/naming';
 import namingExamples from './Settings/namingExamples';
 import notifications from './Settings/notifications';
@@ -32,6 +37,7 @@ import tvNaming from './Settings/tvNaming';
 import tvNamingExamples from './Settings/tvNamingExamples';
 import ui from './Settings/ui';
 
+export * from './Settings/audioQualityProfiles';
 export * from './Settings/autoTaggingSpecifications';
 export * from './Settings/autoTaggings';
 export * from './Settings/customFormatSpecifications.js';
@@ -50,6 +56,10 @@ export * from './Settings/languages';
 export * from './Settings/mediaManagement';
 export * from './Settings/metadata';
 export * from './Settings/metadataOptions';
+export * from './Settings/metadataProfiles';
+export * from './Settings/musicRootFolders';
+export * from './Settings/musicNaming';
+export * from './Settings/musicNamingExamples';
 export * from './Settings/naming';
 export * from './Settings/namingExamples';
 export * from './Settings/notifications';
@@ -73,6 +83,7 @@ export const section = 'settings';
 
 export const defaultState = {
   advancedSettings: false,
+  audioQualityProfiles: audioQualityProfiles.defaultState,
   autoTaggingSpecifications: autoTaggingSpecifications.defaultState,
   autoTaggings: autoTaggings.defaultState,
   customFormatSpecifications: customFormatSpecifications.defaultState,
@@ -91,6 +102,10 @@ export const defaultState = {
   mediaManagement: mediaManagement.defaultState,
   metadata: metadata.defaultState,
   metadataOptions: metadataOptions.defaultState,
+  metadataProfiles: metadataProfiles.defaultState,
+  musicRootFolders: musicRootFolders.defaultState,
+  musicNaming: musicNaming.defaultState,
+  musicNamingExamples: musicNamingExamples.defaultState,
   naming: naming.defaultState,
   namingExamples: namingExamples.defaultState,
   notifications: notifications.defaultState,
@@ -124,6 +139,7 @@ export const toggleAdvancedSettings = createAction(TOGGLE_ADVANCED_SETTINGS);
 // Action Handlers
 
 export const actionHandlers = handleThunks({
+  ...audioQualityProfiles.actionHandlers,
   ...autoTaggingSpecifications.actionHandlers,
   ...autoTaggings.actionHandlers,
   ...customFormatSpecifications.actionHandlers,
@@ -142,6 +158,10 @@ export const actionHandlers = handleThunks({
   ...mediaManagement.actionHandlers,
   ...metadata.actionHandlers,
   ...metadataOptions.actionHandlers,
+  ...metadataProfiles.actionHandlers,
+  ...musicRootFolders.actionHandlers,
+  ...musicNaming.actionHandlers,
+  ...musicNamingExamples.actionHandlers,
   ...naming.actionHandlers,
   ...namingExamples.actionHandlers,
   ...notifications.actionHandlers,
@@ -165,6 +185,7 @@ export const reducers = createHandleActions({
     return Object.assign({}, state, { advancedSettings: !state.advancedSettings });
   },
 
+  ...audioQualityProfiles.reducers,
   ...autoTaggingSpecifications.reducers,
   ...autoTaggings.reducers,
   ...customFormatSpecifications.reducers,
@@ -183,6 +204,10 @@ export const reducers = createHandleActions({
   ...mediaManagement.reducers,
   ...metadata.reducers,
   ...metadataOptions.reducers,
+  ...metadataProfiles.reducers,
+  ...musicRootFolders.reducers,
+  ...musicNaming.reducers,
+  ...musicNamingExamples.reducers,
   ...naming.reducers,
   ...namingExamples.reducers,
   ...notifications.reducers,
