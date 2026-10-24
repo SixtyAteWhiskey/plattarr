@@ -8387,6 +8387,99 @@
         }
       }
     },
+    "/api/v3/release/music": {
+      "post": {
+        "tags": [
+          "MusicRelease"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MusicReleaseResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "MusicRelease"
+        ],
+        "parameters": [
+          {
+            "name": "albumId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "artistId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MusicReleaseResource"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v3/release/music/push": {
+      "post": {
+        "tags": [
+          "MusicReleasePush"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MusicReleaseResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MusicReleaseResource"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
     "/api/v3/music/rootfolder": {
       "post": {
         "tags": [
@@ -19299,6 +19392,172 @@
         },
         "additionalProperties": false
       },
+      "MusicReleaseResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "guid": {
+            "type": "string",
+            "nullable": true
+          },
+          "quality": {
+            "$ref": "#/components/schemas/AudioQualityModel"
+          },
+          "qualityWeight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "age": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ageHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "ageMinutes": {
+            "type": "number",
+            "format": "double"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "indexerId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "indexer": {
+            "type": "string",
+            "nullable": true
+          },
+          "releaseGroup": {
+            "type": "string",
+            "nullable": true
+          },
+          "subGroup": {
+            "type": "string",
+            "nullable": true
+          },
+          "releaseHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "discography": {
+            "type": "boolean"
+          },
+          "sceneSource": {
+            "type": "boolean"
+          },
+          "artistName": {
+            "type": "string",
+            "nullable": true
+          },
+          "albumTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "approved": {
+            "type": "boolean"
+          },
+          "temporarilyRejected": {
+            "type": "boolean"
+          },
+          "rejected": {
+            "type": "boolean"
+          },
+          "rejections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "publishDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "commentUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "downloadUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "infoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "downloadAllowed": {
+            "type": "boolean"
+          },
+          "releaseWeight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "customFormats": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomFormatResource"
+            },
+            "nullable": true
+          },
+          "customFormatScore": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "magnetUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "infoHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "seeders": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "leechers": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "protocol": {
+            "$ref": "#/components/schemas/DownloadProtocol"
+          },
+          "indexerFlags": { },
+          "artistId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "albumId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "downloadClientId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "downloadClient": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "MusicRootFolderResource": {
         "type": "object",
         "properties": {
@@ -23680,6 +23939,12 @@
     },
     {
       "name": "MusicParse"
+    },
+    {
+      "name": "MusicRelease"
+    },
+    {
+      "name": "MusicReleasePush"
     },
     {
       "name": "MusicRootFolder"

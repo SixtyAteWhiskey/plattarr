@@ -1,0 +1,160 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using NzbDrone.Core.DecisionEngine;
+using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Music;
+using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Qualities;
+using Radarr.Api.V3.CustomFormats;
+using Radarr.Http.REST;
+
+namespace Radarr.Api.V3.Music.Releases
+{
+    // Lidarr's ReleaseResource. The quality is the audio catalog's; the protocol is the shared
+    // DownloadProtocol enum, as for Movies and TV.
+    public class MusicReleaseResource : RestResource
+    {
+        public string Guid { get; set; }
+        public AudioQualityModel Quality { get; set; }
+        public int QualityWeight { get; set; }
+        public int Age { get; set; }
+        public double AgeHours { get; set; }
+        public double AgeMinutes { get; set; }
+        public long Size { get; set; }
+        public int IndexerId { get; set; }
+        public string Indexer { get; set; }
+        public string ReleaseGroup { get; set; }
+        public string SubGroup { get; set; }
+        public string ReleaseHash { get; set; }
+        public string Title { get; set; }
+        public bool Discography { get; set; }
+        public bool SceneSource { get; set; }
+        public string ArtistName { get; set; }
+        public string AlbumTitle { get; set; }
+        public bool Approved { get; set; }
+        public bool TemporarilyRejected { get; set; }
+        public bool Rejected { get; set; }
+        public IEnumerable<string> Rejections { get; set; }
+        public DateTime PublishDate { get; set; }
+        public string CommentUrl { get; set; }
+        public string DownloadUrl { get; set; }
+        public string InfoUrl { get; set; }
+        public bool DownloadAllowed { get; set; }
+        public int ReleaseWeight { get; set; }
+        public List<CustomFormatResource> CustomFormats { get; set; }
+        public int CustomFormatScore { get; set; }
+
+        public string MagnetUrl { get; set; }
+        public string InfoHash { get; set; }
+        public int? Seeders { get; set; }
+        public int? Leechers { get; set; }
+        public DownloadProtocol Protocol { get; set; }
+        public dynamic IndexerFlags { get; set; }
+
+        // Sent when queuing an unknown release
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public int? ArtistId { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public int? AlbumId { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public int? DownloadClientId { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public string DownloadClient { get; set; }
+    }
+
+    public static class MusicReleaseResourceMapper
+    {
+        public static MusicReleaseResource ToResource(this DownloadDecision model)
+        {
+            var remoteAlbum = model.GetRemoteAlbum();
+            var releaseInfo = remoteAlbum.Release;
+            var parsedAlbumInfo = remoteAlbum.ParsedAlbumInfo;
+            var torrentInfo = (releaseInfo as TorrentInfo) ?? new TorrentInfo();
+            var indexerFlags = torrentInfo.ToIndexerFlags().ToString().Split(new[] { ", " }, StringSplitOptions.None).Where(x => x != "0");
+
+            return new MusicReleaseResource
+            {
+                Guid = releaseInfo.Guid,
+                Quality = parsedAlbumInfo.Quality,
+
+                // QualityWeight
+                Age = releaseInfo.Age,
+                AgeHours = releaseInfo.AgeHours,
+                AgeMinutes = releaseInfo.AgeMinutes,
+                Size = releaseInfo.Size.GetValueOrDefault(),
+                IndexerId = releaseInfo.IndexerId,
+                Indexer = releaseInfo.Indexer,
+                ReleaseGroup = parsedAlbumInfo.ReleaseGroup,
+                ReleaseHash = parsedAlbumInfo.ReleaseHash,
+                Title = releaseInfo.Title,
+                ArtistName = parsedAlbumInfo.ArtistName,
+                AlbumTitle = parsedAlbumInfo.AlbumTitle,
+                Discography = parsedAlbumInfo.Discography,
+                Approved = model.Approved,
+                TemporarilyRejected = model.TemporarilyRejected,
+                Rejected = model.Rejected,
+                Rejections = model.Rejections.Select(r => r.Message).ToList(),
+                PublishDate = releaseInfo.PublishDate,
+                CommentUrl = releaseInfo.CommentUrl,
+                DownloadUrl = releaseInfo.DownloadUrl,
+                InfoUrl = releaseInfo.InfoUrl,
+                DownloadAllowed = remoteAlbum.DownloadAllowed,
+
+                // ReleaseWeight
+                CustomFormatScore = remoteAlbum.CustomFormatScore,
+                CustomFormats = remoteAlbum.CustomFormats?.ToResource(false),
+
+                MagnetUrl = torrentInfo.MagnetUrl,
+                InfoHash = torrentInfo.InfoHash,
+                Seeders = torrentInfo.Seeders,
+                Leechers = (torrentInfo.Peers.HasValue && torrentInfo.Seeders.HasValue) ? (torrentInfo.Peers.Value - torrentInfo.Seeders.Value) : (int?)null,
+                Protocol = releaseInfo.DownloadProtocol,
+                IndexerFlags = indexerFlags
+            };
+        }
+
+        public static ReleaseInfo ToModel(this MusicReleaseResource resource)
+        {
+            ReleaseInfo model;
+
+            if (resource.Protocol == DownloadProtocol.Torrent)
+            {
+                model = new TorrentInfo
+                {
+                    MagnetUrl = resource.MagnetUrl,
+                    InfoHash = resource.InfoHash,
+                    Seeders = resource.Seeders,
+                    Peers = (resource.Seeders.HasValue && resource.Leechers.HasValue) ? (resource.Seeders + resource.Leechers) : null
+                };
+
+                if (resource.IndexerFlags is JsonElement { ValueKind: JsonValueKind.Number } indexerFlags)
+                {
+                    model.AddIndexerFlags((IndexerFlags)indexerFlags.GetInt32());
+                }
+            }
+            else
+            {
+                model = new ReleaseInfo();
+            }
+
+            model.Guid = resource.Guid;
+            model.Title = resource.Title;
+            model.Size = resource.Size;
+            model.DownloadUrl = resource.DownloadUrl;
+            model.InfoUrl = resource.InfoUrl;
+            model.CommentUrl = resource.CommentUrl;
+            model.IndexerId = resource.IndexerId;
+            model.Indexer = resource.Indexer;
+            model.DownloadProtocol = resource.Protocol;
+            model.PublishDate = resource.PublishDate.ToUniversalTime();
+
+            return model;
+        }
+    }
+}
