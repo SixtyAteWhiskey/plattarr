@@ -72,6 +72,59 @@ namespace NzbDrone.Core.Test.MusicTests
                 .Verify(v => v.DeleteMany(It.Is<List<AudioQualityDefinition>>(d => d.Count == 1)), Times.Once());
         }
 
+        private void GivenEditedDefinitions()
+        {
+            var edited = AudioQuality.DefaultQualityDefinitions
+                .Select(d => new AudioQualityDefinition(d.Quality) { Id = d.Quality.Id, Title = "My " + d.Quality.Name, MinSize = 1, MaxSize = 2, PreferredSize = 1.5 })
+                .ToList();
+
+            Mocker.GetMock<IAudioQualityDefinitionRepository>().Setup(s => s.All()).Returns(edited);
+        }
+
+        [Test]
+        public void reset_should_restore_the_sizes_and_keep_the_titles()
+        {
+            GivenEditedDefinitions();
+            List<AudioQualityDefinition> saved = null;
+            Mocker.GetMock<IAudioQualityDefinitionRepository>()
+                .Setup(s => s.UpdateMany(It.IsAny<List<AudioQualityDefinition>>()))
+                .Callback<IList<AudioQualityDefinition>>(l => saved = l.ToList());
+
+            Subject.Execute(new ResetAudioQualityDefinitionsCommand());
+
+            saved.Should().HaveCount(AudioQuality.All.Count);
+
+            var flac = saved.Single(d => d.Quality == AudioQuality.FLAC);
+            var defaults = AudioQuality.DefaultQualityDefinitions.Single(d => d.Quality == AudioQuality.FLAC);
+
+            flac.MinSize.Should().Be(defaults.MinSize);
+            flac.MaxSize.Should().Be(defaults.MaxSize);
+            flac.PreferredSize.Should().Be(defaults.PreferredSize);
+            flac.Title.Should().Be("My FLAC");
+        }
+
+        [Test]
+        public void reset_should_restore_the_titles_when_asked()
+        {
+            GivenEditedDefinitions();
+            List<AudioQualityDefinition> saved = null;
+            Mocker.GetMock<IAudioQualityDefinitionRepository>()
+                .Setup(s => s.UpdateMany(It.IsAny<List<AudioQualityDefinition>>()))
+                .Callback<IList<AudioQualityDefinition>>(l => saved = l.ToList());
+
+            Subject.Execute(new ResetAudioQualityDefinitionsCommand(true));
+
+            saved.Single(d => d.Quality == AudioQuality.FLAC).Title.Should().Be("FLAC");
+        }
+
+        [Test]
+        public void reset_command_should_not_share_a_name_with_the_video_command()
+        {
+            // Commands are found by type name.
+            typeof(ResetAudioQualityDefinitionsCommand).Name.Replace("Command", string.Empty)
+                .Should().NotBe(typeof(NzbDrone.Core.Qualities.Commands.ResetQualityDefinitionsCommand).Name.Replace("Command", string.Empty));
+        }
+
         [Test]
         public void should_give_each_definition_its_default_weight_and_group()
         {

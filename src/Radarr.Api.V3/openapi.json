@@ -27,6 +27,321 @@
     }
   ],
   "paths": {
+    "/api/v3/album": {
+      "get": {
+        "tags": [
+          "Album"
+        ],
+        "parameters": [
+          {
+            "name": "artistId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "albumIds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int32"
+              }
+            }
+          },
+          {
+            "name": "foreignAlbumId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeAllArtistAlbums",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AlbumResource"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AlbumResource"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AlbumResource"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Album"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumResource"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumResource"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v3/album/{id}": {
+      "put": {
+        "tags": [
+          "Album"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumResource"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumResource"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Album"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "deleteFiles",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "addImportListExclusion",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Album"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlbumResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v3/album/monitor": {
+      "put": {
+        "tags": [
+          "Album"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumsMonitoredResource"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumsMonitoredResource"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumsMonitoredResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v3/album/lookup": {
+      "get": {
+        "tags": [
+          "AlbumLookup"
+        ],
+        "parameters": [
+          {
+            "name": "term",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AlbumResource"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v3/albumstudio": {
+      "post": {
+        "tags": [
+          "AlbumStudio"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumStudioResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v3/alttitle": {
       "get": {
         "tags": [
@@ -112,6 +427,644 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiInfoResource"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v3/artist": {
+      "get": {
+        "tags": [
+          "Artist"
+        ],
+        "parameters": [
+          {
+            "name": "mbId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArtistResource"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Artist"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtistResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtistResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v3/artist/{id}": {
+      "put": {
+        "tags": [
+          "Artist"
+        ],
+        "parameters": [
+          {
+            "name": "moveFiles",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtistResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtistResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Artist"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "deleteFiles",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "addImportListExclusion",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Artist"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtistResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v3/artist/editor": {
+      "put": {
+        "tags": [
+          "ArtistEditor"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtistEditorResource"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtistEditorResource"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtistEditorResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ArtistEditor"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtistEditorResource"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtistEditorResource"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtistEditorResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v3/artist/lookup": {
+      "get": {
+        "tags": [
+          "ArtistLookup"
+        ],
+        "parameters": [
+          {
+            "name": "term",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArtistResource"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v3/music/qualitydefinition/{id}": {
+      "put": {
+        "tags": [
+          "AudioQualityDefinition"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AudioQualityDefinitionResource"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AudioQualityDefinitionResource"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AudioQualityDefinitionResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioQualityDefinitionResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "AudioQualityDefinition"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioQualityDefinitionResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v3/music/qualitydefinition": {
+      "get": {
+        "tags": [
+          "AudioQualityDefinition"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AudioQualityDefinitionResource"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AudioQualityDefinitionResource"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AudioQualityDefinitionResource"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v3/music/qualitydefinition/update": {
+      "put": {
+        "tags": [
+          "AudioQualityDefinition"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AudioQualityDefinitionResource"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AudioQualityDefinitionResource"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AudioQualityDefinitionResource"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v3/music/qualityprofile": {
+      "post": {
+        "tags": [
+          "AudioQualityProfile"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AudioQualityProfileResource"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AudioQualityProfileResource"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AudioQualityProfileResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioQualityProfileResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "AudioQualityProfile"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AudioQualityProfileResource"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AudioQualityProfileResource"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AudioQualityProfileResource"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v3/music/qualityprofile/{id}": {
+      "delete": {
+        "tags": [
+          "AudioQualityProfile"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "AudioQualityProfile"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AudioQualityProfileResource"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AudioQualityProfileResource"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AudioQualityProfileResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioQualityProfileResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "AudioQualityProfile"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioQualityProfileResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v3/music/qualityprofile/schema": {
+      "get": {
+        "tags": [
+          "AudioQualityProfileSchema"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioQualityProfileResource"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioQualityProfileResource"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioQualityProfileResource"
                 }
               }
             }
@@ -5084,6 +6037,70 @@
         }
       }
     },
+    "/api/v3/mediacover/artists/{artistId}/{filename}": {
+      "get": {
+        "tags": [
+          "MediaCover"
+        ],
+        "parameters": [
+          {
+            "name": "artistId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "filename",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "(.+)\\.(jpg|png|gif)",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v3/mediacover/albums/{albumId}/{filename}": {
+      "get": {
+        "tags": [
+          "MediaCover"
+        ],
+        "parameters": [
+          {
+            "name": "albumId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "filename",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "(.+)\\.(jpg|png|gif)",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/v3/config/mediamanagement": {
       "get": {
         "tags": [
@@ -5549,6 +6566,215 @@
           },
           "404": {
             "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v3/metadataprofile": {
+      "post": {
+        "tags": [
+          "MetadataProfile"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MetadataProfileResource"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MetadataProfileResource"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/MetadataProfileResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetadataProfileResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "MetadataProfile"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MetadataProfileResource"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MetadataProfileResource"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MetadataProfileResource"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v3/metadataprofile/{id}": {
+      "delete": {
+        "tags": [
+          "MetadataProfile"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "MetadataProfile"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MetadataProfileResource"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MetadataProfileResource"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/MetadataProfileResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetadataProfileResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "MetadataProfile"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetadataProfileResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v3/metadataprofile/schema": {
+      "get": {
+        "tags": [
+          "MetadataProfileSchema"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetadataProfileResource"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetadataProfileResource"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetadataProfileResource"
+                }
+              }
+            }
           }
         }
       }
@@ -6252,6 +7478,385 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v3/music/config/naming": {
+      "get": {
+        "tags": [
+          "MusicNamingConfig"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MusicNamingConfigResource"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MusicNamingConfigResource"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MusicNamingConfigResource"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v3/music/config/naming/{id}": {
+      "put": {
+        "tags": [
+          "MusicNamingConfig"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MusicNamingConfigResource"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MusicNamingConfigResource"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/MusicNamingConfigResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MusicNamingConfigResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "MusicNamingConfig"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MusicNamingConfigResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v3/music/config/naming/examples": {
+      "get": {
+        "tags": [
+          "MusicNamingConfig"
+        ],
+        "parameters": [
+          {
+            "name": "renameTracks",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "replaceIllegalCharacters",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "colonReplacementFormat",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "standardTrackFormat",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "multiDiscTrackFormat",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "artistFolderFormat",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeArtistName",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeAlbumTitle",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "includeQuality",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "replaceSpaces",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "separator",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "numberStyle",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "resourceName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v3/music/rootfolder": {
+      "post": {
+        "tags": [
+          "MusicRootFolder"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MusicRootFolderResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MusicRootFolderResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "MusicRootFolder"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MusicRootFolderResource"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v3/music/rootfolder/{id}": {
+      "put": {
+        "tags": [
+          "MusicRootFolder"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MusicRootFolderResource"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MusicRootFolderResource"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/MusicRootFolderResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MusicRootFolderResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "MusicRootFolder"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "MusicRootFolder"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MusicRootFolderResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
           }
         }
       }
@@ -8005,6 +9610,118 @@
         }
       }
     },
+    "/api/v3/artist/rename": {
+      "get": {
+        "tags": [
+          "RenameTrack"
+        ],
+        "parameters": [
+          {
+            "name": "artistId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "albumId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RenameTrackResource"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RenameTrackResource"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RenameTrackResource"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v3/artist/retag": {
+      "get": {
+        "tags": [
+          "RetagTrack"
+        ],
+        "parameters": [
+          {
+            "name": "artistId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "albumId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RetagTrackResource"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RetagTrackResource"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RetagTrackResource"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v3/rootfolder": {
       "post": {
         "tags": [
@@ -8931,6 +10648,356 @@
           },
           "404": {
             "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v3/track": {
+      "get": {
+        "tags": [
+          "Track"
+        ],
+        "parameters": [
+          {
+            "name": "artistId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "albumId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "albumReleaseId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "trackIds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int32"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrackResource"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrackResource"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrackResource"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v3/track/{id}": {
+      "get": {
+        "tags": [
+          "Track"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v3/trackfile": {
+      "get": {
+        "tags": [
+          "TrackFile"
+        ],
+        "parameters": [
+          {
+            "name": "artistId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "trackFileIds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int32"
+              }
+            }
+          },
+          {
+            "name": "albumId",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int32"
+              }
+            }
+          },
+          {
+            "name": "unmapped",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrackFileResource"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrackFileResource"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrackFileResource"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v3/trackfile/{id}": {
+      "put": {
+        "tags": [
+          "TrackFile"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackFileResource"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackFileResource"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackFileResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackFileResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "TrackFile"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "TrackFile"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackFileResource"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v3/trackfile/editor": {
+      "put": {
+        "tags": [
+          "TrackFile"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackFileListResource"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackFileListResource"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackFileListResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v3/trackfile/bulk": {
+      "delete": {
+        "tags": [
+          "TrackFile"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackFileListResource"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackFileListResource"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackFileListResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -10831,6 +12898,40 @@
   },
   "components": {
     "schemas": {
+      "AddAlbumOptions": {
+        "type": "object",
+        "properties": {
+          "addType": {
+            "$ref": "#/components/schemas/AlbumAddType"
+          },
+          "searchForNewAlbum": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AddArtistOptions": {
+        "type": "object",
+        "properties": {
+          "monitor": {
+            "$ref": "#/components/schemas/MusicMonitorTypes"
+          },
+          "albumsToMonitor": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "monitored": {
+            "type": "boolean"
+          },
+          "searchForMissingAlbums": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "AddMovieMethod": {
         "enum": [
           "manual",
@@ -10880,6 +12981,297 @@
           }
         },
         "additionalProperties": false
+      },
+      "AlbumAddType": {
+        "enum": [
+          "automatic",
+          "manual"
+        ],
+        "type": "string"
+      },
+      "AlbumReleaseResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "albumId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "foreignReleaseId": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "duration": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trackCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mediumCount": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediumResource"
+            },
+            "nullable": true
+          },
+          "disambiguation": {
+            "type": "string",
+            "nullable": true
+          },
+          "country": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "label": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "format": {
+            "type": "string",
+            "nullable": true
+          },
+          "monitored": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AlbumResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "disambiguation": {
+            "type": "string",
+            "nullable": true
+          },
+          "overview": {
+            "type": "string",
+            "nullable": true
+          },
+          "artistId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "foreignAlbumId": {
+            "type": "string",
+            "nullable": true
+          },
+          "monitored": {
+            "type": "boolean"
+          },
+          "anyReleaseOk": {
+            "type": "boolean"
+          },
+          "profileId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "duration": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "albumType": {
+            "type": "string",
+            "nullable": true
+          },
+          "secondaryTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "ratings": {
+            "$ref": "#/components/schemas/MusicRatings"
+          },
+          "releaseDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "releases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlbumReleaseResource"
+            },
+            "nullable": true
+          },
+          "genres": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "mediumCount": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediumResource"
+            },
+            "nullable": true
+          },
+          "artist": {
+            "$ref": "#/components/schemas/ArtistResource"
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaCover"
+            },
+            "nullable": true
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Links"
+            },
+            "nullable": true
+          },
+          "lastSearchTime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "statistics": {
+            "$ref": "#/components/schemas/AlbumStatisticsResource"
+          },
+          "addOptions": {
+            "$ref": "#/components/schemas/AddAlbumOptions"
+          },
+          "remoteCover": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AlbumStatisticsResource": {
+        "type": "object",
+        "properties": {
+          "trackFileCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trackCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalTrackCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sizeOnDisk": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "percentOfTracks": {
+            "type": "number",
+            "format": "double",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AlbumStudioArtistResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "monitored": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "albums": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlbumResource"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AlbumStudioResource": {
+        "type": "object",
+        "properties": {
+          "artist": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlbumStudioArtistResource"
+            },
+            "nullable": true
+          },
+          "monitoringOptions": {
+            "$ref": "#/components/schemas/MusicMonitoringOptions"
+          },
+          "monitorNewItems": {
+            "$ref": "#/components/schemas/MusicNewItemMonitorTypes"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AlbumsMonitoredResource": {
+        "type": "object",
+        "properties": {
+          "albumIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "monitored": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AllowFingerprinting": {
+        "enum": [
+          "never",
+          "newFiles",
+          "allFiles"
+        ],
+        "type": "string"
       },
       "AlternateTitleResource": {
         "type": "object",
@@ -10983,6 +13375,427 @@
           "replace"
         ],
         "type": "string"
+      },
+      "ArtistEditorResource": {
+        "type": "object",
+        "properties": {
+          "artistIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "monitored": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "monitorNewItems": {
+            "$ref": "#/components/schemas/MusicNewItemMonitorTypes"
+          },
+          "qualityProfileId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "metadataProfileId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "rootFolderPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "applyTags": {
+            "$ref": "#/components/schemas/ApplyTags"
+          },
+          "moveFiles": {
+            "type": "boolean"
+          },
+          "deleteFiles": {
+            "type": "boolean"
+          },
+          "addImportListExclusion": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArtistResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ArtistStatusType"
+          },
+          "ended": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "artistName": {
+            "type": "string",
+            "nullable": true
+          },
+          "foreignArtistId": {
+            "type": "string",
+            "nullable": true
+          },
+          "mbId": {
+            "type": "string",
+            "nullable": true
+          },
+          "tadbId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "discogsId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "allMusicId": {
+            "type": "string",
+            "nullable": true
+          },
+          "overview": {
+            "type": "string",
+            "nullable": true
+          },
+          "artistType": {
+            "type": "string",
+            "nullable": true
+          },
+          "disambiguation": {
+            "type": "string",
+            "nullable": true
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Links"
+            },
+            "nullable": true
+          },
+          "nextAlbum": {
+            "$ref": "#/components/schemas/AlbumResource"
+          },
+          "lastAlbum": {
+            "$ref": "#/components/schemas/AlbumResource"
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaCover"
+            },
+            "nullable": true
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Member"
+            },
+            "nullable": true
+          },
+          "remotePoster": {
+            "type": "string",
+            "nullable": true
+          },
+          "path": {
+            "type": "string",
+            "nullable": true
+          },
+          "qualityProfileId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "metadataProfileId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "monitored": {
+            "type": "boolean"
+          },
+          "monitorNewItems": {
+            "$ref": "#/components/schemas/MusicNewItemMonitorTypes"
+          },
+          "rootFolderPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "folder": {
+            "type": "string",
+            "nullable": true
+          },
+          "genres": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "cleanName": {
+            "type": "string",
+            "nullable": true
+          },
+          "sortName": {
+            "type": "string",
+            "nullable": true
+          },
+          "tags": {
+            "uniqueItems": true,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "added": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "addOptions": {
+            "$ref": "#/components/schemas/AddArtistOptions"
+          },
+          "ratings": {
+            "$ref": "#/components/schemas/MusicRatings"
+          },
+          "statistics": {
+            "$ref": "#/components/schemas/ArtistStatisticsResource"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArtistStatisticsResource": {
+        "type": "object",
+        "properties": {
+          "albumCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trackFileCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trackCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalTrackCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sizeOnDisk": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "percentOfTracks": {
+            "type": "number",
+            "format": "double",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ArtistStatusType": {
+        "enum": [
+          "continuing",
+          "ended",
+          "deleted"
+        ],
+        "type": "string"
+      },
+      "ArtistTitleInfo": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "titleWithoutYear": {
+            "type": "string",
+            "nullable": true
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AudioMediaInfoResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "audioChannels": {
+            "type": "number",
+            "format": "double"
+          },
+          "audioBitRate": {
+            "type": "string",
+            "nullable": true
+          },
+          "audioCodec": {
+            "type": "string",
+            "nullable": true
+          },
+          "audioBits": {
+            "type": "string",
+            "nullable": true
+          },
+          "audioSampleRate": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AudioQuality": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AudioQualityDefinitionResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/AudioQuality"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "weight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "minSize": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "maxSize": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "preferredSize": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AudioQualityModel": {
+        "type": "object",
+        "properties": {
+          "quality": {
+            "$ref": "#/components/schemas/AudioQuality"
+          },
+          "revision": {
+            "$ref": "#/components/schemas/Revision"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AudioQualityProfileQualityItemResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "quality": {
+            "$ref": "#/components/schemas/AudioQuality"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AudioQualityProfileQualityItemResource"
+            },
+            "nullable": true
+          },
+          "allowed": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AudioQualityProfileResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "upgradeAllowed": {
+            "type": "boolean"
+          },
+          "cutoff": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AudioQualityProfileQualityItemResource"
+            },
+            "nullable": true
+          },
+          "minFormatScore": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cutoffFormatScore": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "formatItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProfileFormatItemResource"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "AuthenticationRequiredType": {
         "enum": [
@@ -13908,6 +16721,20 @@
         },
         "additionalProperties": false
       },
+      "IsoCountry": {
+        "type": "object",
+        "properties": {
+          "twoLetterCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "Language": {
         "type": "object",
         "properties": {
@@ -13937,6 +16764,20 @@
             "type": "string",
             "nullable": true,
             "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Links": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -14215,7 +17056,10 @@
           "fanart",
           "screenshot",
           "headshot",
-          "clearlogo"
+          "clearlogo",
+          "cover",
+          "disc",
+          "logo"
         ],
         "type": "string"
       },
@@ -14310,6 +17154,9 @@
           "autoUnmonitorPreviouslyDownloadedEpisodes": {
             "type": "boolean"
           },
+          "autoUnmonitorPreviouslyDownloadedTracks": {
+            "type": "boolean"
+          },
           "recycleBin": {
             "type": "string",
             "nullable": true
@@ -14325,6 +17172,9 @@
             "type": "boolean"
           },
           "createEmptySeriesFolders": {
+            "type": "boolean"
+          },
+          "createEmptyArtistFolders": {
             "type": "boolean"
           },
           "episodeTitleRequired": {
@@ -14343,6 +17193,18 @@
           },
           "episodeFileDate": {
             "$ref": "#/components/schemas/EpisodeFileDateType"
+          },
+          "trackFileDate": {
+            "$ref": "#/components/schemas/TrackFileDateType"
+          },
+          "allowFingerprinting": {
+            "$ref": "#/components/schemas/AllowFingerprinting"
+          },
+          "writeAudioTags": {
+            "$ref": "#/components/schemas/WriteAudioTagsType"
+          },
+          "scrubAudioTags": {
+            "type": "boolean"
           },
           "deleteEmptyFolders": {
             "type": "boolean"
@@ -14400,6 +17262,45 @@
         },
         "additionalProperties": false
       },
+      "MediumResource": {
+        "type": "object",
+        "properties": {
+          "mediumNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mediumName": {
+            "type": "string",
+            "nullable": true
+          },
+          "mediumFormat": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Member": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "instrument": {
+            "type": "string",
+            "nullable": true
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaCover"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "MetadataConfigResource": {
         "type": "object",
         "properties": {
@@ -14409,6 +17310,45 @@
           },
           "certificationCountry": {
             "$ref": "#/components/schemas/TMDbCountryCode"
+          },
+          "musicMetadataSource": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MetadataProfileResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "primaryAlbumTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProfilePrimaryAlbumTypeItemResource"
+            },
+            "nullable": true
+          },
+          "secondaryAlbumTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProfileSecondaryAlbumTypeItemResource"
+            },
+            "nullable": true
+          },
+          "releaseStatuses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProfileReleaseStatusItemResource"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -15272,6 +18212,192 @@
         },
         "additionalProperties": false
       },
+      "MusicMediaInfoModel": {
+        "type": "object",
+        "properties": {
+          "audioFormat": {
+            "type": "string",
+            "nullable": true
+          },
+          "audioBitrate": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "audioChannels": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "audioBits": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "audioSampleRate": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MusicMonitorTypes": {
+        "enum": [
+          "all",
+          "future",
+          "missing",
+          "existing",
+          "latest",
+          "first",
+          "none",
+          "unknown"
+        ],
+        "type": "string"
+      },
+      "MusicMonitoringOptions": {
+        "type": "object",
+        "properties": {
+          "monitor": {
+            "$ref": "#/components/schemas/MusicMonitorTypes"
+          },
+          "albumsToMonitor": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "monitored": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MusicNamingConfigResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "renameTracks": {
+            "type": "boolean"
+          },
+          "replaceIllegalCharacters": {
+            "type": "boolean"
+          },
+          "colonReplacementFormat": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "standardTrackFormat": {
+            "type": "string",
+            "nullable": true
+          },
+          "multiDiscTrackFormat": {
+            "type": "string",
+            "nullable": true
+          },
+          "artistFolderFormat": {
+            "type": "string",
+            "nullable": true
+          },
+          "includeArtistName": {
+            "type": "boolean"
+          },
+          "includeAlbumTitle": {
+            "type": "boolean"
+          },
+          "includeQuality": {
+            "type": "boolean"
+          },
+          "replaceSpaces": {
+            "type": "boolean"
+          },
+          "separator": {
+            "type": "string",
+            "nullable": true
+          },
+          "numberStyle": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MusicNewItemMonitorTypes": {
+        "enum": [
+          "all",
+          "none",
+          "new"
+        ],
+        "type": "string"
+      },
+      "MusicRatings": {
+        "type": "object",
+        "properties": {
+          "votes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MusicRootFolderResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "path": {
+            "type": "string",
+            "nullable": true
+          },
+          "defaultMetadataProfileId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "defaultQualityProfileId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "defaultMonitorOption": {
+            "$ref": "#/components/schemas/MusicMonitorTypes"
+          },
+          "defaultNewItemMonitorOption": {
+            "$ref": "#/components/schemas/MusicNewItemMonitorTypes"
+          },
+          "defaultTags": {
+            "uniqueItems": true,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "accessible": {
+            "type": "boolean"
+          },
+          "freeSpace": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "totalSpace": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "MusicSearchParam": {
         "enum": [
           "q",
@@ -15588,10 +18714,122 @@
         },
         "additionalProperties": false
       },
+      "ParsedTrackInfo": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "cleanTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "artistTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "albumTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "artistTitleInfo": {
+            "$ref": "#/components/schemas/ArtistTitleInfo"
+          },
+          "artistMBId": {
+            "type": "string",
+            "nullable": true
+          },
+          "albumMBId": {
+            "type": "string",
+            "nullable": true
+          },
+          "releaseMBId": {
+            "type": "string",
+            "nullable": true
+          },
+          "recordingMBId": {
+            "type": "string",
+            "nullable": true
+          },
+          "trackMBId": {
+            "type": "string",
+            "nullable": true
+          },
+          "discNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "discCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "country": {
+            "$ref": "#/components/schemas/IsoCountry"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "label": {
+            "type": "string",
+            "nullable": true
+          },
+          "catalogNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "disambiguation": {
+            "type": "string",
+            "nullable": true
+          },
+          "duration": {
+            "type": "string",
+            "format": "date-span"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/AudioQualityModel"
+          },
+          "mediaInfo": {
+            "$ref": "#/components/schemas/MusicMediaInfoModel"
+          },
+          "trackNumbers": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "releaseGroup": {
+            "type": "string",
+            "nullable": true
+          },
+          "releaseHash": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "PingResource": {
         "type": "object",
         "properties": {
           "status": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PrimaryAlbumType": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
             "type": "string",
             "nullable": true
           }
@@ -15652,6 +18890,54 @@
           "score": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProfilePrimaryAlbumTypeItemResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "albumType": {
+            "$ref": "#/components/schemas/PrimaryAlbumType"
+          },
+          "allowed": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProfileReleaseStatusItemResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "releaseStatus": {
+            "$ref": "#/components/schemas/ReleaseStatus"
+          },
+          "allowed": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProfileSecondaryAlbumTypeItemResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "albumType": {
+            "$ref": "#/components/schemas/SecondaryAlbumType"
+          },
+          "allowed": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -16447,6 +19733,20 @@
         },
         "additionalProperties": false
       },
+      "ReleaseStatus": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ReleaseType": {
         "enum": [
           "unknown",
@@ -16542,6 +19842,44 @@
         },
         "additionalProperties": false
       },
+      "RenameTrackResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "artistId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "albumId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trackNumbers": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "trackFileId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "existingPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "newPath": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "RescanAfterRefreshType": {
         "enum": [
           "always",
@@ -16549,6 +19887,47 @@
           "never"
         ],
         "type": "string"
+      },
+      "RetagTrackResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "artistId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "albumId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trackNumbers": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "trackFileId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "path": {
+            "type": "string",
+            "nullable": true
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagDifference"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
       },
       "Revision": {
         "type": "object",
@@ -16748,6 +20127,20 @@
           "episodeCount": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SecondaryAlbumType": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -17445,6 +20838,32 @@
               "format": "int32"
             },
             "nullable": true
+          },
+          "artistIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TagDifference": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string",
+            "nullable": true
+          },
+          "oldValue": {
+            "type": "string",
+            "nullable": true
+          },
+          "newValue": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -17498,6 +20917,173 @@
             "type": "string",
             "format": "date-span",
             "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TrackFileDateType": {
+        "enum": [
+          "none",
+          "albumReleaseDate"
+        ],
+        "type": "string"
+      },
+      "TrackFileListResource": {
+        "type": "object",
+        "properties": {
+          "trackFileIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "quality": {
+            "$ref": "#/components/schemas/AudioQualityModel"
+          },
+          "sceneName": {
+            "type": "string",
+            "nullable": true
+          },
+          "releaseGroup": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TrackFileResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "artistId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "albumId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "path": {
+            "type": "string",
+            "nullable": true
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "dateAdded": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sceneName": {
+            "type": "string",
+            "nullable": true
+          },
+          "releaseGroup": {
+            "type": "string",
+            "nullable": true
+          },
+          "quality": {
+            "$ref": "#/components/schemas/AudioQualityModel"
+          },
+          "qualityWeight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "customFormats": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomFormatResource"
+            },
+            "nullable": true
+          },
+          "customFormatScore": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "indexerFlags": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "mediaInfo": {
+            "$ref": "#/components/schemas/AudioMediaInfoResource"
+          },
+          "qualityCutoffNotMet": {
+            "type": "boolean"
+          },
+          "audioTags": {
+            "$ref": "#/components/schemas/ParsedTrackInfo"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TrackResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "artistId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "foreignTrackId": {
+            "type": "string",
+            "nullable": true
+          },
+          "foreignRecordingId": {
+            "type": "string",
+            "nullable": true
+          },
+          "trackFileId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "albumId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "explicit": {
+            "type": "boolean"
+          },
+          "absoluteTrackNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trackNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "duration": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trackFile": {
+            "$ref": "#/components/schemas/TrackFileResource"
+          },
+          "mediumNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasFile": {
+            "type": "boolean"
+          },
+          "artist": {
+            "$ref": "#/components/schemas/ArtistResource"
+          },
+          "ratings": {
+            "$ref": "#/components/schemas/MusicRatings"
           }
         },
         "additionalProperties": false
@@ -18823,6 +22409,15 @@
           }
         },
         "additionalProperties": false
+      },
+      "WriteAudioTagsType": {
+        "enum": [
+          "no",
+          "newFiles",
+          "allFiles",
+          "sync"
+        ],
+        "type": "string"
       }
     },
     "securitySchemes": {
@@ -18850,10 +22445,37 @@
   ],
   "tags": [
     {
+      "name": "Album"
+    },
+    {
+      "name": "AlbumLookup"
+    },
+    {
+      "name": "AlbumStudio"
+    },
+    {
       "name": "AlternativeTitle"
     },
     {
       "name": "ApiInfo"
+    },
+    {
+      "name": "Artist"
+    },
+    {
+      "name": "ArtistEditor"
+    },
+    {
+      "name": "ArtistLookup"
+    },
+    {
+      "name": "AudioQualityDefinition"
+    },
+    {
+      "name": "AudioQualityProfile"
+    },
+    {
+      "name": "AudioQualityProfileSchema"
     },
     {
       "name": "Authentication"
@@ -18982,6 +22604,12 @@
       "name": "MetadataConfig"
     },
     {
+      "name": "MetadataProfile"
+    },
+    {
+      "name": "MetadataProfileSchema"
+    },
+    {
       "name": "Missing"
     },
     {
@@ -19001,6 +22629,12 @@
     },
     {
       "name": "MovieLookup"
+    },
+    {
+      "name": "MusicNamingConfig"
+    },
+    {
+      "name": "MusicRootFolder"
     },
     {
       "name": "NamingConfig"
@@ -19054,6 +22688,12 @@
       "name": "RenameMovie"
     },
     {
+      "name": "RenameTrack"
+    },
+    {
+      "name": "RetagTrack"
+    },
+    {
       "name": "RootFolder"
     },
     {
@@ -19085,6 +22725,12 @@
     },
     {
       "name": "Task"
+    },
+    {
+      "name": "Track"
+    },
+    {
+      "name": "TrackFile"
     },
     {
       "name": "TvAutoTagging"

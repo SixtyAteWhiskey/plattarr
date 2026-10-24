@@ -9,16 +9,22 @@ namespace Radarr.Api.V3.Config
     {
         public bool AutoUnmonitorPreviouslyDownloadedMovies { get; set; }
         public bool AutoUnmonitorPreviouslyDownloadedEpisodes { get; set; }
+        public bool AutoUnmonitorPreviouslyDownloadedTracks { get; set; }
         public string RecycleBin { get; set; }
         public int RecycleBinCleanupDays { get; set; }
         public ProperDownloadTypes DownloadPropersAndRepacks { get; set; }
         public bool CreateEmptyMovieFolders { get; set; }
         public bool CreateEmptySeriesFolders { get; set; }
+        public bool CreateEmptyArtistFolders { get; set; }
         public EpisodeTitleRequiredType EpisodeTitleRequired { get; set; }
         public SeasonPackUpgradeType SeasonPackUpgrade { get; set; }
         public int SeasonPackUpgradeThreshold { get; set; }
         public string UserRejectedExtensions { get; set; }
         public EpisodeFileDateType EpisodeFileDate { get; set; }
+        public TrackFileDateType TrackFileDate { get; set; }
+        public AllowFingerprinting AllowFingerprinting { get; set; }
+        public WriteAudioTagsType WriteAudioTags { get; set; }
+        public bool ScrubAudioTags { get; set; }
         public bool DeleteEmptyFolders { get; set; }
         public FileDateType FileDate { get; set; }
         public RescanAfterRefreshType RescanAfterRefresh { get; set; }
@@ -47,16 +53,22 @@ namespace Radarr.Api.V3.Config
             {
                 AutoUnmonitorPreviouslyDownloadedMovies = model.AutoUnmonitorPreviouslyDownloadedMovies,
                 AutoUnmonitorPreviouslyDownloadedEpisodes = model.AutoUnmonitorPreviouslyDownloadedEpisodes,
+                AutoUnmonitorPreviouslyDownloadedTracks = model.AutoUnmonitorPreviouslyDownloadedTracks,
                 RecycleBin = model.RecycleBin,
                 RecycleBinCleanupDays = model.RecycleBinCleanupDays,
                 DownloadPropersAndRepacks = model.DownloadPropersAndRepacks,
                 CreateEmptyMovieFolders = model.CreateEmptyMovieFolders,
                 CreateEmptySeriesFolders = model.CreateEmptySeriesFolders,
+                CreateEmptyArtistFolders = model.CreateEmptyArtistFolders,
                 EpisodeTitleRequired = model.EpisodeTitleRequired,
                 SeasonPackUpgrade = model.SeasonPackUpgrade,
                 SeasonPackUpgradeThreshold = model.SeasonPackUpgradeThreshold,
                 UserRejectedExtensions = model.UserRejectedExtensions,
                 EpisodeFileDate = model.EpisodeFileDate,
+                TrackFileDate = model.TrackFileDate,
+                AllowFingerprinting = model.AllowFingerprinting,
+                WriteAudioTags = model.WriteAudioTags,
+                ScrubAudioTags = model.ScrubAudioTags,
                 DeleteEmptyFolders = model.DeleteEmptyFolders,
                 FileDate = model.FileDate,
                 RescanAfterRefresh = model.RescanAfterRefresh,

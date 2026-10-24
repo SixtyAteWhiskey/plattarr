@@ -30,8 +30,24 @@ namespace Radarr.Api.V3.MediaCovers
         [HttpGet(@"{movieId:int}/{filename:regex((.+)\.(jpg|png|gif))}")]
         public Results<PhysicalFileHttpResult, NotFound> GetMediaCover(int movieId, string filename)
         {
-            var filePath = Path.Combine(_appFolderInfo.GetAppDataPath(), "MediaCover", movieId.ToString(), filename);
+            return GetCover(Path.Combine(_appFolderInfo.GetAppDataPath(), "MediaCover", movieId.ToString(), filename));
+        }
 
+        // Music keeps its covers in their own folders: MediaCover/Artists/{id} and MediaCover/Albums/{id}.
+        [HttpGet(@"Artists/{artistId:int}/{filename:regex((.+)\.(jpg|png|gif))}")]
+        public Results<PhysicalFileHttpResult, NotFound> GetArtistMediaCover(int artistId, string filename)
+        {
+            return GetCover(Path.Combine(_appFolderInfo.GetAppDataPath(), "MediaCover", "Artists", artistId.ToString(), filename));
+        }
+
+        [HttpGet(@"Albums/{albumId:int}/{filename:regex((.+)\.(jpg|png|gif))}")]
+        public Results<PhysicalFileHttpResult, NotFound> GetAlbumMediaCover(int albumId, string filename)
+        {
+            return GetCover(Path.Combine(_appFolderInfo.GetAppDataPath(), "MediaCover", "Albums", albumId.ToString(), filename));
+        }
+
+        private Results<PhysicalFileHttpResult, NotFound> GetCover(string filePath)
+        {
             if (!_diskProvider.FileExists(filePath) || _diskProvider.GetFileSize(filePath) == 0)
             {
                 // Return the full sized image if someone requests a non-existing resized one.

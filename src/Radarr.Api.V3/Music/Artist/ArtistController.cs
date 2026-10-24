@@ -1,0 +1,321 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using FluentValidation;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Datastore.Events;
+using NzbDrone.Core.Messaging.Commands;
+using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Modules;
+using NzbDrone.Core.Music;
+using NzbDrone.Core.Music.ArtistStats;
+using NzbDrone.Core.Music.Commands;
+using NzbDrone.Core.Music.Covers;
+using NzbDrone.Core.Music.Events;
+using NzbDrone.Core.Music.MediaFiles.Events;
+using NzbDrone.Core.Music.RootFolders;
+using NzbDrone.Core.Music.Validators;
+using NzbDrone.Core.Validation.Paths;
+using NzbDrone.SignalR;
+using Radarr.Api.V3.Music.Albums;
+using Radarr.Http;
+using Radarr.Http.REST;
+using Radarr.Http.REST.Attributes;
+
+namespace Radarr.Api.V3.Music.Artist
+{
+    [V3ApiController]
+    public class ArtistController : RestControllerWithSignalR<ArtistResource, NzbDrone.Core.Music.Artist>,
+                                IHandle<AlbumImportedEvent>,
+                                IHandle<AlbumEditedEvent>,
+                                IHandle<AlbumDeletedEvent>,
+                                IHandle<TrackFileDeletedEvent>,
+                                IHandle<ArtistAddedEvent>,
+                                IHandle<ArtistUpdatedEvent>,
+                                IHandle<ArtistEditedEvent>,
+                                IHandle<ArtistsDeletedEvent>,
+                                IHandle<ArtistRenamedEvent>,
+                                IHandle<MediaCoversUpdatedEvent>
+    {
+        private readonly IArtistService _artistService;
+        private readonly IAlbumService _albumService;
+        private readonly IAddArtistService _addArtistService;
+        private readonly IArtistStatisticsService _artistStatisticsService;
+        private readonly IMapCoversToLocal _coverMapper;
+        private readonly IManageCommandQueue _commandQueueManager;
+        private readonly IRootFolderService _rootFolderService;
+
+        public ArtistController(IBroadcastSignalRMessage signalRBroadcaster,
+                            IArtistService artistService,
+                            IAlbumService albumService,
+                            IAddArtistService addArtistService,
+                            IArtistStatisticsService artistStatisticsService,
+                            IMapCoversToLocal coverMapper,
+                            IManageCommandQueue commandQueueManager,
+                            IRootFolderService rootFolderService,
+                            RecycleBinValidator recycleBinValidator,
+                            NzbDrone.Core.Music.Validators.RootFolderValidator rootFolderValidator,
+                            MappedNetworkDriveValidator mappedNetworkDriveValidator,
+                            ArtistPathValidator artistPathValidator,
+                            ArtistExistsValidator artistExistsValidator,
+                            ArtistAncestorValidator artistAncestorValidator,
+                            SystemFolderValidator systemFolderValidator,
+                            AudioQualityProfileExistsValidator qualityProfileExistsValidator,
+                            MetadataProfileExistsValidator metadataProfileExistsValidator,
+                            ArtistRootFolderExistsValidator rootFolderExistsValidator,
+                            ArtistFolderAsRootFolderValidator artistFolderAsRootFolderValidator)
+            : base(signalRBroadcaster)
+        {
+            _artistService = artistService;
+            _albumService = albumService;
+            _addArtistService = addArtistService;
+            _artistStatisticsService = artistStatisticsService;
+
+            _coverMapper = coverMapper;
+            _commandQueueManager = commandQueueManager;
+            _rootFolderService = rootFolderService;
+
+            Http.Validation.RuleBuilderExtensions.ValidId(SharedValidator.RuleFor(s => s.QualityProfileId));
+            Http.Validation.RuleBuilderExtensions.ValidId(SharedValidator.RuleFor(s => s.MetadataProfileId));
+
+            SharedValidator.RuleFor(s => s.Path)
+                           .Cascade(CascadeMode.Stop)
+                           .IsValidPath()
+                           .SetValidator(rootFolderValidator)
+                           .SetValidator(mappedNetworkDriveValidator)
+                           .SetValidator(artistPathValidator)
+                           .SetValidator(artistAncestorValidator)
+                           .SetValidator(recycleBinValidator)
+                           .SetValidator(systemFolderValidator)
+                           .When(s => !s.Path.IsNullOrWhiteSpace());
+
+            SharedValidator.RuleFor(s => s.QualityProfileId).SetValidator(qualityProfileExistsValidator);
+            SharedValidator.RuleFor(s => s.MetadataProfileId).SetValidator(metadataProfileExistsValidator);
+
+            PostValidator.RuleFor(s => s.Path).IsValidPath().When(s => s.RootFolderPath.IsNullOrWhiteSpace());
+            PostValidator.RuleFor(s => s.RootFolderPath)
+                         .IsValidPath()
+                         .SetValidator(rootFolderExistsValidator)
+                         .SetValidator(artistFolderAsRootFolderValidator)
+                         .When(s => s.Path.IsNullOrWhiteSpace());
+            PostValidator.RuleFor(s => s.ArtistName).NotEmpty();
+            PostValidator.RuleFor(s => s.ForeignArtistId).NotEmpty().SetValidator(artistExistsValidator);
+
+            PutValidator.RuleFor(s => s.Path).IsValidPath();
+        }
+
+        protected override ArtistResource GetResourceById(int id)
+        {
+            var artist = _artistService.GetArtist(id);
+            return GetArtistResource(artist);
+        }
+
+        private ArtistResource GetArtistResource(NzbDrone.Core.Music.Artist artist)
+        {
+            if (artist == null)
+            {
+                return null;
+            }
+
+            var resource = artist.ToResource();
+            MapCoversToLocal(resource);
+            FetchAndLinkArtistStatistics(resource);
+            LinkNextPreviousAlbums(resource);
+
+            // PopulateAlternateTitles(resource);
+            LinkRootFolderPath(resource);
+
+            return resource;
+        }
+
+        [HttpGet]
+        [Produces("application/json")]
+        public List<ArtistResource> AllArtists(Guid? mbId)
+        {
+            var artistStats = _artistStatisticsService.ArtistStatistics();
+            var artistsResources = new List<ArtistResource>();
+
+            if (mbId.HasValue)
+            {
+                artistsResources.AddIfNotNull(_artistService.FindById(mbId.Value.ToString()).ToResource());
+            }
+            else
+            {
+                artistsResources.AddRange(_artistService.GetAllArtists().ToResource());
+            }
+
+            MapCoversToLocal(artistsResources.ToArray());
+            LinkNextPreviousAlbums(artistsResources.ToArray());
+            LinkArtistStatistics(artistsResources, artistStats.ToDictionary(x => x.ArtistId));
+            artistsResources.ForEach(LinkRootFolderPath);
+
+            // PopulateAlternateTitles(seriesResources);
+            return artistsResources;
+        }
+
+        [RestPostById]
+        [Consumes("application/json")]
+        [Produces("application/json")]
+        public Results<Created<ArtistResource>, NotFound> AddArtist([FromBody] ArtistResource artistResource)
+        {
+            var artist = _addArtistService.AddArtist(artistResource.ToModel());
+
+            return Created(artist.Id);
+        }
+
+        [RestPutById]
+        [Consumes("application/json")]
+        [Produces("application/json")]
+        public Results<Accepted<ArtistResource>, NotFound> UpdateArtist([FromBody] ArtistResource artistResource, bool moveFiles = false)
+        {
+            var artist = _artistService.GetArtist(artistResource.Id);
+
+            var sourcePath = artist.Path;
+            var destinationPath = artistResource.Path;
+
+            _commandQueueManager.Push(new MoveArtistCommand
+            {
+                ArtistId = artist.Id,
+                SourcePath = sourcePath,
+                DestinationPath = destinationPath,
+                MoveFiles = moveFiles
+            },
+                trigger: CommandTrigger.Manual);
+
+            var model = artistResource.ToModel(artist);
+
+            _artistService.UpdateArtist(model);
+
+            BroadcastResourceChange(ModelAction.Updated, artistResource);
+
+            return Accepted(artistResource.Id);
+        }
+
+        [RestDeleteById]
+        public void DeleteArtist(int id, bool deleteFiles = false, bool addImportListExclusion = false)
+        {
+            _artistService.DeleteArtist(id, deleteFiles, addImportListExclusion);
+        }
+
+        private void MapCoversToLocal(params ArtistResource[] artists)
+        {
+            foreach (var artistResource in artists)
+            {
+                _coverMapper.ConvertToLocalUrls(artistResource.Id, MediaCoverEntity.Artist, artistResource.Images);
+            }
+        }
+
+        private void LinkNextPreviousAlbums(params ArtistResource[] artists)
+        {
+            var artistMetadataIds = artists.Select(x => x.ArtistMetadataId).Distinct().ToList();
+
+            var nextAlbums = _albumService.GetNextAlbumsByArtistMetadataId(artistMetadataIds);
+            var lastAlbums = _albumService.GetLastAlbumsByArtistMetadataId(artistMetadataIds);
+
+            foreach (var artistResource in artists)
+            {
+                artistResource.NextAlbum = nextAlbums.FirstOrDefault(x => x.ArtistMetadataId == artistResource.ArtistMetadataId).ToResource();
+                artistResource.LastAlbum = lastAlbums.FirstOrDefault(x => x.ArtistMetadataId == artistResource.ArtistMetadataId).ToResource();
+            }
+        }
+
+        private void FetchAndLinkArtistStatistics(ArtistResource resource)
+        {
+            LinkArtistStatistics(resource, _artistStatisticsService.ArtistStatistics(resource.Id));
+        }
+
+        private void LinkArtistStatistics(List<ArtistResource> resources, Dictionary<int, ArtistStatistics> artistStatistics)
+        {
+            foreach (var artist in resources)
+            {
+                if (artistStatistics.TryGetValue(artist.Id, out var stats))
+                {
+                    LinkArtistStatistics(artist, stats);
+                }
+            }
+        }
+
+        private void LinkArtistStatistics(ArtistResource resource, ArtistStatistics artistStatistics)
+        {
+            resource.Statistics = artistStatistics.ToResource();
+        }
+
+        private void LinkRootFolderPath(ArtistResource resource)
+        {
+            resource.RootFolderPath = _rootFolderService.GetBestRootFolderPath(resource.Path);
+        }
+
+        [NonAction]
+        public void Handle(AlbumImportedEvent message)
+        {
+            BroadcastResourceChange(ModelAction.Updated, GetArtistResource(message.Artist));
+        }
+
+        [NonAction]
+        public void Handle(AlbumEditedEvent message)
+        {
+            BroadcastResourceChange(ModelAction.Updated, GetArtistResource(message.Album.Artist.Value));
+        }
+
+        [NonAction]
+        public void Handle(AlbumDeletedEvent message)
+        {
+            BroadcastResourceChange(ModelAction.Updated, GetArtistResource(message.Album.Artist.Value));
+        }
+
+        [NonAction]
+        public void Handle(TrackFileDeletedEvent message)
+        {
+            if (message.Reason == DeleteMediaFileReason.Upgrade)
+            {
+                return;
+            }
+
+            BroadcastResourceChange(ModelAction.Updated, GetArtistResource(message.TrackFile.Artist.Value));
+        }
+
+        [NonAction]
+        public void Handle(ArtistAddedEvent message)
+        {
+            BroadcastResourceChange(ModelAction.Updated, GetArtistResource(message.Artist));
+        }
+
+        [NonAction]
+        public void Handle(ArtistUpdatedEvent message)
+        {
+            BroadcastResourceChange(ModelAction.Updated, GetArtistResource(message.Artist));
+        }
+
+        [NonAction]
+        public void Handle(ArtistEditedEvent message)
+        {
+            BroadcastResourceChange(ModelAction.Updated, GetArtistResource(message.Artist));
+        }
+
+        [NonAction]
+        public void Handle(ArtistsDeletedEvent message)
+        {
+            foreach (var artist in message.Artists)
+            {
+                BroadcastResourceChange(ModelAction.Deleted, artist.ToResource());
+            }
+        }
+
+        [NonAction]
+        public void Handle(ArtistRenamedEvent message)
+        {
+            BroadcastResourceChange(ModelAction.Updated, message.Artist.Id);
+        }
+
+        [NonAction]
+        public void Handle(MediaCoversUpdatedEvent message)
+        {
+            if (message.Updated)
+            {
+                BroadcastResourceChange(ModelAction.Updated, GetArtistResource(message.Artist));
+            }
+        }
+    }
+}

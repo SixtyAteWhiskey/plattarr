@@ -24,6 +24,7 @@ namespace NzbDrone.Core.Test.Tags
         private Tag _tag;
         private Mock<ITaggedItemSource> _movies;
         private Mock<ITaggedItemSource> _series;
+        private Mock<ITaggedItemSource> _music;
         private Mock<IAutoTagUsageSource> _seriesAutoTags;
 
         [SetUp]
@@ -53,8 +54,9 @@ namespace NzbDrone.Core.Test.Tags
 
             _movies = GivenSource(MediaKind.Movies, new Dictionary<int, List<int>>());
             _series = GivenSource(MediaKind.Tv, new Dictionary<int, List<int>>());
+            _music = GivenSource(MediaKind.Music, new Dictionary<int, List<int>>());
 
-            Mocker.SetConstant<IEnumerable<ITaggedItemSource>>(new[] { _movies.Object, _series.Object });
+            Mocker.SetConstant<IEnumerable<ITaggedItemSource>>(new[] { _movies.Object, _series.Object, _music.Object });
 
             _seriesAutoTags = new Mock<IAutoTagUsageSource>();
             _seriesAutoTags.SetupGet(v => v.Kind).Returns(MediaKind.Tv);
@@ -110,6 +112,31 @@ namespace NzbDrone.Core.Test.Tags
         public void should_not_delete_a_tag_that_only_a_movie_uses()
         {
             _movies.Setup(v => v.AllItemTags()).Returns(new Dictionary<int, List<int>> { { 1, new List<int> { 7 } } });
+
+            Assert.Throws<ModelConflictException>(() => Subject.Delete(7));
+
+            Mocker.GetMock<ITagRepository>().Verify(v => v.Delete(7), Times.Never());
+        }
+
+        [Test]
+        public void should_report_the_artists_that_carry_a_tag()
+        {
+            _music.Setup(v => v.AllItemTags()).Returns(new Dictionary<int, List<int>> { { 4, new List<int> { 7, 8 } }, { 9, new List<int> { 8 } } });
+
+            var byId = Subject.Details(7);
+            var all = Subject.Details().Single();
+
+            byId.ArtistIds.Should().Equal(4);
+            all.ArtistIds.Should().Equal(4);
+            byId.MovieIds.Should().BeEmpty();
+            byId.SeriesIds.Should().BeEmpty();
+            byId.InUse.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_not_delete_a_tag_that_only_an_artist_uses()
+        {
+            _music.Setup(v => v.AllItemTags()).Returns(new Dictionary<int, List<int>> { { 4, new List<int> { 7 } } });
 
             Assert.Throws<ModelConflictException>(() => Subject.Delete(7));
 

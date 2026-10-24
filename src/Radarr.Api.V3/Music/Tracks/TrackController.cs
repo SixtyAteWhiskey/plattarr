@@ -1,0 +1,54 @@
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.AspNetCore.Mvc;
+using NzbDrone.Core.Music;
+using NzbDrone.Core.Music.CustomFormats;
+using NzbDrone.Core.Music.DecisionEngine.Specifications;
+using NzbDrone.SignalR;
+using Radarr.Http;
+using Radarr.Http.REST;
+
+namespace Radarr.Api.V3.Music.Tracks
+{
+    [V3ApiController]
+    public class TrackController : TrackControllerWithSignalR
+    {
+        public TrackController(IArtistService artistService,
+                             ITrackService trackService,
+                             IUpgradableSpecification upgradableSpecification,
+                             IMusicCustomFormatCalculationService formatCalculator,
+                             IBroadcastSignalRMessage signalRBroadcaster)
+            : base(trackService, artistService, upgradableSpecification, formatCalculator, signalRBroadcaster)
+        {
+        }
+
+        [HttpGet]
+        public List<TrackResource> GetTracks([FromQuery] int? artistId,
+            [FromQuery] int? albumId,
+            [FromQuery] int? albumReleaseId,
+            [FromQuery] List<int> trackIds)
+        {
+            if (!artistId.HasValue && !trackIds.Any() && !albumId.HasValue && !albumReleaseId.HasValue)
+            {
+                throw new BadRequestException("One of artistId, albumId, albumReleaseId or trackIds must be provided");
+            }
+
+            if (artistId.HasValue && !albumId.HasValue)
+            {
+                return MapToResource(_trackService.GetTracksByArtist(artistId.Value), false, false);
+            }
+
+            if (albumReleaseId.HasValue)
+            {
+                return MapToResource(_trackService.GetTracksByRelease(albumReleaseId.Value), false, false);
+            }
+
+            if (albumId.HasValue)
+            {
+                return MapToResource(_trackService.GetTracksByAlbum(albumId.Value), false, false);
+            }
+
+            return MapToResource(_trackService.GetTracks(trackIds), false, false);
+        }
+    }
+}

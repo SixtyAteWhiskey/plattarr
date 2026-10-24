@@ -101,6 +101,7 @@ namespace NzbDrone.Core.Tags
             var releaseProfiles = _releaseProfileService.AllForTag(tagId);
             var movies = ItemsWithTag(MediaKind.Movies, tagId);
             var series = ItemsWithTag(MediaKind.Tv, tagId);
+            var artists = ItemsWithTag(MediaKind.Music, tagId);
             var indexers = _indexerService.AllForTag(tagId);
             var indexerProxies = _indexerProxyFactory.AllForTag(tagId);
             var autoTags = _autoTaggingService.AllForTag(tagId);
@@ -116,6 +117,7 @@ namespace NzbDrone.Core.Tags
                 ReleaseProfileIds = releaseProfiles.Select(c => c.Id).ToList(),
                 MovieIds = movies,
                 SeriesIds = series,
+                ArtistIds = artists,
                 IndexerIds = indexers.Select(c => c.Id).ToList(),
                 IndexerProxyIds = indexerProxies.Select(c => c.Id).ToList(),
                 AutoTagIds = autoTags.Select(c => c.Id).ToList(),
@@ -133,6 +135,7 @@ namespace NzbDrone.Core.Tags
             var releaseProfiles = _releaseProfileService.All();
             var movies = AllItemTags(MediaKind.Movies);
             var series = AllItemTags(MediaKind.Tv);
+            var artists = AllItemTags(MediaKind.Music);
             var indexers = _indexerService.All();
             var indexerProxies = _indexerProxyFactory.All();
             var autoTags = _autoTaggingService.All();
@@ -153,6 +156,7 @@ namespace NzbDrone.Core.Tags
                     ReleaseProfileIds = releaseProfiles.Where(c => c.Tags.Contains(tag.Id)).Select(c => c.Id).ToList(),
                     MovieIds = movies.Where(c => c.Value.Contains(tag.Id)).Select(c => c.Key).ToList(),
                     SeriesIds = series.Where(c => c.Value.Contains(tag.Id)).Select(c => c.Key).ToList(),
+                    ArtistIds = artists.Where(c => c.Value.Contains(tag.Id)).Select(c => c.Key).ToList(),
                     IndexerIds = indexers.Where(c => c.Tags.Contains(tag.Id)).Select(c => c.Id).ToList(),
                     IndexerProxyIds = indexerProxies.Where(c => c.Tags.Contains(tag.Id)).Select(c => c.Id).ToList(),
                     AutoTagIds = GetAutoTagIds(tag, autoTags),

@@ -1,0 +1,20 @@
+using Radarr.Http.REST;
+
+namespace Radarr.Api.V3.Music.Config
+{
+    public class MusicNamingConfigResource : RestResource
+    {
+        public bool RenameTracks { get; set; }
+        public bool ReplaceIllegalCharacters { get; set; }
+        public int ColonReplacementFormat { get; set; }
+        public string StandardTrackFormat { get; set; }
+        public string MultiDiscTrackFormat { get; set; }
+        public string ArtistFolderFormat { get; set; }
+        public bool IncludeArtistName { get; set; }
+        public bool IncludeAlbumTitle { get; set; }
+        public bool IncludeQuality { get; set; }
+        public bool ReplaceSpaces { get; set; }
+        public string Separator { get; set; }
+        public string NumberStyle { get; set; }
+    }
+}
