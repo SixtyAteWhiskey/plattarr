@@ -199,6 +199,55 @@ namespace NzbDrone.Common.Extensions
             return source.Contains(value, StringComparer.InvariantCultureIgnoreCase);
         }
 
+        public static double FuzzyMatch(this string a, string b)
+        {
+            if (a.IsNullOrWhiteSpace() || b.IsNullOrWhiteSpace())
+            {
+                return 0;
+            }
+            else if (a.Contains(' ') && b.Contains(' '))
+            {
+                var partsA = a.Split(' ');
+                var partsB = b.Split(' ');
+
+                var coef = (FuzzyMatchComponents(partsA, partsB) + FuzzyMatchComponents(partsB, partsA)) / (partsA.Length + partsB.Length);
+                return Math.Max(coef, LevenshteinCoefficient(a, b));
+            }
+            else
+            {
+                return LevenshteinCoefficient(a, b);
+            }
+        }
+
+        private static double FuzzyMatchComponents(string[] a, string[] b)
+        {
+            double weightDenom = Math.Max(a.Length, b.Length);
+            double sum = 0;
+            for (var i = 0; i < a.Length; i++)
+            {
+                var high = 0.0;
+                var indexDistance = 0;
+                for (var x = 0; x < b.Length; x++)
+                {
+                    var coef = LevenshteinCoefficient(a[i], b[x]);
+                    if (coef > high)
+                    {
+                        high = coef;
+                        indexDistance = Math.Abs(i - x);
+                    }
+                }
+
+                sum += (1.0 - (indexDistance / weightDenom)) * high;
+            }
+
+            return sum;
+        }
+
+        public static double LevenshteinCoefficient(this string a, string b)
+        {
+            return 1.0 - ((double)a.LevenshteinDistance(b) / Math.Max(a.Length, b.Length));
+        }
+
         public static string EncodeRFC3986(this string value)
         {
             // From Twitterizer http://www.twitterizer.net/

@@ -1,0 +1,382 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using NLog;
+using NzbDrone.Common.EnsureThat;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Common.Instrumentation.Extensions;
+using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Messaging.Commands;
+using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Music.Commands;
+using NzbDrone.Core.Music.Events;
+using NzbDrone.Core.Music.History;
+using NzbDrone.Core.Music.MediaFiles;
+using NzbDrone.Core.Music.MediaFiles.Commands;
+using NzbDrone.Core.Music.MetadataSource;
+using NzbDrone.Core.Music.RootFolders;
+
+namespace NzbDrone.Core.Music
+{
+    public class RefreshArtistService : RefreshEntityServiceBase<Artist, Album>,
+        IExecute<RefreshArtistCommand>,
+        IExecute<BulkRefreshArtistCommand>
+    {
+        private readonly IProvideArtistInfo _artistInfo;
+        private readonly IArtistService _artistService;
+        private readonly IAlbumService _albumService;
+        private readonly IRefreshAlbumService _refreshAlbumService;
+        private readonly IEventAggregator _eventAggregator;
+        private readonly IManageCommandQueue _commandQueueManager;
+        private readonly IMediaFileService _mediaFileService;
+        private readonly IHistoryService _historyService;
+        private readonly IRootFolderService _rootFolderService;
+        private readonly ICheckIfArtistShouldBeRefreshed _checkIfArtistShouldBeRefreshed;
+        private readonly IMonitorNewAlbumService _monitorNewAlbumService;
+        private readonly IConfigService _configService;
+        private readonly Logger _logger;
+
+        public RefreshArtistService(IProvideArtistInfo artistInfo,
+                                    IArtistService artistService,
+                                    IArtistMetadataService artistMetadataService,
+                                    IAlbumService albumService,
+                                    IRefreshAlbumService refreshAlbumService,
+                                    IEventAggregator eventAggregator,
+                                    IManageCommandQueue commandQueueManager,
+                                    IMediaFileService mediaFileService,
+                                    IHistoryService historyService,
+                                    IRootFolderService rootFolderService,
+                                    ICheckIfArtistShouldBeRefreshed checkIfArtistShouldBeRefreshed,
+                                    IMonitorNewAlbumService monitorNewAlbumService,
+                                    IConfigService configService,
+                                    Logger logger)
+        : base(logger, artistMetadataService)
+        {
+            _artistInfo = artistInfo;
+            _artistService = artistService;
+            _albumService = albumService;
+            _refreshAlbumService = refreshAlbumService;
+            _eventAggregator = eventAggregator;
+            _commandQueueManager = commandQueueManager;
+            _mediaFileService = mediaFileService;
+            _historyService = historyService;
+            _rootFolderService = rootFolderService;
+            _checkIfArtistShouldBeRefreshed = checkIfArtistShouldBeRefreshed;
+            _monitorNewAlbumService = monitorNewAlbumService;
+            _configService = configService;
+            _logger = logger;
+        }
+
+        protected override RemoteData GetRemoteData(Artist local, List<Artist> remote)
+        {
+            var result = new RemoteData();
+            try
+            {
+                result.Entity = _artistInfo.GetArtistInfo(local.Metadata.Value.ForeignArtistId, local.MetadataProfileId);
+                result.Metadata = new List<ArtistMetadata> { result.Entity.Metadata.Value };
+            }
+            catch (ArtistNotFoundException)
+            {
+                if (local.Metadata.Value.Status != ArtistStatusType.Deleted)
+                {
+                    local.Metadata.Value.Status = ArtistStatusType.Deleted;
+                    _artistService.UpdateArtist(local);
+                    _logger.Debug("Artist marked as deleted on MusicBrainz for {0}", local.Name);
+                    _eventAggregator.PublishEvent(new ArtistUpdatedEvent(local));
+                }
+
+                _logger.Error($"Artist '{local.Name}' (mbid {local.Metadata.Value.ForeignArtistId}) was not found, it may have been removed from MusicBrainz.");
+            }
+
+            return result;
+        }
+
+        protected override bool ShouldDelete(Artist local)
+        {
+            return !_mediaFileService.GetFilesByArtist(local.Id).Any();
+        }
+
+        protected override void LogProgress(Artist local)
+        {
+            _logger.ProgressInfo("Updating Info for Artist '{0}' [{1}]", local.Name, local.ForeignArtistId);
+        }
+
+        protected override bool IsMerge(Artist local, Artist remote)
+        {
+            return local.ArtistMetadataId != remote.Metadata.Value.Id;
+        }
+
+        protected override UpdateResult UpdateEntity(Artist local, Artist remote)
+        {
+            var result = UpdateResult.None;
+
+            if (!local.Metadata.Value.Equals(remote.Metadata.Value))
+            {
+                result = UpdateResult.UpdateTags;
+            }
+
+            local.UseMetadataFrom(remote);
+            local.Metadata = remote.Metadata;
+            local.LastInfoSync = DateTime.UtcNow;
+
+            try
+            {
+                local.Path = new DirectoryInfo(local.Path).FullName;
+                local.Path = local.Path.GetActualCasing();
+            }
+            catch (Exception e)
+            {
+                _logger.Warn(e, "Couldn't update artist path for " + local.Path);
+            }
+
+            return result;
+        }
+
+        protected override UpdateResult MoveEntity(Artist local, Artist remote)
+        {
+            _logger.Debug($"Updating MusicBrainz id for {local} to {remote}");
+
+            // We are moving from one metadata to another (will already have been poplated)
+            local.ArtistMetadataId = remote.Metadata.Value.Id;
+            local.Metadata = remote.Metadata.Value;
+
+            // Do the standard update
+            UpdateEntity(local, remote);
+
+            // We know we need to update tags as artist id has changed
+            return UpdateResult.UpdateTags;
+        }
+
+        protected override UpdateResult MergeEntity(Artist local, Artist target, Artist remote)
+        {
+            _logger.Warn($"Artist {local} was replaced with {remote} because the original was a duplicate.");
+
+            // move any albums over to the new artist and remove the local artist
+            var albums = _albumService.GetAlbumsByArtist(local.Id);
+            albums.ForEach(x => x.ArtistMetadataId = target.ArtistMetadataId);
+            _albumService.UpdateMany(albums);
+            _artistService.DeleteArtist(local.Id, false);
+
+            // Update history entries to new id
+            var items = _historyService.GetByArtist(local.Id, null);
+            items.ForEach(x => x.ParentId = target.Id);
+            _historyService.UpdateMany(items);
+
+            // We know we need to update tags as artist id has changed
+            return UpdateResult.UpdateTags;
+        }
+
+        protected override Artist GetEntityByForeignId(Artist local)
+        {
+            return _artistService.FindById(local.ForeignArtistId);
+        }
+
+        protected override void SaveEntity(Artist local)
+        {
+            _artistService.UpdateArtist(local, publishUpdatedEvent: false);
+        }
+
+        protected override void DeleteEntity(Artist local, bool deleteFiles)
+        {
+            _artistService.DeleteArtist(local.Id, true);
+        }
+
+        protected override List<Album> GetRemoteChildren(Artist remote)
+        {
+            return remote.Albums.Value.DistinctBy(m => m.ForeignAlbumId).ToList();
+        }
+
+        protected override List<Album> GetLocalChildren(Artist entity, List<Album> remoteChildren)
+        {
+            return _albumService.GetAlbumsForRefresh(entity.ArtistMetadataId,
+                                                     remoteChildren.Select(x => x.ForeignAlbumId)
+                                                     .Concat(remoteChildren.SelectMany(x => x.OldForeignAlbumIds)).ToList());
+        }
+
+        protected override Tuple<Album, List<Album>> GetMatchingExistingChildren(List<Album> existingChildren, Album remote)
+        {
+            var existingChild = existingChildren.SingleOrDefault(x => x.ForeignAlbumId == remote.ForeignAlbumId);
+            var mergeChildren = existingChildren.Where(x => remote.OldForeignAlbumIds.Contains(x.ForeignAlbumId)).ToList();
+            return Tuple.Create(existingChild, mergeChildren);
+        }
+
+        protected override void PrepareNewChild(Album child, Artist entity)
+        {
+            child.Artist = entity;
+            child.ArtistMetadata = entity.Metadata.Value;
+            child.ArtistMetadataId = entity.Metadata.Value.Id;
+            child.Added = DateTime.UtcNow;
+            child.LastInfoSync = DateTime.MinValue;
+            child.ProfileId = entity.QualityProfileId;
+            child.Monitored = entity.Monitored;
+        }
+
+        protected override void PrepareExistingChild(Album local, Album remote, Artist entity)
+        {
+            local.Artist = entity;
+            local.ArtistMetadata = entity.Metadata.Value;
+            local.ArtistMetadataId = entity.Metadata.Value.Id;
+        }
+
+        protected override void ProcessChildren(Artist entity, SortedChildren children)
+        {
+            foreach (var album in children.Added)
+            {
+                // all existing child albums count as updated as we don't have proper data yet.
+                album.Monitored = _monitorNewAlbumService.ShouldMonitorNewAlbum(album, children.Updated, entity.MonitorNewItems);
+            }
+        }
+
+        protected override void AddChildren(List<Album> children)
+        {
+            _albumService.InsertMany(children);
+        }
+
+        protected override bool RefreshChildren(SortedChildren localChildren, List<Album> remoteChildren, bool forceChildRefresh, bool forceUpdateFileTags, DateTime? lastUpdate)
+        {
+            // we always want to end up refreshing the albums since we don't yet have proper data
+            Ensure.That(localChildren.UpToDate.Count, () => localChildren.UpToDate.Count).IsLessThanOrEqualTo(0);
+            return _refreshAlbumService.RefreshAlbumInfo(localChildren.All, remoteChildren, forceChildRefresh, forceUpdateFileTags, lastUpdate);
+        }
+
+        protected override void PublishEntityUpdatedEvent(Artist entity)
+        {
+            _eventAggregator.PublishEvent(new ArtistUpdatedEvent(entity));
+        }
+
+        protected override void PublishRefreshCompleteEvent(Artist entity)
+        {
+            _eventAggregator.PublishEvent(new ArtistRefreshCompleteEvent(entity));
+        }
+
+        protected override void PublishChildrenUpdatedEvent(Artist entity, List<Album> newChildren, List<Album> updateChildren, List<Album> removedChildren)
+        {
+            _eventAggregator.PublishEvent(new AlbumInfoRefreshedEvent(entity, newChildren, updateChildren, removedChildren));
+        }
+
+        private void RescanArtists(List<Artist> artists, bool isNew, CommandTrigger trigger, bool infoUpdated)
+        {
+            var rescanAfterRefresh = _configService.RescanAfterRefresh;
+            var shouldRescan = true;
+            var filter = FilterFilesType.Matched;
+            var folders = _rootFolderService.All().Select(x => x.Path).ToList();
+
+            if (isNew)
+            {
+                _logger.Trace("Forcing rescan. Reason: New artist added");
+                shouldRescan = true;
+
+                // only rescan artist folders - otherwise it can be super slow for
+                // badly organized / partly matched libraries
+                folders = artists.Select(x => x.Path).ToList();
+            }
+            else if (rescanAfterRefresh == RescanAfterRefreshType.Never)
+            {
+                _logger.Trace("Skipping rescan. Reason: never rescan after refresh");
+                shouldRescan = false;
+            }
+            else if (rescanAfterRefresh == RescanAfterRefreshType.AfterManual && trigger != CommandTrigger.Manual)
+            {
+                _logger.Trace("Skipping rescan. Reason: not after automatic refreshes");
+                shouldRescan = false;
+            }
+            else if (!infoUpdated && trigger != CommandTrigger.Manual)
+            {
+                _logger.Trace("Skipping rescan. Reason: no metadata updated after automatic refresh");
+                shouldRescan = false;
+            }
+            else if (!infoUpdated)
+            {
+                _logger.Trace("No metadata updated, only scanning new files");
+                filter = FilterFilesType.Known;
+            }
+
+            if (shouldRescan)
+            {
+                // some metadata has updated so rescan unmatched
+                // (but don't add new artists to reduce repeated searches against api)
+                _commandQueueManager.Push(new RescanFoldersCommand(folders, filter, false, artists.Select(x => x.Id).ToList()));
+            }
+        }
+
+        private void RefreshSelectedArtists(List<int> artistIds, bool isNew, CommandTrigger trigger)
+        {
+            var updated = false;
+            var artists = new List<Artist>();
+
+            foreach (var artistId in artistIds)
+            {
+                try
+                {
+                    var artist = _artistService.GetArtist(artistId);
+                    updated |= RefreshEntityInfo(artist, null, true, false, null);
+                    artists.Add(artist);
+                }
+                catch (Exception e)
+                {
+                    var artist = _artistService.GetArtist(artistId);
+                    _logger.Error(e, "Couldn't refresh info for Artist '{0}' [{1}]", artist.Name, artist.ForeignArtistId);
+                    artists.Add(artist);
+                }
+            }
+
+            RescanArtists(artists, isNew, trigger, updated);
+        }
+
+        public void Execute(BulkRefreshArtistCommand message)
+        {
+            RefreshSelectedArtists(message.ArtistIds, message.AreNewArtists, message.Trigger);
+        }
+
+        public void Execute(RefreshArtistCommand message)
+        {
+            var trigger = message.Trigger;
+            var isNew = message.IsNewArtist;
+
+            if (message.ArtistIds.Any())
+            {
+                RefreshSelectedArtists(message.ArtistIds, isNew, trigger);
+            }
+            else
+            {
+                var updated = false;
+                var artists = _artistService.GetAllArtists();
+
+                HashSet<string> updatedMusicbrainzArtists = null;
+
+                if (message.LastStartTime.HasValue && message.LastStartTime.Value.AddDays(14) > DateTime.UtcNow)
+                {
+                    updatedMusicbrainzArtists = _artistInfo.GetChangedArtists(message.LastStartTime.Value);
+                }
+
+                foreach (var artist in artists)
+                {
+                    var artistLocal = artist;
+                    var manualTrigger = message.Trigger == CommandTrigger.Manual;
+
+                    if ((updatedMusicbrainzArtists is not { Count: not 0 } && _checkIfArtistShouldBeRefreshed.ShouldRefresh(artistLocal)) ||
+                        (updatedMusicbrainzArtists is { Count: > 0 } && updatedMusicbrainzArtists.Contains(artistLocal.ForeignArtistId)) ||
+                        manualTrigger)
+                    {
+                        try
+                        {
+                            artistLocal = _artistService.GetArtist(artistLocal.Id);
+                            updated |= RefreshEntityInfo(artistLocal, null, manualTrigger, false, message.LastStartTime);
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.Error(e, "Couldn't refresh info for Artist '{0}' [{1}]", artistLocal.Name, artistLocal.ForeignArtistId);
+                        }
+                    }
+                    else
+                    {
+                        _logger.Info("Skipping refresh of Artist '{0}' [{1}]", artistLocal.Name, artistLocal.ForeignArtistId);
+                    }
+                }
+
+                RescanArtists(artists, isNew, trigger, updated);
+            }
+        }
+    }
+}

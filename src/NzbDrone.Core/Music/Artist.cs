@@ -3,17 +3,27 @@ using System.Collections.Generic;
 using Equ;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Music.Profiles;
 
 namespace NzbDrone.Core.Music
 {
-    public class Artist : Entity<Artist>
+    public class Artist : Entity<Artist>, IMediaParent
     {
         public Artist()
         {
             Tags = new HashSet<int>();
             Metadata = new ArtistMetadata();
         }
+
+        // What the shared core reads of a parent entity (the artist is Music's parent, as a movie or series is).
+        // Equ compares non-public members too, so both are ignored: Title reads the lazily loaded
+        // metadata and would make two otherwise equal artists differ by whether it is loaded.
+        [MemberwiseEqualityIgnore]
+        MediaKind IMediaParent.Kind => MediaKind.Music;
+
+        [MemberwiseEqualityIgnore]
+        string IMediaParent.Title => Name;
 
         // These correspond to columns in the Artists table
         public int ArtistMetadataId { get; set; }

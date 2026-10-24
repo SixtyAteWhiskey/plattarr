@@ -168,6 +168,60 @@ namespace NzbDrone.Core.Test.MusicTests
             Subject.AlbumsWhereCutoffUnmet(spec2, above).Records.Should().BeEmpty();
         }
 
+        [TestCase("ANThology")]
+        [TestCase("anthology")]
+        [TestCase("anthology!")]
+        public void should_find_album_in_db_by_title(string title)
+        {
+            var album = Subject.FindByTitle(_artist.ArtistMetadataId, title);
+
+            album.Should().NotBeNull();
+            album.Title.Should().Be(_album.Title);
+        }
+
+        [Test]
+        public void should_find_album_in_db_by_title_all_special_characters()
+        {
+            var special = MusicTestData.NewAlbum(_artist.ArtistMetadataId, "+", "2");
+            special.CleanTitle = "";
+            Subject.Insert(special);
+
+            var album = Subject.FindByTitle(_artist.ArtistMetadataId, "+");
+
+            album.Should().NotBeNull();
+            album.Title.Should().Be("+");
+        }
+
+        [TestCase("ANTholog")]
+        [TestCase("nthology")]
+        [TestCase("antholoyg")]
+        [TestCase("÷")]
+        public void should_not_find_album_in_db_by_incorrect_title(string title)
+        {
+            Subject.FindByTitle(_artist.ArtistMetadataId, title).Should().BeNull();
+        }
+
+        [Test]
+        public void should_not_find_album_when_two_albums_have_same_name()
+        {
+            var albums = new List<Album>
+            {
+                MusicTestData.NewAlbum(_artist.ArtistMetadataId, "Weezer", "w1"),
+                MusicTestData.NewAlbum(_artist.ArtistMetadataId, "Weezer", "w2")
+            };
+
+            Subject.InsertMany(albums);
+
+            Subject.All().Should().HaveCount(3);
+            Subject.FindByTitle(_artist.ArtistMetadataId, "Weezer").Should().BeNull();
+        }
+
+        [Test]
+        public void should_not_find_album_by_title_of_another_artist()
+        {
+            Subject.FindByTitle(_artist.ArtistMetadataId + 1, "ANThology").Should().BeNull();
+        }
+
         private EquivalencyAssertionOptions<Album> AlbumComparerOptions(EquivalencyAssertionOptions<Album> opts) => opts.ComparingByMembers<Album>()
                 .WithDateTolerance()
                 .Excluding(ctx => ctx.Type.IsGenericType && ctx.Type.GetGenericTypeDefinition() == typeof(LazyLoaded<>))

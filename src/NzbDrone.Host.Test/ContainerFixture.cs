@@ -369,5 +369,38 @@ namespace NzbDrone.App.Test
             _container.GetServices<IHandle<MovieFileImportedEvent>>().OfType<MovieDownloadHistoryHandler>().Should().ContainSingle();
             _container.GetServices<IHandle<MovieFileImportedEvent>>().OfType<DownloadHistoryService>().Should().BeEmpty();
         }
+
+        [Test]
+        public void should_resolve_the_music_metadata_services_and_the_artist_refresh_executor()
+        {
+            _container.GetServices<IMediaModule>().Should().ContainSingle(m => m.Kind == MediaKind.Music);
+
+            _container.GetRequiredService<NzbDrone.Core.Music.MetadataSource.IProvideArtistInfo>().Should().BeOfType<NzbDrone.Core.Music.MetadataSource.SkyHook.SkyHookProxy>();
+            _container.GetRequiredService<NzbDrone.Core.Music.MetadataSource.IProvideAlbumInfo>().Should().BeOfType<NzbDrone.Core.Music.MetadataSource.SkyHook.SkyHookProxy>();
+            _container.GetRequiredService<NzbDrone.Core.Music.MetadataSource.ISearchForNewArtist>().Should().BeOfType<NzbDrone.Core.Music.MetadataSource.SkyHook.SkyHookProxy>();
+            _container.GetRequiredService<NzbDrone.Core.Music.MetadataSource.ISearchForNewAlbum>().Should().BeOfType<NzbDrone.Core.Music.MetadataSource.SkyHook.SkyHookProxy>();
+
+            _container.GetRequiredService<NzbDrone.Core.Music.IArtistService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.IAlbumService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.IReleaseService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.ITrackService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.IAddArtistService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.IAddAlbumService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.IMonitorNewAlbumService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.IAlbumMonitoredService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.Parser.IParsingService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.Profiles.IMetadataProfileService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.Profiles.IAudioQualityProfileService>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.MediaFiles.IDiskScanService>().Should().NotBeNull();
+
+            _container.GetRequiredService<IExecute<NzbDrone.Core.Music.Commands.RefreshArtistCommand>>().Should().BeOfType<NzbDrone.Core.Music.RefreshArtistService>();
+        }
+
+        [Test]
+        public void should_seed_the_default_music_profiles_when_the_application_starts()
+        {
+            _container.GetRequiredService<NzbDrone.Core.Music.Profiles.IAudioQualityProfileService>().Should().BeAssignableTo<IHandle<ApplicationStartedEvent>>();
+            _container.GetRequiredService<NzbDrone.Core.Music.Profiles.IMetadataProfileService>().Should().BeAssignableTo<IHandle<ApplicationStartedEvent>>();
+        }
     }
 }

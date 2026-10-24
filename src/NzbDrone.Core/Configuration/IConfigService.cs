@@ -32,6 +32,7 @@ namespace NzbDrone.Core.Configuration
         ProperDownloadTypes DownloadPropersAndRepacks { get; set; }
         bool CreateEmptyMovieFolders { get; set; }
         bool CreateEmptySeriesFolders { get; set; }
+        bool CreateEmptyArtistFolders { get; set; }
         bool AnimeStandardFormatSearch { get; set; }
         SeasonPackUpgradeType SeasonPackUpgrade { get; set; }
         int SeasonPackUpgradeThreshold { get; set; }
@@ -49,6 +50,9 @@ namespace NzbDrone.Core.Configuration
         bool ImportExtraFiles { get; set; }
         string ExtraFileExtensions { get; set; }
         RescanAfterRefreshType RescanAfterRefresh { get; set; }
+
+        // Music: base URL of the artist and album metadata service; empty uses the Lidarr project's.
+        string MusicMetadataSource { get; set; }
         bool AutoRenameFolders { get; set; }
 
         // Permissions (Media Management)
