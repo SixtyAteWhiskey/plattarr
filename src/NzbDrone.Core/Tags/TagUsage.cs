@@ -15,6 +15,7 @@ namespace NzbDrone.Core.Tags
         {
             "Movies_Movies",
             "Tv_Series",
+            "Music_Artists",
             "Tv_AutoTagging",
             "Notifications",
             "DelayProfiles",

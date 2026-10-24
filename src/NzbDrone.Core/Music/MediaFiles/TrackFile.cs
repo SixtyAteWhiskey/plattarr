@@ -1,0 +1,50 @@
+using System;
+using System.Collections.Generic;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Qualities;
+
+namespace NzbDrone.Core.Music.MediaFiles
+{
+    public class TrackFile : ModelBase
+    {
+        // these are model properties
+        public string Path { get; set; }
+        public long Size { get; set; }
+        public DateTime Modified { get; set; }
+        public DateTime DateAdded { get; set; }
+        public string OriginalFilePath { get; set; }
+        public string SceneName { get; set; }
+        public string ReleaseGroup { get; set; }
+        public AudioQualityModel Quality { get; set; }
+        public IndexerFlags IndexerFlags { get; set; }
+        public MediaInfoModel MediaInfo { get; set; }
+        public int AlbumId { get; set; }
+
+        // These are queried from the database
+        public LazyLoaded<List<Track>> Tracks { get; set; }
+        public LazyLoaded<Artist> Artist { get; set; }
+        public LazyLoaded<Album> Album { get; set; }
+
+        public override string ToString()
+        {
+            return string.Format("[{0}] {1}", Id, Path);
+        }
+
+        public string GetSceneOrFileName()
+        {
+            if (SceneName.IsNotNullOrWhiteSpace())
+            {
+                return SceneName;
+            }
+
+            if (Path.IsNotNullOrWhiteSpace())
+            {
+                return System.IO.Path.GetFileNameWithoutExtension(Path);
+            }
+
+            return string.Empty;
+        }
+    }
+}

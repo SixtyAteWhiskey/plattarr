@@ -2149,6 +2149,71 @@ was checked by breaking the code under test and seeing the test fail: a changed 
 default weight, a broken `FromDisplayModel`, and a map entry swapped (two entries, so the reverse map
 still builds).
 
+### Music step 1: as built
+
+Built in session 48. Step 1 is the data layer: entities, repositories, tables and migration 009. It has no
+services, API, parser or scheduled tasks (steps 2 to 7). Adding `MusicModule` and `MusicTableMap`
+activates the module, because both are discovered automatically (the container finds `IMediaModule`; the
+table mapper finds `IModuleTableMap` by reflection). Calls made while building:
+
+- **Entities are Lidarr's, copied.** `NzbDrone.Core.Music`: `Artist`, `ArtistMetadata`, `Album`,
+  `AlbumRelease`, `Track`, `Medium`, `Member`, `Links`, `Ratings`, `Entity`, the type and status enums,
+  monitoring options, and the repositories. Lidarr's column names are kept, so the importer copies rows
+  without renaming. Edits to the copies: `Artist.QualityProfile` is `LazyLoaded<AudioQualityProfile>`
+  (module-owned); raw SQL uses the `Music_` names; `FindByTitle` is removed because it needs the parser
+  (steps 2 and 3).
+- **Module-owned types.** `Music/Profiles` (`AudioQualityProfile`, its items and repository, and
+  `MetadataProfile` with its three item types and converters), `Music/Qualities`
+  (`AudioQualityDefinitionRepository`, and `AudioQualityDefinitionService`, which seeds, updates and
+  deletes definitions from `AudioQuality.DefaultQualityDefinitions` on `ApplicationStartedEvent`),
+  `Music/MediaFiles` (`TrackFile`, `MediaInfoModel`, `TrackFileRepository`), `Music/RootFolders`,
+  `Music/Organizer` (`NamingConfig`, `ColonReplacementFormat`). Core cannot reference module code and
+  modules cannot reference each other (`ModuleBoundaryFixture`), so Music has its own `RootFolder`,
+  `MediaInfoModel` and `ColonReplacementFormat` rather than sharing the Movies ones.
+- **Audio quality profile has Lidarr's shape.** No `AppliesTo`, `Language` or `MinUpgradeFormatScore`.
+  Whether an audio profile scores global custom formats is still the step 4 call; the repository already
+  resolves custom format items through `ICustomFormatService`, as Lidarr's does.
+- **Tables (migration 009, `music_module_tables`).** `Music_ArtistMetadata`, `Music_Artists`,
+  `Music_Albums`, `Music_AlbumReleases`, `Music_Tracks`, `Music_TrackFiles`, `Music_QualityDefinitions`,
+  `Music_QualityProfiles`, `Music_MetadataProfiles`, `Music_RootFolders`, `Music_NamingConfig`. Lidarr's
+  columns, unique constraints and indexes; JSON columns default to `[]`. The migration creates tables only
+  and touches no existing row.
+- **Shared activity tables.** Music reads `History` and `Blocklist` through its own views
+  (`AlbumHistory`, `Blocklist`) over `MediaKindRepository<T>` with `MediaKind.Music`; `ParentId` is the
+  artist and `ItemId`/`ItemIds` are albums (step 0). `PendingReleases` and `DownloadHistory` get their
+  Music views in step 6. **`Languages` is carried only because the shared tables require it:** on SQLite
+  `History.Languages` and `Blocklist.Languages` are `NOT NULL` with no default (checked with a PRAGMA
+  probe), and `BasicRepository` inserts every mapped property, so a view that omits the column cannot
+  insert. Both Music views write an empty list. Music never reads it.
+- **Storage of qualities.** `MusicTableMap` registers `DapperAudioQualityIntConverter` and the JSON
+  converters for `AudioQualityModel` and for the profile items, so a stored quality is its catalog ID. A
+  stored row with an unknown quality ID throws when read, as video does; qualities are never removed.
+- **Core changes.** (a) `WhereBuilderSqlite` and `WhereBuilderPostgres` treat `Contains` on a
+  non-concrete `List<string>` (Lidarr's `OldForeignArtistIds`) as a string Contains on the JSON text
+  (`LIKE`/`ILIKE`). It is a substring match, which is exact enough for foreign IDs (UUIDs). (b)
+  `MediaCoverTypes` gains `Cover` (7), `Disc` (8) and `Logo` (9). (c) `TagUsage` counts
+  `Music_Artists`; root folder `DefaultTags` are not counted, as in Lidarr. (d) Two download client
+  help-text strings in `en.json`.
+- **Cutoff queries.** The cutoff-unmet query matches `"quality": N` in the indented JSON, the same
+  pattern as Movies; a test pins it for audio.
+- **Not stored.** `AudioQualityDefinition` `Weight`, `GroupName` and `GroupWeight` are not columns; the
+  service fills them from the catalog defaults, as Movies does. The Lidarr default profiles (Any,
+  Lossless, Standard) are not created yet (steps 3 and 7). The `IndexerFlags` translation from Lidarr's
+  values to the global ones belongs to the importer.
+- **Still open.** `TrackId` on history rows (step 6, see step 0); custom formats on audio profiles
+  (step 4).
+
+**Tests.** `MusicTests` has fixtures for each repository, the profiles, the definition service, album
+history, the blocklist, root folders, naming config and `MusicModule`, over fully populated entities
+that must round-trip every column. `MusicModuleTablesFixture` checks the migration (tables empty, existing
+activity rows untouched, every mapped property has a column, defaults, uniqueness, indexes). The
+`Contains` handling has tests in both where-builder fixtures. All of it passes on SQLite and on
+PostgreSQL 16. Each was checked by breaking the code under test and seeing a test fail: the definition
+weight, the history and blocklist kind, the monitored filter on `GetFilesByArtist`, the JSON list
+`Contains`, the audio quality JSON and Dapper handlers, the cutoff clause, a unique constraint, the album
+type converter, the default categories and a table name. Lesson: a mutation run restores the source
+file but not the built assembly, so rebuild before the next test run.
+
 ## Decision record
 
 Owner answers, 2026-10-20, to the six questions in revision 1:

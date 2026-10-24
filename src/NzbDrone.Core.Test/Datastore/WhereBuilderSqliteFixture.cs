@@ -184,6 +184,17 @@ namespace NzbDrone.Core.Test.Datastore
             _subject.ToString().Should().Be($"(\"Movies_MovieMetadata\".\"CleanTitle\" IN @Clause1_P1)");
         }
 
+        // A List<string> column is a JSON array; Contains on it is a text search, not IN.
+        [Test]
+        public void where_json_list_column_contains()
+        {
+            var genre = "Action";
+
+            _subject = WhereMeta(x => x.Genres.Contains(genre));
+
+            _subject.ToString().Should().Be("(\"Movies_MovieMetadata\".\"Genres\" LIKE '%' || @Clause1_P1 || '%')");
+        }
+
         [Test]
         public void enum_as_int()
         {

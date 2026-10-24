@@ -11,7 +11,13 @@ namespace NzbDrone.Core.MediaCover
         Fanart = 3,
         Screenshot = 4,
         Headshot = 5,
-        Clearlogo = 6
+        Clearlogo = 6,
+
+        // Music's image types (Lidarr's Cover, Disc and Logo). Covers are stored by name, so
+        // these take the next free numbers rather than Lidarr's.
+        Cover = 7,
+        Disc = 8,
+        Logo = 9
     }
 
     public class MediaCover : MemberwiseEquatable<MediaCover>, IEmbeddedDocument
