@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
+using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Music;
@@ -207,6 +208,76 @@ namespace NzbDrone.Core.Test.MusicTests
             Subject.GetByArtist(_artist.Id, AlbumHistoryEventType.DownloadFailed).Single().Album.Id.Should().Be(_album2.Id);
             Subject.GetByAlbum(_album1.Id, null).Single().Artist.Metadata.Value.Name.Should().Be("The Black Keys");
             Subject.GetByAlbum(_album1.Id, AlbumHistoryEventType.DownloadFailed).Should().BeEmpty();
+        }
+
+        private PagingSpec<AlbumHistory> Page(string sortKey = "date", SortDirection direction = SortDirection.Descending, int pageSize = 10)
+        {
+            return new PagingSpec<AlbumHistory> { Page = 1, PageSize = pageSize, SortKey = sortKey, SortDirection = direction };
+        }
+
+        [Test]
+        public void should_page_history_with_the_artist_and_album_joined_and_count_every_row()
+        {
+            Subject.Insert(NewHistory(_artist, _album1, date: new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc)));
+            Subject.Insert(NewHistory(_artist, _album2, date: new DateTime(2026, 10, 2, 0, 0, 0, DateTimeKind.Utc)));
+            Subject.Insert(NewHistory(_other, _otherAlbum, date: new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc)));
+
+            var page = Subject.GetPaged(Page(pageSize: 2), null);
+
+            page.TotalRecords.Should().Be(3);
+            page.Records.Select(h => h.Album.Title).Should().Equal("ANThology", "El Camino");
+            page.Records.Select(h => h.Artist.Name).Should().Equal("Alien Ant Farm", "The Black Keys");
+        }
+
+        [Test]
+        public void should_filter_a_page_by_audio_quality_and_count_only_the_matches()
+        {
+            Subject.Insert(NewHistory(_artist, _album1, quality: AudioQuality.FLAC));
+            Subject.Insert(NewHistory(_artist, _album2, quality: AudioQuality.MP3_320));
+            Subject.Insert(NewHistory(_other, _otherAlbum, quality: AudioQuality.MP3_320));
+
+            var flac = Subject.GetPaged(Page(), new[] { AudioQuality.FLAC.Id });
+
+            flac.TotalRecords.Should().Be(1);
+            flac.Records.Single().Album.Title.Should().Be("Brothers");
+
+            var both = Subject.GetPaged(Page(), new[] { AudioQuality.FLAC.Id, AudioQuality.MP3_320.Id });
+
+            both.TotalRecords.Should().Be(3);
+            Subject.GetPaged(Page(), new[] { AudioQuality.WAV.Id }).TotalRecords.Should().Be(0);
+        }
+
+        [Test]
+        public void should_sort_a_page_by_the_artist_sort_name_and_the_album_title()
+        {
+            Subject.Insert(NewHistory(_artist, _album1));
+            Subject.Insert(NewHistory(_artist, _album2));
+            Subject.Insert(NewHistory(_other, _otherAlbum));
+
+            Subject.GetPaged(Page("artists.sortName", SortDirection.Ascending), null).Records.Select(h => h.Artist.Name)
+                   .Should().Equal("Alien Ant Farm", "The Black Keys", "The Black Keys");
+
+            Subject.GetPaged(Page("albums.title", SortDirection.Descending), null).Records.Select(h => h.Album.Title)
+                   .Should().Equal("El Camino", "Brothers", "ANThology");
+        }
+
+        [Test]
+        public void should_not_page_the_rows_of_another_media_kind()
+        {
+            Subject.Insert(NewHistory(_artist, _album1));
+
+            Mocker.Resolve<MovieHistoryRepository>().Insert(new MovieHistory
+            {
+                MediaKind = MediaKind.Movies,
+                ParentId = _artist.Id,
+                SourceTitle = "Movie",
+                Quality = new QualityModel(Quality.Bluray1080p),
+                Date = DateTime.UtcNow,
+                EventType = Core.Movies.History.MovieHistoryEventType.Grabbed,
+                Languages = new List<Language> { Language.English }
+            });
+
+            Subject.GetPaged(Page(), null).TotalRecords.Should().Be(1);
         }
 
         [Test]

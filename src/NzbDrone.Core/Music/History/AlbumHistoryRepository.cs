@@ -19,6 +19,7 @@ namespace NzbDrone.Core.Music.History
         List<AlbumHistory> FindDownloadHistory(int artistId, AudioQualityModel quality);
         void DeleteForArtists(List<int> artistIds);
         List<AlbumHistory> Since(DateTime date, AlbumHistoryEventType? eventType);
+        PagingSpec<AlbumHistory> GetPaged(PagingSpec<AlbumHistory> pagingSpec, int[] qualities);
     }
 
     public class AlbumHistoryRepository : MediaKindRepository<AlbumHistory>, IAlbumHistoryRepository
@@ -107,6 +108,32 @@ namespace NzbDrone.Core.Music.History
             }
 
             return PagedQuery(builder).OrderBy(h => h.Date).ToList();
+        }
+
+        public PagingSpec<AlbumHistory> GetPaged(PagingSpec<AlbumHistory> pagingSpec, int[] qualities)
+        {
+            pagingSpec.Records = GetPagedRecords(PagedBuilder(qualities), pagingSpec, PagedQuery);
+
+            var countTemplate = $"SELECT COUNT(*) FROM (SELECT /**select**/ FROM \"{TableMapping.Mapper.TableNameMapping(typeof(AlbumHistory))}\" /**join**/ /**innerjoin**/ /**leftjoin**/ /**where**/ /**groupby**/ /**having**/) AS \"Inner\"";
+            pagingSpec.TotalRecords = GetPagedRecordCount(PagedBuilder(qualities).Select(typeof(AlbumHistory)), pagingSpec, countTemplate);
+
+            return pagingSpec;
+        }
+
+        // The quality filter reads the stored audio quality (QualityModel's JSON has the same "quality": id
+        // shape for both catalogs), and the joins give the sort keys artists.* and albums.*.
+        private SqlBuilder PagedBuilder(int[] qualities)
+        {
+            var builder = Builder()
+                .Join<AlbumHistory, Artist>((h, a) => h.ParentId == a.Id)
+                .Join<AlbumHistory, Album>((h, a) => h.ItemId == a.Id);
+
+            if (qualities is { Length: > 0 })
+            {
+                builder.Where($"({ActivityFilterSql.QualityClause(TableMapping.Mapper.TableNameMapping(typeof(AlbumHistory)), qualities)})");
+            }
+
+            return builder;
         }
 
         protected override IEnumerable<AlbumHistory> PagedQuery(SqlBuilder builder) =>

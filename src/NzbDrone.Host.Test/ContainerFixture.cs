@@ -210,6 +210,15 @@ namespace NzbDrone.App.Test
         }
 
         [Test]
+        public void should_resolve_the_music_activity_api_controllers_and_the_blocklist_clear_executor()
+        {
+            _container.GetRequiredService<Radarr.Api.V3.Music.History.AlbumHistoryController>().Should().NotBeNull();
+            _container.GetRequiredService<Radarr.Api.V3.Music.Blocklist.AlbumBlocklistController>().Should().NotBeNull();
+            _container.GetRequiredService<NzbDrone.Core.Music.Blocklisting.IBlocklistService>()
+                .Should().BeAssignableTo<IExecute<NzbDrone.Core.Music.Blocklisting.ClearMusicBlocklistCommand>>();
+        }
+
+        [Test]
         public void should_resolve_the_artist_statistics_service_and_the_audio_definition_reset_executor()
         {
             _container.GetRequiredService<NzbDrone.Core.Music.ArtistStats.IArtistStatisticsService>()
