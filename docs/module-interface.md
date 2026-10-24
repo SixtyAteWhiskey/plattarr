@@ -2092,8 +2092,62 @@ switcher is never a control that changes nothing.
   `PUT config/indexer` body, persistence after reload, card labels per kind with a mock qBittorrent
   endpoint, no console errors).
 
+## Music module
 
+Source: Lidarr `develop` at `aec88028d036707619baacbbb840b30c2d716318` (2026-10-10), the pin in
+`claude/plattarr-music-spike.md`. Namespace `NzbDrone.Core.Music.*`, tables `Music_`,
+`MediaKind.Music` (3).
 
+### Music step 0: as built
+
+Built in session 48. Step 0 adds the audio quality catalog and checks that the shared core carries
+Music's keys. Calls made while building (each is reversible until a migration stores them, except the
+catalog IDs, which are permanent):
+
+- **Audio catalog types live in core, next to the video ones** (`NzbDrone.Core.Qualities`):
+  `AudioQuality` (`Id`, `Name`; 37 qualities plus `Unknown`), `AudioQualityDefinition` (title, group,
+  weights and size limits) and `AudioQualityModel` (quality plus the shared `Revision`). Core owns them
+  because the importer and the compatibility APIs (both core) need the catalog and a core type may not
+  reference module code. The video types are untouched.
+- **IDs.** `Unknown` is 0; the 37 others are 201 to 237, in Lidarr's default weight order at birth with
+  ties in the order of Lidarr's default definitions (`MP3-8` is 201, `FLAC` 231, `WAV` 237). A test
+  pins every ID and name. Lidarr's names, weights, group names and group weights, and size limits are
+  copied unchanged; `AudioQualityFixture` checks all 38 rows against Lidarr's own table.
+- **`LidarrQualityIds`** (`Qualities/Upstream`) maps Lidarr's 0 to 37 to the catalog and back, with the
+  same API as `RadarrQualityIds` and `SonarrQualityIds`. `UpstreamIdMapFixture` checks it against Lidarr's
+  own ID and name table, and checks that Radarr and Sonarr map no audio quality and Lidarr no video one.
+- **Storage.** `AudioQualityIntConverter` (JSON) and `DapperAudioQualityIntConverter` write a quality as
+  its catalog ID, as `QualityIntConverter` does for video. `MusicTableMap` registers them in step 1.
+- **Where the rest lives.** The audio quality profile (`Music_QualityProfiles`) and definition
+  (`Music_QualityDefinitions`) tables, repositories and services belong to the Music module; they are
+  step 1. Only the catalog and its ID maps are in core.
+- **Shared core types keep `QualityModel`.** The queue, `RemoteRelease`, `CustomFormatInput`, the failed
+  and ignored download events and the webhook client item carry a video `QualityModel` (11 core files outside the
+  modules name it, its own among them). Rather than make those types generic, a Music release shows its audio quality there as
+  a display copy: `AudioQualityModel.ToDisplayModel()` keeps the ID, name and revision and leaves source,
+  resolution and modifier at their defaults, and `FromDisplayModel` gets the audio quality back from the
+  ID alone (video IDs 1 to 199 never overlap audio IDs 201 to 399, which is why the ranges are disjoint).
+  A video ID passed to `FromDisplayModel` throws. Nothing in core reads a display copy from the database:
+  stored Music rows (history, blocklist, track files, pending releases) hold `AudioQualityModel`, read by
+  Music's own handlers. Revisit only if a core reader of a stored quality appears.
+- **Audit: the shared activity keys already carry Music's.** `RemoteRelease.Parent` and `ItemIds`,
+  `DownloadHistory.ParentId`, `History.ParentId`/`ItemId`, `Blocklist.ParentId`/`ItemIds`, the failed,
+  ignored and completed events, `ProcessDownloadDecisions` (its overlap check reads `ItemIds`) and
+  `ActivitySubject` use plain integers and name no entity. **Music's call: `ParentId` is the artist and
+  `ItemId`/`ItemIds` are album IDs**, as in Lidarr (its history and blocklist are album-keyed).
+  The core comments that said "the tracks" now say "the albums". `PendingReleases` is a module view keyed
+  by `ParentId` (as in TV), so it needs no core change.
+- **Still open for later steps.** (a) Lidarr also writes a track ID on history rows for track-file events
+  (`TrackFileImported`, `TrackFileDeleted`, `TrackFileRenamed`, `TrackFileRetagged`); the shared table has
+  no column for it. Decide in step 6 (a column in that step's migration, or a data key). (b) Lidarr has
+  custom formats; whether an audio profile scores the global custom formats (`AppliesTo` `music`) is a
+  step 4 call, and `CustomFormatInput.Quality` takes the display copy if it does.
+
+**Tests.** `AudioQualityFixture` (every ID and name pinned, ranges and uniqueness, default definitions
+against Lidarr's, converter round trip, display copy), and Lidarr cases in `UpstreamIdMapFixture`. Each
+was checked by breaking the code under test and seeing the test fail: a changed catalog ID, a changed
+default weight, a broken `FromDisplayModel`, and a map entry swapped (two entries, so the reverse map
+still builds).
 
 ## Decision record
 

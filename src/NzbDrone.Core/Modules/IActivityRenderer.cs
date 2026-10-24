@@ -10,7 +10,7 @@ namespace NzbDrone.Core.Modules
         MediaKind Kind { get; }
 
         // Loads the parent and describes it. itemIds narrows the label to the items involved
-        // (episodes, tracks); Movies has no separate items and ignores it.
+        // (episodes, albums); Movies has no separate items and ignores it.
         ActivitySubject Describe(int parentId, IReadOnlyList<int> itemIds);
     }
 }

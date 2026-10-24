@@ -155,6 +155,10 @@ quality profile accepts only `movies` and `tv`. `/api/v3` still lists every
 profile and format, since the UI uses it; the `/radarr/api/v3`
 compatibility API will list only the ones that apply to Movies.
 
+As built (Music step 0): `AudioQuality`, `AudioQualityDefinition` and `AudioQualityModel` are in
+`NzbDrone.Core.Qualities`, with `LidarrQualityIds` beside the other two maps. `Unknown` is 0 and the
+37 audio qualities are 201 to 237. `module-interface.md` ("Music step 0: as built") has the details.
+
 ## Decisions
 
 | Choice | Decision | Reason |
