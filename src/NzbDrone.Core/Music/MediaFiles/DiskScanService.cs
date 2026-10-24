@@ -1,13 +1,20 @@
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using NLog;
+using NzbDrone.Common;
 using NzbDrone.Common.Disk;
+using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Music.MediaFiles.Commands;
 using NzbDrone.Core.Music.MediaFiles.Events;
+using NzbDrone.Core.Music.MediaFiles.TrackImport;
 using NzbDrone.Core.Music.RootFolders;
 
 namespace NzbDrone.Core.Music.MediaFiles
@@ -15,33 +22,48 @@ namespace NzbDrone.Core.Music.MediaFiles
     public interface IDiskScanService
     {
         void Scan(List<string> folders = null, FilterFilesType filter = FilterFilesType.Known, bool addNewArtists = false, List<int> artistIds = null);
+        FileInfo[] GetAudioFiles(string path, bool allDirectories = true);
+        string[] GetNonAudioFiles(string path, bool allDirectories = true);
+        List<FileInfo> FilterFiles(string basePath, IEnumerable<FileInfo> files);
+        List<string> FilterPaths(string basePath, IEnumerable<string> paths);
     }
 
-    // The part of Lidarr's DiskScanService the metadata step needs: it checks the root and artist
-    // folders, creates empty artist folders when asked and publishes ArtistScannedEvent, which
-    // starts album monitoring (ArtistScannedHandler). Reading the audio files, import decisions and
-    // table cleanup are the import step (step 5), which extends this class.
     public class DiskScanService :
         IDiskScanService,
         IExecute<RescanFoldersCommand>
     {
+        public static readonly Regex ExcludedSubFoldersRegex = new Regex(@"(?:\\|\/|^)(?:extras|@eadir|\.@__thumb|extrafanart|plex versions|\.[^\\/]+)(?:\\|\/)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        public static readonly Regex ExcludedFilesRegex = new Regex(@"^\._|^Thumbs\.db$|^\.DS_store$|\.partial~$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
         private readonly IConfigService _configService;
         private readonly IDiskProvider _diskProvider;
+        private readonly IMediaFileService _mediaFileService;
+        private readonly IMakeImportDecision _importDecisionMaker;
+        private readonly IImportApprovedTracks _importApprovedTracks;
         private readonly IArtistService _artistService;
+        private readonly IMediaFileTableCleanupService _mediaFileTableCleanupService;
         private readonly IRootFolderService _rootFolderService;
         private readonly IEventAggregator _eventAggregator;
         private readonly Logger _logger;
 
         public DiskScanService(IConfigService configService,
                                IDiskProvider diskProvider,
+                               IMediaFileService mediaFileService,
+                               IMakeImportDecision importDecisionMaker,
+                               IImportApprovedTracks importApprovedTracks,
                                IArtistService artistService,
                                IRootFolderService rootFolderService,
+                               IMediaFileTableCleanupService mediaFileTableCleanupService,
                                IEventAggregator eventAggregator,
                                Logger logger)
         {
             _configService = configService;
             _diskProvider = diskProvider;
+            _mediaFileService = mediaFileService;
+            _importDecisionMaker = importDecisionMaker;
+            _importApprovedTracks = importApprovedTracks;
             _artistService = artistService;
+            _mediaFileTableCleanupService = mediaFileTableCleanupService;
             _rootFolderService = rootFolderService;
             _eventAggregator = eventAggregator;
             _logger = logger;
@@ -49,13 +71,24 @@ namespace NzbDrone.Core.Music.MediaFiles
 
         public void Scan(List<string> folders = null, FilterFilesType filter = FilterFilesType.Known, bool addNewArtists = false, List<int> artistIds = null)
         {
-            folders ??= _rootFolderService.All().Select(x => x.Path).ToList();
-            artistIds ??= new List<int>();
+            if (folders == null)
+            {
+                folders = _rootFolderService.All().Select(x => x.Path).ToList();
+            }
+
+            if (artistIds == null)
+            {
+                artistIds = new List<int>();
+            }
+
+            var mediaFileList = new List<FileInfo>();
+
+            var musicFilesStopwatch = Stopwatch.StartNew();
 
             foreach (var folder in folders)
             {
-                // We could be scanning a root folder or a subset of a root folder. If it's a subset,
-                // check if the root folder exists before going on.
+                // We could be scanning a root folder or a subset of a root folder.  If it's a subset,
+                // check if the root folder exists before cleaning.
                 var rootFolder = _rootFolderService.GetBestRootFolder(folder);
 
                 if (rootFolder == null)
@@ -64,54 +97,210 @@ namespace NzbDrone.Core.Music.MediaFiles
                     return;
                 }
 
-                if (_diskProvider.FolderExists(folder))
+                var folderExists = _diskProvider.FolderExists(folder);
+
+                if (!folderExists)
                 {
-                    _logger.ProgressInfo("Scanning {0}", folder);
+                    if (!_diskProvider.FolderExists(rootFolder.Path))
+                    {
+                        _logger.Warn("Artists' root folder ({0}) doesn't exist.", rootFolder.Path);
+                        var skippedArtists = _artistService.GetArtists(artistIds);
+                        skippedArtists.ForEach(x => _eventAggregator.PublishEvent(new ArtistScanSkippedEvent(x, ArtistScanSkippedReason.RootFolderDoesNotExist)));
+                        return;
+                    }
+
+                    if (_diskProvider.FolderEmpty(rootFolder.Path))
+                    {
+                        _logger.Warn("Artists' root folder ({0}) is empty.", rootFolder.Path);
+                        var skippedArtists = _artistService.GetArtists(artistIds);
+                        skippedArtists.ForEach(x => _eventAggregator.PublishEvent(new ArtistScanSkippedEvent(x, ArtistScanSkippedReason.RootFolderIsEmpty)));
+                        return;
+                    }
+                }
+
+                if (!folderExists)
+                {
+                    _logger.Debug("Specified scan folder ({0}) doesn't exist.", folder);
+
+                    CleanMediaFiles(folder, new List<string>());
                     continue;
                 }
 
-                if (!_diskProvider.FolderExists(rootFolder.Path))
+                _logger.ProgressInfo("Scanning {0}", folder);
+
+                var files = FilterFiles(folder, GetAudioFiles(folder));
+
+                if (!files.Any())
                 {
-                    _logger.Warn("Artists' root folder ({0}) doesn't exist.", rootFolder.Path);
-                    _artistService.GetArtists(artistIds).ForEach(x => _eventAggregator.PublishEvent(new ArtistScanSkippedEvent(x, ArtistScanSkippedReason.RootFolderDoesNotExist)));
-                    return;
+                    _logger.Warn("Scan folder {0} is empty.", folder);
+                    continue;
                 }
 
-                if (_diskProvider.FolderEmpty(rootFolder.Path))
-                {
-                    _logger.Warn("Artists' root folder ({0}) is empty.", rootFolder.Path);
-                    _artistService.GetArtists(artistIds).ForEach(x => _eventAggregator.PublishEvent(new ArtistScanSkippedEvent(x, ArtistScanSkippedReason.RootFolderIsEmpty)));
-                    return;
-                }
-
-                _logger.Debug("Specified scan folder ({0}) doesn't exist.", folder);
+                CleanMediaFiles(folder, files.Select(x => x.FullName).ToList());
+                mediaFileList.AddRange(files);
             }
 
             var artists = _artistService.GetArtists(artistIds);
 
             // Check for missing artist folders if specific artists are being scanned
-            foreach (var artist in artists.Where(artist => !_diskProvider.FolderExists(artist.Path)))
+            if (artistIds != null && artistIds.Any())
             {
-                if (!_configService.CreateEmptyArtistFolders)
+                foreach (var artist in artists)
                 {
-                    _logger.Debug("Artist folder doesn't exist: {0}", artist.Path);
-                }
-                else if (_configService.DeleteEmptyFolders)
-                {
-                    _logger.Debug("Not creating missing artist folder: {0} because delete empty folders is enabled", artist.Path);
-                }
-                else
-                {
-                    _logger.Debug("Creating missing artist folder: {0}", artist.Path);
-                    _diskProvider.CreateFolder(artist.Path);
+                    if (!_diskProvider.FolderExists(artist.Path))
+                    {
+                        if (_configService.CreateEmptyArtistFolders)
+                        {
+                            if (_configService.DeleteEmptyFolders)
+                            {
+                                _logger.Debug("Not creating missing artist folder: {0} because delete empty folders is enabled", artist.Path);
+                            }
+                            else
+                            {
+                                _logger.Debug("Creating missing artist folder: {0}", artist.Path);
+                                _diskProvider.CreateFolder(artist.Path);
+                            }
+                        }
+                        else
+                        {
+                            _logger.Debug("Artist folder doesn't exist: {0}", artist.Path);
+                        }
+                    }
                 }
             }
 
+            musicFilesStopwatch.Stop();
+            _logger.Trace("Finished getting track files for:\n{0} [{1}]", folders.ConcatToString("\n"), musicFilesStopwatch.Elapsed);
+
+            var decisionsStopwatch = Stopwatch.StartNew();
+
+            var config = new ImportDecisionMakerConfig
+            {
+                Filter = filter,
+                IncludeExisting = true,
+                AddNewArtists = addNewArtists
+            };
+
+            var decisions = _importDecisionMaker.GetImportDecisions(mediaFileList, null, null, config);
+
+            decisionsStopwatch.Stop();
+            _logger.Debug("Import decisions complete [{0}]", decisionsStopwatch.Elapsed);
+
+            var importStopwatch = Stopwatch.StartNew();
+            _importApprovedTracks.Import(decisions, false);
+
+            // decisions may have been filtered to just new files.  Anything new and approved will have been inserted.
+            // Now we need to make sure anything new but not approved gets inserted
+            // Note that knownFiles will include anything imported just now
+            var knownFiles = new List<TrackFile>();
+            folders.ForEach(x => knownFiles.AddRange(_mediaFileService.GetFilesWithBasePath(x)));
+
+            var newFiles = decisions
+                .ExceptBy(x => x.Item.Path, knownFiles, x => x.Path, PathEqualityComparer.Instance)
+                .Select(decision => new TrackFile
+                {
+                    Path = decision.Item.Path,
+                    Size = decision.Item.Size,
+                    Modified = decision.Item.Modified,
+                    DateAdded = DateTime.UtcNow,
+                    Quality = decision.Item.Quality,
+                    MediaInfo = decision.Item.FileTrackInfo.MediaInfo
+                })
+                .ToList();
+            _mediaFileService.AddMany(newFiles);
+
+            _logger.Debug($"Inserted {newFiles.Count} new unmatched trackfiles");
+
+            // finally update info on size/modified for existing files
+            var updatedFiles = knownFiles
+                .Join(decisions,
+                      x => x.Path,
+                      x => x.Item.Path,
+                      (file, decision) => new
+                      {
+                          File = file,
+                          Item = decision.Item
+                      },
+                      PathEqualityComparer.Instance)
+                .Where(x => x.File.Size != x.Item.Size ||
+                       Math.Abs((x.File.Modified - x.Item.Modified).TotalSeconds) > 1)
+                .Select(x =>
+                {
+                    x.File.Size = x.Item.Size;
+                    x.File.Modified = x.Item.Modified;
+                    x.File.MediaInfo = x.Item.FileTrackInfo.MediaInfo;
+                    x.File.Quality = x.Item.Quality;
+                    return x.File;
+                })
+                .ToList();
+
+            _mediaFileService.Update(updatedFiles);
+
+            _logger.Debug($"Updated info for {updatedFiles.Count} known files");
+
             foreach (var artist in artists)
             {
-                _logger.Info("Completed scanning disk for {0}", artist.Name);
-                _eventAggregator.PublishEvent(new ArtistScannedEvent(artist));
+                CompletedScanning(artist);
             }
+
+            importStopwatch.Stop();
+            _logger.Debug("Track import complete for:\n{0} [{1}]", folders.ConcatToString("\n"), importStopwatch.Elapsed);
+        }
+
+        private void CleanMediaFiles(string folder, List<string> mediaFileList)
+        {
+            _logger.Debug($"Cleaning up media files in DB [{folder}]");
+            _mediaFileTableCleanupService.Clean(folder, mediaFileList);
+        }
+
+        private void CompletedScanning(Artist artist)
+        {
+            _logger.Info("Completed scanning disk for {0}", artist.Name);
+            _eventAggregator.PublishEvent(new ArtistScannedEvent(artist));
+        }
+
+        public FileInfo[] GetAudioFiles(string path, bool allDirectories = true)
+        {
+            _logger.Debug("Scanning '{0}' for music files", path);
+
+            var filesOnDisk = _diskProvider.GetFileInfos(path, allDirectories);
+
+            var mediaFileList = filesOnDisk.Where(file => MediaFileExtensions.Extensions.Contains(file.Extension))
+                                           .ToList();
+
+            _logger.Trace("{0} files were found in {1}", filesOnDisk.Count, path);
+            _logger.Debug("{0} audio files were found in {1}", mediaFileList.Count, path);
+
+            return mediaFileList.ToArray();
+        }
+
+        public string[] GetNonAudioFiles(string path, bool allDirectories = true)
+        {
+            _logger.Debug("Scanning '{0}' for non-music files", path);
+
+            var filesOnDisk = _diskProvider.GetFiles(path, allDirectories).ToList();
+
+            var mediaFileList = filesOnDisk.Where(file => !MediaFileExtensions.Extensions.Contains(Path.GetExtension(file)))
+                                           .ToList();
+
+            _logger.Trace("{0} files were found in {1}", filesOnDisk.Count, path);
+            _logger.Debug("{0} non-music files were found in {1}", mediaFileList.Count, path);
+
+            return mediaFileList.ToArray();
+        }
+
+        public List<string> FilterPaths(string basePath, IEnumerable<string> paths)
+        {
+            return paths.Where(file => !ExcludedSubFoldersRegex.IsMatch(basePath.GetRelativePath(file)))
+                        .Where(file => !ExcludedFilesRegex.IsMatch(Path.GetFileName(file)))
+                        .ToList();
+        }
+
+        public List<FileInfo> FilterFiles(string basePath, IEnumerable<FileInfo> files)
+        {
+            return files.Where(file => !ExcludedSubFoldersRegex.IsMatch(basePath.GetRelativePath(file.FullName)))
+                        .Where(file => !ExcludedFilesRegex.IsMatch(file.Name))
+                        .ToList();
         }
 
         public void Execute(RescanFoldersCommand message)

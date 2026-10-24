@@ -17,6 +17,7 @@ namespace NzbDrone.Core.Music.CustomFormats
         List<CustomFormat> ParseCustomFormat(RemoteAlbum remoteAlbum, long size);
         List<CustomFormat> ParseCustomFormat(TrackFile trackFile, Artist artist);
         List<CustomFormat> ParseCustomFormat(TrackFile trackFile);
+        List<CustomFormat> ParseCustomFormat(LocalTrack localTrack);
         List<CustomFormat> ParseCustomFormat(Blocklist blocklist, Artist artist);
         List<CustomFormat> ParseCustomFormat(AlbumHistory history, Artist artist);
     }
@@ -82,6 +83,21 @@ namespace NzbDrone.Core.Music.CustomFormats
         public List<CustomFormat> ParseCustomFormat(TrackFile trackFile)
         {
             return ParseCustomFormat(trackFile, trackFile.Artist.Value);
+        }
+
+        public List<CustomFormat> ParseCustomFormat(LocalTrack localTrack)
+        {
+            var input = new CustomFormatInput
+            {
+                ReleaseTitle = localTrack.SceneName.IsNotNullOrWhiteSpace() ? localTrack.SceneName : Path.GetFileName(localTrack.Path),
+                ReleaseGroup = localTrack.ReleaseGroup,
+                Quality = localTrack.Quality?.ToDisplayModel(),
+                Size = localTrack.Size,
+                Filename = Path.GetFileName(localTrack.Path),
+                IndexerFlags = localTrack.IndexerFlags
+            };
+
+            return Calculate(input);
         }
 
         public List<CustomFormat> ParseCustomFormat(Blocklist blocklist, Artist artist)

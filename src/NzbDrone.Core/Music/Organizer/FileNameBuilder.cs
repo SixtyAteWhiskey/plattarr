@@ -1,42 +1,223 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Diacritical;
+using NLog;
+using NzbDrone.Common.Cache;
+using NzbDrone.Common.Disk;
+using NzbDrone.Common.EnsureThat;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.CustomFormats;
+using NzbDrone.Core.Music.CustomFormats;
+using NzbDrone.Core.Music.MediaFiles;
+using NzbDrone.Core.Music.Qualities;
+using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Music.Organizer
 {
-    // Music's file and folder naming. This step holds the artist folder and the token machinery it
-    // shares with the track file names (Lidarr's FileNameBuilder). The track file name, the album,
-    // medium and track tokens and the sample service come with the import step (step 5), which adds
-    // to this class.
     public interface IBuildFileNames
     {
+        string BuildTrackFileName(List<Track> tracks, Artist artist, Album album, TrackFile trackFile, string extension = "", NamingConfig namingConfig = null, List<CustomFormat> customFormats = null);
+        string BuildTrackFilePath(List<Track> tracks, Artist artist, Album album, TrackFile trackFile, string extension, NamingConfig namingConfig = null, List<CustomFormat> customFormats = null);
+        BasicNamingConfig GetBasicNamingConfig(NamingConfig nameSpec);
         string GetArtistFolder(Artist artist, NamingConfig namingConfig = null);
     }
 
     public class FileNameBuilder : IBuildFileNames
     {
         private readonly INamingConfigService _namingConfigService;
+        private readonly IAudioQualityDefinitionService _qualityDefinitionService;
+        private readonly IMusicCustomFormatCalculationService _formatCalculator;
+        private readonly ICached<TrackFormat[]> _trackFormatCache;
+        private readonly ICached<AbsoluteTrackFormat[]> _absoluteTrackFormatCache;
+        private readonly Logger _logger;
 
         private static readonly Regex TitleRegex = new Regex(@"(?<escaped>\{\{|\}\})|\{(?<prefix>[- ._\[(]*)(?<token>(?:[a-z0-9]+)(?:(?<separator>[- ._]+)(?:[a-z0-9]+))?)(?::(?<customFormat>[ a-z0-9+-]+(?<![- ])))?(?<suffix>[- ._)\]]*)\}",
                                                              RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+        public static readonly Regex TrackRegex = new Regex(@"(?<track>\{track(?:\:0+)?})",
+                                                               RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly Regex MediumRegex = new Regex(@"(?<medium>\{medium(?:\:0+)?})",
+                                                               RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        public static readonly Regex SeasonEpisodePatternRegex = new Regex(@"(?<separator>(?<=})[- ._]+?)?(?<seasonEpisode>s?{season(?:\:0+)?}(?<episodeSeparator>[- ._]?[ex])(?<episode>{episode(?:\:0+)?}))(?<separator>[- ._]+?(?={))?",
+                                                                            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        public static readonly Regex ReleaseDateRegex = new Regex(@"\{Release(\s|\W|_)Year\}", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        public static readonly Regex ArtistNameRegex = new Regex(@"(?<token>\{(?:Artist)(?<separator>[- ._])(Clean)?Name(The)?(?::(?<customFormat>[0-9-]+))?\})",
+                                                                            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        public static readonly Regex AlbumTitleRegex = new Regex(@"(?<token>\{(?:Album)(?<separator>[- ._])(Clean)?Title(The)?(?::(?<customFormat>[0-9-]+))?\})",
+                                                                            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        public static readonly Regex TrackTitleRegex = new Regex(@"(?<token>\{(?:Track)(?<separator>[- ._])(Clean)?Title(?::(?<customFormat>[0-9-]+))?\})",
+                                                                            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
         private static readonly Regex FileNameCleanupRegex = new Regex(@"([- ._])(\1)+", RegexOptions.Compiled);
+        private static readonly Regex TrimSeparatorsRegex = new Regex(@"[- ._]+$", RegexOptions.Compiled);
 
         private static readonly Regex ScenifyRemoveChars = new Regex(@"(?<=\s)(,|<|>|\/|\\|;|:|'|""|\||`|~|!|\?|@|$|%|^|\*|-|_|=){1}(?=\s)|('|:|\?|,)(?=(?:(?:s|m)\s)|\s|$)|(\(|\)|\[|\]|\{|\})", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
         private static readonly Regex ScenifyReplaceChars = new Regex(@"[\/]", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        // TODO: Support Written numbers (One, Two, etc) and Roman Numerals (I, II, III etc)
+        private static readonly Regex MultiPartCleanupRegex = new Regex(@"(?:\(\d+\)|(Part|Pt\.?)\s?\d+)$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        private static readonly char[] TrackTitleTrimCharacters = new[] { ' ', '.', '?' };
 
         private static readonly Regex TitlePrefixRegex = new Regex(@"^(The|An|A) (.*?)((?: *\([^)]+\))*)$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex ReservedDeviceNamesRegex = new Regex(@"^(?:aux|com[1-9]|con|lpt[1-9]|nul|prn)\.", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        public FileNameBuilder(INamingConfigService namingConfigService)
+        public FileNameBuilder(INamingConfigService namingConfigService,
+                               IAudioQualityDefinitionService qualityDefinitionService,
+                               ICacheManager cacheManager,
+                               IMusicCustomFormatCalculationService formatCalculator,
+                               Logger logger)
         {
             _namingConfigService = namingConfigService;
+            _qualityDefinitionService = qualityDefinitionService;
+            _formatCalculator = formatCalculator;
+            _trackFormatCache = cacheManager.GetCache<TrackFormat[]>(GetType(), "trackFormat");
+            _absoluteTrackFormatCache = cacheManager.GetCache<AbsoluteTrackFormat[]>(GetType(), "absoluteTrackFormat");
+            _logger = logger;
+        }
+
+        private string BuildTrackFileName(List<Track> tracks, Artist artist, Album album, TrackFile trackFile, string extension, int maxPath, NamingConfig namingConfig = null, List<CustomFormat> customFormats = null)
+        {
+            if (namingConfig == null)
+            {
+                namingConfig = _namingConfigService.GetConfig();
+            }
+
+            if (!namingConfig.RenameTracks)
+            {
+                return GetOriginalTitle(trackFile) + extension;
+            }
+
+            if (namingConfig.StandardTrackFormat.IsNullOrWhiteSpace() || namingConfig.MultiDiscTrackFormat.IsNullOrWhiteSpace())
+            {
+                throw new NamingFormatException("Standard and Multi track formats cannot be empty");
+            }
+
+            var pattern = namingConfig.StandardTrackFormat;
+
+            if (tracks.First().AlbumRelease.Value.Media.Count > 1)
+            {
+                pattern = namingConfig.MultiDiscTrackFormat;
+            }
+
+            tracks = tracks.OrderBy(e => e.AlbumReleaseId).ThenBy(e => e.TrackNumber).ToList();
+
+            var splitPatterns = pattern.Split(new[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
+            var components = new List<string>();
+
+            for (var i = 0; i < splitPatterns.Length; i++)
+            {
+                var splitPattern = splitPatterns[i];
+                var tokenHandlers = new Dictionary<string, Func<TokenMatch, string>>(FileNameBuilderTokenEqualityComparer.Instance);
+                splitPattern = FormatTrackNumberTokens(splitPattern, "", tracks);
+                splitPattern = FormatMediumNumberTokens(splitPattern, "", tracks);
+
+                AddArtistTokens(tokenHandlers, artist);
+                AddAlbumTokens(tokenHandlers, album);
+                AddMediumTokens(tokenHandlers, tracks.First().AlbumRelease.Value.Media.SingleOrDefault(m => m.Number == tracks.First().MediumNumber));
+                AddTrackTokens(tokenHandlers, tracks, artist);
+                AddTrackTitlePlaceholderTokens(tokenHandlers);
+                AddTrackFileTokens(tokenHandlers, trackFile);
+                AddQualityTokens(tokenHandlers, artist, trackFile);
+                AddMediaInfoTokens(tokenHandlers, trackFile);
+                AddCustomFormats(tokenHandlers, artist, trackFile, customFormats);
+
+                var component = ReplaceTokens(splitPattern, tokenHandlers, namingConfig, true).Trim();
+                var maxPathSegmentLength = Math.Min(LongPathSupport.MaxFileNameLength, maxPath);
+                if (i == splitPatterns.Length - 1)
+                {
+                    maxPathSegmentLength -= extension.GetByteCount();
+                }
+
+                var maxTrackTitleLength = maxPathSegmentLength - GetLengthWithoutTrackTitle(component, namingConfig);
+
+                AddTrackTitleTokens(tokenHandlers, tracks, maxTrackTitleLength);
+                component = ReplaceTokens(component, tokenHandlers, namingConfig).Trim();
+
+                component = FileNameCleanupRegex.Replace(component, match => match.Captures[0].Value[0].ToString());
+                component = TrimSeparatorsRegex.Replace(component, string.Empty);
+                component = component.Replace("{ellipsis}", "...");
+                component = ReplaceReservedDeviceNames(component);
+
+                if (component.IsNotNullOrWhiteSpace())
+                {
+                    components.Add(component);
+                }
+            }
+
+            return string.Join(Path.DirectorySeparatorChar.ToString(), components) + extension;
+        }
+
+        public string BuildTrackFileName(List<Track> tracks, Artist artist, Album album, TrackFile trackFile, string extension = "", NamingConfig namingConfig = null, List<CustomFormat> customFormats = null)
+        {
+            return BuildTrackFileName(tracks, artist, album, trackFile, extension, LongPathSupport.MaxFilePathLength, namingConfig, customFormats);
+        }
+
+        public string BuildTrackFilePath(List<Track> tracks, Artist artist, Album album, TrackFile trackFile, string extension, NamingConfig namingConfig = null, List<CustomFormat> customFormats = null)
+        {
+            Ensure.That(extension, () => extension).IsNotNullOrWhiteSpace();
+
+            var artistPath = artist.Path;
+            var remainingPathLength = LongPathSupport.MaxFilePathLength - artistPath.GetByteCount() - 1;
+            var fileName = BuildTrackFileName(tracks, artist, album, trackFile, extension, remainingPathLength, namingConfig, customFormats);
+
+            return Path.Combine(artistPath, fileName);
+        }
+
+        public BasicNamingConfig GetBasicNamingConfig(NamingConfig nameSpec)
+        {
+            var trackFormat = GetTrackFormat(nameSpec.StandardTrackFormat).LastOrDefault();
+
+            if (trackFormat == null)
+            {
+                return new BasicNamingConfig();
+            }
+
+            var basicNamingConfig = new BasicNamingConfig
+            {
+                Separator = trackFormat.Separator
+            };
+
+            var titleTokens = TitleRegex.Matches(nameSpec.StandardTrackFormat);
+
+            foreach (Match match in titleTokens)
+            {
+                var separator = match.Groups["separator"].Value;
+                var token = match.Groups["token"].Value;
+
+                if (!separator.Equals(" "))
+                {
+                    basicNamingConfig.ReplaceSpaces = true;
+                }
+
+                if (token.StartsWith("{Artist", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    basicNamingConfig.IncludeArtistName = true;
+                }
+
+                if (token.StartsWith("{Album", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    basicNamingConfig.IncludeAlbumTitle = true;
+                }
+
+                if (token.StartsWith("{Quality", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    basicNamingConfig.IncludeQuality = true;
+                }
+            }
+
+            return basicNamingConfig;
         }
 
         public string GetArtistFolder(Artist artist, NamingConfig namingConfig = null)
@@ -142,6 +323,122 @@ namespace NzbDrone.Core.Music.Organizer
             }
         }
 
+        private void AddAlbumTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, Album album)
+        {
+            tokenHandlers["{Album Title}"] = m => Truncate(album.Title, m.CustomFormat);
+            tokenHandlers["{Album CleanTitle}"] = m => Truncate(CleanTitle(album.Title), m.CustomFormat);
+            tokenHandlers["{Album TitleThe}"] = m => Truncate(TitleThe(album.Title), m.CustomFormat);
+            tokenHandlers["{Album CleanTitleThe}"] = m => Truncate(CleanTitleThe(album.Title), m.CustomFormat);
+            tokenHandlers["{Album Type}"] = m => album.AlbumType;
+            tokenHandlers["{Album Genre}"] = m => album.Genres.FirstOrDefault() ?? string.Empty;
+            tokenHandlers["{Album MbId}"] = m => album.ForeignAlbumId ?? string.Empty;
+
+            if (album.Disambiguation != null)
+            {
+                tokenHandlers["{Album Disambiguation}"] = m => album.Disambiguation;
+            }
+
+            tokenHandlers["{Release Year}"] = album.ReleaseDate.HasValue
+                ? m => album.ReleaseDate.Value.Year.ToString()
+                : m => "Unknown";
+        }
+
+        private void AddMediumTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, Medium medium)
+        {
+            tokenHandlers["{Medium Name}"] = m => medium.Name;
+            tokenHandlers["{Medium Format}"] = m => medium.Format;
+        }
+
+        private void AddTrackTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, List<Track> tracks, Artist artist)
+        {
+            // Use the track's ArtistMetadata by default, as it will handle the "Various Artists" case
+            // (where the album artist is "Various Artists" but each track has its own artist). Fall back
+            // to the album artist if we don't have any track ArtistMetadata for whatever reason.
+            var firstArtist = tracks.Select(t => t.ArtistMetadata?.Value).FirstOrDefault() ?? artist.Metadata;
+            if (firstArtist != null)
+            {
+                tokenHandlers["{Track ArtistName}"] = m => Truncate(firstArtist.Name, m.CustomFormat);
+                tokenHandlers["{Track ArtistCleanName}"] = m => Truncate(CleanTitle(firstArtist.Name), m.CustomFormat);
+                tokenHandlers["{Track ArtistNameThe}"] = m => Truncate(TitleThe(firstArtist.Name), m.CustomFormat);
+                tokenHandlers["{Track ArtistCleanNameThe}"] = m => Truncate(CleanTitleThe(firstArtist.Name), m.CustomFormat);
+                tokenHandlers["{Track ArtistMbId}"] = m => firstArtist.ForeignArtistId ?? string.Empty;
+            }
+        }
+
+        private void AddTrackTitlePlaceholderTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers)
+        {
+            tokenHandlers["{Track Title}"] = m => null;
+            tokenHandlers["{Track CleanTitle}"] = m => null;
+        }
+
+        private void AddTrackTitleTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, List<Track> tracks, int maxLength)
+        {
+            tokenHandlers["{Track Title}"] = m => GetTrackTitle(GetTrackTitles(tracks), "+", maxLength, m.CustomFormat);
+            tokenHandlers["{Track CleanTitle}"] = m => GetTrackTitle(GetTrackTitles(tracks).Select(CleanTitle).ToList(), "and", maxLength, m.CustomFormat);
+        }
+
+        private void AddTrackFileTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, TrackFile trackFile)
+        {
+            tokenHandlers["{Original Title}"] = m => GetOriginalTitle(trackFile);
+            tokenHandlers["{Original Filename}"] = m => GetOriginalFileName(trackFile);
+            tokenHandlers["{Release Group}"] = m => trackFile.ReleaseGroup.IsNullOrWhiteSpace() ? m.DefaultValue("Lidarr") : Truncate(trackFile.ReleaseGroup, m.CustomFormat);
+        }
+
+        private void AddQualityTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, Artist artist, TrackFile trackFile)
+        {
+            var qualityTitle = _qualityDefinitionService.Get(trackFile.Quality.Quality).Title;
+            var qualityProper = GetQualityProper(trackFile.Quality);
+
+            // var qualityReal = GetQualityReal(artist, trackFile.Quality);
+            tokenHandlers["{Quality Full}"] = m => string.Format("{0}", qualityTitle);
+            tokenHandlers["{Quality Title}"] = m => qualityTitle;
+            tokenHandlers["{Quality Proper}"] = m => qualityProper;
+
+            // tokenHandlers["{Quality Real}"] = m => qualityReal;
+        }
+
+        private void AddMediaInfoTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, TrackFile trackFile)
+        {
+            if (trackFile.MediaInfo == null)
+            {
+                _logger.Trace("Media info is unavailable for {0}", trackFile);
+
+                return;
+            }
+
+            var audioCodec = MediaInfoFormatter.FormatAudioCodec(trackFile.MediaInfo);
+            var audioChannels = MediaInfoFormatter.FormatAudioChannels(trackFile.MediaInfo);
+            var audioChannelsFormatted = audioChannels > 0 ?
+                                audioChannels.ToString("F1", CultureInfo.InvariantCulture) :
+                                string.Empty;
+
+            tokenHandlers["{MediaInfo AudioCodec}"] = m => audioCodec;
+            tokenHandlers["{MediaInfo AudioChannels}"] = m => audioChannelsFormatted;
+            tokenHandlers["{MediaInfo AudioBitRate}"] = m => MediaInfoFormatter.FormatAudioBitrate(trackFile.MediaInfo);
+            tokenHandlers["{MediaInfo AudioBitsPerSample}"] = m => MediaInfoFormatter.FormatAudioBitsPerSample(trackFile.MediaInfo);
+            tokenHandlers["{MediaInfo AudioSampleRate}"] = m => MediaInfoFormatter.FormatAudioSampleRate(trackFile.MediaInfo);
+        }
+
+        private void AddCustomFormats(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, Artist series, TrackFile episodeFile, List<CustomFormat> customFormats = null)
+        {
+            if (customFormats == null)
+            {
+                episodeFile.Artist = series;
+                customFormats = _formatCalculator.ParseCustomFormat(episodeFile, series);
+            }
+
+            tokenHandlers["{Custom Formats}"] = m => string.Join(" ", customFormats.Where(x => x.IncludeCustomFormatWhenRenaming));
+            tokenHandlers["{Custom Format}"] = m =>
+            {
+                if (m.CustomFormat.IsNullOrWhiteSpace())
+                {
+                    return string.Empty;
+                }
+
+                return customFormats.Where(x => x.IncludeCustomFormatWhenRenaming && x.Name == m.CustomFormat).FirstOrDefault()?.ToString() ?? string.Empty;
+            };
+        }
+
         private string ReplaceTokens(string pattern, Dictionary<string, Func<TokenMatch, string>> tokenHandlers, NamingConfig namingConfig, bool escape = false)
         {
             return TitleRegex.Replace(pattern, match => ReplaceToken(match, tokenHandlers, namingConfig, escape));
@@ -219,6 +516,182 @@ namespace NzbDrone.Core.Music.Organizer
             }
 
             return replacementText;
+        }
+
+        private string FormatTrackNumberTokens(string basePattern, string formatPattern, List<Track> tracks)
+        {
+            var pattern = string.Empty;
+
+            for (var i = 0; i < tracks.Count; i++)
+            {
+                var patternToReplace = i == 0 ? basePattern : formatPattern;
+
+                pattern += TrackRegex.Replace(patternToReplace, match => ReplaceNumberToken(match.Groups["track"].Value, tracks[i].AbsoluteTrackNumber));
+            }
+
+            return pattern;
+        }
+
+        private string FormatMediumNumberTokens(string basePattern, string formatPattern, List<Track> tracks)
+        {
+            var pattern = string.Empty;
+
+            for (var i = 0; i < tracks.Count; i++)
+            {
+                var patternToReplace = i == 0 ? basePattern : formatPattern;
+
+                pattern += MediumRegex.Replace(patternToReplace, match => ReplaceNumberToken(match.Groups["medium"].Value, tracks[i].MediumNumber));
+            }
+
+            return pattern;
+        }
+
+        private string ReplaceNumberToken(string token, int value)
+        {
+            var split = token.Trim('{', '}').Split(':');
+            if (split.Length == 1)
+            {
+                return value.ToString("0");
+            }
+
+            return value.ToString(split[1]);
+        }
+
+        private TrackFormat[] GetTrackFormat(string pattern)
+        {
+            return _trackFormatCache.Get(pattern, () => SeasonEpisodePatternRegex.Matches(pattern).OfType<Match>()
+                .Select(match => new TrackFormat
+                {
+                    TrackSeparator = match.Groups["episodeSeparator"].Value,
+                    Separator = match.Groups["separator"].Value,
+                    TrackPattern = match.Groups["episode"].Value,
+                }).ToArray());
+        }
+
+        private List<string> GetTrackTitles(List<Track> tracks)
+        {
+            if (tracks.Count == 1)
+            {
+                return new List<string>
+                {
+                    tracks.First().Title.TrimEnd(TrackTitleTrimCharacters)
+                };
+            }
+
+            var titles = tracks.Select(c => c.Title.TrimEnd(TrackTitleTrimCharacters))
+                                 .Select(CleanupTrackTitle)
+                                 .Distinct()
+                                 .ToList();
+
+            if (titles.All(t => t.IsNullOrWhiteSpace()))
+            {
+                titles = tracks.Select(c => c.Title.TrimEnd(TrackTitleTrimCharacters))
+                                 .Distinct()
+                                 .ToList();
+            }
+
+            return titles;
+        }
+
+        private string GetTrackTitle(List<string> titles, string separator, int maxLength, string formatter)
+        {
+            var maxFormatterLength = GetMaxLengthFromFormatter(formatter);
+
+            if (maxFormatterLength > 0)
+            {
+                maxLength = Math.Min(maxLength, maxFormatterLength);
+            }
+
+            separator = $" {separator.Trim()} ";
+
+            var joined = string.Join(separator, titles);
+
+            if (joined.GetByteCount() <= maxLength)
+            {
+                return joined;
+            }
+
+            var firstTitle = titles.First();
+            var firstTitleLength = firstTitle.GetByteCount();
+
+            if (titles.Count >= 2)
+            {
+                var lastTitle = titles.Last();
+                var lastTitleLength = lastTitle.GetByteCount();
+                if (firstTitleLength + lastTitleLength + 3 <= maxLength)
+                {
+                    return $"{firstTitle.TrimEnd(' ', '.')}{{ellipsis}}{lastTitle}";
+                }
+            }
+
+            if (titles.Count > 1 && firstTitleLength + 3 <= maxLength)
+            {
+                return $"{firstTitle.TrimEnd(' ', '.')}{{ellipsis}}";
+            }
+
+            if (titles.Count == 1 && firstTitleLength <= maxLength)
+            {
+                return firstTitle;
+            }
+
+            return $"{firstTitle.Truncate(maxLength - 3).TrimEnd(' ', '.')}{{ellipsis}}";
+        }
+
+        private string CleanupTrackTitle(string title)
+        {
+            // this will remove (1),(2) from the end of multi part episodes.
+            return MultiPartCleanupRegex.Replace(title, string.Empty).Trim();
+        }
+
+        private string GetQualityProper(AudioQualityModel quality)
+        {
+            if (quality.Revision.Version > 1)
+            {
+                if (quality.Revision.IsRepack)
+                {
+                    return "Repack";
+                }
+
+                return "Proper";
+            }
+
+            return string.Empty;
+        }
+
+        // private string GetQualityReal(Series series, AudioQualityModel quality)
+        // {
+        //    if (quality.Revision.Real > 0)
+        //    {
+        //        return "REAL";
+        //    }
+
+        // return string.Empty;
+        // }
+        private string GetOriginalTitle(TrackFile trackFile)
+        {
+            if (trackFile.SceneName.IsNullOrWhiteSpace())
+            {
+                return GetOriginalFileName(trackFile);
+            }
+
+            return trackFile.SceneName;
+        }
+
+        private string GetOriginalFileName(TrackFile trackFile)
+        {
+            return Path.GetFileNameWithoutExtension(trackFile.Path);
+        }
+
+        private int GetLengthWithoutTrackTitle(string pattern, NamingConfig namingConfig)
+        {
+            var tokenHandlers = new Dictionary<string, Func<TokenMatch, string>>(FileNameBuilderTokenEqualityComparer.Instance);
+            tokenHandlers["{Track Title}"] = m => string.Empty;
+            tokenHandlers["{Track CleanTitle}"] = m => string.Empty;
+            tokenHandlers["{ellipsis}"] = m => "...";
+
+            var result = ReplaceTokens(pattern, tokenHandlers, namingConfig);
+
+            return result.GetByteCount();
         }
 
         private string ReplaceReservedDeviceNames(string input)

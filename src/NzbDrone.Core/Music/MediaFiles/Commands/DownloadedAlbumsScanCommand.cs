@@ -1,0 +1,15 @@
+using NzbDrone.Core.Messaging.Commands;
+using NzbDrone.Core.Music.MediaFiles.TrackImport;
+
+namespace NzbDrone.Core.Music.MediaFiles.Commands
+{
+    public class DownloadedAlbumsScanCommand : Command
+    {
+        // Properties used by third-party apps, do not modify.
+        public string Path { get; set; }
+        public string DownloadClientId { get; set; }
+        public ImportMode ImportMode { get; set; }
+        public override bool RequiresDiskAccess => true;
+        public override bool IsLongRunning => true;
+    }
+}

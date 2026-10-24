@@ -237,6 +237,41 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("CreateEmptyArtistFolders", value); }
         }
 
+        public TrackFileDateType TrackFileDate
+        {
+            get { return GetValueEnum("TrackFileDate", TrackFileDateType.None); }
+
+            set { SetValue("TrackFileDate", value); }
+        }
+
+        public AllowFingerprinting AllowFingerprinting
+        {
+            get { return GetValueEnum("AllowFingerprinting", AllowFingerprinting.NewFiles); }
+
+            set { SetValue("AllowFingerprinting", value); }
+        }
+
+        public WriteAudioTagsType WriteAudioTags
+        {
+            get { return GetValueEnum("WriteAudioTags", WriteAudioTagsType.No); }
+
+            set { SetValue("WriteAudioTags", value); }
+        }
+
+        public bool ScrubAudioTags
+        {
+            get { return GetValueBoolean("ScrubAudioTags", false); }
+
+            set { SetValue("ScrubAudioTags", value); }
+        }
+
+        public bool EmbedCoverArt
+        {
+            get { return GetValueBoolean("EmbedCoverArt", true); }
+
+            set { SetValue("EmbedCoverArt", value); }
+        }
+
         public bool CreateEmptySeriesFolders
         {
             get { return GetValueBoolean("CreateEmptySeriesFolders", false); }
