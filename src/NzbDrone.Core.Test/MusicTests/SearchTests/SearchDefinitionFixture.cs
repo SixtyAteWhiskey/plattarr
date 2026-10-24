@@ -1,0 +1,41 @@
+using FluentAssertions;
+using NUnit.Framework;
+using NzbDrone.Core.Music;
+using NzbDrone.Core.Music.Search;
+using NzbDrone.Core.Test.Framework;
+
+namespace NzbDrone.Core.Test.MusicTests.SearchTests
+{
+    public class AlbumSearchDefinitionFixture : CoreTest<AlbumSearchRequest>
+    {
+        [TestCase("Mötley Crüe", "Motley+Crue")]
+        [TestCase("방탄소년단", "방탄소년단")]
+        public void should_replace_some_special_characters_artist(string artist, string expected)
+        {
+            Subject.Artist = new Artist { Name = artist };
+            Subject.CleanArtistQuery.Should().Be(expected);
+        }
+
+        [TestCase("…and Justice for All", "and+Justice+for+All")]
+        [TestCase("American III: Solitary Man", "American+III+Solitary+Man")]
+        [TestCase("Sad Clowns & Hillbillies", "Sad+Clowns+Hillbillies")]
+        [TestCase("¿Quién sabe?", "Quien+sabe")]
+        [TestCase("Seal the Deal & Let’s Boogie", "Seal+the+Deal+Let's+Boogie")]
+        [TestCase("Section.80", "Section+80")]
+        [TestCase("Anthology: Hey Ho, Let’s Go!", "Anthology+Hey+Ho+Let's+Go")]
+        [TestCase("Vankelsteg - Mot Okända Hembygder", "Vankelsteg+Mot+Okanda+Hembygder")]
+        [TestCase("The Beach Boys - The Beach Boys' Christmas Album", "Beach+Boys+The+Beach+Boys'+Christmas+Album")]
+        public void should_replace_some_special_characters(string album, string expected)
+        {
+            Subject.AlbumTitle = album;
+            Subject.CleanAlbumQuery.Should().Be(expected);
+        }
+
+        [TestCase("+", "+")]
+        public void should_not_replace_some_special_characters_if_result_empty_string(string album, string expected)
+        {
+            Subject.AlbumTitle = album;
+            Subject.CleanAlbumQuery.Should().Be(expected);
+        }
+    }
+}

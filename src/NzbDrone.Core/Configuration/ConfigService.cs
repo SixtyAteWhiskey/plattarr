@@ -91,6 +91,12 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("AutoUnmonitorPreviouslyDownloadedEpisodes", value); }
         }
 
+        public bool AutoUnmonitorPreviouslyDownloadedTracks
+        {
+            get { return GetValueBoolean("AutoUnmonitorPreviouslyDownloadedTracks"); }
+            set { SetValue("AutoUnmonitorPreviouslyDownloadedTracks", value); }
+        }
+
         public int Retention
         {
             get { return GetValueInt("Retention", 0); }

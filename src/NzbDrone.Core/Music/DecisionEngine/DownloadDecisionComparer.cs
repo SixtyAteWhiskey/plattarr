@@ -1,0 +1,237 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Configuration;
+using NzbDrone.Core.DecisionEngine;
+using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Music.Parser.Model;
+using NzbDrone.Core.Music.Qualities;
+using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Profiles.Delay;
+using NzbDrone.Core.Qualities;
+
+namespace NzbDrone.Core.Music.DecisionEngine
+{
+    // Lidarr's DownloadDecisionComparer. The order is Lidarr's: quality, custom format score, year
+    // match, protocol, indexer priority, peers, album count, age, size. The protocol check uses the
+    // shared delay profile's preferred protocol, as Tv and Movies do; Lidarr's delay profile kept an
+    // ordered list of protocols.
+    public class DownloadDecisionComparer : IComparer<DownloadDecision>
+    {
+        private readonly IConfigService _configService;
+        private readonly IDelayProfileService _delayProfileService;
+        private readonly IAudioQualityDefinitionService _qualityDefinitionService;
+        private readonly IAlbumYearMatcher _yearMatcher;
+
+        public delegate int CompareDelegate(DownloadDecision x, DownloadDecision y);
+
+        public DownloadDecisionComparer(IConfigService configService,
+                                        IDelayProfileService delayProfileService,
+                                        IAudioQualityDefinitionService qualityDefinitionService,
+                                        IAlbumYearMatcher yearMatcher)
+        {
+            _configService = configService;
+            _delayProfileService = delayProfileService;
+            _qualityDefinitionService = qualityDefinitionService;
+            _yearMatcher = yearMatcher;
+        }
+
+        public int Compare(DownloadDecision x, DownloadDecision y)
+        {
+            var comparers = new List<CompareDelegate>
+            {
+                CompareQuality,
+                CompareCustomFormatScore,
+                CompareYearMatch,
+                CompareProtocol,
+                CompareIndexerPriority,
+                ComparePeersIfTorrent,
+                CompareAlbumCount,
+                CompareAgeIfUsenet,
+                CompareSize
+            };
+
+            return comparers.Select(comparer => comparer(x, y)).FirstOrDefault(result => result != 0);
+        }
+
+        private int CompareBy<TSubject, TValue>(TSubject left, TSubject right, Func<TSubject, TValue> funcValue)
+            where TValue : IComparable<TValue>
+        {
+            var leftValue = funcValue(left);
+            var rightValue = funcValue(right);
+
+            return leftValue.CompareTo(rightValue);
+        }
+
+        private int CompareByReverse<TSubject, TValue>(TSubject left, TSubject right, Func<TSubject, TValue> funcValue)
+            where TValue : IComparable<TValue>
+        {
+            return CompareBy(left, right, funcValue) * -1;
+        }
+
+        private int CompareAll(params int[] comparers)
+        {
+            return comparers.Select(comparer => comparer).FirstOrDefault(result => result != 0);
+        }
+
+        private int CompareIndexerPriority(DownloadDecision x, DownloadDecision y)
+        {
+            return CompareByReverse(x.GetRemoteAlbum().Release, y.GetRemoteAlbum().Release, release => release.IndexerPriority);
+        }
+
+        private int CompareQuality(DownloadDecision x, DownloadDecision y)
+        {
+            if (_configService.DownloadPropersAndRepacks == ProperDownloadTypes.DoNotPrefer)
+            {
+                return CompareBy(x.GetRemoteAlbum(), y.GetRemoteAlbum(), remoteAlbum => remoteAlbum.Artist.QualityProfile.Value.GetIndex(remoteAlbum.ParsedAlbumInfo.Quality.Quality));
+            }
+
+            return CompareAll(CompareBy(x.GetRemoteAlbum(), y.GetRemoteAlbum(), remoteAlbum => remoteAlbum.Artist.QualityProfile.Value.GetIndex(remoteAlbum.ParsedAlbumInfo.Quality.Quality)),
+                              CompareBy(x.GetRemoteAlbum(), y.GetRemoteAlbum(), remoteAlbum => remoteAlbum.ParsedAlbumInfo.Quality.Revision));
+        }
+
+        private int CompareCustomFormatScore(DownloadDecision x, DownloadDecision y)
+        {
+            return CompareBy(x.GetRemoteAlbum(), y.GetRemoteAlbum(), remoteAlbum => remoteAlbum.CustomFormatScore);
+        }
+
+        private int CompareYearMatch(DownloadDecision x, DownloadDecision y)
+        {
+            return CompareBy(x.GetRemoteAlbum(), y.GetRemoteAlbum(), CalculateYearMatchScore);
+        }
+
+        private double CalculateYearMatchScore(RemoteAlbum remoteAlbum)
+        {
+            if (remoteAlbum.Albums == null || !remoteAlbum.Albums.Any())
+            {
+                return 0;
+            }
+
+            var parsedYear = remoteAlbum.ParsedAlbumInfo?.ReleaseYear;
+
+            if (!parsedYear.HasValue)
+            {
+                return 0;
+            }
+
+            var totalScore = 0.0;
+
+            foreach (var album in remoteAlbum.Albums)
+            {
+                totalScore += _yearMatcher.CalculateYearScore(album.ReleaseDate, parsedYear);
+            }
+
+            return totalScore / remoteAlbum.Albums.Count;
+        }
+
+        private int CompareProtocol(DownloadDecision x, DownloadDecision y)
+        {
+            return CompareBy(x.GetRemoteAlbum(), y.GetRemoteAlbum(), remoteAlbum =>
+            {
+                var delayProfile = _delayProfileService.BestForTags(remoteAlbum.Artist.Tags);
+
+                return remoteAlbum.Release.DownloadProtocol == delayProfile.PreferredProtocol;
+            });
+        }
+
+        private int CompareAlbumCount(DownloadDecision x, DownloadDecision y)
+        {
+            var discographyCompare = CompareBy(x.GetRemoteAlbum(),
+                                               y.GetRemoteAlbum(),
+                                               remoteAlbum => remoteAlbum.ParsedAlbumInfo.Discography);
+
+            if (discographyCompare != 0)
+            {
+                return discographyCompare;
+            }
+
+            return CompareByReverse(x.GetRemoteAlbum(), y.GetRemoteAlbum(), remoteAlbum => remoteAlbum.Albums.Count);
+        }
+
+        private int ComparePeersIfTorrent(DownloadDecision x, DownloadDecision y)
+        {
+            // Different protocols should get caught when checking the preferred protocol,
+            // since we're dealing with the same artist in our comparisons
+            if (x.GetRemoteAlbum().Release.DownloadProtocol != DownloadProtocol.Torrent ||
+                y.GetRemoteAlbum().Release.DownloadProtocol != DownloadProtocol.Torrent)
+            {
+                return 0;
+            }
+
+            return CompareAll(
+                CompareBy(x.GetRemoteAlbum(), y.GetRemoteAlbum(), remoteAlbum =>
+                {
+                    var seeders = TorrentInfo.GetSeeders(remoteAlbum.Release);
+
+                    return seeders.HasValue && seeders.Value > 0 ? Math.Round(Math.Log10(seeders.Value)) : 0;
+                }),
+                CompareBy(x.GetRemoteAlbum(), y.GetRemoteAlbum(), remoteAlbum =>
+                {
+                    var peers = TorrentInfo.GetPeers(remoteAlbum.Release);
+
+                    return peers.HasValue && peers.Value > 0 ? Math.Round(Math.Log10(peers.Value)) : 0;
+                }));
+        }
+
+        private int CompareAgeIfUsenet(DownloadDecision x, DownloadDecision y)
+        {
+            if (x.GetRemoteAlbum().Release.DownloadProtocol != DownloadProtocol.Usenet ||
+                y.GetRemoteAlbum().Release.DownloadProtocol != DownloadProtocol.Usenet)
+            {
+                return 0;
+            }
+
+            return CompareBy(x.GetRemoteAlbum(), y.GetRemoteAlbum(), remoteAlbum =>
+            {
+                var ageHours = remoteAlbum.Release.AgeHours;
+                var age = remoteAlbum.Release.Age;
+
+                if (ageHours < 1)
+                {
+                    return 1000;
+                }
+
+                if (ageHours <= 24)
+                {
+                    return 100;
+                }
+
+                if (age <= 7)
+                {
+                    return 10;
+                }
+
+                return Math.Round(Math.Log10(age)) * -1;
+            });
+        }
+
+        private int CompareSize(DownloadDecision x, DownloadDecision y)
+        {
+            return CompareBy(x.GetRemoteAlbum(), y.GetRemoteAlbum(), remoteAlbum =>
+            {
+                // The preferred size is on the audio quality definition, in kbit/s.
+                var preferredSize = _qualityDefinitionService.Get(remoteAlbum.ParsedAlbumInfo.Quality.Quality).PreferredSize;
+                var size = remoteAlbum.Release.Size.GetValueOrDefault();
+
+                var releaseDuration = remoteAlbum.Albums
+                                                 .Select(a => a.AlbumReleases.Value
+                                                               .Where(r => r.Monitored || a.AnyReleaseOk)
+                                                               .Select(r => r.Duration)
+                                                               .MaxOrDefault())
+                                                 .Sum() / 1000;
+
+                // If no value for preferred it means unlimited so fallback to sort largest is best
+                if (preferredSize.HasValue && releaseDuration > 0)
+                {
+                    var preferredAlbumSize = releaseDuration * preferredSize.Value.Kilobits();
+
+                    // Calculate closest to the preferred size
+                    return Math.Abs((size - preferredAlbumSize).Round(100.Megabytes())) * -1;
+                }
+
+                return size.Round(100.Megabytes());
+            });
+        }
+    }
+}

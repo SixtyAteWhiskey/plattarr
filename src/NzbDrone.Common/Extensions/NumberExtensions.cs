@@ -32,6 +32,12 @@ namespace NzbDrone.Common.Extensions
             return string.Format(CultureInfo.InvariantCulture, "{0:n1} {1}", adjustedSize, SizeSuffixes[mag]);
         }
 
+        // Kilobits (audio bitrates) to bytes: 1 kbit is 128 bytes in the binary units used here.
+        public static long Kilobits(this int kilobits)
+        {
+            return Convert.ToInt64(kilobits * 128L);
+        }
+
         public static long Megabytes(this int megabytes)
         {
             return Convert.ToInt64(megabytes * 1024L * 1024L);
@@ -40,6 +46,11 @@ namespace NzbDrone.Common.Extensions
         public static long Gigabytes(this int gigabytes)
         {
             return Convert.ToInt64(gigabytes * 1024L * 1024L * 1024L);
+        }
+
+        public static long Kilobits(this double kilobits)
+        {
+            return Convert.ToInt64(kilobits * 128L);
         }
 
         public static long Megabytes(this double megabytes)

@@ -20,8 +20,11 @@ namespace NzbDrone.Core.Test.MusicTests
             return name.CleanArtistName();
         }
 
+        // As Lidarr's QualityFixture.GetDefaultQualities: no arguments allows every quality.
         public static List<AudioQualityProfileItem> DefaultQualities(params AudioQuality[] allowed)
         {
+            allowed = allowed.Length == 0 ? AudioQuality.All.ToArray() : allowed;
+
             return AudioQuality.All
                 .Select(q => new AudioQualityProfileItem { Quality = q, Allowed = allowed.Contains(q) })
                 .ToList();

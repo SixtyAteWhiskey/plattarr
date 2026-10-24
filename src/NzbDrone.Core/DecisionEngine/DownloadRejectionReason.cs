@@ -85,5 +85,18 @@ public enum DownloadRejectionReason
     UnknownSeries,
     WrongEpisode,
     WrongSeason,
-    WrongSeries
+    WrongSeries,
+
+    // Appended for the Music module (Lidarr's reasons). Values are never stored as integers.
+    AlbumNotMonitored,
+    AlbumNotRequested,
+    ArtistNotMonitored,
+    DiscographyNotReleased,
+    EarlyRelease,
+    FullArtistPack,
+    UnknownAlbum,
+    UnknownArtist,
+    WrongAlbum,
+    WrongArtist,
+    YearMismatch
 }
