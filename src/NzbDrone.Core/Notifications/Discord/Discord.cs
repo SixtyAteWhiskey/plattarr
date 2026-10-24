@@ -15,6 +15,8 @@ namespace NzbDrone.Core.Notifications.Discord
 {
     public class Discord : NotificationBase<DiscordSettings>
     {
+        private const string TrackRetaggedTitle = "Track File Tags Updated";
+
         private readonly IDiscordProxy _proxy;
         private readonly ITagRepository _tagRepository;
         private readonly IConfigFileProvider _configFileProvider;
@@ -346,6 +348,82 @@ namespace NzbDrone.Core.Notifications.Discord
             }
 
             var payload = CreatePayload(null, new List<Embed> { embed });
+
+            _proxy.SendPayload(payload, Settings);
+        }
+
+        public override void OnItemDelete(ItemDeleteMessage deleteMessage)
+        {
+            var subject = deleteMessage.Subject;
+
+            var embed = new Embed
+            {
+                Author = new DiscordAuthor
+                {
+                    Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
+                    IconUrl = "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+                },
+                Url = subject?.MetadataUrl,
+                Title = GetTitle(subject),
+                Description = deleteMessage.DeletedFilesMessage,
+                Color = (int)DiscordColors.Danger,
+                Timestamp = DateTime.UtcNow.ToString("O")
+            };
+
+            var payload = CreatePayload("Album Deleted", new List<Embed> { embed });
+
+            _proxy.SendPayload(payload, Settings);
+        }
+
+        public override void OnDownloadFailure(DownloadFailureMessage message)
+        {
+            var embed = new Embed
+            {
+                Author = new DiscordAuthor
+                {
+                    Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
+                    IconUrl = "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+                },
+                Url = message.Subject?.MetadataUrl,
+                Title = message.SourceTitle,
+                Description = message.Message,
+                Color = (int)DiscordColors.Danger,
+                Fields = new List<DiscordField>(),
+                Timestamp = DateTime.UtcNow.ToString("O")
+            };
+
+            if (message.QualityName.IsNotNullOrWhiteSpace())
+            {
+                embed.Fields.Add(new DiscordField { Name = "Quality", Value = message.QualityName, Inline = true });
+            }
+
+            if (message.DownloadClient.IsNotNullOrWhiteSpace())
+            {
+                embed.Fields.Add(new DiscordField { Name = "Download Client", Value = message.DownloadClient, Inline = true });
+            }
+
+            var payload = CreatePayload($"Download Failed: {message.Message}", new List<Embed> { embed });
+
+            _proxy.SendPayload(payload, Settings);
+        }
+
+        public override void OnRetag(RetagMessage message)
+        {
+            var embed = new Embed
+            {
+                Author = new DiscordAuthor
+                {
+                    Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
+                    IconUrl = "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+                },
+                Url = message.Subject?.MetadataUrl,
+                Title = TrackRetaggedTitle,
+                Description = message.Message,
+                Color = (int)DiscordColors.Standard,
+                Timestamp = DateTime.UtcNow.ToString("O")
+            };
+
+            var payload = CreatePayload($"Track file tags updated: {message.Message}", new List<Embed> { embed });
 
             _proxy.SendPayload(payload, Settings);
         }

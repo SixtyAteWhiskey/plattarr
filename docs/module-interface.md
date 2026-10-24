@@ -2636,10 +2636,10 @@ queue empty. **Movies baseline unchanged: 71 releases, 57 approved, 64 mapped.**
 history, blocklist and notification writers are proved by tests until step 7 can add an artist and feed a
 download through them.
 
-### Music step 7 (API, slices a to e): as built
+### Music step 7 (API, slices a to f): as built
 
-Built after step 6 against Lidarr `aec88028`. Slices 7a to 7e are the Music API and the back-end
-leftovers of steps 5 and 6; the per-provider notification events and the whole UI are still open (see the end of
+Built after step 6 against Lidarr `aec88028`. Slices 7a to 7f are the Music API and the back-end
+leftovers of steps 5 and 6; the remaining providers' notification events and the whole UI are still open (see the end of
 this section). Migration 11 is the only schema change. Calls made
 while building (each is reversible):
 
@@ -2693,8 +2693,13 @@ while building (each is reversible):
   definition flags). **Migration 11** adds the columns `OnAlbumDelete`, `OnDownloadFailure` and `OnTrackRetag`
   to `Notifications` (default false). The internal names are neutral (`OnItemDelete`, `OnRetag`); the wire and
   column names are Lidarr's, which is also what the API and the UI carry.
-  - Only **Webhook** (all three) and **CustomScript** (album delete and retag) implement them. Discord and the
-    other providers are owed.
+  - **Webhook** (all three), **CustomScript** (album delete and retag) and **Discord** (all three; slice 7f)
+    implement them. The other providers are owed; Radarr's and Sonarr's own event flags are likewise implemented
+    by only some providers (`OnImportComplete` and `OnManualInteractionRequired` exist on Webhook, CustomScript and
+    Discord only).
+  - Discord (7f): a danger embed titled "Artist - Album" with the files message and the content "Album Deleted";
+    a danger embed titled by the release name with the reason, plus Quality and Download Client fields when they
+    are not blank, content "Download Failed: reason"; a standard embed "Track File Tags Updated" with the diff.
   - Webhook events `AlbumDelete`, `DownloadFailure`, `Retag`. Script events `AlbumDeleted` and `TrackRetag`.
     The Movies and TV builders throw `NotSupportedException` for them.
   - The retag text uses an ASCII arrow (`key: old -> new`, `<missing>` for an empty value).
@@ -2739,7 +2744,7 @@ Frontend: eslint clean on the three notification files.
 `CleanupUnusedTags`. `MusicWebhookPayloadBuilder` changes `artist.Metadata.Images` while it builds local URLs.
 Adding an artist with monitor `none` leaves it unmonitored.
 
-**Still open in step 7.** Per-provider implementations of the three new events; the UI (the `'music'` media kind in the switcher and
+**Still open in step 7.** The three new events on the providers other than Webhook, CustomScript and Discord; the UI (the `'music'` media kind in the switcher and
 the Music pages and settings; Lidarr's checkout here has no frontend, so the UI is built on Plattarr's own).
 
 
