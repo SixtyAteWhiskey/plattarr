@@ -81,7 +81,8 @@ namespace Radarr.Api.V3.Tv.Calendar
 
                 if (asAllDay)
                 {
-                    occurrence.Start = new CalDateTime(episode.AirDateUtc.Value.ToLocalTime(), false);
+                    // Ical.Net rejects a Local-kind value, so the local wall-clock time is written as unspecified.
+                    occurrence.Start = new CalDateTime(DateTime.SpecifyKind(episode.AirDateUtc.Value.ToLocalTime(), DateTimeKind.Unspecified), false);
                 }
                 else
                 {
