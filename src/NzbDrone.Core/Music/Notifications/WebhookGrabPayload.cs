@@ -1,0 +1,15 @@
+using System.Collections.Generic;
+using NzbDrone.Core.Notifications.Webhook;
+
+namespace NzbDrone.Core.Music.Notifications
+{
+    public class WebhookGrabPayload : WebhookPayload
+    {
+        public WebhookArtist Artist { get; set; }
+        public List<WebhookAlbum> Albums { get; set; }
+        public WebhookRelease Release { get; set; }
+        public string DownloadClient { get; set; }
+        public string DownloadClientType { get; set; }
+        public string DownloadId { get; set; }
+    }
+}

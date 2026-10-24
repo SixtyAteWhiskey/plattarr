@@ -21,6 +21,8 @@ namespace NzbDrone.Core.Notifications.Webhook
         ManualInteractionRequired,
         SeriesAdd,
         SeriesDelete,
-        EpisodeFileDelete
+        EpisodeFileDelete,
+        ArtistAdd,
+        ArtistDelete
     }
 }

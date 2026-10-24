@@ -1,0 +1,476 @@
+{
+  "artist": {
+    "id": 1,
+    "name": "The Black Keys",
+    "path": "/music/The Black Keys",
+    "mbId": "d15721d8-56b4-453d-b506-fc915b14cba2",
+    "type": "Group",
+    "overview": "An American rock duo.",
+    "genres": [
+      "Rock",
+      "Blues"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ]
+  },
+  "albums": [
+    {
+      "id": 21,
+      "mbId": "a1b2c3d4-0001",
+      "title": "Brothers",
+      "overview": "The sixth studio album.",
+      "albumType": "Album",
+      "secondaryAlbumTypes": [],
+      "releaseDate": "2010-05-18T00:00:00Z",
+      "genres": [
+        "Rock"
+      ],
+      "images": [
+        {
+          "coverType": "cover",
+          "remoteUrl": "https://img.example/cover.jpg"
+        }
+      ]
+    }
+  ],
+  "release": {
+    "quality": "FLAC",
+    "qualityVersion": 2,
+    "releaseGroup": "GRP",
+    "releaseTitle": "The.Black.Keys-Brothers-2010-FLAC-GRP",
+    "indexer": "Knaben",
+    "size": 314572800,
+    "customFormatScore": 150,
+    "customFormats": [
+      "Lossless",
+      "Vinyl"
+    ]
+  },
+  "downloadClient": "qb-main",
+  "downloadClientType": "qBittorrent",
+  "downloadId": "HASH123",
+  "eventType": "Grab",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "artist": {
+    "id": 1,
+    "name": "The Black Keys",
+    "path": "/music/The Black Keys",
+    "mbId": "d15721d8-56b4-453d-b506-fc915b14cba2",
+    "type": "Group",
+    "overview": "An American rock duo.",
+    "genres": [
+      "Rock",
+      "Blues"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ]
+  },
+  "album": {
+    "id": 21,
+    "mbId": "a1b2c3d4-0001",
+    "title": "Brothers",
+    "overview": "The sixth studio album.",
+    "albumType": "Album",
+    "secondaryAlbumTypes": [],
+    "releaseDate": "2010-05-18T00:00:00Z",
+    "genres": [
+      "Rock"
+    ],
+    "images": [
+      {
+        "coverType": "cover",
+        "remoteUrl": "https://img.example/cover.jpg"
+      }
+    ]
+  },
+  "tracks": [
+    {
+      "id": 41,
+      "title": "Everlasting Light",
+      "trackNumber": "1",
+      "qualityVersion": 0
+    },
+    {
+      "id": 42,
+      "title": "Next Girl",
+      "trackNumber": "2",
+      "qualityVersion": 0
+    }
+  ],
+  "trackFiles": [
+    {
+      "id": 51,
+      "path": "/music/The Black Keys/Brothers/01 - Everlasting Light.flac",
+      "quality": "FLAC",
+      "qualityVersion": 2,
+      "releaseGroup": "GRP",
+      "sceneName": "The.Black.Keys-Brothers-2010-FLAC-GRP",
+      "size": 31457280,
+      "dateAdded": "2026-10-02T03:04:05Z"
+    },
+    {
+      "id": 52,
+      "path": "/music/The Black Keys/Brothers/02 - Next Girl.flac",
+      "quality": "FLAC",
+      "qualityVersion": 2,
+      "releaseGroup": "GRP",
+      "sceneName": "The.Black.Keys-Brothers-2010-FLAC-GRP",
+      "size": 31457280,
+      "dateAdded": "2026-10-02T03:04:05Z"
+    }
+  ],
+  "isUpgrade": false,
+  "downloadClient": "qb-main",
+  "downloadClientType": "qBittorrent",
+  "downloadId": "HASH123",
+  "eventType": "Download",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "artist": {
+    "id": 1,
+    "name": "The Black Keys",
+    "path": "/music/The Black Keys",
+    "mbId": "d15721d8-56b4-453d-b506-fc915b14cba2",
+    "type": "Group",
+    "overview": "An American rock duo.",
+    "genres": [
+      "Rock",
+      "Blues"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ]
+  },
+  "album": {
+    "id": 21,
+    "mbId": "a1b2c3d4-0001",
+    "title": "Brothers",
+    "overview": "The sixth studio album.",
+    "albumType": "Album",
+    "secondaryAlbumTypes": [],
+    "releaseDate": "2010-05-18T00:00:00Z",
+    "genres": [
+      "Rock"
+    ],
+    "images": [
+      {
+        "coverType": "cover",
+        "remoteUrl": "https://img.example/cover.jpg"
+      }
+    ]
+  },
+  "tracks": [
+    {
+      "id": 41,
+      "title": "Everlasting Light",
+      "trackNumber": "1",
+      "qualityVersion": 0
+    },
+    {
+      "id": 42,
+      "title": "Next Girl",
+      "trackNumber": "2",
+      "qualityVersion": 0
+    }
+  ],
+  "trackFiles": [
+    {
+      "id": 51,
+      "path": "/music/The Black Keys/Brothers/01 - Everlasting Light.flac",
+      "quality": "FLAC",
+      "qualityVersion": 2,
+      "releaseGroup": "GRP",
+      "sceneName": "The.Black.Keys-Brothers-2010-FLAC-GRP",
+      "size": 31457280,
+      "dateAdded": "2026-10-02T03:04:05Z"
+    },
+    {
+      "id": 52,
+      "path": "/music/The Black Keys/Brothers/02 - Next Girl.flac",
+      "quality": "FLAC",
+      "qualityVersion": 2,
+      "releaseGroup": "GRP",
+      "sceneName": "The.Black.Keys-Brothers-2010-FLAC-GRP",
+      "size": 31457280,
+      "dateAdded": "2026-10-02T03:04:05Z"
+    }
+  ],
+  "deletedFiles": [
+    {
+      "id": 49,
+      "path": "/music/The Black Keys/Brothers/01 - Everlasting Light.mp3",
+      "quality": "MP3-320",
+      "qualityVersion": 2,
+      "releaseGroup": "GRP",
+      "sceneName": "The.Black.Keys-Brothers-2010-FLAC-GRP",
+      "size": 31457280,
+      "dateAdded": "2026-10-02T03:04:05Z"
+    }
+  ],
+  "isUpgrade": true,
+  "downloadClient": "qb-main",
+  "downloadClientType": "qBittorrent",
+  "downloadId": "HASH123",
+  "eventType": "Download",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "artist": {
+    "id": 1,
+    "name": "The Black Keys",
+    "path": "/music/The Black Keys",
+    "mbId": "d15721d8-56b4-453d-b506-fc915b14cba2",
+    "type": "Group",
+    "overview": "An American rock duo.",
+    "genres": [
+      "Rock",
+      "Blues"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ]
+  },
+  "renamedTrackFiles": [
+    {
+      "previousPath": "/music/The Black Keys/Brothers/old-01 - Everlasting Light.flac",
+      "id": 51,
+      "path": "/music/The Black Keys/Brothers/01 - Everlasting Light.flac",
+      "quality": "FLAC",
+      "qualityVersion": 2,
+      "releaseGroup": "GRP",
+      "sceneName": "The.Black.Keys-Brothers-2010-FLAC-GRP",
+      "size": 31457280,
+      "dateAdded": "2026-10-02T03:04:05Z"
+    },
+    {
+      "previousPath": "/music/The Black Keys/Brothers/old-02 - Next Girl.flac",
+      "id": 52,
+      "path": "/music/The Black Keys/Brothers/02 - Next Girl.flac",
+      "quality": "FLAC",
+      "qualityVersion": 2,
+      "releaseGroup": "GRP",
+      "sceneName": "The.Black.Keys-Brothers-2010-FLAC-GRP",
+      "size": 31457280,
+      "dateAdded": "2026-10-02T03:04:05Z"
+    }
+  ],
+  "eventType": "Rename",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "artist": {
+    "id": 1,
+    "name": "The Black Keys",
+    "path": "/music/The Black Keys",
+    "mbId": "d15721d8-56b4-453d-b506-fc915b14cba2",
+    "type": "Group",
+    "overview": "An American rock duo.",
+    "genres": [
+      "Rock",
+      "Blues"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ]
+  },
+  "eventType": "ArtistAdd",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "artist": {
+    "id": 1,
+    "name": "The Black Keys",
+    "path": "/music/The Black Keys",
+    "mbId": "d15721d8-56b4-453d-b506-fc915b14cba2",
+    "type": "Group",
+    "overview": "An American rock duo.",
+    "genres": [
+      "Rock",
+      "Blues"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ]
+  },
+  "deletedFiles": true,
+  "eventType": "ArtistDelete",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "artist": {
+    "id": 1,
+    "name": "The Black Keys",
+    "path": "/music/The Black Keys",
+    "mbId": "d15721d8-56b4-453d-b506-fc915b14cba2",
+    "type": "Group",
+    "overview": "An American rock duo.",
+    "genres": [
+      "Rock",
+      "Blues"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ]
+  },
+  "deletedFiles": false,
+  "eventType": "ArtistDelete",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "artist": {
+    "id": 1,
+    "name": "The Black Keys",
+    "path": "/music/The Black Keys",
+    "mbId": "d15721d8-56b4-453d-b506-fc915b14cba2",
+    "type": "Group",
+    "overview": "An American rock duo.",
+    "genres": [
+      "Rock",
+      "Blues"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ]
+  },
+  "albums": [
+    {
+      "id": 21,
+      "mbId": "a1b2c3d4-0001",
+      "title": "Brothers",
+      "overview": "The sixth studio album.",
+      "albumType": "Album",
+      "secondaryAlbumTypes": [],
+      "releaseDate": "2010-05-18T00:00:00Z",
+      "genres": [
+        "Rock"
+      ],
+      "images": [
+        {
+          "coverType": "cover",
+          "remoteUrl": "https://img.example/cover.jpg"
+        }
+      ]
+    }
+  ],
+  "downloadInfo": {
+    "quality": "FLAC",
+    "qualityVersion": 2,
+    "title": "The.Black.Keys-Brothers-2010-FLAC-GRP",
+    "size": 314572800
+  },
+  "downloadClient": "qb-main",
+  "downloadClientType": "qBittorrent",
+  "downloadId": "HASH123",
+  "downloadStatus": "Ok",
+  "downloadStatusMessages": [],
+  "eventType": "ManualInteractionRequired",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}

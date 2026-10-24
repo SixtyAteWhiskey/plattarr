@@ -5,6 +5,7 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Serializer;
 using NzbDrone.Core.Movies.Notifications;
+using NzbDrone.Core.Music.Notifications;
 using NzbDrone.Core.Notifications;
 using NzbDrone.Core.Notifications.Webhook;
 using NzbDrone.Core.Test.Framework;
@@ -23,6 +24,7 @@ namespace NzbDrone.Core.Test.NotificationTests
             // Registered out of kind order on purpose: the test sends them in kind order.
             Mocker.SetConstant<IEnumerable<IWebhookPayloadBuilder>>(new IWebhookPayloadBuilder[]
             {
+                Mocker.Resolve<MusicWebhookPayloadBuilder>(),
                 Mocker.Resolve<TvWebhookPayloadBuilder>(),
                 Mocker.Resolve<MovieWebhookPayloadBuilder>()
             });
@@ -40,10 +42,11 @@ namespace NzbDrone.Core.Test.NotificationTests
         {
             Subject.Test().IsValid.Should().BeTrue();
 
-            _sent.Should().HaveCount(2);
+            _sent.Should().HaveCount(3);
             _sent.Should().OnlyContain(json => json.Contains("\"eventType\":\"Test\""));
-            _sent[0].Should().Contain("\"movie\":").And.NotContain("\"series\":");
-            _sent[1].Should().Contain("\"series\":").And.NotContain("\"movie\":");
+            _sent[0].Should().Contain("\"movie\":").And.NotContain("\"series\":").And.NotContain("\"artist\":");
+            _sent[1].Should().Contain("\"series\":").And.NotContain("\"movie\":").And.NotContain("\"artist\":");
+            _sent[2].Should().Contain("\"artist\":").And.Contain("\"albums\":").And.NotContain("\"movie\":").And.NotContain("\"series\":");
         }
 
         [Test]

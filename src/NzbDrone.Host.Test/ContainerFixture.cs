@@ -262,6 +262,49 @@ namespace NzbDrone.App.Test
         }
 
         [Test]
+        public void should_resolve_the_music_failed_download_source_and_redownload_searcher_by_kind()
+        {
+            _container.GetServices<IFailedDownloadSource>().Should().ContainSingle(s => s.Kind == MediaKind.Music)
+                .Which.Should().BeOfType<NzbDrone.Core.Music.Downloads.MusicFailedDownloadSource>();
+            _container.GetServices<IRedownloadSearcher>().Should().ContainSingle(s => s.Kind == MediaKind.Music)
+                .Which.Should().BeOfType<NzbDrone.Core.Music.Downloads.MusicRedownloadSearcher>();
+        }
+
+        [Test]
+        public void should_write_music_activity_in_the_music_module()
+        {
+            _container.GetServices<IHandle<ReleaseGrabbedEvent>>().OfType<NzbDrone.Core.Music.History.HistoryService>().Should().ContainSingle();
+            _container.GetServices<IHandle<NzbDrone.Core.Music.MediaFiles.Events.TrackImportedEvent>>().OfType<NzbDrone.Core.Music.History.HistoryService>().Should().ContainSingle();
+            _container.GetServices<IHandle<DownloadFailedEvent>>().OfType<NzbDrone.Core.Music.History.HistoryService>().Should().ContainSingle();
+            _container.GetServices<IHandle<DownloadFailedEvent>>().OfType<NzbDrone.Core.Music.Blocklisting.BlocklistService>().Should().ContainSingle();
+            _container.GetServices<IHandle<DownloadIgnoredEvent>>().OfType<NzbDrone.Core.Music.History.HistoryService>().Should().ContainSingle();
+            _container.GetServices<IHandle<NzbDrone.Core.Download.DownloadCompletedEvent>>().OfType<NzbDrone.Core.Music.History.HistoryService>().Should().ContainSingle();
+            _container.GetServices<IHandle<NzbDrone.Core.Music.Events.ArtistsDeletedEvent>>().OfType<NzbDrone.Core.Music.History.HistoryService>().Should().ContainSingle();
+            _container.GetServices<IHandleAsync<NzbDrone.Core.Music.Events.ArtistsDeletedEvent>>().OfType<NzbDrone.Core.Music.Blocklisting.BlocklistService>().Should().ContainSingle();
+        }
+
+        [Test]
+        public void should_announce_music_events_in_the_music_module()
+        {
+            _container.GetServices<IHandle<ReleaseGrabbedEvent>>().OfType<NzbDrone.Core.Music.Notifications.MusicNotificationHandler>().Should().ContainSingle();
+            _container.GetServices<IHandle<NzbDrone.Core.Music.MediaFiles.Events.AlbumImportedEvent>>().OfType<NzbDrone.Core.Music.Notifications.MusicNotificationHandler>().Should().ContainSingle();
+            _container.GetServices<IHandle<NzbDrone.Core.Music.Events.ArtistAddCompletedEvent>>().OfType<NzbDrone.Core.Music.Notifications.MusicNotificationHandler>().Should().ContainSingle();
+            _container.GetServices<IHandle<NzbDrone.Core.Music.Events.ArtistsDeletedEvent>>().OfType<NzbDrone.Core.Music.Notifications.MusicNotificationHandler>().Should().ContainSingle();
+            _container.GetServices<IHandle<NzbDrone.Core.Music.MediaFiles.Events.ArtistRenamedEvent>>().OfType<NzbDrone.Core.Music.Notifications.MusicNotificationHandler>().Should().ContainSingle();
+            _container.GetServices<IHandle<ManualInteractionRequiredEvent>>().OfType<NzbDrone.Core.Music.Notifications.MusicNotificationHandler>().Should().ContainSingle();
+        }
+
+        [Test]
+        public void should_resolve_the_music_payload_and_script_builders_by_kind()
+        {
+            _container.GetServices<NzbDrone.Core.Notifications.Webhook.IWebhookPayloadBuilder>().Should().ContainSingle(b => b.Kind == MediaKind.Music)
+                .Which.Should().BeOfType<NzbDrone.Core.Music.Notifications.MusicWebhookPayloadBuilder>();
+            _container.GetServices<NzbDrone.Core.Notifications.CustomScript.ICustomScriptEnvironmentBuilder>().Should().ContainSingle(b => b.Kind == MediaKind.Music)
+                .Which.Should().BeOfType<NzbDrone.Core.Music.Notifications.MusicCustomScriptEnvironmentBuilder>();
+            _container.GetRequiredService<NzbDrone.Core.Music.Notifications.MusicActivityRenderer>().Kind.Should().Be(MediaKind.Music);
+        }
+
+        [Test]
         public void should_be_able_to_resolve_downloadclients()
         {
             _container.GetRequiredService<IEnumerable<IDownloadClient>>().Should().NotBeEmpty();

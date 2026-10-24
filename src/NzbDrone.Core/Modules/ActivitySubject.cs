@@ -84,5 +84,6 @@ namespace NzbDrone.Core.Modules
         public const string Tmdb = "tmdb";
         public const string Tvdb = "tvdb";
         public const string TvMaze = "tvmaze";
+        public const string MusicBrainz = "musicbrainz";
     }
 }

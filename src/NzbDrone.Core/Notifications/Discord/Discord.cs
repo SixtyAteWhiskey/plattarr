@@ -195,10 +195,15 @@ namespace NzbDrone.Core.Notifications.Discord
                     case DiscordImportFieldType.Codecs:
                         discordField.Name = "Codecs";
                         discordField.Inline = true;
-                        discordField.Value = string.Format("{0} / {1} {2}",
-                            message.File.MediaInfo.VideoCodec,
-                            message.File.MediaInfo.AudioCodec,
-                            message.File.MediaInfo.AudioChannels);
+
+                        // A music file has no video codec, so the empty part is left out ("FLAC 2", not " / FLAC 2").
+                        discordField.Value = string.Join(
+                            " / ",
+                            new[]
+                            {
+                                message.File.MediaInfo.VideoCodec,
+                                $"{message.File.MediaInfo.AudioCodec} {message.File.MediaInfo.AudioChannels}"
+                            }.Where(x => !string.IsNullOrWhiteSpace(x)));
                         break;
                     case DiscordImportFieldType.Group:
                         discordField.Name = "Group";

@@ -9,7 +9,8 @@ namespace NzbDrone.Core.Music.History
 {
     // The Music module's view of the shared History table. Lidarr keeps one row per album grab
     // and one per track file event: ParentId is the artist and ItemId the album. Lidarr's TrackId
-    // (the track a file event is about) is not carried yet; the history step decides how.
+    // (the track a file event is about) is the "trackId" entry of Data: the shared table has no
+    // column for it and nothing filters on it (call made in step 6).
     public class AlbumHistory : ModelBase, IMediaKindRecord
     {
         public const string DOWNLOAD_CLIENT = "downloadClient";
@@ -17,6 +18,7 @@ namespace NzbDrone.Core.Music.History
         public const string RELEASE_GROUP = "releaseGroup";
         public const string SIZE = "size";
         public const string INDEXER = "indexer";
+        public const string TRACK_ID = "trackId";
 
         public AlbumHistory()
         {

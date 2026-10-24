@@ -3,11 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Download;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Music.Events;
 using NzbDrone.Core.Music.Parser;
 using NzbDrone.Core.Music.Parser.Model;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Music.Blocklisting
 {
@@ -23,9 +27,12 @@ namespace NzbDrone.Core.Music.Blocklisting
     }
 
     // Lidarr's blocklist service on the TV module's shape (Lidarr splits the same logic across a
-    // class per protocol). The reads and Block are step 4; the handlers that write a row when a
-    // download fails and that clear a deleted artist's rows are the activity step (step 6).
-    public class BlocklistService : IBlocklistService
+    // class per protocol). The reads and Block are step 4; step 6 adds the handlers that write a row
+    // when a Music download fails and that clear a deleted artist's rows. The clear-blocklist command
+    // arrives with the API (step 7), as TV's did.
+    public class BlocklistService : IBlocklistService,
+                                    IHandle<DownloadFailedEvent>,
+                                    IHandleAsync<ArtistsDeletedEvent>
     {
         private readonly IBlocklistRepository _blocklistRepository;
 
@@ -109,6 +116,44 @@ namespace NzbDrone.Core.Music.Blocklisting
         public void Delete(List<int> ids)
         {
             _blocklistRepository.DeleteMany(ids);
+        }
+
+        public void Handle(DownloadFailedEvent message)
+        {
+            if (message.Kind != MediaKind.Music)
+            {
+                return;
+            }
+
+            var blocklist = new Blocklist
+            {
+                MediaKind = MediaKind.Music,
+                ParentId = message.ParentId,
+                ItemIds = message.ItemIds,
+                SourceTitle = message.SourceTitle,
+                Quality = AudioQualityModel.FromDisplayModel(message.Quality),
+                Date = DateTime.UtcNow,
+                PublishedDate = DateTime.Parse(message.Data.GetValueOrDefault("publishedDate")),
+                Size = long.Parse(message.Data.GetValueOrDefault("size", "0")),
+                Indexer = message.Data.GetValueOrDefault("indexer"),
+                Protocol = (DownloadProtocol)Convert.ToInt32(message.Data.GetValueOrDefault("protocol")),
+                Message = message.Message,
+                TorrentInfoHash = message.TrackedDownload?.Protocol == DownloadProtocol.Torrent
+                    ? message.TrackedDownload.DownloadItem.DownloadId
+                    : message.Data.GetValueOrDefault("torrentInfoHash", null)
+            };
+
+            if (Enum.TryParse(message.Data.GetValueOrDefault("indexerFlags"), true, out IndexerFlags flags))
+            {
+                blocklist.IndexerFlags = flags;
+            }
+
+            _blocklistRepository.Insert(blocklist);
+        }
+
+        public void HandleAsync(ArtistsDeletedEvent message)
+        {
+            _blocklistRepository.DeleteForArtistIds(message.Artists.Select(x => x.Id).ToList());
         }
 
         private bool SameNzb(Blocklist item, ReleaseInfo release)
