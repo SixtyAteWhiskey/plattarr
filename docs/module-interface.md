@@ -2203,6 +2203,15 @@ table mapper finds `IModuleTableMap` by reflection). Calls made while building:
 - **Still open.** `TrackId` on history rows (step 6, see step 0); custom formats on audio profiles
   (step 4).
 
+**Live proof (dev stack, `63fe578`).** Migration 009 was run first on a copy of the dev config: version 9,
+the 11 `Music_` tables, 38 audio definitions seeded (37 plus Unknown), no existing History or Movies row
+changed, no Warn or Error. On the deployed stack: `RssSync` completed, the Movies baseline is unchanged
+(`release?movieId=1` = 70 releases, 56 approved, 63 mapped), `Housekeeping` completed, and the download
+client schema shows `musicCategory`, `musicImportedCategory`, `recentMusicPriority` and
+`olderMusicPriority` beside the Movies and Tv fields. **A client stored before this deploy has no Music
+entry** (the sparse `ModuleCategories` list, fact 18 in the state doc); it gets one when saved once or
+through `EnsureEntries`. Nothing grabs Music yet, so nothing fails.
+
 **Tests.** `MusicTests` has fixtures for each repository, the profiles, the definition service, album
 history, the blocklist, root folders, naming config and `MusicModule`, over fully populated entities
 that must round-trip every column. `MusicModuleTablesFixture` checks the migration (tables empty, existing
