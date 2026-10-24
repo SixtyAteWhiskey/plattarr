@@ -2744,9 +2744,87 @@ Frontend: eslint clean on the three notification files.
 `CleanupUnusedTags`. `MusicWebhookPayloadBuilder` changes `artist.Metadata.Images` while it builds local URLs.
 Adding an artist with monitor `none` leaves it unmonitored.
 
-**Still open in step 7.** The three new events on the providers other than Webhook, CustomScript and Discord; the UI (the `'music'` media kind in the switcher and
-the Music pages and settings; Lidarr's checkout here has no frontend, so the UI is built on Plattarr's own).
+**Still open in step 7.** The three new events on the providers other than Webhook, CustomScript and Discord. The UI was built in
+slices U1 to U3 (next section).
 
+
+### Music step 7 (UI, slices U1 to U3): as built
+
+Built after the API against the Lidarr frontend at `aec88028`, which runs on the same stack as Plattarr's
+(React 18.3, react-redux 7, react-router 5, connected-react-router), so its files copy over with path changes. Commits:
+`d191386` (U1), `896ac9e` (U2 and U3), `1a724e2` (a fix found in review). Calls made while building (each is reversible):
+
+- **Kind and navigation.** `'music'` is a `MediaKind`; the switcher, `DownloadClientCategory`'s field map and the sidebar know it.
+  The sidebar has a Music entry (`/music`, alias `/artist` and `/album` so it stays highlighted on those pages; children
+  Add New `/music/add/new` and Unmapped Files `/music/unmapped`). `createMediaKindPage(movies, tv, music?)` takes a third
+  component **and passes it the route props**: Lidarr's list pages are wrapped in `withCurrentPage`, which needs `history`, so
+  rendering them without props crashes with `Cannot read properties of undefined (reading 'action')`. Without a music
+  component the page says it is not available for Music.
+- **Parallel trees, copied from Lidarr and remapped:** `Artist/`, `AddArtist/`, `Album/`, `Track*`, `Retag/`,
+  `UnmappedFiles/`, `InteractiveSearch/Music`, `InteractiveImport/Music`, `Activity/History/Music`,
+  `Activity/Blocklist/Music`, `Calendar/Music`, `Wanted/Music/{Missing,CutoffUnmet}`, and under `Settings/`:
+  `Profiles/Quality/Audio`, `Profiles/Metadata`, `Quality/Definition/Audio`, `Quality/Reset/Audio`,
+  `MediaManagement/Naming/Music`, `MediaManagement/RootFolder/Music`. Shared pages (Queue, Profiles, Quality, Media
+  Management, Metadata) get Music branches instead of copies.
+- **Redux sections** (all registered): `artist`, `albums`, `tracks`, `trackFiles`, `artistIndex`, `artistHistory`,
+  `albumHistory`, `albumSelection`, `retagPreview`, `addArtist`, `musicOrganizePreview`, `musicReleases`,
+  `musicInteractiveImport`, `musicHistory`, `musicBlocklist`, `musicCalendar`, `musicWanted` (`missing`,
+  `cutoffUnmet`), and under `settings`: `audioQualityProfiles`, `audioQualityDefinitions`, `metadataProfiles`,
+  `musicRootFolders`, `musicNaming`, `musicNamingExamples`. SignalR handlers: `handleMusicRootfolder`,
+  `handleCalendarMusic`, `handleWantedMissingMusic`, `handleWantedCutoffMusic` (name = `handle` + title-cased resource,
+  slashes removed).
+- **Root folders.** Music root folders are the `settings.musicRootFolders` section (`/music/rootfolder`) with no
+  add-from-path: a Music root folder needs a name and the default profile ids, so it is created in the edit modal (the
+  earlier plan of reusing the shared `rootFolders` section was dropped). `RootFolderSelectInput` picks the section by kind
+  and hides "Add a new path" for Music.
+- **Queue.** The shared Queue page asks for `includeArtist` and `includeAlbum` on every fetch, adds the columns
+  `artists.sortName` and `albums.title` (visible) and `albums.releaseDate` (hidden), links to `/artist/{foreignArtistId}` and
+  `/album/{foreignAlbumId}`, opens the Music manual import modal for a row with an `artistId`, and lets such a row be
+  removed with "ignore". A Music row leaves the Movie and Series cells empty. `trackFileCount` and
+  `trackHasFileCount` are in the API and typings but no column shows them.
+- **Settings pages by kind.**
+  - *Profiles:* Music lists audio quality profiles and metadata profiles; delay and release profiles are Movies and
+    Series settings and are not shown for Music. The "in use" check for a Music profile reads artists and the Music root
+    folders' defaults (`createMusicProfileInUseSelector`).
+  - *Quality:* Movies and Series share one set of definitions; Music has its own (`/music/qualitydefinition`, reset command
+    `ResetAudioQualityDefinitions`). The switcher is in the toolbar; the page is keyed by that choice so pending
+    changes do not carry over. Switching between Movies and Series changes nothing on this page (the definitions are shared).
+  - *Media Management:* Music shows `musicNaming`, `createEmptyArtistFolders`, `trackFileDate`, `allowFingerprinting`,
+    `writeAudioTags` and `scrubAudioTags`, the shared import and recycle bin fields, and the Music root folders. The
+    backend keeps the tag fields on `config/mediamanagement`, so they sit here and not on the Metadata page (Lidarr puts them there). Not shown for Music: the
+    unmonitor-deleted field (Lidarr's UI has none; `autoUnmonitorPreviouslyDownloadedTracks` exists in the API), the
+    video analysis field, and the File Management fieldset when advanced settings are off (it would be empty). The
+    recycle bin help text uses Lidarr's wording for Music.
+  - *Metadata:* Music shows one option, `musicMetadataSource` (empty = default source), and a note that Music has no metadata
+    consumers.
+- **Brand strings.** The copied files named the old app in three places: `window.Lidarr` and `/feed/v1/` in the calendar
+  link modal (it threw), and two sentences. They now use `window.Radarr`, `/feed/v3/calendar/Lidarr.ics` (served by
+  `MusicCalendarFeedController`) and translation keys with `{appName}`. Lidarr's search prefix `lidarr:` still works in
+  the add-artist box (the backend accepts `lidarr:`, `lidarrid:` and `mbid:`).
+
+**Traps found while copying (worth checking in any later port).**
+
+- A copied form that uses a *generic* input type gets Plattarr's meaning of it: `MONITOR_NEW_ITEMS_SELECT` is the Series
+  list ("All Seasons") and `QUALITY_PROFILE_SELECT` lists video profiles. Music uses `ARTIST_MONITOR_NEW_ITEMS_SELECT`,
+  `MONITOR_ALBUMS_SELECT`, `AUDIO_QUALITY_PROFILE_SELECT` and `METADATA_PROFILE_SELECT`. Both mistakes rendered plausible
+  option names, so only a look at the page found them.
+- The key importer that scans for `translate('Key')` does not see keys held in objects or ternaries
+  (`byKind({music: 'RescanArtistFolderAfterRefresh'})`); those showed as raw keys until added by hand. Scan every music page for text that looks like a key.
+- Lidarr's history event list has id 7 twice; the Music filter uses 10 for the second (`AlbumHistoryEventType`).
+- A Lidarr action section name like `qualityProfiles` is also a Plattarr section with a different meaning: after a copy,
+  grep the new trees for `settings.` and `fetch`/`save` names and map each to its Music section (`audioQualityProfiles`,
+  `musicRootFolders`, `musicNaming`, ...). The unresolved-import check does not catch this because the names resolve.
+- A Lidarr `fileDate` setting is `trackFileDate` here; the three kinds each have their own date field on `config/mediamanagement`.
+
+**Known gaps (none blocks the deploy).** The Music release filter still offers video quality values; `Album/Edit` uses the
+string "releases" as a field name; interactive-search result rows were never exercised (the scratch instance has no
+indexer; the page and its request were); the root folder modal's "Metadata Profile" label and the add-artist help text are
+English literals; the Queue has no track-count column; the Recycling Bin help text still says "Movie files" for Series
+(Movies' key). Proof, all on a scratch instance with Playwright: every Music page loads with no console error and no raw
+translation key; saves reach `PUT config/mediamanagement`, `PUT music/config/naming` and `PUT config/metadata`; an audio
+profile add answers 201 and an empty one 400; the metadata profile, audio profile and root folder modals open with the
+right fields; the Queue shows a mocked Music item with working links; the iCal link and feed answer. Gates: eslint,
+stylelint, `tsc` (zero errors) and webpack clean; `tools/verify.sh` PASS (Api 201, Host 72, Core 10,650).
 
 ## Decision record
 
