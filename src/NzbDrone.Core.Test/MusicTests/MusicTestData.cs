@@ -4,6 +4,7 @@ using System.Linq;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Music;
 using NzbDrone.Core.Music.MediaFiles;
+using NzbDrone.Core.Music.Parser;
 using NzbDrone.Core.Music.Profiles;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
@@ -13,10 +14,10 @@ namespace NzbDrone.Core.Test.MusicTests
     // Fully populated Music entities, so a round trip through the database proves every column.
     internal static class MusicTestData
     {
-        // Stands in for Lidarr's Parser.CleanArtistName until the Music parser is ported (step 2).
+        // The clean name the artist service stores and looks up: the real parser's CleanArtistName.
         public static string Clean(string name)
         {
-            return new string(name.ToLowerInvariant().Where(char.IsLetterOrDigit).ToArray());
+            return name.CleanArtistName();
         }
 
         public static List<AudioQualityProfileItem> DefaultQualities(params AudioQuality[] allowed)

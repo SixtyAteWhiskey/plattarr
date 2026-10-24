@@ -7,6 +7,7 @@ using NUnit.Framework;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Music;
+using NzbDrone.Core.Music.Parser;
 using NzbDrone.Core.Music.Profiles;
 using NzbDrone.Core.Test.Framework;
 
@@ -88,6 +89,23 @@ namespace NzbDrone.Core.Test.MusicTests
 
             artist.Should().NotBeNull();
             artist.Name.Should().Be(name);
+        }
+
+        // ArtistService.FindByName looks an artist up by title.CleanArtistName(), and the clean name is
+        // stored when the artist is added, so the parser and the repository have to agree.
+        [TestCase("Beyoncé", "BEYONCE")]
+        [TestCase("Motörhead", "motorhead")]
+        [TestCase("Earth, Wind & Fire", "Earth Wind and Fire")]
+        [TestCase("Florence + The Machine", "florence  the machine")]
+        public void should_find_artist_by_clean_name_regardless_of_accents_case_and_punctuation(string stored, string searched)
+        {
+            GivenArtists();
+            AddArtist(stored, "0f6c2c6e-5d31-4a57-a1f6-0c1c7c2fa001");
+
+            var artist = Subject.FindByName(searched.CleanArtistName());
+
+            artist.Should().NotBeNull();
+            artist.Name.Should().Be(stored);
         }
 
         [Test]

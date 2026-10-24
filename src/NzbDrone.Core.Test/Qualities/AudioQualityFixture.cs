@@ -202,6 +202,30 @@ namespace NzbDrone.Core.Test.Qualities
         }
 
         [Test]
+        public void detection_sources_should_not_be_stored()
+        {
+            var param = new SQLiteParameter();
+            var converter = new EmbeddedDocumentConverter<AudioQualityModel>(new AudioQualityIntConverter());
+            var model = new AudioQualityModel(AudioQuality.FLAC)
+            {
+                QualityDetectionSource = QualityDetectionSource.TagLib,
+                RevisionDetectionSource = QualityDetectionSource.Name
+            };
+
+            converter.SetValue(param, model);
+
+            ((string)param.Value).Should().NotContainEquivalentOf("DetectionSource");
+            converter.Parse(param.Value).QualityDetectionSource.Should().Be(QualityDetectionSource.Unknown);
+        }
+
+        [Test]
+        public void tag_lib_detection_source_should_not_reuse_an_existing_value()
+        {
+            ((int)QualityDetectionSource.TagLib).Should().Be(4);
+            ((int)QualityDetectionSource.MediaInfo).Should().Be(3);
+        }
+
+        [Test]
         public void stored_quality_should_read_back_as_the_same_audio_quality()
         {
             var param = new SQLiteParameter();
