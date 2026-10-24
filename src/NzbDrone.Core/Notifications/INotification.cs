@@ -17,6 +17,9 @@ namespace NzbDrone.Core.Notifications
         void OnApplicationUpdate(ApplicationUpdateMessage updateMessage);
         void OnManualInteractionRequired(ManualInteractionRequiredMessage message);
         void OnImportComplete(ImportCompleteMessage message);
+        void OnItemDelete(ItemDeleteMessage message);
+        void OnDownloadFailure(DownloadFailureMessage message);
+        void OnRetag(RetagMessage message);
         void ProcessQueue();
 
         // The Supports* names are the wire and database names (v3 API, NotificationDefinition columns) and keep Radarr's spelling.
@@ -33,5 +36,8 @@ namespace NzbDrone.Core.Notifications
         bool SupportsOnApplicationUpdate { get; }
         bool SupportsOnManualInteractionRequired { get; }
         bool SupportsOnImportComplete { get; }
+        bool SupportsOnAlbumDelete { get; }
+        bool SupportsOnDownloadFailure { get; }
+        bool SupportsOnTrackRetag { get; }
     }
 }

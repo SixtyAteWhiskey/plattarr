@@ -9,6 +9,9 @@ namespace NzbDrone.Core.Notifications
         MediaFileDelete,
         MediaDelete,
         ManualInteractionRequired,
-        ImportComplete
+        ImportComplete,
+        ItemDelete,
+        DownloadFailure,
+        Retag
     }
 }

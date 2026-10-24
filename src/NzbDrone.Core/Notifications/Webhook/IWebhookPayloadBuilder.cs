@@ -19,6 +19,11 @@ namespace NzbDrone.Core.Notifications.Webhook
         // A module that never sends the event throws NotSupportedException.
         WebhookPayload BuildImportComplete(ImportCompleteMessage message);
 
+        // Same rule for the three events only Music sends.
+        WebhookPayload BuildItemDelete(ItemDeleteMessage message);
+        WebhookPayload BuildDownloadFailure(DownloadFailureMessage message);
+        WebhookPayload BuildRetag(RetagMessage message);
+
         // The payload "Test" sends, in the module's own shape.
         WebhookPayload BuildTest();
     }

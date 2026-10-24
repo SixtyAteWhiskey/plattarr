@@ -474,3 +474,158 @@
   "instanceName": "Plattarr-golden",
   "applicationUrl": "http://golden:7880"
 }
+=====
+{
+  "artist": {
+    "id": 1,
+    "name": "The Black Keys",
+    "path": "/music/The Black Keys",
+    "mbId": "d15721d8-56b4-453d-b506-fc915b14cba2",
+    "type": "Group",
+    "overview": "An American rock duo.",
+    "genres": [
+      "Rock",
+      "Blues"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ]
+  },
+  "album": {
+    "id": 21,
+    "mbId": "a1b2c3d4-0001",
+    "title": "Brothers",
+    "overview": "The sixth studio album.",
+    "albumType": "Album",
+    "secondaryAlbumTypes": [],
+    "releaseDate": "2010-05-18T00:00:00Z",
+    "genres": [
+      "Rock"
+    ],
+    "images": [
+      {
+        "coverType": "cover",
+        "remoteUrl": "https://img.example/cover.jpg"
+      }
+    ]
+  },
+  "deletedFiles": true,
+  "eventType": "AlbumDelete",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "artist": {
+    "id": 1,
+    "name": "The Black Keys",
+    "path": "/music/The Black Keys",
+    "mbId": "d15721d8-56b4-453d-b506-fc915b14cba2",
+    "type": "Group",
+    "overview": "An American rock duo.",
+    "genres": [
+      "Rock",
+      "Blues"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ]
+  },
+  "album": {
+    "id": 21,
+    "mbId": "a1b2c3d4-0001",
+    "title": "Brothers",
+    "overview": "The sixth studio album.",
+    "albumType": "Album",
+    "secondaryAlbumTypes": [],
+    "releaseDate": "2010-05-18T00:00:00Z",
+    "genres": [
+      "Rock"
+    ],
+    "images": [
+      {
+        "coverType": "cover",
+        "remoteUrl": "https://img.example/cover.jpg"
+      }
+    ]
+  },
+  "deletedFiles": false,
+  "eventType": "AlbumDelete",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "quality": "FLAC",
+  "qualityVersion": 2,
+  "releaseTitle": "The.Black.Keys-Brothers-2010-FLAC-GRP",
+  "downloadClient": "qb-main",
+  "downloadId": "HASH123",
+  "eventType": "DownloadFailure",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}
+=====
+{
+  "artist": {
+    "id": 1,
+    "name": "The Black Keys",
+    "path": "/music/The Black Keys",
+    "mbId": "d15721d8-56b4-453d-b506-fc915b14cba2",
+    "type": "Group",
+    "overview": "An American rock duo.",
+    "genres": [
+      "Rock",
+      "Blues"
+    ],
+    "images": [
+      {
+        "coverType": "poster",
+        "remoteUrl": "https://img.example/poster.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "remoteUrl": "https://img.example/fanart.jpg"
+      }
+    ],
+    "tags": [
+      "favorite",
+      "scifi"
+    ]
+  },
+  "trackFile": {
+    "id": 51,
+    "path": "/music/The Black Keys/Brothers/01 - Everlasting Light.flac",
+    "quality": "FLAC",
+    "qualityVersion": 2,
+    "releaseGroup": "GRP",
+    "sceneName": "The.Black.Keys-Brothers-2010-FLAC-GRP",
+    "size": 31457280,
+    "dateAdded": "2026-10-02T03:04:05Z"
+  },
+  "eventType": "Retag",
+  "instanceName": "Plattarr-golden",
+  "applicationUrl": "http://golden:7880"
+}

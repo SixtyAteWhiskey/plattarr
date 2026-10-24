@@ -20024,6 +20024,15 @@
           "onImportComplete": {
             "type": "boolean"
           },
+          "onAlbumDelete": {
+            "type": "boolean"
+          },
+          "onDownloadFailure": {
+            "type": "boolean"
+          },
+          "onTrackRetag": {
+            "type": "boolean"
+          },
           "supportsOnGrab": {
             "type": "boolean"
           },
@@ -20061,6 +20070,15 @@
             "type": "boolean"
           },
           "supportsOnImportComplete": {
+            "type": "boolean"
+          },
+          "supportsOnAlbumDelete": {
+            "type": "boolean"
+          },
+          "supportsOnDownloadFailure": {
+            "type": "boolean"
+          },
+          "supportsOnTrackRetag": {
             "type": "boolean"
           },
           "testCommand": {

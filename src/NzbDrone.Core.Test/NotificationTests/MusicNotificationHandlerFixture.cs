@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using FluentAssertions;
 using Moq;
@@ -206,6 +207,152 @@ namespace NzbDrone.Core.Test.NotificationTests
 
             MusicNotificationHandler.GetMessage(_artist, albums, new AudioQualityModel(AudioQuality.MP3_320))
                 .Should().Be("The Black Keys - Brothers + El Camino - [MP3-320]");
+        }
+
+        [Test]
+        public void should_notify_a_deleted_album_with_lidarrs_text()
+        {
+            ItemDeleteMessage sent = null;
+            _dispatcher.Setup(d => d.ItemDelete(It.IsAny<ItemDeleteMessage>())).Callback<ItemDeleteMessage>(m => sent = m);
+            _album.Artist = new NzbDrone.Core.Datastore.LazyLoaded<Artist>(_artist);
+
+            _handler.Handle(new AlbumDeletedEvent(_album, true, false));
+
+            sent.Message.Should().Be("Brothers - Album removed and all files were deleted");
+            sent.DeletedFiles.Should().BeTrue();
+            sent.DeletedFilesMessage.Should().Be("Album removed and all files were deleted");
+            sent.Subject.Tags.Should().BeEquivalentTo(_artist.Tags);
+            ((MusicNotificationData)sent.Data).Album.Should().BeSameAs(_album);
+            ((MusicNotificationData)sent.Data).Artist.Should().BeSameAs(_artist);
+        }
+
+        [Test]
+        public void should_say_when_the_files_of_a_deleted_album_were_kept()
+        {
+            ItemDeleteMessage sent = null;
+            _dispatcher.Setup(d => d.ItemDelete(It.IsAny<ItemDeleteMessage>())).Callback<ItemDeleteMessage>(m => sent = m);
+            _album.Artist = new NzbDrone.Core.Datastore.LazyLoaded<Artist>(_artist);
+
+            _handler.Handle(new AlbumDeletedEvent(_album, false, false));
+
+            sent.Message.Should().Be("Brothers - Album removed, files were not deleted");
+            sent.DeletedFiles.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_not_notify_a_deleted_album_whose_artist_is_gone()
+        {
+            _album.Artist = new NzbDrone.Core.Datastore.LazyLoaded<Artist>(null);
+
+            _handler.Handle(new AlbumDeletedEvent(_album, true, false));
+
+            _dispatcher.Verify(d => d.ItemDelete(It.IsAny<ItemDeleteMessage>()), Times.Never());
+        }
+
+        [Test]
+        public void should_build_nothing_for_a_deleted_album_when_no_provider_wants_it()
+        {
+            _dispatcher.Setup(d => d.AnyEnabled(NotificationEvent.ItemDelete)).Returns(false);
+            _album.Artist = new NzbDrone.Core.Datastore.LazyLoaded<Artist>(_artist);
+
+            _handler.Handle(new AlbumDeletedEvent(_album, true, false));
+
+            _dispatcher.Verify(d => d.ItemDelete(It.IsAny<ItemDeleteMessage>()), Times.Never());
+        }
+
+        private DownloadFailedEvent NewFailure(MediaKind kind)
+        {
+            return new DownloadFailedEvent
+            {
+                Kind = kind,
+                ParentId = _artist.Id,
+                ItemIds = new List<int> { _album.Id },
+                Quality = new AudioQualityModel(AudioQuality.FLAC, new Revision(2)).ToDisplayModel(),
+                SourceTitle = "The.Black.Keys-Brothers-2010-FLAC-GRP",
+                DownloadClient = "qb-main",
+                DownloadId = "HASH123",
+                Message = "Failed download detected",
+                TrackedDownload = MusicGoldenData.Tracked(MusicGoldenData.Remote(_artist, new List<Album> { _album }))
+            };
+        }
+
+        [Test]
+        public void should_notify_a_failed_download_with_the_release_and_the_client()
+        {
+            DownloadFailureMessage sent = null;
+            _dispatcher.Setup(d => d.DownloadFailure(It.IsAny<DownloadFailureMessage>())).Callback<DownloadFailureMessage>(m => sent = m);
+
+            _handler.Handle(NewFailure(MediaKind.Music));
+
+            sent.Message.Should().Be("Failed download detected");
+            sent.SourceTitle.Should().Be("The.Black.Keys-Brothers-2010-FLAC-GRP");
+            sent.QualityName.Should().Be("FLAC");
+            sent.QualityVersion.Should().Be(2);
+            sent.DownloadClient.Should().Be("qb-main");
+            sent.DownloadId.Should().Be("HASH123");
+            sent.Subject.Tags.Should().BeEquivalentTo(_artist.Tags);
+            ((MusicNotificationData)sent.Data).Artist.Should().BeSameAs(_artist);
+        }
+
+        [TestCase(MediaKind.Movies)]
+        [TestCase(MediaKind.Tv)]
+        public void should_not_notify_a_failed_download_of_another_media_type(MediaKind kind)
+        {
+            _handler.Handle(NewFailure(kind));
+
+            _dispatcher.Verify(d => d.DownloadFailure(It.IsAny<DownloadFailureMessage>()), Times.Never());
+        }
+
+        [Test]
+        public void should_still_notify_a_failed_download_that_is_no_longer_tracked()
+        {
+            var failure = NewFailure(MediaKind.Music);
+            failure.TrackedDownload = null;
+
+            _handler.Handle(failure);
+
+            _dispatcher.Verify(d => d.DownloadFailure(It.Is<DownloadFailureMessage>(m => m.DownloadId == "HASH123")), Times.Once());
+        }
+
+        [Test]
+        public void should_build_nothing_for_a_failed_download_when_no_provider_wants_it()
+        {
+            _dispatcher.Setup(d => d.AnyEnabled(NotificationEvent.DownloadFailure)).Returns(false);
+
+            _handler.Handle(NewFailure(MediaKind.Music));
+
+            _dispatcher.Verify(d => d.DownloadFailure(It.IsAny<DownloadFailureMessage>()), Times.Never());
+        }
+
+        [Test]
+        public void should_notify_a_retag_with_the_tag_changes_listed()
+        {
+            RetagMessage sent = null;
+            _dispatcher.Setup(d => d.Retag(It.IsAny<RetagMessage>())).Callback<RetagMessage>(m => sent = m);
+            var diff = new Dictionary<string, Tuple<string, string>>
+            {
+                { "Title", Tuple.Create("Everlasting Lite", "Everlasting Light") },
+                { "Disc", Tuple.Create<string, string>(null, "1") }
+            };
+
+            _handler.Handle(new TrackFileRetaggedEvent(_artist, _files[0], diff, true));
+
+            sent.Message.Should().Be(_files[0].Path + ":\nTitle: Everlasting Lite -> Everlasting Light\nDisc: <missing> -> 1");
+            sent.Scrubbed.Should().BeTrue();
+            sent.Diff.Should().BeSameAs(diff);
+            sent.File.Id.Should().Be(51);
+            ((MusicNotificationData)sent.Data).TrackFiles.Should().ContainSingle().Which.Should().BeSameAs(_files[0]);
+            ((MusicNotificationData)sent.Data).AlbumRelease.Id.Should().Be(31);
+        }
+
+        [Test]
+        public void should_build_nothing_for_a_retag_when_no_provider_wants_it()
+        {
+            _dispatcher.Setup(d => d.AnyEnabled(NotificationEvent.Retag)).Returns(false);
+
+            _handler.Handle(new TrackFileRetaggedEvent(_artist, _files[0], new Dictionary<string, Tuple<string, string>>(), false));
+
+            _dispatcher.Verify(d => d.Retag(It.IsAny<RetagMessage>()), Times.Never());
         }
     }
 }

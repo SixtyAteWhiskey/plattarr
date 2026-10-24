@@ -85,6 +85,18 @@ namespace NzbDrone.Core.Notifications
         {
         }
 
+        public virtual void OnItemDelete(ItemDeleteMessage message)
+        {
+        }
+
+        public virtual void OnDownloadFailure(DownloadFailureMessage message)
+        {
+        }
+
+        public virtual void OnRetag(RetagMessage message)
+        {
+        }
+
         public virtual void ProcessQueue()
         {
         }
@@ -102,6 +114,9 @@ namespace NzbDrone.Core.Notifications
         public bool SupportsOnApplicationUpdate => HasConcreteImplementation("OnApplicationUpdate");
         public bool SupportsOnManualInteractionRequired => HasConcreteImplementation("OnManualInteractionRequired");
         public bool SupportsOnImportComplete => HasConcreteImplementation("OnImportComplete");
+        public bool SupportsOnAlbumDelete => HasConcreteImplementation("OnItemDelete");
+        public bool SupportsOnDownloadFailure => HasConcreteImplementation("OnDownloadFailure");
+        public bool SupportsOnTrackRetag => HasConcreteImplementation("OnRetag");
 
         protected TSettings Settings => (TSettings)Definition.Settings;
 

@@ -128,6 +128,16 @@ namespace NzbDrone.Core.Notifications.CustomScript
             ExecuteScript(BuildEnvironment(NotificationEvent.ManualInteractionRequired, message.Data, (builder) => builder.BuildManualInteraction(message)));
         }
 
+        public override void OnItemDelete(ItemDeleteMessage message)
+        {
+            ExecuteScript(BuildEnvironment(NotificationEvent.ItemDelete, message.Data, (builder) => builder.BuildItemDelete(message)));
+        }
+
+        public override void OnRetag(RetagMessage message)
+        {
+            ExecuteScript(BuildEnvironment(NotificationEvent.Retag, message.Data, (builder) => builder.BuildRetag(message)));
+        }
+
         public override ValidationResult Test()
         {
             var failures = new List<ValidationFailure>();

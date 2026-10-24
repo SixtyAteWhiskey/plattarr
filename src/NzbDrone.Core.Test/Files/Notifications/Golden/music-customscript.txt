@@ -121,3 +121,57 @@ lidarr_download_size=314572800
 lidarr_download_title=The.Black.Keys-Brothers-2010-FLAC-GRP
 lidarr_eventtype=ManualInteractionRequired
 lidarr_instancename=Plattarr-golden
+=====
+lidarr_album_id=21
+lidarr_album_mbid=a1b2c3d4-0001
+lidarr_album_overview=The sixth studio album.
+lidarr_album_releasedate=05/18/2010 00:00:00
+lidarr_album_title=Brothers
+lidarr_applicationurl=http://golden:7880
+lidarr_artist_deletedfiles=True
+lidarr_artist_genres=Rock|Blues
+lidarr_artist_id=1
+lidarr_artist_mbid=d15721d8-56b4-453d-b506-fc915b14cba2
+lidarr_artist_name=The Black Keys
+lidarr_artist_path=/music/The Black Keys
+lidarr_artist_tags=favorite|scifi
+lidarr_artist_type=Group
+lidarr_eventtype=AlbumDeleted
+lidarr_instancename=Plattarr-golden
+=====
+lidarr_album_id=21
+lidarr_album_mbid=a1b2c3d4-0001
+lidarr_album_overview=The sixth studio album.
+lidarr_album_releasedate=05/18/2010 00:00:00
+lidarr_album_title=Brothers
+lidarr_albumrelease_mbid=r1b2c3d4-0001
+lidarr_applicationurl=http://golden:7880
+lidarr_artist_genres=Rock|Blues
+lidarr_artist_id=1
+lidarr_artist_mbid=d15721d8-56b4-453d-b506-fc915b14cba2
+lidarr_artist_name=The Black Keys
+lidarr_artist_path=/music/The Black Keys
+lidarr_artist_tags=favorite|scifi
+lidarr_artist_type=Group
+lidarr_eventtype=TrackRetag
+lidarr_instancename=Plattarr-golden
+lidarr_tags_diff={
+  "title": {
+    "item1": "Everlasting Lite",
+    "item2": "Everlasting Light"
+  },
+  "disc": {
+    "item2": "1"
+  }
+}
+lidarr_tags_scrubbed=False
+lidarr_trackfile_id=51
+lidarr_trackfile_path=/music/The Black Keys/Brothers/01 - Everlasting Light.flac
+lidarr_trackfile_quality=FLAC
+lidarr_trackfile_qualityversion=2
+lidarr_trackfile_releasegroup=GRP
+lidarr_trackfile_scenename=The.Black.Keys-Brothers-2010-FLAC-GRP
+lidarr_trackfile_trackcount=1
+lidarr_trackfile_trackids=41
+lidarr_trackfile_tracknumbers=1
+lidarr_trackfile_tracktitles=Everlasting Light

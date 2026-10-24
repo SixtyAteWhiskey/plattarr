@@ -204,6 +204,16 @@ namespace NzbDrone.Core.Tv.Notifications
             return environmentVariables;
         }
 
+        public StringDictionary BuildItemDelete(ItemDeleteMessage message)
+        {
+            throw new NotSupportedException("TV has no album delete notification.");
+        }
+
+        public StringDictionary BuildRetag(RetagMessage message)
+        {
+            throw new NotSupportedException("TV has no retag notification.");
+        }
+
         public StringDictionary BuildManualInteraction(ManualInteractionRequiredMessage message)
         {
             var environmentVariables = new StringDictionary();

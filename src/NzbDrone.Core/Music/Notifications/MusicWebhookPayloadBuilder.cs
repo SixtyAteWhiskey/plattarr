@@ -11,8 +11,7 @@ using NzbDrone.Core.Tags;
 namespace NzbDrone.Core.Music.Notifications
 {
     // The Music module's webhook payloads, in Lidarr's upstream shape so existing receivers keep working.
-    // Lidarr's events with no neutral counterpart yet (album delete, download failure, import failure,
-    // retag) are not sent; see MusicNotificationHandler.
+    // Lidarr's import failure event is not sent; see MusicNotificationHandler.
     public class MusicWebhookPayloadBuilder : IWebhookPayloadBuilder
     {
         private readonly ITagRepository _tagRepository;
@@ -133,6 +132,44 @@ namespace NzbDrone.Core.Music.Notifications
         public WebhookPayload BuildImportComplete(ImportCompleteMessage message)
         {
             throw new NotSupportedException("Lidarr notifies once per imported album, so the Music module never sends an import complete message.");
+        }
+
+        public WebhookPayload BuildItemDelete(ItemDeleteMessage message)
+        {
+            var data = (MusicNotificationData)message.Data;
+
+            return new WebhookAlbumDeletePayload
+            {
+                EventType = WebhookEventType.AlbumDelete,
+                Artist = GetArtist(data.Artist),
+                Album = GetAlbum(data.Album),
+                DeletedFiles = message.DeletedFiles
+            };
+        }
+
+        public WebhookPayload BuildDownloadFailure(DownloadFailureMessage message)
+        {
+            return new WebhookDownloadFailurePayload
+            {
+                EventType = WebhookEventType.DownloadFailure,
+                DownloadClient = message.DownloadClient,
+                DownloadId = message.DownloadId,
+                Quality = message.QualityName,
+                QualityVersion = message.QualityVersion,
+                ReleaseTitle = message.SourceTitle
+            };
+        }
+
+        public WebhookPayload BuildRetag(RetagMessage message)
+        {
+            var data = (MusicNotificationData)message.Data;
+
+            return new WebhookRetagPayload
+            {
+                EventType = WebhookEventType.Retag,
+                Artist = GetArtist(data.Artist),
+                TrackFile = new WebhookTrackFile(data.TrackFiles.Single())
+            };
         }
 
         public WebhookPayload BuildTest()

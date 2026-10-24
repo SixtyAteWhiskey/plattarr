@@ -84,6 +84,9 @@ namespace NzbDrone.Core.Notifications
                 NotificationEvent.MediaDelete => _notificationFactory.OnMovieDeleteEnabled().Any(),
                 NotificationEvent.ManualInteractionRequired => _notificationFactory.OnManualInteractionEnabled().Any(),
                 NotificationEvent.ImportComplete => _notificationFactory.OnImportCompleteEnabled().Any(),
+                NotificationEvent.ItemDelete => _notificationFactory.OnAlbumDeleteEnabled().Any(),
+                NotificationEvent.DownloadFailure => _notificationFactory.OnDownloadFailureEnabled().Any(),
+                NotificationEvent.Retag => _notificationFactory.OnTrackRetagEnabled().Any(),
                 _ => false
             };
         }
@@ -213,6 +216,72 @@ namespace NzbDrone.Core.Notifications
                 {
                     _notificationStatusService.RecordFailure(notification.Definition.Id);
                     _logger.Warn(ex, "Unable to send OnImportComplete notification to: " + notification.Definition.Name);
+                }
+            }
+        }
+
+        public void ItemDelete(ItemDeleteMessage message)
+        {
+            foreach (var notification in _notificationFactory.OnAlbumDeleteEnabled())
+            {
+                try
+                {
+                    if (!ShouldHandle(notification.Definition, message.Subject))
+                    {
+                        continue;
+                    }
+
+                    notification.OnItemDelete(message);
+                    _notificationStatusService.RecordSuccess(notification.Definition.Id);
+                }
+                catch (Exception ex)
+                {
+                    _notificationStatusService.RecordFailure(notification.Definition.Id);
+                    _logger.Warn(ex, "Unable to send OnAlbumDelete notification to: " + notification.Definition.Name);
+                }
+            }
+        }
+
+        public void DownloadFailure(DownloadFailureMessage message)
+        {
+            foreach (var notification in _notificationFactory.OnDownloadFailureEnabled())
+            {
+                try
+                {
+                    if (!ShouldHandle(notification.Definition, message.Subject))
+                    {
+                        continue;
+                    }
+
+                    notification.OnDownloadFailure(message);
+                    _notificationStatusService.RecordSuccess(notification.Definition.Id);
+                }
+                catch (Exception ex)
+                {
+                    _notificationStatusService.RecordFailure(notification.Definition.Id);
+                    _logger.Warn(ex, "Unable to send OnDownloadFailure notification to: " + notification.Definition.Name);
+                }
+            }
+        }
+
+        public void Retag(RetagMessage message)
+        {
+            foreach (var notification in _notificationFactory.OnTrackRetagEnabled())
+            {
+                try
+                {
+                    if (!ShouldHandle(notification.Definition, message.Subject))
+                    {
+                        continue;
+                    }
+
+                    notification.OnRetag(message);
+                    _notificationStatusService.RecordSuccess(notification.Definition.Id);
+                }
+                catch (Exception ex)
+                {
+                    _notificationStatusService.RecordFailure(notification.Definition.Id);
+                    _logger.Warn(ex, "Unable to send OnTrackRetag notification to: " + notification.Definition.Name);
                 }
             }
         }

@@ -3,6 +3,7 @@ using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Jobs;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Music.Commands;
+using NzbDrone.Core.Music.MediaFiles.Commands;
 
 namespace NzbDrone.Core.Music
 {
@@ -20,14 +21,22 @@ namespace NzbDrone.Core.Music
         public IReadOnlyList<int> DefaultCategories => Categories;
 
         // Lidarr's scheduled commands are added with the services that run them. A task whose
-        // command does not exist would fail on every run. The interval is Lidarr's: the artist
-        // refresh runs every 24 hours.
+        // command does not exist would fail on every run. The intervals are Lidarr's: the artist
+        // refresh and the rescan of the root folders each run every 24 hours. Nothing else of Lidarr's
+        // is scheduled: the album searches and the download scan run when something asks for them,
+        // and RSS sync, housekeeping and the health check belong to the core.
         public IEnumerable<ScheduledTask> ScheduledTasks => new[]
         {
             new ScheduledTask
             {
                 Interval = 24 * 60,
                 TypeName = typeof(RefreshArtistCommand).FullName
+            },
+
+            new ScheduledTask
+            {
+                Interval = 24 * 60,
+                TypeName = typeof(RescanFoldersCommand).FullName
             }
         };
     }

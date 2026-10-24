@@ -236,6 +236,22 @@ namespace NzbDrone.App.Test
             _container.GetRequiredService<NzbDrone.Core.Music.MediaFiles.TrackImport.Manual.IManualImportService>().Should().NotBeNull();
         }
 
+        // A scheduled task whose command nothing executes fails on every run.
+        [Test]
+        public void should_execute_the_command_of_every_scheduled_task_of_every_module()
+        {
+            foreach (var module in _container.GetServices<IMediaModule>())
+            {
+                foreach (var task in module.ScheduledTasks)
+                {
+                    var command = typeof(Command).Assembly.GetType(task.TypeName, true);
+                    var executor = typeof(IExecute<>).MakeGenericType(command);
+
+                    _container.GetService(executor).Should().NotBeNull($"{module.Name} schedules {task.TypeName}");
+                }
+            }
+        }
+
         [Test]
         public void should_resolve_the_artist_statistics_service_and_the_audio_definition_reset_executor()
         {

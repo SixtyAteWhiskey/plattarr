@@ -74,6 +74,21 @@ namespace NzbDrone.Core.Notifications.Webhook
             _proxy.SendWebhook(BuildOnImportCompletePayload(message), Settings);
         }
 
+        public override void OnItemDelete(ItemDeleteMessage message)
+        {
+            _proxy.SendWebhook(BuildOnItemDeletePayload(message), Settings);
+        }
+
+        public override void OnDownloadFailure(DownloadFailureMessage message)
+        {
+            _proxy.SendWebhook(BuildOnDownloadFailurePayload(message), Settings);
+        }
+
+        public override void OnRetag(RetagMessage message)
+        {
+            _proxy.SendWebhook(BuildOnRetagPayload(message), Settings);
+        }
+
         public override string Name => "Webhook";
 
         public override ValidationResult Test()

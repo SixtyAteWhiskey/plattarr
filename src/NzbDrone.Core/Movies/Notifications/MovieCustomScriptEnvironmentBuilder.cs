@@ -240,6 +240,16 @@ namespace NzbDrone.Core.Movies.Notifications
             return environmentVariables;
         }
 
+        public StringDictionary BuildItemDelete(ItemDeleteMessage message)
+        {
+            throw new NotSupportedException("Movies has no album delete notification.");
+        }
+
+        public StringDictionary BuildRetag(RetagMessage message)
+        {
+            throw new NotSupportedException("Movies has no retag notification.");
+        }
+
         public StringDictionary BuildManualInteraction(ManualInteractionRequiredMessage message)
         {
             var movie = ((MovieNotificationData)message.Data).Movie;

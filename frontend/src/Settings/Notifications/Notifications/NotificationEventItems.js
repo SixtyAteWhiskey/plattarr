@@ -28,6 +28,9 @@ function NotificationEventItems(props) {
     onApplicationUpdate,
     onManualInteractionRequired,
     onImportComplete,
+    onAlbumDelete,
+    onDownloadFailure,
+    onTrackRetag,
     supportsOnGrab,
     supportsOnDownload,
     supportsOnUpgrade,
@@ -39,6 +42,9 @@ function NotificationEventItems(props) {
     supportsOnApplicationUpdate,
     supportsOnManualInteractionRequired,
     supportsOnImportComplete,
+    supportsOnAlbumDelete,
+    supportsOnDownloadFailure,
+    supportsOnTrackRetag,
     supportsOnHealthIssue,
     supportsOnHealthRestored,
     includeHealthWarnings
@@ -212,6 +218,39 @@ function NotificationEventItems(props) {
               helpText={translate('OnImportComplete')}
               isDisabled={!supportsOnImportComplete.value}
               {...onImportComplete}
+              onChange={onInputChange}
+            />
+          </div>
+
+          <div>
+            <FormInputGroup
+              type={inputTypes.CHECK}
+              name="onAlbumDelete"
+              helpText={translate('OnAlbumDelete')}
+              isDisabled={!supportsOnAlbumDelete.value}
+              {...onAlbumDelete}
+              onChange={onInputChange}
+            />
+          </div>
+
+          <div>
+            <FormInputGroup
+              type={inputTypes.CHECK}
+              name="onDownloadFailure"
+              helpText={translate('OnDownloadFailure')}
+              isDisabled={!supportsOnDownloadFailure.value}
+              {...onDownloadFailure}
+              onChange={onInputChange}
+            />
+          </div>
+
+          <div>
+            <FormInputGroup
+              type={inputTypes.CHECK}
+              name="onTrackRetag"
+              helpText={translate('OnTrackRetag')}
+              isDisabled={!supportsOnTrackRetag.value}
+              {...onTrackRetag}
               onChange={onInputChange}
             />
           </div>

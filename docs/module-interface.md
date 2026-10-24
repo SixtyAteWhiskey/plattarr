@@ -2636,6 +2636,96 @@ queue empty. **Movies baseline unchanged: 71 releases, 57 approved, 64 mapped.**
 history, blocklist and notification writers are proved by tests until step 7 can add an artist and feed a
 download through them.
 
+### Music step 7 (API, slices a to d): as built
+
+Built after step 6 against Lidarr `aec88028`. Slices 7a to 7d are the Music API and the back-end
+leftovers of steps 5 and 6; the queue kinds, the Music views of download history and pending releases, and the
+whole UI are still open (see the end of this section). Migration 11 is the only schema change. Calls made
+while building (each is reversible):
+
+- **Route scheme.** Music sits beside Movies' routes with a `/music` suffix (`history/music`, `blocklist/music`,
+  `wanted/missing/music`, `wanted/cutoff/music`, `calendar/music`, `parse/music`, `release/music`,
+  `release/music/push`, `manualimport/music`); the library resources have their own names (`artist`, `album`,
+  `track`, `trackfile`). Commands are found by type name, so a Music command must not reuse a name another
+  module's command has (checked: no duplicates).
+- **Wanted lists** use a sort-key whitelist (`albums.*`, `artists.sortName`) and a `monitored` filter that
+  applies to both the album and its artist, as Lidarr does.
+- **Calendar feeds.** Ical.Net rejects a `DateTime` of kind Local. The Music feed writes the release date as a
+  calendar day. The TV feed had the same defect on its all-day path and now writes the local wall-clock time as
+  unspecified. Both have tests that hold in any time zone.
+- **Controllers that read the database in their base constructor** cannot be resolved in a Host container test;
+  the Host tests resolve the services and the controller fixtures build them with mocks. Any `IMainDatabase`
+  service (the housekeepers) cannot be resolved there either (recursive dependency), so a `DbTest` and a live
+  `Housekeeping` run prove them.
+- **Sparse metadata (live finding).** `SkyHookProxy` mapped an omitted collection to null and the NOT NULL
+  columns rejected it, so an artist refresh added no album. Omitted collections now map to empty lists. The
+  stored artist images could also carry a local file path as `RemoteUrl` into `GET artist`; it is cleared once
+  the URLs are built. Lidarr has both defects.
+- **Manual import.** `MusicManualImport` is the command name. A download that left the queue between listing and
+  import is imported as plain files instead of throwing. `GET manualimport/music` answers 400 without a folder
+  or a download id (the service failed with a 500 on the empty path). A command with `albumReleaseId` 0 fails
+  with `ModelNotFoundException`, as in Lidarr; left alone.
+- **Orphan housekeepers (slice 7d).** `CleanupOrphanedAlbums`, `CleanupOrphanedReleases`,
+  `CleanupOrphanedTracks`, `CleanupOrphanedArtistMetadata` and `CleanupOrphanedTrackFiles`, raw SQL on the
+  `Music_` tables as in Lidarr. The track-file task **unlinks** (`AlbumId` and the track's `TrackFileId` go to 0)
+  and deletes nothing. This closes the gap listed in step 6.
+- **Rescan task.** `MusicModule` schedules `RescanFoldersCommand` every 24 hours ("Rescan Folders"). A Host test
+  proves that every scheduled task of every module has an executor.
+- **Fpcalc check.** `FpcalcCheck` (`Music/Health`, so the `HealthCheck` namespace and type names do not collide)
+  warns `FpcalcMissing` when fpcalc is not set up and `FpcalcUpgrade` when it is older than 1.4.3. It is
+  **silent** when fingerprinting is `Never`, and when there is no Music root folder and no artist, so a
+  Movies/TV-only install never sees it. It re-checks on a saved config and on an added artist.
+- **Notification events.** The neutral contract gained `ItemDelete`, `DownloadFailure` and `Retag` (messages,
+  dispatcher methods, `INotification` methods and `Supports` flags, `NotificationBase` no-ops, factory and
+  definition flags). **Migration 11** adds the columns `OnAlbumDelete`, `OnDownloadFailure` and `OnTrackRetag`
+  to `Notifications` (default false). The internal names are neutral (`OnItemDelete`, `OnRetag`); the wire and
+  column names are Lidarr's, which is also what the API and the UI carry.
+  - Only **Webhook** (all three) and **CustomScript** (album delete and retag) implement them. Discord and the
+    other providers are owed.
+  - Webhook events `AlbumDelete`, `DownloadFailure`, `Retag`. Script events `AlbumDeleted` and `TrackRetag`.
+    The Movies and TV builders throw `NotSupportedException` for them.
+  - The retag text uses an ASCII arrow (`key: old -> new`, `<missing>` for an empty value).
+  - A failed download notifies only for the Music kind. **Import failure is not offered**: Lidarr has the flag,
+    but nothing raises a source event for it and a manual interaction message already covers it.
+- **Notification API and UI.** `NotificationResource` carries the three flags and their `supportsOn…` twins.
+  The notification form shows the three events (labels "On Album Delete", "On Download Failure", "On Track
+  Retag"); a provider that does not support one has the box disabled.
+
+**Tests.** 7d adds: housekeepers (10, a `DbTest`; a spare metadata row keeps the ids from coinciding), Fpcalc
+check (9), migration 011 (2), notification service scenarios (15), factory characteristics (2), base fixture,
+handler fixtures, the goldens (`music-webhook.json` and `music-customscript.txt` regenerated with additions
+only), resource mapping (4), and one Host test for the scheduled-task executors. Earlier slices: manual
+import service (17) and controller (9), plus the fixtures listed in their commits.
+
+**Mutation checks (7d).** 23 mutations of the new behavior (handler guards and messages, service factory
+selection, `AnyEnabled`, support mapping, `Enable`, resource mappings, builders, the Fpcalc check); 22 killed.
+Survivors, or mutants first missed, that were fixed: the factory's retag support (no test reached it; a
+characteristics fixture was added), the housekeeper album join (ids coincided; spare row added). **Equivalent
+mutants, left:** the `AlbumId <> 0` guard of the track-file task and the Fpcalc null-version check (`null <
+Version` is true in .NET).
+
+**Live (scratch instance, SQLite).** Migration 11 applied to a version 10 database and kept an existing webhook
+row with the new flags false. The schema shows Webhook supporting all three events, CustomScript two, and no
+other provider any. A real album delete sent an `AlbumDelete` payload to a local receiver. `system/task` lists
+"Rescan Folders" at 1440 minutes and the command ran. A `Housekeeping` run removed seeded orphan albums,
+releases, tracks and artist metadata, and unlinked an orphan track file and a dangling `TrackFileId` without
+deleting the file row. The health list showed `FpcalcCheck` (fpcalc missing) next to the usual no-indexer and
+no-client warnings. **Not proved live:** the download-failure and retag notifications (they need a grab and a
+tagged file); the handler and golden tests cover them.
+
+Results (Release, full solution build, analyzers on, 0 warnings): Core 10,644 passed and 54 skipped, Host 71
+passed (5 skipped), Api 173, 0 failed. Migration 011, the housekeepers and the notification service tests also
+ran on PostgreSQL 16 (108 passed; a wrong password fails the migration fixture, so Postgres was in use).
+Frontend: eslint clean on the three notification files.
+
+**Observations, faithful to Lidarr and left alone.** Root-folder default tags are not protected from
+`CleanupUnusedTags`. `MusicWebhookPayloadBuilder` changes `artist.Metadata.Images` while it builds local URLs.
+Adding an artist with monitor `none` leaves it unmonitored.
+
+**Still open in step 7.** Queue kinds, and the Music views of `DownloadHistory` and `PendingReleases`;
+per-provider implementations of the three new events; the UI (the `'music'` media kind in the switcher and
+the Music pages and settings; Lidarr's checkout here has no frontend, so the UI is built on Plattarr's own).
+
 
 ## Decision record
 

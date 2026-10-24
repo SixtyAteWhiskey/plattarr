@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
+using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Processes;
@@ -91,8 +92,8 @@ namespace NzbDrone.Core.Test.NotificationTests
         {
             return new List<Track>
             {
-                new Track { Id = 41, AlbumReleaseId = 31, ForeignTrackId = "t-1", Title = "Everlasting Light", TrackNumber = "1", AbsoluteTrackNumber = 1, Duration = 235000, TrackFileId = 51 },
-                new Track { Id = 42, AlbumReleaseId = 31, ForeignTrackId = "t-2", Title = "Next Girl", TrackNumber = "2", AbsoluteTrackNumber = 2, Duration = 190000, TrackFileId = 52 }
+                new Track { Id = 41, AlbumReleaseId = 31, AlbumRelease = new LazyLoaded<AlbumRelease>(Release()), ForeignTrackId = "t-1", Title = "Everlasting Light", TrackNumber = "1", AbsoluteTrackNumber = 1, Duration = 235000, TrackFileId = 51 },
+                new Track { Id = 42, AlbumReleaseId = 31, AlbumRelease = new LazyLoaded<AlbumRelease>(Release()), ForeignTrackId = "t-2", Title = "Next Girl", TrackNumber = "2", AbsoluteTrackNumber = 2, Duration = 190000, TrackFileId = 52 }
             };
         }
 
@@ -194,6 +195,37 @@ namespace NzbDrone.Core.Test.NotificationTests
             }
 
             handler.Handle(new ManualInteractionRequiredEvent(Tracked(remote), new MusicNotificationData { Artist = artist, RemoteAlbum = remote }));
+
+            album.Artist = new LazyLoaded<Artist>(artist);
+            handler.Handle(new AlbumDeletedEvent(album, true, false));
+
+            if (allDeleteVariants)
+            {
+                handler.Handle(new AlbumDeletedEvent(album, false, false));
+            }
+
+            handler.Handle(new DownloadFailedEvent
+            {
+                Kind = MediaKind.Music,
+                ParentId = artist.Id,
+                ItemIds = new List<int> { album.Id },
+                Quality = new AudioQualityModel(AudioQuality.FLAC, new Revision(2)).ToDisplayModel(),
+                SourceTitle = "The.Black.Keys-Brothers-2010-FLAC-GRP",
+                DownloadClient = "qb-main",
+                DownloadId = "HASH123",
+                Message = "Failed download detected",
+                TrackedDownload = Tracked(remote)
+            });
+
+            handler.Handle(new TrackFileRetaggedEvent(
+                artist,
+                files[0],
+                new Dictionary<string, Tuple<string, string>>
+                {
+                    { "Title", Tuple.Create("Everlasting Lite", "Everlasting Light") },
+                    { "Disc", Tuple.Create<string, string>(null, "1") }
+                },
+                false));
         }
     }
 
@@ -215,6 +247,14 @@ namespace NzbDrone.Core.Test.NotificationTests
             MusicGoldenData.Play(Subject, true);
 
             GoldenData.Verify("music-webhook.json", string.Join("\n=====\n", captured), ReadAllText);
+        }
+
+        [Test]
+        public void should_offer_the_three_music_events()
+        {
+            Subject.SupportsOnAlbumDelete.Should().BeTrue();
+            Subject.SupportsOnDownloadFailure.Should().BeTrue();
+            Subject.SupportsOnTrackRetag.Should().BeTrue();
         }
     }
 
@@ -238,6 +278,15 @@ namespace NzbDrone.Core.Test.NotificationTests
             MusicGoldenData.Play(Subject, false);
 
             GoldenData.Verify("music-customscript.txt", string.Join("\n=====\n", captured), ReadAllText);
+        }
+
+        // Lidarr ran no script for a failed download.
+        [Test]
+        public void should_offer_album_delete_and_retag_but_not_download_failure()
+        {
+            Subject.SupportsOnAlbumDelete.Should().BeTrue();
+            Subject.SupportsOnTrackRetag.Should().BeTrue();
+            Subject.SupportsOnDownloadFailure.Should().BeFalse();
         }
     }
 

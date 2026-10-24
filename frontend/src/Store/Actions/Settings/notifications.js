@@ -124,6 +124,9 @@ export default {
         selectedSchema.onApplicationUpdate = selectedSchema.supportsOnApplicationUpdate;
         selectedSchema.onManualInteractionRequired = selectedSchema.supportsOnManualInteractionRequired;
         selectedSchema.onImportComplete = selectedSchema.supportsOnImportComplete;
+        selectedSchema.onAlbumDelete = selectedSchema.supportsOnAlbumDelete;
+        selectedSchema.onDownloadFailure = selectedSchema.supportsOnDownloadFailure;
+        selectedSchema.onTrackRetag = selectedSchema.supportsOnTrackRetag;
 
         return selectedSchema;
       });
