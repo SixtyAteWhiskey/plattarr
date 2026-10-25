@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Turn a gallery run (shots/*.jpg + manifest.json from gallery.py) into one self-contained HTML page.
 
-    python3 tools/liveproof/gallery_html.py <gallery dir> [output.html]
+    [GALLERY_NOTE='text shown under the title'] python3 tools/liveproof/gallery_html.py <gallery dir> [output.html]
 
 The images are embedded as data: URIs, so the file opens anywhere and can be published as it is. The page holds no host
 name, address or key: the manifest carries only paths and counts. Python 3 standard library only.
@@ -189,6 +189,8 @@ def build(directory):
         f'<div class="grid">{"".join(card(s, shots_dir) for s in by_group[g])}</div></section>' for g in order)
 
     sub = f'{esc(manifest.get("app", ""))}, captured {esc(manifest.get("taken", ""))}. Click a screenshot to open it at full width.'
+    if os.environ.get("GALLERY_NOTE"):   # what a reader needs to know about the instance that was photographed
+        sub += " " + esc(os.environ["GALLERY_NOTE"])
     return PAGE.replace("__SUB__", sub).replace("__STRIP__", strip).replace("__VERDICT__", verdict).replace("__SECTIONS__", sections)
 
 
