@@ -133,7 +133,7 @@ def replay_radarr(api):
         "qualityProfileId": quality_profile_id,
         "profileId": quality_profile_id,
         "titleSlug": str(tmdb_id),
-        "minimumAvailability": metadata.get("minimumAvailability", "released"),
+        "minimumAvailability": metadata.get("minimumAvailability") or "released",
         "tmdbId": tmdb_id,
         "year": metadata.get("year", 0),
         "rootFolderPath": root_path,
@@ -214,11 +214,14 @@ def replay_sonarr(api):
         require(any(item.get("id") == series_id for item in by_tvdb), "series tvdbId filter missed the new record")
         api.call("PUT", "/series", current)
 
-        episodes = api.call("GET", f"/episode?seriesId={series_id}")
-        if not episodes:
-            existing = next((item for item in series if item.get("id")), None)
-            if existing:
-                episodes = api.call("GET", f"/episode?seriesId={existing['id']}")
+        episode_series_ids = [series_id] + [
+            item["id"] for item in series if item.get("id") and item["id"] != series_id
+        ]
+        episodes = []
+        for episode_series_id in episode_series_ids:
+            episodes = api.call("GET", f"/episode?seriesId={episode_series_id}")
+            if episodes:
+                break
         require(episodes, "no episode rows were available to replay episode/monitor")
         episode_ids = [item["id"] for item in episodes if not item.get("monitored")]
         if not episode_ids:
