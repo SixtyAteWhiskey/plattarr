@@ -21,11 +21,36 @@ environment or `config.xml`, sent only as the `X-Api-Key` header, and scrubbed f
 | Check | What it proves | Changes the instance |
 |---|---|---|
 | `smoke` | Version and migration are reported, the health page is empty (`--allow-health Source,Source` to tolerate some), and no error was logged since the process started. | No |
-| `covers` | Every media kind keeps its covers in its own folder (`MediaCover/{id}` for movies, `Series/{id}`, `Artists/{id}`, `Albums/{id}`), no folder is shared by two kinds, and every image URL the API returns is served as an image. After an upgrade that moves a folder, files are missing until the item is refreshed: use `--allow-missing-covers` to see that as a warning. | No |
+| `covers` | Every media kind keeps its covers in its own folder (`MediaCover/{id}` for movies, `Series/{id}`, `Artists/{id}`, `Albums/{id}`), no folder is shared by two kinds, and every image URL the API returns is served as an image (fetched through `/api/v3/mediacover/...`, the controller behind the same files; the static `/MediaCover/...` path answers an API key with the UI page). After an upgrade that moves a folder, files are missing until the item is refreshed: use `--allow-missing-covers` to see that as a warning. | No |
 | `baseline` | `RssSync` completes, then the release search for one movie (`--baseline-movie`, default 1) returns the expected counts (`--expect-baseline total,approved,mapped`; without it the counts are only printed). The counts follow the indexers: when they move, run the previous image against the same query before blaming a change. | Runs a command |
 | `defaults` | The shipped defaults (`allowFingerprinting` is `never`). **Only meaningful on an instance with an empty config**: an instance whose settings page was saved stores the values it showed. | No |
 | `fingerprint` | `FpcalcCheck` warns when fingerprinting is on and `fpcalc` is missing, and clears when it is `never`. Creates a Music root folder (`LIVEPROOF_MUSIC_ROOT`, default `/testdata/music`, which must exist on the instance) if there is none, flips the setting, and restores everything. | Yes, journaled |
 | `restore` | Replays the undo journal. | Undoes |
+
+## The walkthrough gallery
+
+`gallery.py` opens every main page (per media kind where the page has the Movies / Series / Music switch) and the flows that are
+hard to reach by hand, and saves one screenshot of each. `gallery_html.py` turns the run into one self-contained page.
+
+```bash
+GALLERY_BASE=http://127.0.0.1:7880 GALLERY_OUT=/tmp/gallery python3 tools/liveproof/gallery.py
+python3 tools/liveproof/gallery_html.py /tmp/gallery /tmp/gallery/gallery.html
+```
+
+Point it at a **scratch** instance with External authentication, never at the live stack: the browser needs no sign-in there, and
+the run must not change anything. It opens dialogs and never confirms one, and the queue page runs on mocked API answers. It needs
+the `playwright` Python package and Chromium. Each shot records what went wrong while the page loaded:
+
+| Finding | Meaning |
+|---|---|
+| `errors` | A console error or an uncaught exception. |
+| `bad` | A failed API or page request (cover requests and the update feed are expected to fail on a bare instance). |
+| `raw` | A text node that is a translation key shown instead of its text (the key is in `/api/v3/localization` and its text differs). |
+| `dup` | The same section heading twice in a row, which means a section was drawn twice. |
+| `maybe` | A single CamelCase word that is not a key: logger names on the Events page, or a missing translation. Read these by eye. |
+
+The checks find what they know about. Open the screenshots too: the raw key, the doubled heading and the movie-only help text above
+were all found by looking.
 
 ## The undo journal
 

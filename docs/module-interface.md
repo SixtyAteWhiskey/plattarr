@@ -2931,6 +2931,20 @@ URL, default back to `newFiles`, and the message dropped in each of the four cat
 `tools/liveproof/` starts here: a restore journal, and the checks `smoke`, `covers`, `baseline`, `defaults` and `fingerprint`
 (see its README). The Movies, TV and Music flows move into it in later increments.
 
+Found by the first walkthrough gallery (`tools/liveproof/gallery.py`) and fixed in the same session:
+
+- **The localization dictionary is case-sensitive.** `LocalizationService` built it with `StringComparer.OrdinalIgnoreCase`, but
+  `en.json` holds three pairs of keys that differ only by case (`RSSSync` and `RssSync`, `IMDbId` and `ImdbId`, `TBA` and `Tba`)
+  and the frontend looks keys up at their exact case. The later key overwrote the earlier one, so one spelling of each pair was
+  missing from `/api/v3/localization` and the UI showed the raw key (`RssSync` on the Movies and Series toolbars and the
+  Calendar). The dictionary is now `StringComparer.Ordinal`. No C# or translated key differed from `en.json` by case alone,
+  except two test lookups of `UILanguage` (the key is `UiLanguage`), which are corrected. `LocalizationServiceFixture` asserts
+  that every key of `en.json` is served, at exact case.
+- **Music media management drew "Root Folders" twice.** The page wrapped `MusicRootFolders`, which has its own fieldset, in a
+  second fieldset with the same legend. Movies and Series were not affected.
+- **The connection dialog's Tags help text named only movies** (`NotificationsTagsMovieHelpText`); it uses the new
+  `NotificationsTagsHelpText`. The old key stays for the translations.
+
 ## Decision record
 
 Owner answers, 2026-10-20, to the six questions in revision 1:

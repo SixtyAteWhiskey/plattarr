@@ -69,6 +69,16 @@ def _library(api):
             yield "album", album["id"], album["title"], [i["url"] for i in album.get("images", []) if i.get("url")]
 
 
+def _api_cover_path(url):
+    """The API route for a cover URL: /MediaCover/Series/7/poster.jpg -> /api/v3/mediacover/Series/7/poster.jpg.
+
+    The static /MediaCover path is served to a browser session only (an API key gets the UI page back with
+    HTTP 200), while the API route takes the key, and the same controller serves both."""
+    path = urlsplit(url).path
+    at = path.find("/MediaCover/")
+    return path[:at] + "/api/v3/mediacover/" + path[at + len("/MediaCover/"):]
+
+
 def covers(api, report, allow_missing=False):
     """Every media kind keeps its covers in its own folder, and the URLs the API hands out are served."""
     counts, wrong, folders, files = {}, [], {}, {}
@@ -92,7 +102,7 @@ def covers(api, report, allow_missing=False):
 
     served, missing, denied, other = 0, [], 0, []
     for url, (kind, item_id, title) in sorted(files.items()):
-        status, headers, _ = api.raw("GET", url)
+        status, headers, _ = api.raw("GET", _api_cover_path(url))
         if status == 200 and headers.get("Content-Type", "").startswith("image/"):
             served += 1
         elif status == 404:

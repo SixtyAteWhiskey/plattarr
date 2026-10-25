@@ -138,7 +138,10 @@ namespace NzbDrone.Core.Localization
                 throw new ArgumentNullException(nameof(culture));
             }
 
-            var dictionary = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            // Keys are case-sensitive: en.json holds pairs that differ only by case (RSSSync and RssSync, IMDbId and ImdbId,
+            // TBA and Tba), the frontend looks keys up at their exact case, and a case-insensitive dictionary keeps only one
+            // of each pair, so the UI showed the raw key for the other.
+            var dictionary = new Dictionary<string, string>(StringComparer.Ordinal);
 
             var baseFilenamePath = Path.Combine(prefix, baseFilename);
 

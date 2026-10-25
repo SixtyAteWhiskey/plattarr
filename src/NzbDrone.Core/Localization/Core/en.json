@@ -1910,6 +1910,7 @@
   "NotificationsSynologySettingsUpdateLibraryHelpText": "Call synoindex on localhost to update a library file",
   "NotificationsSynologyValidationInvalidOs": "Must be a Synology",
   "NotificationsSynologyValidationTestFailed": "Not a Synology or synoindex not available",
+  "NotificationsTagsHelpText": "Only send notifications for movies, series or artists with at least one matching tag",
   "NotificationsTagsMovieHelpText": "Only send notifications for movies with at least one matching tag",
   "NotificationsTelegramSettingsBotToken": "Bot Token",
   "NotificationsTelegramSettingsChatId": "Chat ID",
