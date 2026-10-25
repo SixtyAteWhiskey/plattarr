@@ -4,6 +4,7 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.DecisionEngine;
+using NzbDrone.Core.IndexerProxies;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Music;
 using NzbDrone.Core.Music.DecisionEngine.Specifications.RssSync;
@@ -25,10 +26,12 @@ namespace NzbDrone.Core.Test.MusicTests.DecisionEngineTests.RssSync
         private Album _firstAlbum;
         private Album _secondAlbum;
         private ReleaseInfo _fakeRelease;
+        private List<IndexerProxyDefinition> _proxies;
 
         [SetUp]
         public void Setup()
         {
+            _proxies = new List<IndexerProxyDefinition>();
             _fakeIndexerDefinition = new IndexerDefinition
             {
                 Tags = new HashSet<int>()
@@ -43,6 +46,13 @@ namespace NzbDrone.Core.Test.MusicTests.DecisionEngineTests.RssSync
                 .GetMock<IIndexerFactory>()
                 .Setup(m => m.Find(1))
                 .Returns(_fakeIndexerDefinition);
+
+            Mocker
+                .GetMock<IIndexerProxyFactory>()
+                .Setup(m => m.All())
+                .Returns(() => _proxies);
+
+            Mocker.SetConstant<IIndexerMediaTagService>(Mocker.Resolve<IndexerMediaTagService>());
 
             _specification = Mocker.Resolve<IndexerTagSpecification>();
 
@@ -67,6 +77,29 @@ namespace NzbDrone.Core.Test.MusicTests.DecisionEngineTests.RssSync
                 Albums = doubleEpisodeList,
                 Release = _fakeRelease
             };
+        }
+
+        [Test]
+        public void indexer_proxy_tag_should_not_restrict_music()
+        {
+            _fakeIndexerDefinition.Tags = new HashSet<int> { 7 };
+            _proxies = new List<IndexerProxyDefinition> { new() { Id = 1, Tags = new HashSet<int> { 7 } } };
+            _fakeArtist.Tags = new HashSet<int>();
+
+            _specification.IsSatisfiedBy(_parseResultMulti, new()).Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void indexer_media_tag_should_still_restrict_music_with_proxy_tag()
+        {
+            _fakeIndexerDefinition.Tags = new HashSet<int> { 7, 8 };
+            _proxies = new List<IndexerProxyDefinition> { new() { Id = 1, Tags = new HashSet<int> { 7 } } };
+            _fakeArtist.Tags = new HashSet<int>();
+
+            var decision = _specification.IsSatisfiedBy(_parseResultMulti, new());
+
+            decision.Accepted.Should().BeFalse();
+            decision.Reason.Should().Be(DownloadRejectionReason.NoMatchingTag);
         }
 
         [Test]

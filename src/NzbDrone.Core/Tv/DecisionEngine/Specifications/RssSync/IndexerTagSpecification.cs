@@ -1,6 +1,4 @@
-using System.Linq;
 using NLog;
-using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Indexers;
@@ -12,11 +10,13 @@ namespace NzbDrone.Core.Tv.DecisionEngine.Specifications.RssSync
     {
         private readonly Logger _logger;
         private readonly IIndexerFactory _indexerFactory;
+        private readonly IIndexerMediaTagService _indexerMediaTagService;
 
-        public IndexerTagSpecification(Logger logger, IIndexerFactory indexerFactory)
+        public IndexerTagSpecification(Logger logger, IIndexerFactory indexerFactory, IIndexerMediaTagService indexerMediaTagService)
         {
             _logger = logger;
             _indexerFactory = indexerFactory;
+            _indexerMediaTagService = indexerMediaTagService;
         }
 
         public SpecificationPriority Priority => SpecificationPriority.Default;
@@ -40,10 +40,8 @@ namespace NzbDrone.Core.Tv.DecisionEngine.Specifications.RssSync
                 return DownloadSpecDecision.Accept();
             }
 
-            // If indexer has tags, check that at least one of them is present on the series
-            var indexerTags = indexer.Tags;
-
-            if (indexerTags.Any() && indexerTags.Intersect(subject.Series.Tags).Empty())
+            // Proxy tags select an indexer proxy and do not restrict the media the indexer serves.
+            if (!_indexerMediaTagService.Allows(indexer, subject.Series.Tags))
             {
                 _logger.Debug("Indexer {0} has tags. None of these are present on series {1}. Rejecting", subject.Release.Indexer, subject.Series);
 
