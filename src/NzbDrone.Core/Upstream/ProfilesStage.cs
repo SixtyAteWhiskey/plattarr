@@ -12,6 +12,7 @@ using NzbDrone.Core.Datastore.Converters;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Parser.Upstream;
 using NzbDrone.Core.Profiles;
 using NzbDrone.Core.Profiles.Delay;
