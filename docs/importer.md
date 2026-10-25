@@ -5,8 +5,10 @@ the engine with its stage contract, the Tags, root folder, profile and movie sta
 indexer stage (Prowlarr proxies and indexers, Radarr's synchronized copies) and the `/import`
 command** (see [Read layer](#read-layer-built), [Building blocks](#building-blocks-built),
 [Engine and stages](#engine-and-stages-built), [Movie stages](#movie-stages-built) and
-[Indexer stage](#indexer-stage-built)). The client, settings and activity stages, the Sonarr
-adapter, the verifier and the boot test are not. Decisions marked
+[Indexer stage](#indexer-stage-built)), and, written in session 61 but **not yet compiled or
+tested**, the Sonarr adapter with its profile, indexer and TV stages (see
+[TV stages](#tv-stages-written-not-yet-built)). The client, settings and activity stages, the
+verifier and the boot test are not. Decisions marked
 *(reversible)* were made by Claude under the owner's standing delegation
 ("least technical debt later, most efficient") and can change without rework
 elsewhere.
@@ -16,8 +18,8 @@ empty `/config`, runs one command, and gets their movies, history, profiles,
 indexers, clients and settings, without rebuilding the library. The upstream
 containers are never modified and keep running until the owner cuts over.
 
-Scope of this note: Radarr and Prowlarr only. `sonarr.db` and `lidarr.db` add
-an adapter each (see [Adapters](#adapters)) and no other change.
+Scope of this note: Radarr and Prowlarr, and since session 61 Sonarr (see
+[From `sonarr.db`](#from-sonarrdb)). `lidarr.db` adds an adapter (see [Adapters](#adapters)).
 
 ## Facts this design relies on
 
@@ -51,7 +53,7 @@ docker compose run --rm plattarr /import /radarr=/import/radarr.db /prowlarr=/im
   migrations on the target (`-data`), runs the import, writes the report, and
   exits. The engine lives in Core (`NzbDrone.Core.Upstream`), so a UI wizard or
   a command in Phase 3 calls the same code.
-- **Arguments:** `/radarr=<path>`, `/prowlarr=<path>` (either may be omitted),
+- **Arguments:** `/radarr=<path>`, `/prowlarr=<path>`, `/sonarr=<path>` (any may be omitted, not all),
   `/options=<json file>`, `/dry-run`, `/report=<dir>` (default `/config/import-report`).
   Each source path is a `.db` file or a backup `.zip` (upstream's
   `radarr_backup_*.zip` contains `radarr.db`; this is the easiest input while
@@ -435,6 +437,39 @@ Tests (`IndexersStageFixture`, 18, SQLite and Postgres; `ImportReconciliationFix
 each rule above with a read-back through the target repositories, and no warning or skip
 detail contains the fixture's API key or a URL. 27 mutants (session 60), all killed.
 
+### TV stages (written, not yet built)
+
+`NzbDrone.Core.Tv.Upstream`, written in session 61. **Not compiled or tested yet:** the session's
+environment could not restore NuGet packages. Built against the Sonarr 4.0.20 schema
+(`sonarr-217.schema.sql`, from a fresh install of that release) and checked against the
+owner's live database (schema 217, same release, read-only, counts and flag values only).
+
+| Stage (order) | Tables | Rules |
+|---|---|---|
+| `TvRootFoldersStage` (510) | `RootFolders` | `Path` through `pathMap`; two source rows that map to one path become one row. An empty path is `CORRUPT`. |
+| `SeriesStage` (710) | `Series`, `EpisodeFiles`, `Episodes` | A series needs a resolved quality profile (the Sonarr column is nullable) and a non-empty path, otherwise it, its files and its episodes are skipped as `CORRUPT`. `Seasons` (with each season's monitored flag), `Images`, `Ratings`, `Genres`, `Actors` are parsed by the target's converters; `OriginalLanguage` through the catalog; `Language` is English and `SeasonType` `official` (the target's defaults, Sonarr has neither). Unreadable `AddOptions` are dropped with a warning. Files: `Quality` and `Languages` through the catalog, `IndexerFlags` through `SonarrIndexerFlags.ToGlobal` (unknown bit: `CORRUPT`), `ReleaseType` copied; unreadable `MediaInfo` becomes NULL with one counted warning (the TV module re-reads media info when it is NULL). Episodes keep their own `Monitored` flag (NULL is false); `EpisodeFileId` resolves through the file map or becomes 0, and an episode that points at a file Sonarr does not have gets one counted warning. Skipped episodes are named `<series> SxxEyy`. |
+| `TvExtrasStage` (810) | `SubtitleFiles`, `ExtraFiles`, `MetadataFiles` | As `MovieExtrasStage`, with `SeriesId` and `EpisodeFileId`; `SeasonNumber` copied; subtitle `Language` through the catalog. |
+
+TV has no metadata stage: Sonarr keeps series metadata on the `Series` row.
+
+**Indexers.** `IndexersStage` reads Sonarr's synchronized copies too (one `AppCopies` per app).
+A TV override (`IndexersStage.TvOverride`, `MediaKind` Tv) carries `multiLanguages` (Sonarr
+catalog), `requiredFlags` (Sonarr bits translated), categories outside the Sonarr application's
+`syncCategories` (default 5000 to 5999) and the `SeasonSearchMaximumSingleEpisodeAge` column when
+above 0. Anime categories that Prowlarr did not sync and `animeStandardFormatSearch` are reported,
+not carried. Without Prowlarr every Sonarr indexer is `UNMATCHED_INDEXER`.
+
+**Live Sonarr (SERVER01, 2026-10-25, read-only):** 32 series, 3170 episodes, 1488 episode files,
+30 subtitle files, 6 quality profiles (default names), 1 custom format (no indexer-flag
+condition), 14 Torznab indexers (no `requiredFlags`), file flags 0 and 1 only. No series without a
+profile, no episode with a NULL `Monitored`. F4 does not affect this data.
+
+Tests (`SonarrStagesFixture`, the two-source tests in `ProfilesStageFixture`, four Sonarr tests in
+`IndexersStageFixture`, the Sonarr cases in `UpstreamRealSchemaFixture`,
+`ImportStageCoverageFixture` and `ImportRequestFixture`): written, not yet run. Next: build, run
+on SQLite and Postgres, mutation checks, then a dry run over a backup-API copy of the live
+`sonarr.db`.
+
 ## Mapping
 
 "Remap" means every quality or language ID goes through the upstream maps, including
@@ -497,6 +532,18 @@ It gets the most real-row coverage (see [Tests](#tests)).
 | `IndexerStatus`, `IndexerDefinitionVersions`, `ApplicationStatus`, `DownloadClientStatus`, `NotificationStatus`, `Commands`, `ScheduledTasks`, `Users`, `Logs`, `UpdateHistory`, `VersionInfo` | *(skipped)* | Runtime state; Cardigann definitions are downloaded again on first start. |
 | `History` (indexer query and grab statistics) | *(skipped in v1)* | Statistics only; large. An opt-in can come later. `STATS`. |
 
+### From `sonarr.db`
+
+Built so far (see [TV stages](#tv-stages-written-not-yet-built)): `Tags`, `CustomFormats`,
+`QualityProfiles`, `QualityDefinitions`, `DelayProfiles`, `Indexers`, `RootFolders`, `Series`,
+`Episodes`, `EpisodeFiles`, `SubtitleFiles`, `ExtraFiles`, `MetadataFiles`, each into the shared
+or `Tv_*` table. Not claimed yet (a committed run with rows in them is refused): `ReleaseProfiles`,
+`DownloadClients`, `RemotePathMappings`, `Notifications`, `AutoTagging`, `CustomFilters`,
+`NamingConfig`, `Metadata`, `ImportLists`, `ImportListExclusions`, `History`, `DownloadHistory`,
+`Blocklist`, `Config`. Count only: `PendingReleases`, `SceneMappings`, `ImportListItems`,
+`ScheduledTasks`, `Commands` and the four status tables (`TRANSIENT`); `Users`, `VersionInfo`
+(`INSTANCE`). `SceneMappings` is downloaded again by the TV module.
+
 ### Tags
 
 Tags merge across sources by label, compared case-insensitively. The union is written
@@ -526,11 +573,27 @@ Order: custom formats first (profiles reference them), then profiles.
   by a planner test with two synthetic sources.
 - **Name collisions** (same name, different content, from different sources) are
   written with the source appended (`HD-1080p (Sonarr)`) and reported.
-- **Not built, on purpose *(reversible)*.** The merge and collision rules above need a second
-  source of profiles or custom formats. Radarr is the only one, names are unique inside it, and
-  the target is empty, so code for them could not run and could not be tested against a real
-  case. They arrive with the first adapter that has profiles of its own (Sonarr), together
-  with their two-source tests. The stage's `AppliesTo` is fixed at Movies for the same reason.
+- **Built for Sonarr (session 61, not yet compiled).** `ProfilesStage` reads Radarr then
+  Sonarr. A row is merged only with a same-name row from the other app whose content is equal
+  (custom formats: the renaming flag and the serialized specifications; profiles: cutoff,
+  language, flags, scores, formats and items), and then `AppliesTo` gets both kinds. Otherwise
+  the second app's row is renamed `"<name> (Sonarr)"` with a warning. Sonarr's default profile
+  names equal Radarr's, and a Sonarr profile is padded with the qualities Sonarr does not have
+  (below), so in practice the six defaults are renamed. *(reversible)*
+- **Sonarr specifics.** Sonarr 4 profiles have no `Language` column (the profile gets
+  `Unknown`, which means "any"). A Sonarr profile lists Sonarr's qualities only; every catalog
+  quality it lacks is added as not allowed at the bottom, so the profile ranks every quality
+  the target has. Sonarr's `IndexerFlagSpecification` values use Sonarr's bits (finding F4) and
+  are translated with `SonarrIndexerFlags.ToGlobal`; an unknown bit skips the format as
+  `CORRUPT`.
+- **Quality definitions** are one row per quality in Plattarr (`QualityDefinitionService` uses
+  `SingleOrDefault`). The first app (Radarr) wins; the Sonarr row maps to the same target row,
+  and one warning lists the qualities whose sizes differed. *(reversible)*
+- **Delay profiles** are global. The first app's default updates the target default; a later
+  app's default merges when its settings are equal, otherwise it is skipped as
+  `CONFIG_CONFLICT`. Other rows merge only with an identical row (settings and tags) from
+  another app; Sonarr's are ordered after Radarr's, and a tag shared with another app's profile
+  gives a warning (the first in order wins for that tag). *(reversible)*
 
 ### Download clients
 
@@ -757,6 +820,7 @@ opened read-only, containers untouched), taken 2026-10-21. Both passed
 |---|---|---|---|
 | Radarr | hotio/radarr | 242 | 41 |
 | Prowlarr | linuxserver/prowlarr | 44 | 20 |
+| Sonarr | hotio/sonarr 4.0.20.3014 | 217 | 38 |
 
 The adapters record these as the first supported versions and refuse a database with a
 newer `MAX(Version)` unless the user passes an override. A lower version is read with
