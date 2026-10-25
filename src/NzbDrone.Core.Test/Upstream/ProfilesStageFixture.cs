@@ -52,7 +52,7 @@ namespace NzbDrone.Core.Test.Upstream
             Mocker.SetConstant<IQualityDefinitionRepository>(_definitions);
             Mocker.SetConstant<IDelayProfileRepository>(_delayProfiles);
             Mocker.SetConstant<ITagRepository>(_tags);
-            Mocker.SetConstant<IEnumerable<IUpstreamCatalog>>(new[] { new RadarrCatalog() });
+            Mocker.SetConstant<IEnumerable<IUpstreamCatalog>>(new IUpstreamCatalog[] { new RadarrCatalog(), new SonarrCatalog() });
             Mocker.SetConstant<IEnumerable<IImportStage>>(new IImportStage[] { Mocker.Resolve<TagsStage>(), Mocker.Resolve<ProfilesStage>() });
         }
 
@@ -66,6 +66,46 @@ namespace NzbDrone.Core.Test.Upstream
                 TempFolder);
 
             return Mocker.Resolve<UpstreamImporter>().Run(new[] { snapshot }, new ImportOptions(), false);
+        }
+
+        // Both apps at once: the Radarr rows and the Sonarr rows (Sonarr 4.0.20 schema), each with
+        // its own "Kids" tag.
+        private ImportResult RunBoth(IEnumerable<string> radarrRows, IEnumerable<string> sonarrRows)
+        {
+            var tag = new[] { UpstreamFixtureTest.Insert("Tags", "Id, Label", "1, 'Kids'") };
+
+            var radarr = UpstreamFixtureTest.ReadSnapshot(
+                new RadarrAdapter(),
+                GetTestPath("Files/Upstream/radarr-242.schema.sql"),
+                242,
+                tag.Concat(radarrRows),
+                TempFolder);
+
+            var sonarrFolder = System.IO.Path.Combine(TempFolder, "sonarr");
+            System.IO.Directory.CreateDirectory(sonarrFolder);
+
+            var sonarr = UpstreamFixtureTest.ReadSnapshot(
+                new SonarrAdapter(),
+                GetTestPath("Files/Upstream/sonarr-217.schema.sql"),
+                217,
+                tag.Concat(sonarrRows),
+                sonarrFolder);
+
+            return Mocker.Resolve<UpstreamImporter>().Run(new[] { radarr, sonarr }, new ImportOptions(), false);
+        }
+
+        // Sonarr 4 profiles have no Language column.
+        private static string SonarrProfile(int id, string name, int cutoff, string items, string formatItems = "[]")
+        {
+            return UpstreamFixtureTest.Insert(
+                "QualityProfiles",
+                "Id, Name, Cutoff, Items, UpgradeAllowed, FormatItems, MinFormatScore, CutoffFormatScore, MinUpgradeFormatScore",
+                $"{id}, {UpstreamFixtureTest.Sql(name)}, {cutoff}, {UpstreamFixtureTest.Sql("[" + items + "]")}, 1, {UpstreamFixtureTest.Sql(formatItems)}, 0, 0, 1");
+        }
+
+        private static string IndexerFlagSpecification(int value)
+        {
+            return $"{{\"type\":\"IndexerFlagSpecification\",\"body\":{{\"order\":1,\"implementationName\":\"Indexer Flag\",\"name\":\"Flag\",\"negate\":false,\"required\":true,\"value\":{value}}}}}";
         }
 
         private static string CustomFormat(int id, string name, params string[] specifications)
@@ -341,6 +381,125 @@ namespace NzbDrone.Core.Test.Upstream
                     ("QualityDefinitions", 1L, 1L, 0L),
                     ("QualityProfiles", 1L, 1L, 0L)
                 });
+        }
+
+        [Test]
+        public void should_merge_an_identical_custom_format_from_both_apps_into_one_for_movies_and_tv()
+        {
+            var result = RunBoth(
+                new[] { CustomFormat(1, "No executables", ReleaseTitleSpecification) },
+                new[] { CustomFormat(4, "No executables", ReleaseTitleSpecification) });
+
+            var format = _customFormats.All().Single();
+
+            format.AppliesTo.Should().BeEquivalentTo(new[] { MediaKind.Movies, MediaKind.Tv });
+            result.IdMap.Resolve("Radarr", "CustomFormats", 1).Should().Be(format.Id);
+            result.IdMap.Resolve("Sonarr", "CustomFormats", 4).Should().Be(format.Id);
+            result.Warnings.Should().NotContain(w => w.Contains("exists in more than one app"));
+        }
+
+        [Test]
+        public void should_rename_the_sonarr_custom_format_when_the_same_name_has_different_settings()
+        {
+            var result = RunBoth(
+                new[] { CustomFormat(1, "Spanish", SpanishSpecification) },
+                new[] { CustomFormat(1, "Spanish", ReleaseTitleSpecification) });
+
+            var formats = _customFormats.All().ToDictionary(f => f.Name);
+
+            formats.Keys.Should().BeEquivalentTo("Spanish", "Spanish (Sonarr)");
+            formats["Spanish"].AppliesTo.Should().Equal(MediaKind.Movies);
+            formats["Spanish (Sonarr)"].AppliesTo.Should().Equal(MediaKind.Tv);
+            result.Warnings.Should().ContainSingle(w => w.StartsWith("Custom format \"Spanish\" exists in more than one app") && w.Contains("\"Spanish (Sonarr)\""));
+        }
+
+        [Test]
+        public void should_translate_a_sonarr_indexer_flag_condition_to_the_global_flag()
+        {
+            // Sonarr's bit 8 is Internal; the global flag has a different value.
+            RunBoth(Array.Empty<string>(), new[] { CustomFormat(1, "Internal", IndexerFlagSpecification(8)) });
+
+            var specification = _customFormats.All().Single().Specifications.OfType<NzbDrone.Core.CustomFormats.IndexerFlagSpecification>().Single();
+
+            specification.Value.Should().Be((int)NzbDrone.Core.Parser.Model.IndexerFlags.G_Internal);
+        }
+
+        [Test]
+        public void should_skip_a_sonarr_custom_format_with_an_indexer_flag_sonarr_never_had()
+        {
+            var result = RunBoth(Array.Empty<string>(), new[] { CustomFormat(1, "Mystery flag", IndexerFlagSpecification(256)) });
+
+            result.Skips.Should().ContainSingle(s => s.App == "Sonarr" && s.Table == "CustomFormats" && s.SourceId == 1 && s.Reason == SkipReason.Corrupt);
+            _customFormats.All().Should().BeEmpty();
+        }
+
+        [Test]
+        public void should_rename_a_sonarr_quality_profile_whose_name_radarr_already_uses()
+        {
+            // Sonarr quality 4 is HDTV-720p.
+            var result = RunBoth(
+                new[] { Profile(1, "HD-720p", 4, Leaf(4, true)) },
+                new[] { SonarrProfile(3, "HD-720p", 4, Leaf(4, true)) });
+
+            var profiles = _profiles.All().ToDictionary(p => p.Name);
+
+            profiles.Keys.Should().BeEquivalentTo("HD-720p", "HD-720p (Sonarr)");
+            profiles["HD-720p (Sonarr)"].AppliesTo.Should().Equal(MediaKind.Tv);
+            profiles["HD-720p (Sonarr)"].Language.Should().Be(Language.Unknown);
+            profiles["HD-720p (Sonarr)"].Cutoff.Should().Be(Quality.HDTV720p.Id);
+            result.IdMap.Resolve("Sonarr", "QualityProfiles", 3).Should().Be(profiles["HD-720p (Sonarr)"].Id);
+            result.Warnings.Should().ContainSingle(w => w.StartsWith("Quality profile \"HD-720p\" exists in more than one app"));
+        }
+
+        [Test]
+        public void should_add_the_qualities_a_sonarr_profile_does_not_list_as_not_allowed_at_the_bottom()
+        {
+            RunBoth(Array.Empty<string>(), new[] { SonarrProfile(1, "TV", 4, Leaf(4, true)) });
+
+            var profile = _profiles.All().Single();
+
+            profile.Items.Should().HaveCount(Quality.DefaultQualityDefinitions.Count);
+            profile.Items.Last().Quality.Should().Be(Quality.HDTV720p);
+            profile.Items.Where(i => i.Allowed).Should().ContainSingle();
+            profile.Items.Select(i => i.Quality.Id).Should().OnlyHaveUniqueItems();
+        }
+
+        [Test]
+        public void should_keep_one_quality_definition_per_quality_and_warn_when_the_sonarr_sizes_differ()
+        {
+            var result = RunBoth(
+                new[] { Definition(1, 7, "Bluray-1080p", "2", "100", "95"), Definition(2, 3, "WEBDL-1080p", "2", "100", "95") },
+                new[] { Definition(7, 7, "Bluray-1080p", "4", "130", "100"), Definition(3, 3, "WEBDL-1080p", "2", "100", "95") });
+
+            var definitions = _definitions.All().ToList();
+
+            definitions.Should().HaveCount(2);
+            definitions.Single(d => d.Quality.Id == Quality.Bluray1080p.Id).MaxSize.Should().Be(100);
+            result.IdMap.Resolve("Sonarr", "QualityDefinitions", 7).Should().Be(result.IdMap.Resolve("Radarr", "QualityDefinitions", 1));
+            result.Warnings.Should().ContainSingle(w => w.StartsWith("Size limits are one setting per quality") && w.Contains("for 1 quality definitions") && w.Contains("Bluray-1080p"));
+        }
+
+        [Test]
+        public void should_keep_the_radarr_default_delay_profile_and_report_a_different_sonarr_one()
+        {
+            var result = RunBoth(
+                new[] { Delay(1, int.MaxValue, "[]", 30) },
+                new[] { Delay(1, int.MaxValue, "[]", 120) });
+
+            _delayProfiles.All().Single(p => p.Order == int.MaxValue).TorrentDelay.Should().Be(30);
+            result.Skips.Should().ContainSingle(s => s.App == "Sonarr" && s.Table == "DelayProfiles" && s.SourceId == 1 && s.Reason == SkipReason.ConfigConflict);
+        }
+
+        [Test]
+        public void should_merge_a_sonarr_default_delay_profile_that_matches_the_radarr_one()
+        {
+            var result = RunBoth(
+                new[] { Delay(1, int.MaxValue, "[]", 30) },
+                new[] { Delay(1, int.MaxValue, "[]", 30) });
+
+            _delayProfiles.All().Should().ContainSingle();
+            result.Skips.Should().BeEmpty();
+            result.IdMap.Resolve("Sonarr", "DelayProfiles", 1).Should().Be(result.IdMap.Resolve("Radarr", "DelayProfiles", 1));
         }
 
         [Test]
