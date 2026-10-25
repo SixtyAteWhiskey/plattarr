@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -95,6 +96,31 @@ namespace NzbDrone.Core.Test.MusicTests.MediaFiles
             Subject.Import(_rejectedDecisions, false).Where(i => i.Result == ImportResultType.Imported).Should().BeEmpty();
 
             Mocker.GetMock<IMediaFileService>().Verify(v => v.Add(It.IsAny<TrackFile>()), Times.Never());
+        }
+
+        [Test]
+        public void should_include_the_reason_when_the_import_fails()
+        {
+            Mocker.GetMock<IUpgradeMediaFiles>()
+                  .Setup(s => s.UpgradeTrackFile(It.IsAny<TrackFile>(), It.IsAny<LocalTrack>(), It.IsAny<bool>()))
+                  .Throws(new IOException("Read-only file system : '/data/Importing/01 - Pilot.flac'"));
+
+            var result = Subject.Import(new List<ImportDecision<LocalTrack>> { _approvedDecisions.First() }, true).Single();
+
+            result.Result.Should().Be(ImportResultType.Skipped);
+            result.Errors.Should().Equal("Failed to import track: Read-only file system : '/data/Importing/01 - Pilot.flac'");
+        }
+
+        [Test]
+        public void should_include_the_reason_when_access_to_the_path_is_denied()
+        {
+            Mocker.GetMock<IUpgradeMediaFiles>()
+                  .Setup(s => s.UpgradeTrackFile(It.IsAny<TrackFile>(), It.IsAny<LocalTrack>(), It.IsAny<bool>()))
+                  .Throws(new UnauthorizedAccessException("Access to the path '/data/Importing' is denied."));
+
+            var result = Subject.Import(new List<ImportDecision<LocalTrack>> { _approvedDecisions.First() }, true).Single();
+
+            result.Errors.Should().Equal("Failed to import track, Permissions error: Access to the path '/data/Importing' is denied.");
         }
 
         [Test]

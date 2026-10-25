@@ -1,0 +1,42 @@
+# liveproof
+
+Regression checks against a **running** Plattarr instance, over its HTTP API. Run them after every deploy to the dev stack or
+against a scratch copy; never against a live *arr app or an instance whose data you care about. Python 3 standard library only,
+so they run anywhere that can reach the instance. The repository holds no host names, addresses or keys: the target comes from
+environment variables.
+
+```bash
+export PLATTARR_URL=http://127.0.0.1:7880                      # default
+export PLATTARR_CONFIG_XML=<the instance's config dir>/config.xml   # or PLATTARR_API_KEY=<key>
+
+python3 tools/liveproof/run.py smoke covers
+python3 tools/liveproof/run.py baseline --expect-baseline 71,57,64
+python3 tools/liveproof/run.py fingerprint
+python3 tools/liveproof/run.py restore
+```
+
+Output is one line per check (`PASS`, `FAIL`, `WARN`, `INFO`); the exit status is 1 when anything failed. The key is read from the
+environment or `config.xml`, sent only as the `X-Api-Key` header, and scrubbed from error text.
+
+| Check | What it proves | Changes the instance |
+|---|---|---|
+| `smoke` | Version and migration are reported, the health page is empty (`--allow-health Source,Source` to tolerate some), and no error was logged since the process started. | No |
+| `covers` | Every media kind keeps its covers in its own folder (`MediaCover/{id}` for movies, `Series/{id}`, `Artists/{id}`, `Albums/{id}`), no folder is shared by two kinds, and every image URL the API returns is served as an image. After an upgrade that moves a folder, files are missing until the item is refreshed: use `--allow-missing-covers` to see that as a warning. | No |
+| `baseline` | `RssSync` completes, then the release search for one movie (`--baseline-movie`, default 1) returns the expected counts (`--expect-baseline total,approved,mapped`; without it the counts are only printed). The counts follow the indexers: when they move, run the previous image against the same query before blaming a change. | Runs a command |
+| `defaults` | The shipped defaults (`allowFingerprinting` is `never`). **Only meaningful on an instance with an empty config**: an instance whose settings page was saved stores the values it showed. | No |
+| `fingerprint` | `FpcalcCheck` warns when fingerprinting is on and `fpcalc` is missing, and clears when it is `never`. Creates a Music root folder (`LIVEPROOF_MUSIC_ROOT`, default `/testdata/music`, which must exist on the instance) if there is none, flips the setting, and restores everything. | Yes, journaled |
+| `restore` | Replays the undo journal. | Undoes |
+
+## The undo journal
+
+A proof writes each change to the journal (`LIVEPROOF_STATE`, default `./liveproof-state.json`, mode 600) **before** it edits a
+resource (the original) or right after it creates one (the delete URL), and saves the file after every entry. `restore` replays it
+in reverse and removes an entry only after it succeeded, so it is safe to run twice and it recovers a run that died half-way. A
+check that changes something restores in a `finally` and also leaves the journal empty; if a journal is not empty at the start of
+a run, the runner says so. Keep the journal file out of the repository: it can hold full resources.
+
+## Next increments
+
+The end-to-end flows (Movies, TV and Music: add, grab through a throwaway qBittorrent, import, failure, notifications, clean-up)
+are still recipes in the project playbook. They move here one at a time on the same journal, together with the listeners they need
+(webhook, Emby / Jellyfin, a fake Torznab indexer). Delete a recipe from the playbook only when its flow runs from this directory.

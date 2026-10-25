@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -90,6 +91,31 @@ namespace NzbDrone.Core.Test.MediaFiles.MovieImport
             Subject.Import(_rejectedDecisions, false).Where(i => i.Result == ImportResultType.Imported).Should().BeEmpty();
 
             Mocker.GetMock<IMediaFileService>().Verify(v => v.Add(It.IsAny<MovieFile>()), Times.Never());
+        }
+
+        [Test]
+        public void should_include_the_reason_when_the_import_fails()
+        {
+            Mocker.GetMock<IUpgradeMediaFiles>()
+                  .Setup(s => s.UpgradeMovieFile(It.IsAny<MovieFile>(), It.IsAny<LocalMovie>(), It.IsAny<bool>()))
+                  .Throws(new IOException("Read-only file system : '/data/Importing/Interstellar.2014.mkv'"));
+
+            var result = Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true).Single();
+
+            result.Result.Should().Be(ImportResultType.Skipped);
+            result.Errors.Should().Equal("Failed to import movie: Read-only file system : '/data/Importing/Interstellar.2014.mkv'");
+        }
+
+        [Test]
+        public void should_include_the_reason_when_access_to_the_path_is_denied()
+        {
+            Mocker.GetMock<IUpgradeMediaFiles>()
+                  .Setup(s => s.UpgradeMovieFile(It.IsAny<MovieFile>(), It.IsAny<LocalMovie>(), It.IsAny<bool>()))
+                  .Throws(new UnauthorizedAccessException("Access to the path '/data/Importing' is denied."));
+
+            var result = Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true).Single();
+
+            result.Errors.Should().Equal("Failed to import movie: Access to the path '/data/Importing' is denied.");
         }
 
         [Test]

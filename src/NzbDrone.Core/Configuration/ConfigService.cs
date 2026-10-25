@@ -246,7 +246,9 @@ namespace NzbDrone.Core.Configuration
 
         public AllowFingerprinting AllowFingerprinting
         {
-            get { return GetValueEnum("AllowFingerprinting", AllowFingerprinting.NewFiles); }
+            // Lidarr defaults to NewFiles. Plattarr's image does not ship fpcalc yet, so the default is Never;
+            // the Lidarr values stay selectable for installs that provide fpcalc.
+            get { return GetValueEnum("AllowFingerprinting", AllowFingerprinting.Never); }
 
             set { SetValue("AllowFingerprinting", value); }
         }
