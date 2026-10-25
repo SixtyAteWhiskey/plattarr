@@ -12,6 +12,7 @@ using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Lifecycle;
 using Radarr.Http;
+using Radarr.Http.Middleware;
 using Radarr.Http.Validation;
 
 namespace Radarr.Api.V3.System
@@ -60,11 +61,15 @@ namespace Radarr.Api.V3.System
         [Produces("application/json")]
         public Ok<SystemResource> GetStatus()
         {
+            var seerrApplication = SeerrCompatibilityMiddleware.GetApplication(HttpContext);
+
             return TypedResults.Ok(new SystemResource
             {
-                AppName = BuildInfo.AppName,
+                AppName = seerrApplication ?? BuildInfo.AppName,
                 InstanceName = _configFileProvider.InstanceName,
-                Version = BuildInfo.Version.ToString(),
+                Version = seerrApplication == SeerrCompatibilityMiddleware.SonarrApplication
+                    ? "4.0.0.0"
+                    : BuildInfo.Version.ToString(),
                 BuildTime = BuildInfo.BuildDateTime,
                 IsDebug = BuildInfo.IsDebug,
                 IsProduction = RuntimeInfo.IsProduction,

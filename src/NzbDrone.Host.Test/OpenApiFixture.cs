@@ -33,6 +33,7 @@ namespace NzbDrone.App.Test
 
             document.Paths.Keys.Should().Contain("/api/v3/movie");
             document.Paths.Keys.Should().Contain("/api/v3/series");
+            document.Paths.Keys.Should().Contain("/api/v3/languageprofile");
             document.Paths.Keys.Should().Contain("/api/v3/release/tv/push");
 
             document.Components.Schemas.Keys.Should().Contain("MonitorTypes");
