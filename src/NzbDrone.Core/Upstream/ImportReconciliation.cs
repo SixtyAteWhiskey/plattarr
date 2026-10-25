@@ -61,12 +61,23 @@ namespace NzbDrone.Core.Upstream
                     }
 
                     var skipped = session.Skips.Count(s => s.App == snapshot.AppName && s.Table == table.Name);
+                    var imported = session.ImportedRows(snapshot.AppName, table.Name);
+
+                    if (session.IsNotImportedByDesign(snapshot.AppName, table.Name))
+                    {
+                        if (imported > 0 || skipped > 0)
+                        {
+                            throw new UpstreamImportException($"{snapshot.AppName} {table.Name} is marked as not imported by design, but rows of it were counted (imported {imported}, skipped {skipped})");
+                        }
+
+                        continue;
+                    }
 
                     rows.Add(new ReconciliationRow(
                         snapshot.AppName,
                         table.Name,
                         table.Rows.Count,
-                        session.ImportedRows(snapshot.AppName, table.Name),
+                        imported,
                         skipped));
                 }
             }

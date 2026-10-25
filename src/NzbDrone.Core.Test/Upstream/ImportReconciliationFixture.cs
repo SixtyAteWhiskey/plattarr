@@ -145,5 +145,28 @@ namespace NzbDrone.Core.Test.Upstream
             session.Snapshot("Prowlarr").Should().BeNull();
             ((Action)(() => _ = session.Snapshots.Count)).Should().NotThrow();
         }
+
+        [Test]
+        public void should_leave_a_table_not_imported_by_design_out_of_the_accounts()
+        {
+            var session = Session(Snapshot("Prowlarr", "Applications", 4));
+            session.NotImportedByDesign("Prowlarr", "Applications", SkipReason.Obsolete);
+
+            var rows = ImportReconciliation.Check(session, new[] { new Claims(new SourceTableRef("Prowlarr", "Applications")) });
+
+            rows.Should().BeEmpty();
+        }
+
+        [Test]
+        public void should_fail_when_a_table_not_imported_by_design_has_counted_rows()
+        {
+            var session = Session(Snapshot("Prowlarr", "Applications", 4));
+            session.NotImportedByDesign("Prowlarr", "Applications", SkipReason.Obsolete);
+            session.Imported("Prowlarr", "Applications", 4);
+
+            Action check = () => ImportReconciliation.Check(session, new[] { new Claims(new SourceTableRef("Prowlarr", "Applications")) });
+
+            check.Should().Throw<UpstreamImportException>().WithMessage("*Applications*not imported by design*");
+        }
     }
 }

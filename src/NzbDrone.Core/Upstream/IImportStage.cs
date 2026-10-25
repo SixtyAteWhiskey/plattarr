@@ -16,6 +16,10 @@ namespace NzbDrone.Core.Upstream
     {
         public const int Tags = 100;
         public const int Profiles = 200;
+
+        // Indexer proxies, indexers and their per-media-type overrides. Before anything that
+        // stores an indexer ID (release profiles, download history).
+        public const int Indexers = 300;
         public const int RootFolders = 500;
         public const int ImportExclusions = 550;
 

@@ -14,6 +14,7 @@ namespace NzbDrone.Core.Upstream
         private readonly List<ImportSkip> _skips = new List<ImportSkip>();
         private readonly List<string> _warnings = new List<string>();
         private readonly Dictionary<string, long> _imported = new Dictionary<string, long>(StringComparer.Ordinal);
+        private readonly List<(string App, string Table, string Reason)> _notImported = new List<(string App, string Table, string Reason)>();
 
         public ImportSession(IDbConnection connection, IDbTransaction transaction, IReadOnlyList<SourceSnapshot> snapshots, ImportOptions options)
         {
@@ -72,6 +73,22 @@ namespace NzbDrone.Core.Upstream
         public long ImportedRows(string app, string table)
         {
             return _imported.TryGetValue(ImportedKey(app, table), out var rows) ? rows : 0;
+        }
+
+        // A table the stage read whole for its own lookups (Prowlarr's sync targets, read to match
+        // Radarr's indexers) and that has no home in Plattarr. None of its rows is imported or
+        // skipped: the report lists the table with the tables the adapters only count, and strict
+        // mode does not fail on it, because nothing the user set is lost.
+        public void NotImportedByDesign(string app, string table, string reason)
+        {
+            _notImported.Add((app, table, reason));
+        }
+
+        public IReadOnlyList<(string App, string Table, string Reason)> TablesNotImportedByDesign => _notImported;
+
+        public bool IsNotImportedByDesign(string app, string table)
+        {
+            return _notImported.Any(t => string.Equals(t.App, app, StringComparison.OrdinalIgnoreCase) && string.Equals(t.Table, table, StringComparison.OrdinalIgnoreCase));
         }
 
         private static string ImportedKey(string app, string table)

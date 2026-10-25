@@ -1,11 +1,12 @@
 # Importer for `radarr.db` and `prowlarr.db`
 
 Status: **design note; built so far: the adapter read layer, the pure building blocks,
-the engine with its stage contract, and the Tags, root folder, profile and movie stages**
-(see [Read layer](#read-layer-built), [Building blocks](#building-blocks-built),
-[Engine and stages](#engine-and-stages-built) and [Movie stages](#movie-stages-built)). The
-indexer, client, settings and activity stages, the verifier, the `/import` command and the
-boot test are not (roadmap Phase 2, item 1). Decisions marked
+the engine with its stage contract, the Tags, root folder, profile and movie stages, the
+indexer stage (Prowlarr proxies and indexers, Radarr's synchronized copies) and the `/import`
+command** (see [Read layer](#read-layer-built), [Building blocks](#building-blocks-built),
+[Engine and stages](#engine-and-stages-built), [Movie stages](#movie-stages-built) and
+[Indexer stage](#indexer-stage-built)). The client, settings and activity stages, the Sonarr
+adapter, the verifier and the boot test are not. Decisions marked
 *(reversible)* were made by Claude under the owner's standing delegation
 ("least technical debt later, most efficient") and can change without rework
 elsewhere.
@@ -368,6 +369,63 @@ Postgres): each rule above, with a read-back through the target repositories. On
 that the target allows two metadata rows to share an alternative title `CleanTitle`. Each
 rule was broken in turn and shown to fail its test (14 mutations, all caught).
 
+### Indexer stage (built)
+
+`IndexersStage` (core, `ImportOrder.Indexers` = 300, after profiles, before anything that stores
+an indexer ID). It claims Prowlarr `IndexerProxies`, `AppSyncProfiles`, `Indexers`, `Applications`
+and `ApplicationIndexerMapping`, and Radarr `Indexers`. Built in session 60 against the owner's
+live Prowlarr 44 and Radarr 242 shapes (key sets read from a fresh backup-API copy, no values).
+
+| Source | Rule |
+|---|---|
+| Prowlarr `IndexerProxies` | Written to `IndexerProxies` when Plattarr has the implementation (FlareSolverr, Http, Socks4, Socks5); otherwise `UNKNOWN_PROVIDER`. Tags through the tag map. A proxy without tags stays inert, as in Prowlarr. |
+| Prowlarr `Indexers` | Implementation must be an exported `IIndexer` class (the set the factory gets) and `ConfigContract` must resolve through `ProviderConfigTypes.Find`; otherwise `UNKNOWN_PROVIDER`, because `RemoveMissingImplementations` would delete the row on the first start. `Settings` is rewritten (below), then parsed into the target settings type with the options the repository writes with (`ProviderSettingConverter.Parse`); a document the type cannot read skips the row as `CORRUPT`. `Enable`, `Priority`, `Redirect`, `Added` are copied (NULL `Added` takes the import time); `Tags` through the tag map; `DownloadClientId` is written as 0 with a warning when the source set one (the client stage, which runs later, is not built). `AppProfileId` is dropped. |
+| Prowlarr `AppSyncProfiles` | Folded into each indexer: `EnableRss`, `EnableAutomaticSearch`, `EnableInteractiveSearch` come from the indexer's profile. A profile used by an imported indexer counts as imported; an unused one is skipped as `OBSOLETE`. An indexer whose profile is missing gets all three flags on and a warning. |
+| Prowlarr `Applications`, `ApplicationIndexerMapping` | Read to match Radarr's indexers, never written. Marked **not imported by design** (`ImportSession.NotImportedByDesign`): the report lists them with the count-only tables, the reconciliation leaves them out (and fails if a stage counted rows of them), and strict mode does not fail on them. |
+| Radarr `Indexers` | Matched with `IndexerMatcher` (now parameterized by the application implementation, so Sonarr reuses it). A match records Radarr indexer ID to the Prowlarr indexer's target ID in the `IdMap` and counts as imported; no row is written. No match: `UNMATCHED_INDEXER` with the indexer's name and the matcher's reason, **never the URL** (a hand-added RSS URL can carry a passkey; this changes the earlier "name and URL" line). A match whose Prowlarr indexer was skipped: `UNMATCHED_INDEXER`. No Prowlarr database: every Radarr indexer is `UNMATCHED_INDEXER`. |
+
+**Settings rewrite** (`IndexersStage.PrepareSettings`, torrent settings types only for the first two):
+
+- **F6, resolved from Prowlarr's code** (`develop` at `71c5435`): the stored key is
+  `torrentBaseSettings.appMinimumSeeders` (camelCase of `AppMinimumSeeders`, written only when
+  set), and Prowlarr pushes `AppMinimumSeeders ?? AppProfile.MinimumSeeders` to each app
+  (`Applications/Radarr/Radarr.cs`). The stage renames the key to `minimumSeeders`; when it is
+  absent, it writes the sync profile's value explicitly, because Plattarr's default (1) would
+  otherwise apply silently. A `minimumSeeders` key already present wins.
+- `rejectBlocklistedTorrentHashesWhileGrabbing`: a per-application setting in Prowlarr
+  (`syncRejectBlocklistedTorrentHashesWhileGrabbing`) written into every synchronized indexer.
+  Plattarr keeps it on the indexer: the matched Radarr copy's value, else the Radarr
+  application's setting, else Plattarr's default (off).
+- `baseSettings.failDownloads`: Radarr's own setting (Prowlarr's sync never writes it), kept on
+  the indexer in Plattarr. Taken from the matched Radarr copy when Prowlarr's document has none.
+- After parsing, every source key that did not survive the round trip is reported by name in
+  one warning per indexer or proxy ("settings Plattarr does not have were not carried: ...").
+  Never a value: settings hold API keys, cookies and passwords.
+
+**Radarr's copies** (`IndexersStage.MovieOverride`): Prowlarr's sync overwrites `baseUrl`,
+`apiKey`, `categories`, `minimumSeeders`, the seed criteria and the reject flag on every full
+sync, and writes `multiLanguages`, `removeYear` and `requiredFlags` only on the first sync, so
+those three are the user's. One `IndexerOverrides` row (`MediaKind` Movies) is written when the
+copy sets any of: `multiLanguages` (through the Radarr language catalog), `requiredFlags`
+(copied, Radarr's flag values are the global vocabulary), `removeYear` true, or a category outside
+the Radarr application's `syncCategories` (2000 to 2999 when the application row has none). A
+second copy of one Prowlarr indexer keeps the first copy's override (confirmed match first, then
+the lowest Radarr ID) and warns. *(reversible)*
+
+**Reported, not carried:** RSS / automatic / interactive flags on a Radarr copy that differ from
+what Prowlarr pushes (`Enable && profile flag`; Prowlarr wins, there is one setting per indexer);
+tags on a Radarr copy (they limited the indexer to tagged movies; Plattarr's indexer tags are
+Prowlarr's); a download client chosen on a Radarr copy; a match by URL only (no sync records).
+
+**Cardigann.** One warning lists every imported Cardigann indexer with its definition ID: the
+definitions are downloaded on the first start, and a custom definition (a `.yml` in Prowlarr's
+`Definitions/Custom`) must be copied to Plattarr's `Definitions/Custom` (supported by
+`IndexerDefinitionUpdateService`). The owner has one: `torrentdownload-server01`.
+
+Tests (`IndexersStageFixture`, 18, SQLite and Postgres; `ImportReconciliationFixture` gained 2):
+each rule above with a read-back through the target repositories, and no warning or skip
+detail contains the fixture's API key or a URL. 27 mutants (session 60), all killed.
+
 ## Mapping
 
 "Remap" means every quality or language ID goes through the upstream maps, including
@@ -523,7 +581,8 @@ would duplicate every indexer.
   `EnableAutomaticSearch` that differ from the Prowlarr value are reported (there is no
   per-media-type enable flag), and the Prowlarr value wins. *(reversible.)*
 - **Unmatched Radarr indexers** (added by hand, not through Prowlarr) are not imported
-  and are listed as `UNMATCHED_INDEXER` with their name and URL. Radarr's old indexer
+  and are listed as `UNMATCHED_INDEXER` with their name (not the URL, which can carry a
+  passkey; session 60). Radarr's old indexer
   settings are not Prowlarr's, and guessing the translation is how data is lost.
 - **`ReleaseProfiles.IndexerId`** and **`DownloadHistory.IndexerId`** use the same match
   (Radarr indexer ID to target indexer ID); 0 when unmatched.
@@ -859,10 +918,9 @@ what the stored JSON and constraints look like.
    `ReleaseInfoConverter` is built and tested; its real-row fixture is the grab row in
    `UpstreamFixtureTest`.
 3. ~~Confirm the synchronized `baseUrl` form.~~ Done: `.../<prowlarrIndexerId>/`, 13 of
-   13. **`appMinimumSeeders` is not confirmed**: no row in the owner's data sets it.
-   Look for one in another Prowlarr database before relying on the rename, or keep the
-   adapter tolerant of both `appMinimumSeeders` and `minimumSeeders`. Still open; the
-   Prowlarr indexer settings translation is not built.
+   13. ~~`appMinimumSeeders` is not confirmed.~~ Confirmed from Prowlarr's code (session 60;
+   still no row in the owner's data sets it). The stage reads `appMinimumSeeders` and keeps a
+   `minimumSeeders` already present; see [Indexer stage](#indexer-stage-built).
 4. ~~Decide the two reversible calls.~~ Decided by the owner 2026-10-22: Prowlarr-only
    download clients are skipped and reported (none exist in the owner's data, so this
    only matters for other users); instance keys such as the API key are not carried.

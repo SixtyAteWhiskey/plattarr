@@ -119,7 +119,9 @@ namespace NzbDrone.Core.Upstream
             var result = new ImportResult
             {
                 Tables = tables,
-                UnreadTables = snapshots.SelectMany(s => s.SkippedTables.Select(t => new UnreadTable(s.AppName, t))).ToList(),
+                UnreadTables = snapshots.SelectMany(s => s.SkippedTables.Select(t => new UnreadTable(s.AppName, t)))
+                    .Concat(session.TablesNotImportedByDesign.Select(t => new UnreadTable(t.App, new SkippedTable(t.Table, session.Snapshot(t.App)?.Rows(t.Table).Count ?? 0, t.Reason))))
+                    .ToList(),
                 Skips = session.Skips.ToList(),
                 Warnings = snapshots.SelectMany(s => s.Warnings).Concat(session.Warnings).ToList(),
                 IdMap = session.IdMap
