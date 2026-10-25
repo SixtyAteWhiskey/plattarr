@@ -818,16 +818,15 @@ function MediaManagement() {
           </Form>
         ) : null}
 
-        <FieldSet legend={translate('RootFolders')}>
-          {isMusic ? (
-            <MusicRootFolders />
-          ) : (
-            <>
-              <RootFolders mediaKind={isTv ? 'tv' : 'movies'} />
-              <AddRootFolder mediaKind={isTv ? 'tv' : 'movies'} />
-            </>
-          )}
-        </FieldSet>
+        {isMusic ? (
+          // MusicRootFolders draws its own "Root Folders" fieldset.
+          <MusicRootFolders />
+        ) : (
+          <FieldSet legend={translate('RootFolders')}>
+            <RootFolders mediaKind={isTv ? 'tv' : 'movies'} />
+            <AddRootFolder mediaKind={isTv ? 'tv' : 'movies'} />
+          </FieldSet>
+        )}
       </PageContentBody>
     </PageContent>
   );
