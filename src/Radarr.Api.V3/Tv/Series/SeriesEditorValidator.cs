@@ -8,7 +8,7 @@ namespace Radarr.Api.V3.Tv.Series
 {
     public class SeriesEditorValidator : AbstractValidator<NzbDrone.Core.Tv.Series>
     {
-        public SeriesEditorValidator(SeriesRootFolderExistsValidator rootFolderExistsValidator, QualityProfileExistsValidator qualityProfileExistsValidator)
+        public SeriesEditorValidator(SeriesRootFolderExistsValidator rootFolderExistsValidator, TvQualityProfileExistsValidator qualityProfileExistsValidator)
         {
             RuleFor(s => s.RootFolderPath).Cascade(CascadeMode.Stop)
                 .IsValidPath()
