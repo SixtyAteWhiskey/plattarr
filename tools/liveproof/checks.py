@@ -100,8 +100,13 @@ def covers(api, report, allow_missing=False):
     shared = {f: k for f, k in folders.items() if len(k) > 1}
     report.check(not shared, "covers.no_shared_folder", "no folder is used by two kinds" if not shared else str(shared))
 
-    served, missing, denied, other = 0, [], 0, []
+    served, missing, denied, other, not_fetched = 0, [], 0, [], 0
     for url, (kind, item_id, title) in sorted(files.items()):
+        # Albums: only the cover is downloaded (Lidarr's EnsureAlbumCovers does the same), yet the API
+        # still lists a local URL for disc art and the like. Those 404 by design and the UI never asks.
+        if kind == "album" and not urlsplit(url).path.rsplit("/", 1)[-1].lower().startswith("cover."):
+            not_fetched += 1
+            continue
         status, headers, _ = api.raw("GET", _api_cover_path(url))
         if status == 200 and headers.get("Content-Type", "").startswith("image/"):
             served += 1
@@ -114,11 +119,13 @@ def covers(api, report, allow_missing=False):
     report.check(denied == 0, "covers.auth", "image requests accepted" if not denied else
                  f"{denied} requests refused (401/403): is the API key accepted for /MediaCover on this instance?")
     report.check(not other, "covers.status", "served as images" if not other else f"unexpected: {other[:3]}")
+    expected = len(files) - not_fetched
+    skipped = f" ({not_fetched} album images other than the cover are not downloaded, as in Lidarr)" if not_fetched else ""
     if missing:
         # After an upgrade that moves a folder, the files come back when the item is refreshed.
-        (report.warn if allow_missing else report.fail)("covers.missing", f"{len(missing)} of {len(files)} not on disk, first: {missing[0]}")
+        (report.warn if allow_missing else report.fail)("covers.missing", f"{len(missing)} of {expected} not on disk, first: {missing[0]}{skipped}")
     else:
-        report.ok("covers.served", f"{served} of {len(files)} images served")
+        report.ok("covers.served", f"{served} of {expected} images served{skipped}")
 
 
 def baseline(api, report, expect=None, movie_id=1):
