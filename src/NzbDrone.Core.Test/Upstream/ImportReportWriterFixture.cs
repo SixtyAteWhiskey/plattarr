@@ -42,11 +42,14 @@ namespace NzbDrone.Core.Test.Upstream
             };
         }
 
-        private static ImportReport Report(ImportOutcome outcome, params ReportUnclaimed[] unclaimed)
+        private static ImportReport Report(ImportOutcome outcome, params DeferredSourceTable[] deferred)
         {
             var sources = new[] { new ReportSource { App = "Radarr", File = "radarr.db", Version = 242, Sha256 = "abc123" } };
+            var result = Result(outcome);
+            result.DeferredTables = deferred.ToList();
+            result.Tables.AddRange(deferred.Select(t => new ReconciliationRow(t.App, t.Table, t.Rows, 0, t.Rows)));
 
-            return ImportReportWriter.Build(Result(outcome), sources, unclaimed, outcome == ImportOutcome.DryRun, At);
+            return ImportReportWriter.Build(result, sources, outcome == ImportOutcome.DryRun, At);
         }
 
         [Test]
@@ -74,11 +77,12 @@ namespace NzbDrone.Core.Test.Upstream
         [Test]
         public void should_say_up_front_what_needs_attention()
         {
-            var text = ImportReportWriter.ToText(Report(ImportOutcome.DryRun, new ReportUnclaimed { App = "Radarr", Table = "Indexers", Rows = 17 }));
+            var text = ImportReportWriter.ToText(Report(ImportOutcome.DryRun, new DeferredSourceTable { App = "Radarr", Table = "Indexers", Rows = 17 }));
 
             text.Should().Contain("Outcome: dry run (rolled back, nothing was written)");
             text.Should().Contain("2 rows were skipped (CORRUPT 2).");
-            text.Should().Contain("1 source tables with rows are not imported by this version.");
+            text.Should().Contain("1 source tables (17 rows) deferred by the owner with /skip=.");
+            text.Should().Contain("Deferred by the owner with /skip=:");
             text.Should().Contain("Radarr Indexers: 17 rows");
             text.Should().Contain("Radarr Commands: 4 rows (TRANSIENT)");
         }

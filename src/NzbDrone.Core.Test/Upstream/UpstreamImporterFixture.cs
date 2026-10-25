@@ -98,6 +98,25 @@ namespace NzbDrone.Core.Test.Upstream
         }
 
         [Test]
+        public void should_reconcile_an_explicitly_deferred_source_table()
+        {
+            var options = new ImportOptions
+            {
+                SkipTables = new[] { new SourceTableRef("Radarr", "Config") }
+            };
+
+            var result = Run(options, false, RadarrSnapshot(UpstreamFixtureTest.Insert("Config", "Key, Value", "'Name', 'value'")));
+
+            result.DeferredTables.Should().ContainSingle().Which.Should().BeEquivalentTo(new DeferredSourceTable
+            {
+                App = "Radarr",
+                Table = "Config",
+                Rows = 1
+            });
+            result.Tables.Should().ContainSingle(t => t.App == "Radarr" && t.Table == "Config" && t.Read == 1 && t.Imported == 0 && t.Skipped == 1 && t.Balanced);
+        }
+
+        [Test]
         public void should_report_the_tables_that_are_counted_and_not_read()
         {
             var result = Run(new ImportOptions(), false, RadarrSnapshot(), ProwlarrSnapshot());

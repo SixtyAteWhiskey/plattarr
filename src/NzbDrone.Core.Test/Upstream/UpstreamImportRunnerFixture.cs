@@ -54,6 +54,18 @@ namespace NzbDrone.Core.Test.Upstream
                     return new ImportResult
                     {
                         Outcome = _outcome ?? (dryRun ? ImportOutcome.DryRun : ImportOutcome.Committed),
+                        DeferredTables = options.SkipTables.Select(selection => new DeferredSourceTable
+                        {
+                            App = selection.App,
+                            Table = selection.Table,
+                            Rows = snapshots.Single(s => s.AppName == selection.App).Rows(selection.Table).Count
+                        }).ToList(),
+                        Tables = options.SkipTables.Select(selection =>
+                        {
+                            var rows = snapshots.Single(s => s.AppName == selection.App).Rows(selection.Table).Count;
+
+                            return new ReconciliationRow(selection.App, selection.Table, rows, 0, rows);
+                        }).ToList(),
                         IdMap = new IdMap()
                     };
                 });
@@ -147,7 +159,7 @@ namespace NzbDrone.Core.Test.Upstream
 
             result.ExitCode.Should().Be(1);
             result.Report.Should().BeNull();
-            result.Error.Should().Contain("Radarr Config").And.Contain("/dry-run");
+            result.Error.Should().Contain("Radarr:Config").And.Contain("/skip=");
             _importer.Verify(i => i.Run(It.IsAny<IReadOnlyList<SourceSnapshot>>(), It.IsAny<ImportOptions>(), It.IsAny<bool>()), Times.Never());
             Directory.GetFileSystemEntries(_scratch).Should().BeEmpty();
         }
@@ -157,10 +169,14 @@ namespace NzbDrone.Core.Test.Upstream
         {
             _source = CreateRadarrDatabase(UpstreamFixtureTest.Insert("Config", "Key, Value", "'x', 'y'"));
 
-            var result = Subject.Run(Request(true));
+            var request = Request(true);
+            request.SkipTables.Add(new SourceTableRef("Radarr", "Config"));
+
+            var result = Subject.Run(request);
 
             result.ExitCode.Should().Be(0);
-            result.Report.NotYetImported.Should().ContainSingle().Which.Should().BeEquivalentTo(new ReportUnclaimed { App = "Radarr", Table = "Config", Rows = 1 });
+            result.Report.DeferredByOwner.Should().ContainSingle().Which.Should().BeEquivalentTo(new DeferredSourceTable { App = "Radarr", Table = "Config", Rows = 1 });
+            result.Report.Tables.Should().Contain(t => t.App == "Radarr" && t.Table == "Config" && t.Read == 1 && t.Imported == 0 && t.Skipped == 1);
         }
 
         [Test]

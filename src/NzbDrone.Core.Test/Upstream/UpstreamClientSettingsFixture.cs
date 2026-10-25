@@ -40,6 +40,22 @@ namespace NzbDrone.Core.Test.Upstream
         }
 
         [Test]
+        public void should_move_sonarr_tv_keys_into_a_tv_entry()
+        {
+            var settings = "{\"host\":\"qbit.invalid\",\"port\":8080,\"tvCategory\":\"sonarr-tv\",\"tvImportedCategory\":\"sonarr-done\",\"recentTvPriority\":2,\"olderTvPriority\":3}";
+            var result = JObject.Parse(DownloadClientSettingsConverter.Convert("QBittorrent", settings, NzbDrone.Core.Modules.MediaKind.Tv));
+
+            var entry = result["moduleCategories"].Should().BeOfType<JArray>().Which.Should().ContainSingle().Which;
+
+            ((string)entry["kind"]).Should().Be("tv");
+            ((string)entry["category"]).Should().Be("sonarr-tv");
+            ((string)entry["importedCategory"]).Should().Be("sonarr-done");
+            ((int)entry["recentPriority"]).Should().Be(2);
+            ((int)entry["olderPriority"]).Should().Be(3);
+            result.ContainsKey("tvCategory").Should().BeFalse();
+        }
+
+        [Test]
         public void should_keep_the_users_own_category_and_not_use_the_default()
         {
             var result = Convert("QBittorrent", QBittorrent.Replace("\"radarr\"", "\"my-films\""));

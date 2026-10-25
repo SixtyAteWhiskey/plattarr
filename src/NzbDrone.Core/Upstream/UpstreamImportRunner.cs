@@ -54,6 +54,7 @@ namespace NzbDrone.Core.Upstream
             try
             {
                 var options = LoadOptions(request.OptionsPath);
+                options.SkipTables = request.SkipTables;
                 var snapshots = new List<SourceSnapshot>();
                 var sources = new List<ReportSource>();
 
@@ -76,18 +77,10 @@ namespace NzbDrone.Core.Upstream
                     });
                 }
 
-                var unclaimed = Unclaimed(snapshots);
-
-                // A committed import that leaves tables behind would look finished and not be. Until
-                // every table has a stage, only a dry run is allowed.
-                if (!request.DryRun && unclaimed.Count > 0)
-                {
-                    throw new UpstreamImportException(
-                        "This version cannot import every table yet (" + string.Join(", ", unclaimed.Select(u => $"{u.App} {u.Table}")) + "), so nothing was written. Run again with /dry-run to see what it would do.");
-                }
+                RequireExplicitSkips(snapshots, request.SkipTables);
 
                 var result = _importer.Run(snapshots, options, request.DryRun);
-                var report = ImportReportWriter.Build(result, sources, unclaimed, request.DryRun, DateTime.UtcNow);
+                var report = ImportReportWriter.Build(result, sources, request.DryRun, DateTime.UtcNow);
                 var files = ImportReportWriter.Write(request.ReportDirectory, report, result);
 
                 return new ImportRunResult
@@ -134,17 +127,22 @@ namespace NzbDrone.Core.Upstream
                 ?? throw new UpstreamImportException($"There is no reader for {app} databases in this build");
         }
 
-        // Tables the adapter read that have rows and no stage.
-        private List<ReportUnclaimed> Unclaimed(IEnumerable<SourceSnapshot> snapshots)
+        private void RequireExplicitSkips(IEnumerable<SourceSnapshot> snapshots, IReadOnlyList<SourceTableRef> requested)
         {
             var claimed = _stages.SelectMany(s => s.Tables).ToHashSet();
-
-            return snapshots
-                .SelectMany(s => s.Tables.Where(t => t.Exists && t.Rows.Count > 0 && !claimed.Contains(new SourceTableRef(s.AppName, t.Name)))
-                    .Select(t => new ReportUnclaimed { App = s.AppName, Table = t.Name, Rows = t.Rows.Count }))
-                .OrderBy(u => u.App, StringComparer.Ordinal)
-                .ThenBy(u => u.Table, StringComparer.Ordinal)
+            var missing = snapshots
+                .SelectMany(s => s.Tables
+                    .Where(t => t.Rows.Count > 0 && !claimed.Contains(new SourceTableRef(s.AppName, t.Name)))
+                    .Where(t => !requested.Any(r => string.Equals(r.App, s.AppName, StringComparison.OrdinalIgnoreCase)
+                        && string.Equals(r.Table, t.Name, StringComparison.OrdinalIgnoreCase)))
+                    .Select(t => $"{s.AppName}:{t.Name}"))
+                .OrderBy(t => t, StringComparer.Ordinal)
                 .ToList();
+
+            if (missing.Count > 0)
+            {
+                throw new UpstreamImportException("Every non-empty source table without an import stage needs an explicit /skip= entry. Nothing was written. Add: /skip=" + string.Join(",", missing));
+            }
         }
 
         private static ImportOptions LoadOptions(string path)

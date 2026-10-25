@@ -57,6 +57,13 @@ namespace NzbDrone.Core.Upstream
                 {
                     if (!claimed.Contains(new SourceTableRef(snapshot.AppName, table.Name)))
                     {
+                        var deferred = session.DeferredTable(snapshot.AppName, table.Name);
+
+                        if (deferred != null)
+                        {
+                            rows.Add(new ReconciliationRow(snapshot.AppName, table.Name, table.Rows.Count, 0, table.Rows.Count));
+                        }
+
                         continue;
                     }
 

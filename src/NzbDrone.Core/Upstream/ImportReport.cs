@@ -31,9 +31,8 @@ namespace NzbDrone.Core.Upstream
         public Dictionary<string, long> Reasons { get; set; } = new Dictionary<string, long>();
     }
 
-    // A table the adapter read, with rows, that no stage handles yet. Counted so the report says what
-    // this build leaves behind; a real run refuses to commit while any exist.
-    public class ReportUnclaimed
+    // A source table deliberately left out by the owner using /skip=.
+    public class DeferredSourceTable
     {
         public string App { get; set; }
         public string Table { get; set; }
@@ -47,7 +46,7 @@ namespace NzbDrone.Core.Upstream
         public bool DryRun { get; set; }
         public List<ReportSource> Sources { get; set; } = new List<ReportSource>();
         public List<ReportTable> Tables { get; set; } = new List<ReportTable>();
-        public List<ReportUnclaimed> NotYetImported { get; set; } = new List<ReportUnclaimed>();
+        public List<DeferredSourceTable> DeferredByOwner { get; set; } = new List<DeferredSourceTable>();
         public List<UnreadTable> NotRead { get; set; } = new List<UnreadTable>();
         public List<ImportSkip> Skips { get; set; } = new List<ImportSkip>();
         public List<string> Warnings { get; set; } = new List<string>();
@@ -65,7 +64,7 @@ namespace NzbDrone.Core.Upstream
             Converters = { new JsonStringEnumConverter() }
         };
 
-        public static ImportReport Build(ImportResult result, IReadOnlyList<ReportSource> sources, IReadOnlyList<ReportUnclaimed> unclaimed, bool dryRun, DateTime generatedAt)
+        public static ImportReport Build(ImportResult result, IReadOnlyList<ReportSource> sources, bool dryRun, DateTime generatedAt)
         {
             var report = new ImportReport
             {
@@ -73,7 +72,7 @@ namespace NzbDrone.Core.Upstream
                 Outcome = result.Outcome.ToString(),
                 DryRun = dryRun,
                 Sources = sources.ToList(),
-                NotYetImported = unclaimed.ToList(),
+                DeferredByOwner = result.DeferredTables,
                 NotRead = result.UnreadTables,
                 Skips = result.Skips,
                 Warnings = result.Warnings
@@ -85,6 +84,13 @@ namespace NzbDrone.Core.Upstream
                     .Where(s => s.App == row.App && s.Table == row.Table)
                     .GroupBy(s => s.Reason)
                     .ToDictionary(g => g.Key, g => (long)g.Count());
+
+                var deferred = result.DeferredTables.SingleOrDefault(t => t.App == row.App && t.Table == row.Table);
+
+                if (deferred != null)
+                {
+                    reasons[SkipReason.DeferredByOwner] = deferred.Rows;
+                }
 
                 report.Tables.Add(new ReportTable
                 {
@@ -146,12 +152,12 @@ namespace NzbDrone.Core.Upstream
                 text.AppendLine($"  {table.App,-9} {table.Table,-22} read {table.Read,6}  imported {table.Imported,6}  skipped {table.Skipped,6}{reasons}");
             }
 
-            if (report.NotYetImported.Count > 0)
+            if (report.DeferredByOwner.Count > 0)
             {
                 text.AppendLine();
-                text.AppendLine("Not imported by this version (no stage handles these tables yet):");
+                text.AppendLine("Deferred by the owner with /skip=:");
 
-                foreach (var table in report.NotYetImported)
+                foreach (var table in report.DeferredByOwner)
                 {
                     text.AppendLine($"  {table.App} {table.Table}: {table.Rows} rows");
                 }
@@ -285,9 +291,10 @@ namespace NzbDrone.Core.Upstream
                 lines.Add($"{skipped} rows were skipped ({codes}).");
             }
 
-            if (report.NotYetImported.Count > 0)
+            if (report.DeferredByOwner.Count > 0)
             {
-                lines.Add($"{report.NotYetImported.Count} source tables with rows are not imported by this version.");
+                var rows = report.DeferredByOwner.Sum(t => t.Rows);
+                lines.Add($"{report.DeferredByOwner.Count} source tables ({rows} rows) deferred by the owner with /skip=.");
             }
 
             if (report.Warnings.Count > 0)

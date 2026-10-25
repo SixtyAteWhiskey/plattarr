@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using NzbDrone.Core.Modules;
 
 namespace NzbDrone.Core.Upstream
 {
@@ -43,6 +44,11 @@ namespace NzbDrone.Core.Upstream
         // move (empty, or not a JSON object).
         public static string Convert(string implementation, string settings)
         {
+            return Convert(implementation, settings, MediaKind.Movies);
+        }
+
+        public static string Convert(string implementation, string settings, MediaKind kind)
+        {
             if (!Handles(implementation))
             {
                 throw new ArgumentException("This download client is not one the importer converts", nameof(implementation));
@@ -69,24 +75,30 @@ namespace NzbDrone.Core.Upstream
                 return settings;
             }
 
-            var category = Take(json, "movieCategory");
-            var imported = Take(json, "movieImportedCategory");
-            var recent = Take(json, "recentMoviePriority");
-            var older = Take(json, "olderMoviePriority");
+            var prefix = kind switch
+            {
+                MediaKind.Movies => "movie",
+                MediaKind.Tv => "tv",
+                _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Only Radarr and Sonarr category settings are imported")
+            };
+            var category = Take(json, prefix + "Category");
+            var imported = Take(json, prefix + "ImportedCategory");
+            var recent = Take(json, "recent" + prefix + "Priority");
+            var older = Take(json, "older" + prefix + "Priority");
 
             // Settings already in the new shape keep their list; the old keys are still dropped.
             var hasList = json.Any(p => string.Equals(p.Key, ListKey, StringComparison.OrdinalIgnoreCase));
 
             if (!hasList)
             {
-                var movies = new JsonObject { ["kind"] = "movies" };
+                var moduleCategory = new JsonObject { ["kind"] = kind.ToString().ToLowerInvariant() };
 
-                SetIfStored(movies, "category", category);
-                SetIfStored(movies, "importedCategory", imported);
-                SetIfStored(movies, "recentPriority", recent);
-                SetIfStored(movies, "olderPriority", older);
+                SetIfStored(moduleCategory, "category", category);
+                SetIfStored(moduleCategory, "importedCategory", imported);
+                SetIfStored(moduleCategory, "recentPriority", recent);
+                SetIfStored(moduleCategory, "olderPriority", older);
 
-                json[ListKey] = new JsonArray(movies);
+                json[ListKey] = new JsonArray(moduleCategory);
             }
 
             return json.ToJsonString(new JsonSerializerOptions { WriteIndented = true });

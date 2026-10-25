@@ -16,5 +16,6 @@ namespace NzbDrone.Core.Upstream
         public const string Stats = "STATS";
         public const string Obsolete = "OBSOLETE";
         public const string Corrupt = "CORRUPT";
+        public const string DeferredByOwner = "DEFERRED_BY_OWNER";
     }
 }

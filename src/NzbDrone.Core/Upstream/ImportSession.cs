@@ -15,6 +15,7 @@ namespace NzbDrone.Core.Upstream
         private readonly List<string> _warnings = new List<string>();
         private readonly Dictionary<string, long> _imported = new Dictionary<string, long>(StringComparer.Ordinal);
         private readonly List<(string App, string Table, string Reason)> _notImported = new List<(string App, string Table, string Reason)>();
+        private readonly List<DeferredSourceTable> _deferredTables = new List<DeferredSourceTable>();
 
         public ImportSession(IDbConnection connection, IDbTransaction transaction, IReadOnlyList<SourceSnapshot> snapshots, ImportOptions options)
         {
@@ -33,6 +34,7 @@ namespace NzbDrone.Core.Upstream
         public PathMapper Paths { get; }
         public IReadOnlyList<ImportSkip> Skips => _skips;
         public IReadOnlyList<string> Warnings => _warnings;
+        public IReadOnlyList<DeferredSourceTable> DeferredTables => _deferredTables;
 
         // One moment for the whole run. A required date the source row does not have (a movie
         // with no Added date) gets this one: it is when the row entered this database.
@@ -89,6 +91,17 @@ namespace NzbDrone.Core.Upstream
         public bool IsNotImportedByDesign(string app, string table)
         {
             return _notImported.Any(t => string.Equals(t.App, app, StringComparison.OrdinalIgnoreCase) && string.Equals(t.Table, table, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public void DeferTable(string app, string table, long rows)
+        {
+            _deferredTables.Add(new DeferredSourceTable { App = app, Table = table, Rows = rows });
+        }
+
+        public DeferredSourceTable DeferredTable(string app, string table)
+        {
+            return _deferredTables.SingleOrDefault(t => string.Equals(t.App, app, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(t.Table, table, StringComparison.OrdinalIgnoreCase));
         }
 
         private static string ImportedKey(string app, string table)
