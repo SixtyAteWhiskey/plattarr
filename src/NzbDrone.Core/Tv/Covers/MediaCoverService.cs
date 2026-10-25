@@ -27,6 +27,10 @@ namespace NzbDrone.Core.Tv.Covers
         IHandleAsync<SeriesDeletedEvent>,
         IMapCoversToLocal
     {
+        // Series covers live in MediaCover/Series/{id}. Movies keep MediaCover/{id} and Music uses
+        // MediaCover/Artists/{id} and MediaCover/Albums/{id}, so ids from different media kinds never share a folder.
+        private const string SeriesCoverFolder = "Series";
+
         private readonly IMediaCoverProxy _mediaCoverProxy;
         private readonly IImageResizer _resizer;
         private readonly IHttpClient _httpClient;
@@ -95,7 +99,7 @@ namespace NzbDrone.Core.Tv.Covers
                         continue;
                     }
 
-                    mediaCover.Url = _configFileProvider.UrlBase + @"/MediaCover/" + seriesId + "/" + mediaCover.CoverType.ToString().ToLowerInvariant() + GetExtension(mediaCover.CoverType);
+                    mediaCover.Url = _configFileProvider.UrlBase + @"/MediaCover/" + SeriesCoverFolder + "/" + seriesId + "/" + mediaCover.CoverType.ToString().ToLowerInvariant() + GetExtension(mediaCover.CoverType);
 
                     if (mediaCover.RemoteUrl.IsNotNullOrWhiteSpace() && CoverExists(seriesId, mediaCover.CoverType, added))
                     {
@@ -132,7 +136,7 @@ namespace NzbDrone.Core.Tv.Covers
 
         private string GetSeriesCoverPath(int seriesId)
         {
-            return Path.Combine(_coverRootFolder, seriesId.ToString());
+            return Path.Combine(_coverRootFolder, SeriesCoverFolder, seriesId.ToString());
         }
 
         private bool EnsureCovers(Series series)

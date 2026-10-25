@@ -196,7 +196,9 @@ namespace NzbDrone.Core.Tv.MediaFiles.EpisodeImport
                 catch (Exception e)
                 {
                     _logger.Warn(e, "Couldn't import episode " + localEpisode);
-                    importResults.Add(new ImportResult(importDecision, "Failed to import episode"));
+
+                    // The queue shows only this message, so it carries the reason (for example a read-only file system).
+                    importResults.Add(new ImportResult(importDecision, "Failed to import episode: " + e.Message));
                 }
             }
 

@@ -10,5 +10,8 @@ real instance, and none holds a host name, address or key.
 | `verify.sh` | Pre-push check: non-incremental Release build with analyzers, then Api, Host and Core tests. |
 | `genspec.sh` | Regenerate `src/Radarr.Api.V3/openapi.json` from a Debug build. |
 
+`liveproof/` is different: it talks to a running instance over HTTP (see `liveproof/README.md`). It changes only what it
+journals and restores, but point it at the dev stack or a scratch instance, never at a live app.
+
 Run `verify.sh` in the background and wait for its last line (`done`); see the header of the script.
 The frontend gates (`yarn lint-fix`, `npx tsc --noEmit`, `yarn build`) run from the repository root.

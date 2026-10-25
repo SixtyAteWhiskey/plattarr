@@ -85,7 +85,7 @@ namespace NzbDrone.Core.Test.Configuration
         public void music_import_settings_should_default_to_leaving_the_files_untouched()
         {
             Subject.TrackFileDate.Should().Be(TrackFileDateType.None);
-            Subject.AllowFingerprinting.Should().Be(AllowFingerprinting.NewFiles);
+            Subject.AllowFingerprinting.Should().Be(AllowFingerprinting.Never);
             Subject.WriteAudioTags.Should().Be(WriteAudioTagsType.No);
             Subject.ScrubAudioTags.Should().BeFalse();
             Subject.EmbedCoverArt.Should().BeTrue();

@@ -2903,6 +2903,34 @@ blocklist rows, torrents), `renameTracks` and `writeAudioTags` were put back, th
 flags were restored, and the listeners and the throwaway qBittorrent stack were stopped. `RssSync` and `Housekeeping`
 completed; the Movies baseline is unchanged at 71 / 57 / 64 and the health page is empty.
 
+## Pre-importer fixes (session 58): as built
+
+Three defects found by the session 57 review, fixed before the importer writes anything. Finding 2 of the Music 7i live run (above) is resolved here.
+
+- **Series covers move to `MediaCover/Series/{id}`.** Movies wrote `MediaCover/{id}` and TV wrote the same flat folder, so a movie
+  and a series with the same id shared `poster.jpg`, `fanart.jpg` and the resized variants and overwrote each other (ids 1 to 32
+  collide in a library of 87 movies and 32 series). `Tv.Covers.MediaCoverService` builds both the file path and the URL from one
+  constant, and `MediaCoverController` serves `Series/{seriesId}/{filename}`; the static `MediaCoverMapper` already serves any
+  path under `/MediaCover/`. Movies (`MediaCover/{id}`) and Music (`Artists/`, `Albums/`) are unchanged.
+  **No automatic migration:** the old files in `MediaCover/{id}` cannot be told apart from a movie's, so they are not moved. A
+  series refresh (the scheduled refresh, or `RefreshSeries`) downloads the covers to the new folder; the old series files are
+  harmless leftovers and are removed by hand. Fresh installs and the importer never create the old layout.
+  `TvTests/Covers/MediaCoverServiceFixture` pins the URL, the download, resize and existence-check paths, and the delete.
+- **`allowFingerprinting` defaults to `never`.** The image ships no `fpcalc`, and the Lidarr default `newFiles` made
+  `FpcalcCheck` warn on every install that has a Music root folder. `FpcalcCheck` itself already passed when fingerprinting is off
+  or no music library exists, so only the default changed; `never`, `newFiles` and `allFiles` stay selectable. An instance whose
+  settings page was saved earlier keeps the value it stored.
+- **A failed import says why.** The generic catch in `ImportApprovedMovie`, `ImportApprovedEpisodes` and `ImportApprovedTracks`
+  now reports `Failed to import <kind>: <exception message>` (Music's permissions case keeps its wording and appends the
+  message). The queue shows only this text, so a read-only file system or a denied path is visible without the log. The specific
+  cases (root folder missing, destination exists, recycle bin) are unchanged.
+
+Mutation checks (seven mutants, one per changed line, all killed): folder missing from the cover path, folder missing from the cover
+URL, default back to `newFiles`, and the message dropped in each of the four catch sites.
+
+`tools/liveproof/` starts here: a restore journal, and the checks `smoke`, `covers`, `baseline`, `defaults` and `fingerprint`
+(see its README). The Movies, TV and Music flows move into it in later increments.
+
 ## Decision record
 
 Owner answers, 2026-10-20, to the six questions in revision 1:

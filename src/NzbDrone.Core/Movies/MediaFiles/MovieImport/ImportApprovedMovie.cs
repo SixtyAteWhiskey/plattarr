@@ -200,7 +200,9 @@ namespace NzbDrone.Core.Movies.MediaFiles.MovieImport
                 catch (Exception e)
                 {
                     _logger.Warn(e, "Couldn't import movie " + localMovie);
-                    importResults.Add(new ImportResult(importDecision, "Failed to import movie"));
+
+                    // The queue shows only this message, so it carries the reason (for example a read-only file system).
+                    importResults.Add(new ImportResult(importDecision, "Failed to import movie: " + e.Message));
                 }
             }
 
