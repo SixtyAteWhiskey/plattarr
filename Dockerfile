@@ -6,8 +6,8 @@
 # The .NET and Node stages run on the build host's architecture and
 # cross-compile for the target, so only the small runtime stage runs under QEMU.
 
-# DOTNET_SDK_VERSION must match global.json. NODE_VERSION matches
-# nodeVersion in azure-pipelines.yml.
+# Keep the SDK version aligned with global.json. The image workflow uses these
+# same build arguments.
 ARG DOTNET_SDK_VERSION=10.0.402
 ARG NODE_VERSION=24
 ARG ALPINE_VERSION=3.22
@@ -71,8 +71,8 @@ COPY --from=backend /out/bin /app/bin
 # ffprobe arrives from the NuGet package with owner-only execute, and the app
 # runs as the unprivileged plattarr user. Without this every media info read
 # fails with "Permission denied", which breaks sample detection and imports.
-# Radarr's own pipeline does the same (azure-pipelines.yml). The test fails the
-# build if ffprobe is missing or cannot be run by another user.
+# Fail the image build if ffprobe is missing or cannot be run by an unprivileged
+# user; media inspection and imports depend on it.
 RUN find /app/bin -name ffprobe -exec chmod a+x {} + \
  && test -x /app/bin/ffprobe \
  && su-exec nobody /app/bin/ffprobe -version > /dev/null

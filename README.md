@@ -1,35 +1,16 @@
 # Plattarr
 
-Plattarr is a personal homelab project that combines the functions of
-Prowlarr, Radarr, Sonarr, and Lidarr in one Docker container, with one UI and
-one database.
+Plattarr brings movie, TV, and music management together with indexer and
+download-client management in one self-hosted application. It is built from
+Radarr and incorporates code from Prowlarr, Sonarr, and Lidarr.
 
-> **Status:** Phase 0. The image is Radarr `develop` with Plattarr branding.
-> Movie management works as it does in Radarr. Indexer management (Prowlarr),
-> TV (Sonarr), and music (Lidarr) are not merged yet.
+**Project status:** Movies, TV, Music, the shared media workflows, and the
+Radarr/Sonarr compatibility routes used by Seerr are implemented. The
+multi-architecture container is in production use and is still undergoing
+acceptance testing. There is no stable release channel yet; the `develop` image
+is a moving build.
 
-## Modification notice
-
-This program is a modified version of [Radarr](https://github.com/Radarr/Radarr),
-forked from the Radarr `develop` branch at commit `14afe52` (2026-10-19).
-It will also include modified code from
-[Prowlarr](https://github.com/Prowlarr/Prowlarr),
-[Sonarr](https://github.com/Sonarr/Sonarr), and
-[Lidarr](https://github.com/Lidarr/Lidarr).
-
-Changes by the Plattarr project, most recent first:
-
-- **2026-10-20:** Renamed the product to Plattarr in the UI. Changed the
-  default port from 7878 to 7880. Turned off error reporting to the upstream
-  Radarr Sentry project and turned off upstream analytics.
-- **2026-10-20:** Added a multi-arch container image build
-  (`Dockerfile`, `docker/`, `.github/workflows/image.yml`) and a dev Compose
-  stack (`deploy/dev/`). Removed the upstream GitHub bot workflows.
-
-Plattarr is not affiliated with or supported by the Radarr, Prowlarr, Sonarr,
-or Lidarr teams. Report Plattarr problems in this repository, not upstream.
-
-## Run it
+## Run with Docker Compose
 
 The image is published to GitHub Container Registry for `linux/amd64` and
 `linux/arm64`:
@@ -40,10 +21,10 @@ services:
     image: ghcr.io/sixtyatewhiskey/plattarr:develop
     container_name: plattarr
     environment:
-      - PUID=1000
-      - PGID=1000
-      - UMASK=002
-      - TZ=America/Denver
+      PUID: 1000
+      PGID: 1000
+      UMASK: "002"
+      TZ: America/Denver
     volumes:
       - ./config:/config
       - /mnt/data:/data
@@ -52,15 +33,22 @@ services:
     restart: unless-stopped
 ```
 
-Mount your downloads and media as one `/data` volume so imports can use
-hardlinks and atomic moves.
+Keep downloads and media under the same `/data` mount so imports can use
+hardlinks and atomic moves. Use a new `/config` directory: Plattarr has its own
+database and migrations, so an existing Radarr, Sonarr, or Lidarr config must
+not be reused.
 
-Don't point Plattarr at an existing Radarr `/config` folder. It runs database
-migrations against whatever it finds there.
+## Development
 
-## License
+See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup and verification
+commands. Project-specific implementation notes are in
+[`docs/module-interface.md`](docs/module-interface.md) and
+[`docs/importer.md`](docs/importer.md). The `tools/liveproof` scripts exercise
+API behavior against a local or scratch instance; do not point them at a
+production service.
 
-Plattarr is licensed under the [GNU GPL v3](LICENSE), the same license as the
-upstream projects. Upstream copyright notices are retained.
+## Upstream and license
 
-- Radarr: Copyright 2010-2025 the Radarr contributors
+Plattarr is not affiliated with or supported by the Radarr, Prowlarr, Sonarr,
+or Lidarr teams. It is licensed under the [GNU GPL v3](LICENSE). Upstream
+copyright notices are retained in the source.
