@@ -114,6 +114,7 @@ function EpisodeDetailsModalContent(props: EpisodeDetailsModalContentProps) {
           monitored={monitored}
           size={18}
           isDisabled={!seriesMonitored}
+          disabledTitle={translate('SeriesIsUnmonitored')}
           isSaving={isSaving}
           onPress={handleMonitorEpisodePress}
         />

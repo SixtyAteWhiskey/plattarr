@@ -225,6 +225,7 @@ class ArtistDetailsSeason extends Component {
             <MonitorToggleButton
               monitored={hasMonitoredAlbums}
               isDisabled={!artistMonitored}
+              disabledTitle={translate('ArtistIsUnmonitored')}
               isSaving={isSaving}
               size={24}
               onPress={this.onMonitorAlbumsPress}

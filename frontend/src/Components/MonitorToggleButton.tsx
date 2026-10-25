@@ -10,6 +10,7 @@ interface MonitorToggleButtonProps {
   monitored: boolean;
   size?: number;
   isDisabled?: boolean;
+  disabledTitle?: string;
   isSaving?: boolean;
   onPress: (value: boolean, options: { shiftKey: boolean }) => unknown;
 }
@@ -19,6 +20,7 @@ function MonitorToggleButton(props: MonitorToggleButtonProps) {
     className = styles.toggleButton,
     monitored,
     isDisabled = false,
+    disabledTitle,
     isSaving = false,
     size,
     onPress,
@@ -29,7 +31,7 @@ function MonitorToggleButton(props: MonitorToggleButtonProps) {
 
   const title = useMemo(() => {
     if (isDisabled) {
-      return 'Cannot toggle monitored state when movie is unmonitored';
+      return disabledTitle ?? translate('Disabled');
     }
 
     if (monitored) {
@@ -37,7 +39,7 @@ function MonitorToggleButton(props: MonitorToggleButtonProps) {
     }
 
     return translate('ToggleUnmonitoredToMonitored');
-  }, [monitored, isDisabled]);
+  }, [monitored, isDisabled, disabledTitle]);
 
   const handlePress = useCallback(
     (event: SyntheticEvent<HTMLLinkElement, MouseEvent>) => {

@@ -299,6 +299,7 @@ function SeriesDetailsSeason({
           <MonitorToggleButton
             monitored={monitored}
             isDisabled={!seriesMonitored}
+            disabledTitle={translate('SeriesIsUnmonitored')}
             isSaving={isSaving}
             size={24}
             onPress={handleMonitorSeasonPress}

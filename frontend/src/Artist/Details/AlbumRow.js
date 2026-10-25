@@ -119,6 +119,7 @@ class AlbumRow extends Component {
                   <MonitorToggleButton
                     monitored={monitored}
                     isDisabled={!artistMonitored}
+                    disabledTitle={translate('ArtistIsUnmonitored')}
                     isSaving={isSaving}
                     onPress={this.onMonitorAlbumPress}
                   />
