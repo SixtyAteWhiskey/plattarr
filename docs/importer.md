@@ -430,8 +430,8 @@ definitions are downloaded on the first start, and a custom definition (a `.yml`
 `Definitions/Custom`) must be copied to Plattarr's `Definitions/Custom` (supported by
 `IndexerDefinitionUpdateService`). The owner has one: `torrentdownload-server01`.
 
-**Dry run over the owner's data** (2026-10-25, image `sha-28319e9`, backup-API copies of the live
-`prowlarr.db` (schema 44) and `radarr.db` (242) on SERVER01, scratch `/config`): Prowlarr `Indexers`
+**Dry run over protected source copies** (2026-10-25, image `sha-28319e9`, backup-API copies of
+`prowlarr.db` (schema 44) and `radarr.db` (242), imported into scratch `/config`): Prowlarr `Indexers`
 17 of 17, `IndexerProxies` 1 of 1, `AppSyncProfiles` 1 of 1, Radarr `Indexers` 13 of 13 matched, no
 skip; no settings key lost in the round trip; no flag difference (Radarr's four all-off copies
 mirror four indexers disabled in Prowlarr); one warning, the Cardigann list. `Applications` (4)
@@ -464,7 +464,7 @@ catalog), `requiredFlags` (Sonarr bits translated), categories outside the Sonar
 above 0. Anime categories that Prowlarr did not sync and `animeStandardFormatSearch` are reported,
 not carried. Without Prowlarr every Sonarr indexer is `UNMATCHED_INDEXER`.
 
-**Live Sonarr (SERVER01, 2026-10-25, read-only):** 32 series, 3170 episodes, 1488 episode files,
+**Live Sonarr source snapshot (2026-10-25, read-only):** 32 series, 3170 episodes, 1488 episode files,
 30 subtitle files, 6 quality profiles (default names), 1 custom format (no indexer-flag
 condition), 14 Torznab indexers (no `requiredFlags`), file flags 0 and 1 only. No series without a
 profile, no episode with a NULL `Monitored`. F4 does not affect this data.
@@ -589,14 +589,12 @@ series and release profiles after rollback. The committed scratch target contain
 five allowlisted Config keys and no HMAC, Rijndael or Plex client identity setting. The scratch
 targets and reports were removed; no source database or running app was written.
 
-### SERVER01 container cutover rehearsal (2026-10-25)
+### Container cutover rehearsal (2026-10-25)
 
 After the TV quality-profile validator fix (`2b539e181`), GitHub Actions image build
-`40187227003` passed. Only the isolated `plattarr-cutover` container was recreated, on
-`192.168.0.177:7881`, using `ghcr.io/sixtyatewhiskey/plattarr:sha-2b539e1` and its existing
-imported `/config`. The app reported version `10.0.0.87`, migration version 11, and `/ping`
-passed. `/data` was mounted read-only from `/mnt/share/Media`; `/testdata` was the only
-writable media mount. The live Radarr and Sonarr containers stayed up.
+`40187227003` passed. Only the isolated `plattarr-cutover` container was recreated on a scratch port, using
+`ghcr.io/sixtyatewhiskey/plattarr:sha-2b539e1` and its existing imported `/config`. The app reported version `10.0.0.87`, migration version 11, and `/ping`
+passed. `/data` was mounted read-only; `/testdata` was the only writable media mount. The live Radarr and Sonarr containers stayed up.
 
 The base-path routes returned the expected root folders:
 
@@ -642,16 +640,43 @@ test roots contain no files now.
 At measurement, Plattarr used about 252 MiB and the scratch qBittorrent container about
 23 MiB. The image size was 476,853,826 bytes (about 454.7 MiB).
 
-**Cutover checklist (not executed).** Before switching production services, rerun the
-import from fresh protected copies into a fresh production config; verify its report and
-the Tier 1/deferral disposition; let old download queues drain; back up and retain the
-Radarr, Sonarr and Prowlarr configs and databases; stop and verify services one at a
-time; start Plattarr with the production media/download mounts and verify `/ping`,
-library counts and qBittorrent categories; update both Seerr entries with the new host,
-port, API key, URL Base (`/radarr` and `/sonarr`), profiles and root folders returned by
-the production instance; then validate a request. For rollback, stop Plattarr, restore
-the previous Seerr entries and restart the old containers with their retained configs.
-The scratch instance is not the production config and must not be promoted.
+### Production cutover (2026-10-25)
+
+The production cutover was executed on 2026-10-25 from fresh protected source database
+copies. The image was `ghcr.io/sixtyatewhiskey/plattarr:sha-2b539e1` (revision
+`2b539e181b09eb7fc06cc43e90945d44500465d4`). Import reporting and the planned
+deferrals were checked before starting production. Protected source database copies,
+source app configs, and the previous Seerr settings are retained in an owner-only
+backup location outside this repository. The backups and their exact location are not
+recorded here.
+
+Source app queues were empty before the switch. The original containers were stopped
+one at a time and retained for rollback. Production Plattarr is healthy on port 7880
+with migration 11. The source containers remain stopped; qBittorrent and Seerr remain
+running. The development instance was stopped to free port 7880. A separate Scratch
+instance remains isolated on its own port and was not promoted or modified.
+
+The imported library uses the `/data/Movies`, `/data/Shows`, and `/data/Music` roots.
+Music monitoring states and the custom audio profile were restored. qBittorrent uses
+the existing `radarr`, `tv-sonarr`, and `lidarr` categories. Its downloads path maps
+to `/data/Importing` in Plattarr.
+
+Seerr's default movie and TV entries now target port 7880 with URL bases `/radarr` and
+`/sonarr`. A temporary request confirmed that the production default routes to
+Plattarr; the check was performed with searching prevented and the downloader disabled.
+The temporary request and empty library record were removed after verification. No
+media files were deleted.
+
+Indexers that passed their connection tests are enabled. Two indexers failed DNS
+resolution and remain disabled pending diagnosis; source-disabled indexers remain
+disabled. qBittorrent is enabled. Plattarr authentication settings were left as
+provisioned; no Forms-auth account or password was created during cutover.
+
+**Rollback.** Stop the production Plattarr container, restore the saved Seerr settings
+and restart Seerr, then start the retained `radarr`, `sonarr`, `lidarr`, and `prowlarr`
+containers. The old app configs and databases were not changed or removed. Start the
+development instance only if the previous port-7880 service is also needed. Keep the
+Scratch instance separate.
 
 ### Tags
 

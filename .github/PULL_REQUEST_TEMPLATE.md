@@ -1,16 +1,13 @@
-#### Database Migration
-YES - XXXX | NO
+## Summary
 
-#### Description
-A few sentences describing the overall goals of the pull request's commits.
+<!-- Describe the change and why it is needed. -->
 
-#### Screenshot (if UI related)
+## Verification
 
-#### Todos
-- [ ] Tests
-- [ ] Translation Keys (./src/NzbDrone.Core/Localization/Core/en.json)
-- [ ] [Wiki Updates](https://wiki.servarr.com)
+- [ ] Relevant build, tests, and checks completed
+- [ ] User-visible strings and API documentation updated where needed
+- [ ] No credentials or private environment data included
 
-#### Issues Fixed or Closed by this PR
+## Follow-up
 
-* Fixes #XXXX
+<!-- Link related issues or describe remaining work. -->

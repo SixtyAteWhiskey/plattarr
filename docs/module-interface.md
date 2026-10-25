@@ -1001,9 +1001,9 @@ When `sonarr.db` is imported in Phase 3 and a client with the same host and
 port exists, the importer adds a TV entry to that row instead of creating a
 second client.
 
-Owner's setup: qBittorrent behind gluetun with one save path
-(`/mnt/share/Media/Importing`). Separate categories per module are required
-before TV is enabled, or routing falls to title parsing.
+The tested setup used qBittorrent behind gluetun with one shared
+download/media path. Separate categories per module are required before TV is
+enabled, or routing falls to title parsing.
 
 As built in porting step 9i (migration 003). Since the prune only qBittorrent
 and SABnzbd remain; the notes below describe all 11 clients as built and hold
@@ -1816,7 +1816,7 @@ handler); all five were killed by the new tests.
 
 **Live proof (dev stack on `5b46067`, 2026-10-23).** Game of Thrones (TVDB 121361, 128 episodes) was
 seeded by SQL as in step 5. A real GoT release would have meant downloading copyrighted content, so a
-small fake Torznab indexer (a Python script on SERVER01) served two CC-licensed torrents (Sintel,
+small fake Torznab indexer (a Python script on the test host) served two CC-licensed torrents (Sintel,
 Cosmos Laundromat) under GoT S01E01 titles. Knaben was disabled while the TV run was in progress and
 re-enabled afterwards. The throwaway qBittorrent client used `tvCategory` `plattarr-tv`, and a Webhook
 listener received every event.
@@ -1912,7 +1912,7 @@ profile score, `episodeHasFile` dropped); all four were killed.
 Results (Release, full solution builds with 0 warnings): Core 8,233 passed and 29 skipped, Host 41 and 5
 skipped, Api 47, 0 failed.
 
-**Live proof (2026-10-23, image `4a31542`, dev stack on SERVER01).** Every step went through the new API; no
+**Live proof (2026-10-23, image `4a31542`, dev stack on the test host).** Every step went through the new API; no
 SQL seeding and no fake indexer were needed.
 
 1. `POST tv/rootfolder`, `PUT tv/config/naming` (`renameEpisodes` true), a qBittorrent client and a Webhook
@@ -2021,7 +2021,7 @@ condition tags in cleanup, refreshed-versus-stale series, condition tags in `Use
 Results (Release, full solution builds with 0 warnings, analyzers on): Core 8,334 passed and 29 skipped, Host 46
 and 5 skipped, Api 72, 0 failed.
 
-**Live proof (2026-10-23, image `81000bc`, dev stack on SERVER01).** Migrations 007 and 008 were proved on a copy of
+**Live proof (2026-10-23, image `81000bc`, dev stack on the test host).** Migrations 007 and 008 were proved on a copy of
 the config first (version 8, both logged); a backup was taken before the deploy.
 
 1. **Auto-tagging** (`autotagging/tv`). Schema lists eleven specifications with their fields. Validation:

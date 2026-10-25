@@ -1,5 +1,1 @@
-blank_issues_enabled: false
-contact_links:
-  - name: Support via Discord
-    url: https://radarr.video/discord
-    about: Chat with users and devs on support and setup related topics.
+blank_issues_enabled: true
