@@ -589,6 +589,70 @@ series and release profiles after rollback. The committed scratch target contain
 five allowlisted Config keys and no HMAC, Rijndael or Plex client identity setting. The scratch
 targets and reports were removed; no source database or running app was written.
 
+### SERVER01 container cutover rehearsal (2026-10-25)
+
+After the TV quality-profile validator fix (`2b539e181`), GitHub Actions image build
+`40187227003` passed. Only the isolated `plattarr-cutover` container was recreated, on
+`192.168.0.177:7881`, using `ghcr.io/sixtyatewhiskey/plattarr:sha-2b539e1` and its existing
+imported `/config`. The app reported version `10.0.0.87`, migration version 11, and `/ping`
+passed. `/data` was mounted read-only from `/mnt/share/Media`; `/testdata` was the only
+writable media mount. The live Radarr and Sonarr containers stayed up.
+
+The base-path routes returned the expected root folders:
+
+| Seerr base | Status route | Root folders |
+|---|---|---|
+| `/radarr` | `/radarr/api/v3/system/status` | `/data/Movies`, `/testdata/movies` |
+| `/sonarr` | `/sonarr/api/v3/system/status` | `/data/Shows`, `/testdata/tv` |
+
+The owner confirmed the dev server connects in live Seerr when its URL Base fields are
+`/radarr` and `/sonarr`. The separate rehearsal instance still needs the same app-level
+Seerr check; no Seerr settings were changed by this rehearsal.
+
+**Download and import.** The imported download client remained disabled; the separate
+scratch qBittorrent client was enabled, and all 17 imported indexers remained disabled.
+On the preceding `sha-d5ed40f` run, the companion movie proof added Sintel, direct-pushed
+the same CC-licensed torrent and imported it under `/testdata/movies`.
+The TV-only quality profile (ID 7) accepted a Game of Thrones add (TVDB 121361) at
+`/testdata/tv/Game of Thrones (2011)`. A direct release push for S01E01 was approved and
+grabbed by qBittorrent in the TV category. The CC-licensed Sintel torrent completed,
+was renamed before import, and produced `downloadFolderImported` history for episode
+S01E01. `hasFile` became true and the file was written under the scratch root as
+`Season 1/Game of Thrones - S01E01 - Winter Is Coming WEBDL-480p.mp4`. The first push
+attempt returned qBittorrent's duplicate-hash conflict because the movie proof's Sintel
+torrent was still registered; removing that scratch torrent entry while preserving its
+files let the retry complete. The temporary movie and TV records, files and torrent were
+removed afterwards, and the original rename settings were restored.
+
+**Scan and counts.** `RescanMovie` and `RescanSeries` completed. After cleanup, the
+scratch copy and live apps both reported 87 movies with 75 movie files, and 32 TV series
+with 1,504 episode files (31 series have files). Counts were unchanged by the final
+scans. The committed import report initially contained 1,488 TV episode-file rows; the
+first measured post-start snapshot already had 1,504, matching live Sonarr. This run did
+not isolate which startup/background refresh surfaced the additional 16 files.
+
+One scan logged an ffprobe error for the existing read-only file
+`/data/Movies/Inception (2010)/Inception (2010) BR-DISK.m2ts`. Both the scratch and live
+Radarr records show the same 5,681,651,712-byte BR-DISK file with null media-info fields;
+the scan did not change library counts. The three protected source DB copies still pass
+`PRAGMA integrity_check` and remain mode 600. A separate mode-600 backup of the scratch
+target DB, made before the image update, also passes the integrity check. The rehearsal
+test roots contain no files now.
+
+At measurement, Plattarr used about 252 MiB and the scratch qBittorrent container about
+23 MiB. The image size was 476,853,826 bytes (about 454.7 MiB).
+
+**Cutover checklist (not executed).** Before switching production services, rerun the
+import from fresh protected copies into a fresh production config; verify its report and
+the Tier 1/deferral disposition; let old download queues drain; back up and retain the
+Radarr, Sonarr and Prowlarr configs and databases; stop and verify services one at a
+time; start Plattarr with the production media/download mounts and verify `/ping`,
+library counts and qBittorrent categories; update both Seerr entries with the new host,
+port, API key, URL Base (`/radarr` and `/sonarr`), profiles and root folders returned by
+the production instance; then validate a request. For rollback, stop Plattarr, restore
+the previous Seerr entries and restart the old containers with their retained configs.
+The scratch instance is not the production config and must not be promoted.
+
 ### Tags
 
 Tags merge across sources by label, compared case-insensitively. The union is written
