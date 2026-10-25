@@ -40,7 +40,7 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+                    IconUrl = "https://raw.githubusercontent.com/SixtyAteWhiskey/plattarr/develop/Logo/256.png"
                 },
                 Url = message.Subject.MetadataUrl,
                 Description = GrabbedTitle(message.Subject),
@@ -144,7 +144,7 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+                    IconUrl = "https://raw.githubusercontent.com/SixtyAteWhiskey/plattarr/develop/Logo/256.png"
                 },
                 Url = message.Subject.MetadataUrl,
                 Description = isUpgrade ? UpgradedTitle(message.Subject) : $"{message.Subject.ItemNoun} Imported",
@@ -265,7 +265,7 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+                    IconUrl = "https://raw.githubusercontent.com/SixtyAteWhiskey/plattarr/develop/Logo/256.png"
                 },
                 Url = subject.MetadataUrl,
                 Title = subject.ParentTitle,
@@ -322,7 +322,7 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+                    IconUrl = "https://raw.githubusercontent.com/SixtyAteWhiskey/plattarr/develop/Logo/256.png"
                 },
                 Url = subject.MetadataUrl,
                 Title = subject.ParentTitle,
@@ -361,7 +361,7 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+                    IconUrl = "https://raw.githubusercontent.com/SixtyAteWhiskey/plattarr/develop/Logo/256.png"
                 },
                 Url = subject?.MetadataUrl,
                 Title = GetTitle(subject),
@@ -382,7 +382,7 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+                    IconUrl = "https://raw.githubusercontent.com/SixtyAteWhiskey/plattarr/develop/Logo/256.png"
                 },
                 Url = message.Subject?.MetadataUrl,
                 Title = message.SourceTitle,
@@ -414,7 +414,7 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+                    IconUrl = "https://raw.githubusercontent.com/SixtyAteWhiskey/plattarr/develop/Logo/256.png"
                 },
                 Url = message.Subject?.MetadataUrl,
                 Title = TrackRetaggedTitle,
@@ -439,7 +439,7 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+                    IconUrl = "https://raw.githubusercontent.com/SixtyAteWhiskey/plattarr/develop/Logo/256.png"
                 },
                 Url = subject.MetadataUrl,
                 Title = GetTitle(subject),
@@ -465,7 +465,7 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+                    IconUrl = "https://raw.githubusercontent.com/SixtyAteWhiskey/plattarr/develop/Logo/256.png"
                 },
                 Title = healthCheck.Source.Name,
                 Description = healthCheck.Message,
@@ -485,7 +485,7 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+                    IconUrl = "https://raw.githubusercontent.com/SixtyAteWhiskey/plattarr/develop/Logo/256.png"
                 },
                 Title = "Health Issue Resolved: " + previousCheck.Source.Name,
                 Description = $"The following issue is now resolved: {previousCheck.Message}",
@@ -505,7 +505,7 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+                    IconUrl = "https://raw.githubusercontent.com/SixtyAteWhiskey/plattarr/develop/Logo/256.png"
                 },
                 Title = APPLICATION_UPDATE_TITLE,
                 Timestamp = DateTime.UtcNow.ToString("O"),
@@ -539,7 +539,7 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? _configFileProvider.InstanceName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+                    IconUrl = "https://raw.githubusercontent.com/SixtyAteWhiskey/plattarr/develop/Logo/256.png"
                 },
                 Url = subject?.MetadataUrl,
                 Description = "Manual interaction needed",

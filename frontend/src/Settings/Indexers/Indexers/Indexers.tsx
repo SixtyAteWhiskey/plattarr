@@ -1,17 +1,16 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { IndexerAppState } from 'App/State/SettingsAppState';
+import AppState from 'App/State/AppState';
+import Alert from 'Components/Alert';
 import Card from 'Components/Card';
 import FieldSet from 'Components/FieldSet';
 import Icon from 'Components/Icon';
 import PageSectionContent from 'Components/Page/PageSectionContent';
-import { icons } from 'Helpers/Props';
+import { icons, kinds } from 'Helpers/Props';
 import { cloneIndexer, fetchIndexers } from 'Store/Actions/settingsActions';
-import createSortedSectionSelector from 'Store/Selectors/createSortedSectionSelector';
-import IndexerModel from 'typings/Indexer';
-import sortByProp from 'Utilities/Array/sortByProp';
 import translate from 'Utilities/String/translate';
 import AddIndexerModal from './AddIndexerModal';
+import createIndexerIndexSelector from './createIndexerIndexSelector';
 import EditIndexerModal from './EditIndexerModal';
 import Indexer from './Indexer';
 import styles from './Indexers.css';
@@ -19,17 +18,18 @@ import styles from './Indexers.css';
 function Indexers() {
   const dispatch = useDispatch();
 
-  const { isFetching, isPopulated, items, error } = useSelector(
-    createSortedSectionSelector<IndexerModel, IndexerAppState>(
-      'settings.indexers',
-      sortByProp('name')
-    )
+  const { isFetching, isPopulated, items, totalItems, error } = useSelector(
+    createIndexerIndexSelector
+  );
+
+  const allItems = useSelector(
+    (state: AppState) => state.settings.indexers.items
   );
 
   const [isAddIndexerModalOpen, setIsAddIndexerModalOpen] = useState(false);
   const [isEditIndexerModalOpen, setIsEditIndexerModalOpen] = useState(false);
 
-  const showPriority = items.some((index) => index.priority !== 25);
+  const showPriority = allItems.some((index) => index.priority !== 25);
 
   const handleAddIndexerPress = useCallback(() => {
     setIsAddIndexerModalOpen(true);
@@ -68,6 +68,12 @@ function Indexers() {
         isFetching={isFetching}
         isPopulated={isPopulated}
       >
+        {totalItems > 0 && !items.length ? (
+          <Alert kind={kinds.INFO}>
+            {translate('AllResultsAreHiddenByTheAppliedFilter')}
+          </Alert>
+        ) : null}
+
         <div className={styles.indexers}>
           {items.map((item) => {
             return (

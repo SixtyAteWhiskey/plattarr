@@ -98,7 +98,7 @@ namespace Radarr.Api.V3.Commands
                 Id = model.Id,
 
                 Name = model.Name,
-                CommandName = model.Name.SplitCamelCase(),
+                CommandName = model.Name.SplitCamelCase().Replace("Series", "TV"),
                 Message = model.Message,
                 Body = model.Body,
                 Priority = model.Priority,

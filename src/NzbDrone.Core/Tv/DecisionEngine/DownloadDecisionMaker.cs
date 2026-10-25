@@ -104,7 +104,7 @@ namespace NzbDrone.Core.Tv.DecisionEngine
                             }
                             else
                             {
-                                decision = new DownloadDecision(remoteEpisode, new DownloadRejection(DownloadRejectionReason.UnknownSeries, "Unknown Series"));
+                                decision = new DownloadDecision(remoteEpisode, new DownloadRejection(DownloadRejectionReason.UnknownSeries, "Unknown TV Show"));
                             }
                         }
                         else if (remoteEpisode.Episodes.Empty())

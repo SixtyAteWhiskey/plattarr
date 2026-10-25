@@ -7,7 +7,7 @@
       "url": "https://www.thetvdb.com/?tab=series&id=121361",
       "author": {
         "name": "Plattarr-golden",
-        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+        "icon_url": "https://raw.githubusercontent.com/SixtyAteWhiskey/plattarr/develop/Logo/256.png"
       },
       "thumbnail": {
         "url": "https://img.example/poster.jpg"
@@ -91,7 +91,7 @@
       "url": "https://www.thetvdb.com/?tab=series&id=121361",
       "author": {
         "name": "Plattarr-golden",
-        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+        "icon_url": "https://raw.githubusercontent.com/SixtyAteWhiskey/plattarr/develop/Logo/256.png"
       },
       "thumbnail": {
         "url": "https://img.example/poster.jpg"
@@ -185,7 +185,7 @@
       "url": "https://www.thetvdb.com/?tab=series&id=121361",
       "author": {
         "name": "Plattarr-golden",
-        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+        "icon_url": "https://raw.githubusercontent.com/SixtyAteWhiskey/plattarr/develop/Logo/256.png"
       },
       "thumbnail": {
         "url": "https://img.example/poster.jpg"
@@ -284,13 +284,13 @@
 {
   "embeds": [
     {
-      "description": "Series Added",
+      "description": "TV Show Added",
       "title": "Game of Thrones",
       "color": 2605644,
       "url": "https://www.thetvdb.com/?tab=series&id=121361",
       "author": {
         "name": "Plattarr-golden",
-        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+        "icon_url": "https://raw.githubusercontent.com/SixtyAteWhiskey/plattarr/develop/Logo/256.png"
       },
       "thumbnail": {
         "url": "https://img.example/poster.jpg"
@@ -318,7 +318,7 @@
       "url": "https://www.thetvdb.com/?tab=series&id=121361",
       "author": {
         "name": "Plattarr-golden",
-        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+        "icon_url": "https://raw.githubusercontent.com/SixtyAteWhiskey/plattarr/develop/Logo/256.png"
       },
       "timestamp": "T",
       "fields": [
@@ -340,13 +340,13 @@
 {
   "embeds": [
     {
-      "description": "Series removed and all files were deleted",
+      "description": "TV Show removed and all files were deleted",
       "title": "Game of Thrones",
       "color": 15749200,
       "url": "https://www.thetvdb.com/?tab=series&id=121361",
       "author": {
         "name": "Plattarr-golden",
-        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+        "icon_url": "https://raw.githubusercontent.com/SixtyAteWhiskey/plattarr/develop/Logo/256.png"
       },
       "thumbnail": {
         "url": "https://img.example/poster.jpg"
@@ -374,7 +374,7 @@
       "url": "https://www.thetvdb.com/?tab=series&id=121361",
       "author": {
         "name": "Plattarr-golden",
-        "icon_url": "https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/256.png"
+        "icon_url": "https://raw.githubusercontent.com/SixtyAteWhiskey/plattarr/develop/Logo/256.png"
       },
       "thumbnail": {
         "url": "https://img.example/poster.jpg"

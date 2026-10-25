@@ -14,7 +14,7 @@ namespace NzbDrone.Core.Tv.Validators
             _seriesService = seriesService;
         }
 
-        protected override string GetDefaultMessageTemplate() => "Path '{path}' is already configured for another series";
+        protected override string GetDefaultMessageTemplate() => "Path '{path}' is already configured for another TV show";
 
         protected override bool IsValid(PropertyValidatorContext context)
         {

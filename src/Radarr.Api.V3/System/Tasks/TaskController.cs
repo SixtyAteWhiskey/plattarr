@@ -54,7 +54,7 @@ namespace Radarr.Api.V3.System.Tasks
             return new TaskResource
             {
                 Id = scheduledTask.Id,
-                Name = taskName.SplitCamelCase(),
+                Name = taskName.SplitCamelCase().Replace("Series", "TV"),
                 TaskName = taskName,
                 Interval = scheduledTask.Interval,
                 LastExecution = scheduledTask.LastExecution,

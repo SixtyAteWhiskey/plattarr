@@ -125,7 +125,7 @@ namespace NzbDrone.Core.Tv
 
                 throw new ValidationException(new List<ValidationFailure>
                                               {
-                                                  new ValidationFailure("TvdbId", $"A series with this ID was not found. Path: {newSeries.Path}", newSeries.TvdbId)
+                                                  new ValidationFailure("TvdbId", $"A TV show with this ID was not found. Path: {newSeries.Path}", newSeries.TvdbId)
                                               });
             }
 

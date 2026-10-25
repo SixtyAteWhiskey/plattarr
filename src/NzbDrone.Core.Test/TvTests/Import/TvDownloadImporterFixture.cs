@@ -112,7 +112,7 @@ namespace NzbDrone.Core.Test.TvTests.Import
             Subject.Check(_trackedDownload).Should().Be(DownloadImportCheck.Blocked);
 
             _trackedDownload.Status.Should().Be(TrackedDownloadStatus.Warning);
-            _trackedDownload.StatusMessages.Single().Messages.Should().ContainSingle().Which.Should().Contain("Series title mismatch");
+            _trackedDownload.StatusMessages.Single().Messages.Should().ContainSingle().Which.Should().Contain("TV show title mismatch");
         }
 
         [Test]

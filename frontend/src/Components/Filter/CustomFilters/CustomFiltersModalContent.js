@@ -13,6 +13,7 @@ import styles from './CustomFiltersModalContent.css';
 function CustomFiltersModalContent(props) {
   const {
     selectedFilterKey,
+    customFilterType,
     customFilters,
     isDeleting,
     deleteError,
@@ -56,8 +57,14 @@ function CustomFiltersModalContent(props) {
             {translate('AddCustomFilter')}
           </Button>
         </div>
-        <br />
-        {translate('FilterMoviePropertiesOnlyNotFileWarning')}
+        {
+          customFilterType === 'indexerIndex' ?
+            null :
+            <>
+              <br />
+              {translate('FilterMoviePropertiesOnlyNotFileWarning')}
+            </>
+        }
       </ModalBody>
 
       <ModalFooter>
@@ -73,6 +80,7 @@ function CustomFiltersModalContent(props) {
 
 CustomFiltersModalContent.propTypes = {
   selectedFilterKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  customFilterType: PropTypes.string,
   customFilters: PropTypes.arrayOf(PropTypes.object).isRequired,
   isDeleting: PropTypes.bool.isRequired,
   deleteError: PropTypes.object,

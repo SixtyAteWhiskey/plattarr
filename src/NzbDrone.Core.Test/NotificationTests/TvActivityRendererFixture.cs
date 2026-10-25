@@ -37,7 +37,7 @@ namespace NzbDrone.Core.Test.NotificationTests
             var subject = Subject.Describe(_series, _episodes);
 
             subject.Kind.Should().Be(MediaKind.Tv);
-            subject.KindLabel.Should().Be("Series");
+            subject.KindLabel.Should().Be("TV Show");
             subject.ItemKindLabel.Should().Be("Episode");
             subject.ItemNoun.Should().Be("Episode");
             subject.ParentId.Should().Be(1);

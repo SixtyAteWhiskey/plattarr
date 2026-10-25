@@ -5,8 +5,8 @@ interface CssExports {
   'header': string;
   'logo': string;
   'logoContainer': string;
-  'logoFull': string;
   'logoLink': string;
+  'logoText': string;
   'right': string;
   'sidebarToggleContainer': string;
   'translate': string;
