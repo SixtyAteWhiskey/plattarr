@@ -25,7 +25,7 @@ function getTitle(eventType: HistoryEventType) {
     case 'grabbed':
       return 'Grabbed';
     case 'seriesFolderImported':
-      return 'Series Folder Imported';
+      return 'TV Folder Imported';
     case 'downloadFolderImported':
       return 'Download Folder Imported';
     case 'downloadFailed':

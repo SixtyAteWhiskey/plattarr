@@ -170,7 +170,7 @@ namespace NzbDrone.Core.Tv.MediaFiles
 
                 return new List<ImportResult>
                        {
-                           UnknownSeriesResult("Unknown Series")
+                           UnknownSeriesResult("Unknown TV Show")
                        };
             }
 
@@ -257,7 +257,7 @@ namespace NzbDrone.Core.Tv.MediaFiles
 
                 return new List<ImportResult>
                        {
-                           UnknownSeriesResult(string.Format("Unknown Series for file: {0}", fileInfo.Name), fileInfo.FullName)
+                           UnknownSeriesResult(string.Format("Unknown TV Show for file: {0}", fileInfo.Name), fileInfo.FullName)
                        };
             }
 
@@ -358,7 +358,7 @@ namespace NzbDrone.Core.Tv.MediaFiles
         {
             var localEpisode = videoFile == null ? null : new LocalEpisode { Path = videoFile };
 
-            return new ImportResult(new ImportDecision(localEpisode, new ImportRejection(ImportRejectionReason.UnknownSeries, "Unknown Series")), message);
+            return new ImportResult(new ImportDecision(localEpisode, new ImportRejection(ImportRejectionReason.UnknownSeries, "Unknown TV Show")), message);
         }
 
         private ImportResult RejectionResult(ImportRejectionReason reason, string message)

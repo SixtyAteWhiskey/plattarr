@@ -12,7 +12,7 @@ namespace NzbDrone.Core.Modules
     {
         public MediaKind Kind { get; set; }
 
-        // "Movie", "Series", "Artist": the noun in titles such as "Movie Grabbed".
+        // "Movie", "TV Show", "Artist": the noun in titles such as "Movie Grabbed".
         public string KindLabel { get; set; }
 
         // The noun for events about one library item rather than the parent: "Episode Grabbed",

@@ -12,7 +12,7 @@ namespace NzbDrone.Core.Tv.Validators
             _seriesService = seriesService;
         }
 
-        protected override string GetDefaultMessageTemplate() => "This series has already been added";
+        protected override string GetDefaultMessageTemplate() => "This TV show has already been added";
 
         protected override bool IsValid(PropertyValidatorContext context)
         {

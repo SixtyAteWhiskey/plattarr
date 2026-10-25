@@ -54,14 +54,13 @@ function PageHeader({ isSmallScreen }: PageHeaderProps) {
       <div className={styles.logoContainer}>
         <Link className={styles.logoLink} to="/">
           <img
-            className={isSmallScreen ? styles.logo : styles.logoFull}
-            src={
-              isSmallScreen
-                ? `${window.Radarr.urlBase}/Content/Images/logo.png`
-                : `${window.Radarr.urlBase}/Content/Images/logo-full.png`
-            }
-            alt="Radarr Logo"
+            className={styles.logo}
+            src={`${window.Radarr.urlBase}/Content/Images/logo.png`}
+            alt="Plattarr Logo"
           />
+          {isSmallScreen ? null : (
+            <span className={styles.logoText}>Plattarr</span>
+          )}
         </Link>
       </div>
 

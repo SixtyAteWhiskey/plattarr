@@ -21,6 +21,7 @@ import * as extraFiles from './extraFileActions';
 import * as history from './historyActions';
 import * as importMovie from './importMovieActions';
 import * as importSeries from './importSeriesActions';
+import * as indexerIndex from './indexerIndexActions';
 import * as interactiveImportActions from './interactiveImportActions';
 import * as movies from './movieActions';
 import * as movieCollections from './movieCollectionActions';
@@ -91,6 +92,7 @@ export default [
   history,
   importMovie,
   importSeries,
+  indexerIndex,
   interactiveImportActions,
   oAuth,
   organizePreview,

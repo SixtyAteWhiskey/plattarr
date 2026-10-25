@@ -141,7 +141,7 @@ namespace Radarr.Api.V3.Tv.Releases
                     }
                     else
                     {
-                        throw new NzbDroneClientException(HttpStatusCode.NotFound, "Unable to find matching series and episodes, will need to be manually provided");
+                        throw new NzbDroneClientException(HttpStatusCode.NotFound, "Unable to find matching TV show and episodes, will need to be manually provided");
                     }
                 }
                 else if (remoteEpisode.Episodes.Empty())

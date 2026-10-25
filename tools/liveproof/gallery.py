@@ -21,7 +21,7 @@ BASE = os.environ.get("GALLERY_BASE", "http://127.0.0.1:7880").rstrip("/")
 OUT = os.path.expanduser(os.environ.get("GALLERY_OUT", "gallery-out"))
 VIEWPORT = {"width": 1400, "height": 900}
 MAX_HEIGHT = 2200   # full-page shots are cut here so one very long page does not dominate the gallery
-KINDS = ("Movies", "Series", "Music")
+KINDS = ("Movies", "TV", "Music")
 
 # A text node that is one CamelCase word is almost always a translation key that has no text yet.
 RAW_KEY = re.compile(r"[A-Z][a-z]+(?:[A-Z][a-z0-9]+)+")
@@ -110,7 +110,7 @@ class Page:
         return certain, maybe
 
     def kind(self, label):
-        """Click the Movies / Series / Music switch. Returns False when the page has none."""
+        """Click the Movies / TV / Music switch. Returns False when the page has none."""
         button = self.page.get_by_role("button", name=re.compile(rf"^{label}$"))
         if button.count() == 0:
             return False
@@ -238,12 +238,12 @@ def main():
         if movie:
             page_set(p, "Movies", "Movie details", f"/movie/{movie['titleSlug']}", "Header with fanart and poster, then the Files, History and Search sections.")
 
-        # --- Series
-        page_set(p, "Series", "Library", "/tv", "Poster grid with progress bars; the toolbar and sidebar mark Series.")
-        page_set(p, "Series", "Add series", "/tv/add/new", "The search box is focused; typing a title lists results.")
-        page_set(p, "Series", "Import", "/tv/add/import", "Library import starts at a root folder picker.")
+        # --- TV
+        page_set(p, "TV", "Library", "/tv", "Poster grid with progress bars; the toolbar and sidebar mark TV.")
+        page_set(p, "TV", "Add TV", "/tv/add/new", "The search box is focused; typing a title lists results.")
+        page_set(p, "TV", "Import", "/tv/add/import", "Library import starts at a root folder picker.")
         if series:
-            page_set(p, "Series", "Series details", f"/series/{series['titleSlug']}", "Seasons and episodes listed, monitoring toggles, banner and poster.")
+            page_set(p, "TV", "TV details", f"/series/{series['titleSlug']}", "Seasons and episodes listed, monitoring toggles, banner and poster.")
 
         # --- Music
         page_set(p, "Music", "Library", "/music", "Artist grid or table; posters load; the sidebar marks Music.")
@@ -254,7 +254,7 @@ def main():
         if album:
             page_set(p, "Music", "Album details", f"/album/{album['foreignAlbumId']}", "Track list with quality and file columns; album toolbar.")
 
-        # --- Pages that follow the Movies / Series / Music switch
+        # --- Pages that follow the Movies / TV / Music switch
         shared = [("Calendar", "/calendar", "Month grid; items of the chosen kind only."),
                   ("Queue", "/activity/queue", "Table of downloads; empty is fine here (the flows section shows it filled)."),
                   ("History", "/activity/history", "Event table; the event filter lists the chosen kind's events."),

@@ -16,6 +16,7 @@ import HistoryAppState, {
   SeriesHistoryAppState,
 } from './HistoryAppState';
 import ImportSeriesAppState from './ImportSeriesAppState';
+import IndexerIndexAppState from './IndexerIndexAppState';
 import InteractiveImportAppState from './InteractiveImportAppState';
 import MessagesAppState from './MessagesAppState';
 import MovieCollectionAppState from './MovieCollectionAppState';
@@ -121,6 +122,7 @@ interface AppState {
   episodesSelection: EpisodesAppState;
   extraFiles: ExtraFilesAppState;
   history: HistoryAppState;
+  indexerIndex: IndexerIndexAppState;
   interactiveImport: InteractiveImportAppState;
   movieCollections: MovieCollectionAppState;
   movieCredits: MovieCreditAppState;

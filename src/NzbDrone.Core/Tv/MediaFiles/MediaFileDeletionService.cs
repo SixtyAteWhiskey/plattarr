@@ -67,14 +67,14 @@ namespace NzbDrone.Core.Tv.MediaFiles
 
             if (!_diskProvider.FolderExists(rootFolder))
             {
-                _logger.Warn("Series' root folder ({0}) doesn't exist.", rootFolder);
-                throw new NzbDroneClientException(HttpStatusCode.Conflict, "Series' root folder ({0}) doesn't exist.", rootFolder);
+                _logger.Warn("TV show's root folder ({0}) doesn't exist.", rootFolder);
+                throw new NzbDroneClientException(HttpStatusCode.Conflict, "TV show's root folder ({0}) doesn't exist.", rootFolder);
             }
 
             if (_diskProvider.GetDirectories(rootFolder).Empty())
             {
-                _logger.Warn("Series' root folder ({0}) is empty.", rootFolder);
-                throw new NzbDroneClientException(HttpStatusCode.Conflict, "Series' root folder ({0}) is empty.", rootFolder);
+                _logger.Warn("TV show's root folder ({0}) is empty.", rootFolder);
+                throw new NzbDroneClientException(HttpStatusCode.Conflict, "TV show's root folder ({0}) is empty.", rootFolder);
             }
 
             if (_diskProvider.FolderExists(series.Path) && _diskProvider.FileExists(fullPath))
@@ -121,14 +121,14 @@ namespace NzbDrone.Core.Tv.MediaFiles
 
                     if (!_diskProvider.FolderExists(rootFolder))
                     {
-                        _logger.Warn("Series' root folder ({0}) doesn't exist.", rootFolder);
+                        _logger.Warn("TV show's root folder ({0}) doesn't exist.", rootFolder);
                         _commandResultReporter.Report(CommandResult.Indeterminate);
                         continue;
                     }
 
                     if (_diskProvider.GetDirectories(rootFolder).Empty())
                     {
-                        _logger.Warn("Series' root folder ({0}) is empty.", rootFolder);
+                        _logger.Warn("TV show's root folder ({0}) is empty.", rootFolder);
                         _commandResultReporter.Report(CommandResult.Indeterminate);
                         continue;
                     }

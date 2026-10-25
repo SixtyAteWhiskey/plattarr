@@ -75,7 +75,7 @@ namespace NzbDrone.Core.Tv.Import
 
                 if (series == null)
                 {
-                    trackedDownload.Warn("Series title mismatch; automatic import is not possible. Manual Import required.");
+                    trackedDownload.Warn("TV show title mismatch; automatic import is not possible. Manual Import required.");
                     return DownloadImportCheck.Blocked;
                 }
 

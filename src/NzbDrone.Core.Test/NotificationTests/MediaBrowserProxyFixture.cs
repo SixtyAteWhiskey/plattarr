@@ -70,7 +70,7 @@ namespace NzbDrone.Core.Test.NotificationTests
         {
             ServerHas("{\"Items\":[]}");
 
-            Subject.GetPaths(_settings, new ActivitySubject { Kind = MediaKind.Tv, KindLabel = "Series", ParentTitle = "Breaking Bad", Year = 2008 });
+            Subject.GetPaths(_settings, new ActivitySubject { Kind = MediaKind.Tv, KindLabel = "TV Show", ParentTitle = "Breaking Bad", Year = 2008 });
 
             _request.Url.FullUri.Should().Contain("includeItemTypes=Series");
             _request.Url.FullUri.Should().Contain("years=2008");

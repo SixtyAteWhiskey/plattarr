@@ -13,7 +13,7 @@ namespace NzbDrone.Core.Tv.Validators
             _seriesService = seriesService;
         }
 
-        protected override string GetDefaultMessageTemplate() => "Path '{path}' is an ancestor of an existing series";
+        protected override string GetDefaultMessageTemplate() => "Path '{path}' is an ancestor of an existing TV show";
 
         protected override bool IsValid(PropertyValidatorContext context)
         {

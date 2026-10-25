@@ -16,23 +16,27 @@
 }
 
 .logoLink {
+  display: flex;
+  align-items: center;
+  color: var(--white);
   line-height: 0;
 }
 
-.logoFull,
+.logoLink:hover {
+  color: var(--white);
+}
+
 .logo {
   vertical-align: middle;
-}
-
-.logoFull {
-  margin-left: 15px;
-  width: 120px;
-  height: 40px;
-}
-
-.logo {
   width: 32px;
   height: 32px;
+}
+
+.logoText {
+  margin-left: 12px;
+  font-weight: 500;
+  font-size: 22px;
+  line-height: 1;
 }
 
 .sidebarToggleContainer {

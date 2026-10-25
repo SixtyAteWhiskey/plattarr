@@ -15,7 +15,7 @@ namespace Radarr.Api.V3.Tv.Series
             _fileNameBuilder = fileNameBuilder;
         }
 
-        protected override string GetDefaultMessageTemplate() => "Root folder path '{rootFolderPath}' contains series folder '{seriesFolder}'";
+        protected override string GetDefaultMessageTemplate() => "Root folder path '{rootFolderPath}' contains TV show folder '{seriesFolder}'";
 
         protected override bool IsValid(PropertyValidatorContext context)
         {

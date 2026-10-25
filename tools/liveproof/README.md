@@ -29,7 +29,7 @@ environment or `config.xml`, sent only as the `X-Api-Key` header, and scrubbed f
 
 ## The walkthrough gallery
 
-`gallery.py` opens every main page (per media kind where the page has the Movies / Series / Music switch) and the flows that are
+`gallery.py` opens every main page (per media kind where the page has the Movies / TV / Music switch) and the flows that are
 hard to reach by hand, and saves one screenshot of each. `gallery_html.py` turns the run into one self-contained page.
 
 ```bash

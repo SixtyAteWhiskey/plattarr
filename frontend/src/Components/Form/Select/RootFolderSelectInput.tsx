@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from 'reselect';
 import FileBrowserModal from 'Components/FileBrowser/FileBrowserModal';
 import usePrevious from 'Helpers/Hooks/usePrevious';
+import EditMusicRootFolderModalConnector from 'Settings/MediaManagement/RootFolder/Music/EditRootFolderModalConnector';
 import {
   addRootFolder,
   fetchRootFolders,
@@ -99,14 +100,10 @@ function createRootFolderOptionsSelector(
       });
     }
 
-    // Music root folders carry required defaults (name, profiles), so they are
-    // created on Settings > Media Management rather than from a bare path.
-    if (mediaKind !== 'music') {
-      values.push({
-        key: ADD_NEW_KEY,
-        value: translate('AddANewPath'),
-      });
-    }
+    values.push({
+      key: ADD_NEW_KEY,
+      value: translate('AddANewPath'),
+    });
 
     return {
       values,
@@ -138,19 +135,44 @@ function RootFolderSelectInput({
   );
   const [isAddNewRootFolderModalOpen, setIsAddNewRootFolderModalOpen] =
     useState(false);
+  const [isAddMusicRootFolderModalOpen, setIsAddMusicRootFolderModalOpen] =
+    useState(false);
   const [newRootFolderPath, setNewRootFolderPath] = useState('');
   const previousIsSaving = usePrevious(isSaving);
 
   const handleChange = useCallback(
     ({ value: newValue }: EnhancedSelectInputChanged<string>) => {
       if (newValue === 'addNew') {
-        setIsAddNewRootFolderModalOpen(true);
+        // A Music root folder needs a name and default profiles, so it opens
+        // the full root folder form instead of the bare path browser.
+        if (mediaKind === 'music') {
+          setIsAddMusicRootFolderModalOpen(true);
+        } else {
+          setIsAddNewRootFolderModalOpen(true);
+        }
       } else {
         onChange({ name, value: newValue });
       }
     },
-    [name, setIsAddNewRootFolderModalOpen, onChange]
+    [
+      name,
+      mediaKind,
+      setIsAddNewRootFolderModalOpen,
+      setIsAddMusicRootFolderModalOpen,
+      onChange,
+    ]
   );
+
+  const handleMusicRootFolderAdded = useCallback(
+    (path: string) => {
+      setNewRootFolderPath(path);
+    },
+    [setNewRootFolderPath]
+  );
+
+  const handleAddMusicRootFolderModalClose = useCallback(() => {
+    setIsAddMusicRootFolderModalOpen(false);
+  }, [setIsAddMusicRootFolderModalOpen]);
 
   const handleNewRootFolderSelect = useCallback(
     ({ value: newValue }: InputChanged<string>) => {
@@ -250,6 +272,14 @@ function RootFolderSelectInput({
         onChange={handleNewRootFolderSelect}
         onModalClose={handleAddRootFolderModalClose}
       />
+
+      {mediaKind === 'music' ? (
+        <EditMusicRootFolderModalConnector
+          isOpen={isAddMusicRootFolderModalOpen}
+          onRootFolderAdded={handleMusicRootFolderAdded}
+          onModalClose={handleAddMusicRootFolderModalClose}
+        />
+      ) : null}
     </>
   );
 }

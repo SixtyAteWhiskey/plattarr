@@ -51,7 +51,7 @@ class EditRootFolderModalContentConnector extends Component {
     this.props.saveMusicRootFolder({ id: this.props.id });
 
     if (this.props.onRootFolderAdded) {
-      this.props.onRootFolderAdded(this.props.item.path);
+      this.props.onRootFolderAdded(this.props.item.path.value);
     }
   };
 

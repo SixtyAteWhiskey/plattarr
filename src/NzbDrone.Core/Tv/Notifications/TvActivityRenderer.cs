@@ -73,7 +73,7 @@ namespace NzbDrone.Core.Tv.Notifications
             var subject = new ActivitySubject
             {
                 Kind = MediaKind.Tv,
-                KindLabel = "Series",
+                KindLabel = "TV Show",
                 ItemKindLabel = "Episode",
                 OmitYearFromTitle = true,
                 ParentId = series.Id,

@@ -17,7 +17,7 @@ namespace NzbDrone.Core.Tv.AutoTagging.Specifications
         private static readonly SeriesTypeSpecificationValidator Validator = new SeriesTypeSpecificationValidator();
 
         public override int Order => 2;
-        public override string ImplementationName => "Series Type";
+        public override string ImplementationName => "TV Type";
 
         [FieldDefinition(1, Label = "AutoTaggingSpecificationSeriesType", Type = FieldType.Select, SelectOptions = typeof(SeriesTypes))]
         public int Value { get; set; }
