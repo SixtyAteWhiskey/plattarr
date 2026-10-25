@@ -7,7 +7,7 @@ using NzbDrone.Test.Common;
 using Radarr.Api.V3.System;
 using Radarr.Http.Middleware;
 
-namespace NzbDrone.Api.Test.v3.System
+namespace NzbDrone.Api.Test.v3.SystemApi
 {
     [TestFixture]
     public class SystemControllerCompatibilityFixture : TestBase<SystemController>
