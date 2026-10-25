@@ -121,6 +121,11 @@ namespace NzbDrone.Core.Upstream
             {
                 yield return (AdapterFor(UpstreamApps.Prowlarr), request.ProwlarrPath);
             }
+
+            if (request.SonarrPath != null)
+            {
+                yield return (AdapterFor(UpstreamApps.Sonarr), request.SonarrPath);
+            }
         }
 
         private IUpstreamAdapter AdapterFor(string app)

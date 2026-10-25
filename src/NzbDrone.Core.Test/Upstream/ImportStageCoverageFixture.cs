@@ -30,6 +30,16 @@ namespace NzbDrone.Core.Test.Upstream
             "DownloadClients", "Notifications", "CustomFilters"
         };
 
+        // Tier 2 or not needed to run (docs/importer.md, "From sonarr.db"); Plattarr has no TV
+        // import lists, so ImportLists and ImportListExclusions wait for them.
+        private static readonly string[] SonarrNotYetClaimed =
+        {
+            "ReleaseProfiles",
+            "DownloadClients", "RemotePathMappings", "Notifications", "AutoTagging",
+            "CustomFilters", "NamingConfig", "Metadata", "ImportLists", "ImportListExclusions",
+            "History", "DownloadHistory", "Blocklist", "Config"
+        };
+
         // The stage classes, built with null dependencies: Tables and Order never use them.
         private static List<IImportStage> Stages()
         {
@@ -53,6 +63,11 @@ namespace NzbDrone.Core.Test.Upstream
         private SourceSnapshot ProwlarrSnapshot()
         {
             return UpstreamFixtureTest.ReadSnapshot(new ProwlarrAdapter(), GetTestPath("Files/Upstream/prowlarr-44.schema.sql"), 44, Array.Empty<string>(), TempFolder);
+        }
+
+        private SourceSnapshot SonarrSnapshot()
+        {
+            return UpstreamFixtureTest.ReadSnapshot(new SonarrAdapter(), GetTestPath("Files/Upstream/sonarr-217.schema.sql"), 217, Array.Empty<string>(), TempFolder);
         }
 
         private static List<string> Unclaimed(SourceSnapshot snapshot, IEnumerable<SourceTableRef> claimed)
@@ -79,12 +94,21 @@ namespace NzbDrone.Core.Test.Upstream
         }
 
         [Test]
+        public void sonarr_tables_no_stage_claims_yet_should_be_exactly_the_listed_ones()
+        {
+            var claimed = Stages().SelectMany(s => s.Tables).ToList();
+
+            Unclaimed(SonarrSnapshot(), claimed).Should().BeEquivalentTo(SonarrNotYetClaimed);
+        }
+
+        [Test]
         public void stages_should_only_claim_tables_the_adapters_read()
         {
             var radarr = RadarrSnapshot().Tables.Select(t => new SourceTableRef(UpstreamApps.Radarr, t.Name));
             var prowlarr = ProwlarrSnapshot().Tables.Select(t => new SourceTableRef(UpstreamApps.Prowlarr, t.Name));
+            var sonarr = SonarrSnapshot().Tables.Select(t => new SourceTableRef(UpstreamApps.Sonarr, t.Name));
 
-            Stages().SelectMany(s => s.Tables).Should().BeSubsetOf(radarr.Concat(prowlarr));
+            Stages().SelectMany(s => s.Tables).Should().BeSubsetOf(radarr.Concat(prowlarr).Concat(sonarr));
         }
 
         [Test]
@@ -98,6 +122,7 @@ namespace NzbDrone.Core.Test.Upstream
         {
             UpstreamApps.Radarr.Should().Be(new RadarrAdapter().AppName);
             UpstreamApps.Prowlarr.Should().Be(new ProwlarrAdapter().AppName);
+            UpstreamApps.Sonarr.Should().Be(new SonarrAdapter().AppName);
         }
     }
 }

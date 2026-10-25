@@ -14,9 +14,10 @@ using NzbDrone.Core.ThingiProvider;
 
 namespace NzbDrone.Core.Upstream
 {
-    // Prowlarr's indexer proxies and indexers, and what Radarr's synchronized copies of those
-    // indexers add to them (docs/importer.md, "Indexers"). Indexers come from Prowlarr only: a
-    // Radarr indexer that Prowlarr synchronized is the same indexer, so it is matched, not written.
+    // Prowlarr's indexer proxies and indexers, and what Radarr's and Sonarr's synchronized copies
+    // of those indexers add to them (docs/importer.md, "Indexers"). Indexers come from Prowlarr
+    // only: an app indexer that Prowlarr synchronized is the same indexer, so it is matched, not
+    // written.
     //
     // Settings hold credentials, cookies and API keys. Nothing here logs or reports a settings
     // value; warnings and skips name the indexer, a setting's key or a reason.
@@ -64,21 +65,32 @@ namespace NzbDrone.Core.Upstream
             new SourceTableRef(UpstreamApps.Prowlarr, IndexersTable),
             new SourceTableRef(UpstreamApps.Prowlarr, ApplicationsTable),
             new SourceTableRef(UpstreamApps.Prowlarr, MappingTable),
-            new SourceTableRef(UpstreamApps.Radarr, IndexersTable)
+            new SourceTableRef(UpstreamApps.Radarr, IndexersTable),
+            new SourceTableRef(UpstreamApps.Sonarr, IndexersTable)
+        };
+
+        // The apps whose synchronized copies are matched, in the order their copies speak for a
+        // Prowlarr indexer's settings (PrepareSettings).
+        private static readonly (string App, MediaKind Kind)[] Apps =
+        {
+            (UpstreamApps.Radarr, MediaKind.Movies),
+            (UpstreamApps.Sonarr, MediaKind.Tv)
         };
 
         public void Run(ImportSession session)
         {
             var prowlarr = session.Snapshot(UpstreamApps.Prowlarr);
-            var radarr = session.Snapshot(UpstreamApps.Radarr);
 
             if (prowlarr == null)
             {
-                // Without Prowlarr there is nothing to match against, and Radarr's own indexer
+                // Without Prowlarr there is nothing to match against, and an app's own indexer
                 // settings are not Prowlarr's: guessing the translation is how data is lost.
-                foreach (var row in radarr?.Rows(IndexersTable) ?? Array.Empty<SourceRow>())
+                foreach (var (app, _) in Apps)
                 {
-                    session.Skip(new ImportSkip(UpstreamApps.Radarr, IndexersTable, row.GetLong("Id"), row.GetString("Name"), SkipReason.UnmatchedIndexer, "No Prowlarr database was given; indexers are imported from Prowlarr"));
+                    foreach (var row in session.Snapshot(app)?.Rows(IndexersTable) ?? Array.Empty<SourceRow>())
+                    {
+                        session.Skip(new ImportSkip(app, IndexersTable, row.GetLong("Id"), row.GetString("Name"), SkipReason.UnmatchedIndexer, "No Prowlarr database was given; indexers are imported from Prowlarr"));
+                    }
                 }
 
                 return;
@@ -86,14 +98,21 @@ namespace NzbDrone.Core.Upstream
 
             ImportProxies(session, prowlarr);
 
-            var radarrApplication = ApplicationSettings(prowlarr, UpstreamApps.Radarr);
-            var radarrIndexers = MatchAppIndexers(prowlarr, radarr, UpstreamApps.Radarr);
-            var effective = ImportIndexers(session, prowlarr, radarrIndexers, radarrApplication);
+            var copies = Apps
+                .Select(a => new AppCopies(a.App, a.Kind, ApplicationSettings(prowlarr, a.App), MatchAppIndexers(prowlarr, session.Snapshot(a.App), a.App)))
+                .ToList();
+            var effective = ImportIndexers(session, prowlarr, copies);
+            var overrides = new List<IndexerOverride>();
 
-            ImportRadarrIndexers(session, radarrIndexers, effective, radarrApplication);
+            foreach (var app in copies)
+            {
+                overrides.AddRange(ImportAppIndexers(session, app, effective));
+            }
+
+            _overrides.InsertMany(overrides, session.Connection, session.Transaction);
 
             // Prowlarr's sync targets and its sync records have no home in Plattarr (there is no
-            // sync); they were read only to match Radarr's indexers.
+            // sync); they were read only to match the apps' indexers.
             session.NotImportedByDesign(UpstreamApps.Prowlarr, ApplicationsTable, SkipReason.Obsolete);
             session.NotImportedByDesign(UpstreamApps.Prowlarr, MappingTable, SkipReason.Obsolete);
         }
@@ -151,11 +170,13 @@ namespace NzbDrone.Core.Upstream
         // Writes Prowlarr's indexers and returns, per Prowlarr indexer ID, the RSS, automatic and
         // interactive search flags it now has (Prowlarr's Enable and the sync profile's flags, as
         // Prowlarr pushed them to the apps), for the comparison with Radarr's copies.
-        private Dictionary<long, SearchFlags> ImportIndexers(ImportSession session, SourceSnapshot prowlarr, IReadOnlyList<AppIndexer> appIndexers, JObject radarrApplication)
+        private Dictionary<long, SearchFlags> ImportIndexers(ImportSession session, SourceSnapshot prowlarr, List<AppCopies> copies)
         {
             var profiles = prowlarr.Rows(SyncProfilesTable).ToDictionary(r => r.GetLong("Id"));
             var usedProfiles = new HashSet<long>();
-            var matchedByProwlarrId = MatchedByProwlarrId(appIndexers);
+
+            // Per app, the copy that speaks for each Prowlarr indexer; the first app with a copy wins.
+            var matched = copies.Select(c => (Copies: c, ByProwlarrId: MatchedByProwlarrId(c.Indexers))).ToList();
             var batch = new RowBatch<IndexerDefinition>();
             var effective = new Dictionary<long, SearchFlags>();
             var cardigann = new List<string>();
@@ -182,7 +203,9 @@ namespace NzbDrone.Core.Upstream
 
                 var profileId = row.GetNullableLong("AppProfileId");
                 var profile = profileId.HasValue && profiles.TryGetValue(profileId.Value, out var found) ? found : null;
-                matchedByProwlarrId.TryGetValue(id, out var appIndexer);
+                var speaking = matched.FirstOrDefault(m => m.ByProwlarrId.ContainsKey(id));
+                var appIndexer = speaking.ByProwlarrId?[id];
+                var application = speaking.Copies?.Application ?? copies[0].Application;
 
                 IProviderConfig settings;
                 List<int> tags;
@@ -191,7 +214,7 @@ namespace NzbDrone.Core.Upstream
                 {
                     var document = SettingsObject(row);
 
-                    PrepareSettings(document, settingsType, profile, appIndexer?.Settings, radarrApplication);
+                    PrepareSettings(document, settingsType, profile, appIndexer?.Settings, application);
 
                     settings = SettingsConverter.Parse(document.ToString(Formatting.None), settingsType);
                     tags = TagRemapper.Remap(UpstreamApps.Prowlarr, row.GetJson("Tags"), session.IdMap, out var droppedTags);
@@ -275,33 +298,35 @@ namespace NzbDrone.Core.Upstream
             return effective;
         }
 
-        // A Radarr indexer that Prowlarr synchronized becomes the Plattarr indexer it came from (the
+        // An app indexer that Prowlarr synchronized becomes the Plattarr indexer it came from (the
         // IdMap points both at one row, so release profiles and download history can follow it).
-        // What Radarr kept on its copy and Prowlarr has no global setting for goes into a Movies
-        // override; differences that have no home are reported.
-        private void ImportRadarrIndexers(ImportSession session, IReadOnlyList<AppIndexer> radarrIndexers, Dictionary<long, SearchFlags> effective, JObject radarrApplication)
+        // What the app kept on its copy and Prowlarr has no global setting for goes into an
+        // override for the app's media type; differences that have no home are reported.
+        private List<IndexerOverride> ImportAppIndexers(ImportSession session, AppCopies copies, Dictionary<long, SearchFlags> effective)
         {
-            if (radarrIndexers.Count == 0)
+            var overrides = new List<IndexerOverride>();
+
+            if (copies.Indexers.Count == 0)
             {
-                return;
+                return overrides;
             }
 
-            var catalog = _catalogs.For(UpstreamApps.Radarr);
-            var syncCategories = IntList(Value(radarrApplication, "syncCategories"));
-            var overrides = new List<IndexerOverride>();
+            var app = copies.App;
+            var catalog = _catalogs.For(app);
             var overridden = new HashSet<int>();
+            var standardFormat = new List<string>();
 
-            foreach (var indexer in radarrIndexers)
+            foreach (var indexer in copies.Indexers)
             {
                 if (indexer.Problem != null)
                 {
-                    session.SkipCorrupt(UpstreamApps.Radarr, IndexersTable, indexer.Id, indexer.Name, "Settings could not be read: " + indexer.Problem);
+                    session.SkipCorrupt(app, IndexersTable, indexer.Id, indexer.Name, "Settings could not be read: " + indexer.Problem);
                     continue;
                 }
 
                 if (!indexer.Match.Matched)
                 {
-                    session.Skip(new ImportSkip(UpstreamApps.Radarr, IndexersTable, indexer.Id, indexer.Name, SkipReason.UnmatchedIndexer, indexer.Match.Reason));
+                    session.Skip(new ImportSkip(app, IndexersTable, indexer.Id, indexer.Name, SkipReason.UnmatchedIndexer, indexer.Match.Reason));
                     continue;
                 }
 
@@ -309,39 +334,56 @@ namespace NzbDrone.Core.Upstream
 
                 if (!session.IdMap.TryResolve(UpstreamApps.Prowlarr, IndexersTable, prowlarrId, out var target))
                 {
-                    session.Skip(new ImportSkip(UpstreamApps.Radarr, IndexersTable, indexer.Id, indexer.Name, SkipReason.UnmatchedIndexer, "The Prowlarr indexer it was synchronized from was not imported"));
+                    session.Skip(new ImportSkip(app, IndexersTable, indexer.Id, indexer.Name, SkipReason.UnmatchedIndexer, "The Prowlarr indexer it was synchronized from was not imported"));
                     continue;
                 }
 
-                session.IdMap.Record(UpstreamApps.Radarr, IndexersTable, indexer.Id, target);
-                session.Imported(UpstreamApps.Radarr, IndexersTable);
+                session.IdMap.Record(app, IndexersTable, indexer.Id, target);
+                session.Imported(app, IndexersTable);
 
                 if (!indexer.Match.Confirmed)
                 {
-                    session.Warn($"Radarr indexer \"{indexer.Name}\" was matched to its Prowlarr indexer by its URL only: Prowlarr kept no sync records.");
+                    session.Warn($"{app} indexer \"{indexer.Name}\" was matched to its Prowlarr indexer by its URL only: Prowlarr kept no sync records.");
                 }
 
-                WarnFlagDifferences(session, indexer, effective[prowlarrId]);
+                WarnFlagDifferences(session, app, indexer, effective[prowlarrId]);
 
                 if (indexer.HasTags)
                 {
-                    session.Warn($"Radarr indexer \"{indexer.Name}\" has tags, which limited it to movies with those tags. They were not carried: Plattarr's indexer tags are Prowlarr's.");
+                    session.Warn($"{app} indexer \"{indexer.Name}\" has tags, which limited it to {(copies.Kind == MediaKind.Tv ? "TV shows" : "movies")} with those tags. They were not carried: Plattarr's indexer tags are Prowlarr's.");
                 }
 
                 if ((indexer.Row.GetNullableLong("DownloadClientId") ?? 0) != 0)
                 {
-                    session.Warn($"Radarr indexer \"{indexer.Name}\" sends its grabs to a chosen download client. The importer does not carry that choice yet: pick the client again on the indexer after the import.");
+                    session.Warn($"{app} indexer \"{indexer.Name}\" sends its grabs to a chosen download client. The importer does not carry that choice yet: pick the client again on the indexer after the import.");
                 }
 
                 IndexerOverride indexerOverride;
 
                 try
                 {
-                    indexerOverride = MovieOverride(indexer.Settings, (int)target, catalog, syncCategories);
+                    if (copies.Kind == MediaKind.Tv)
+                    {
+                        indexerOverride = TvOverride(indexer.Settings, indexer.Row.GetNullableInt("SeasonSearchMaximumSingleEpisodeAge") ?? 0, (int)target, catalog, copies.Application);
+
+                        if (UnsyncedAnimeCategories(indexer.Settings, copies.Application))
+                        {
+                            session.Warn($"{app} indexer \"{indexer.Name}\" searches anime categories that Prowlarr does not sync. Plattarr has no separate anime categories per indexer, so they were not carried; add them to the indexer's TV categories if anime searches miss releases.");
+                        }
+
+                        if (Value(indexer.Settings, "animeStandardFormatSearch") is { Type: JTokenType.Boolean } standard && standard.Value<bool>())
+                        {
+                            standardFormat.Add(indexer.Name);
+                        }
+                    }
+                    else
+                    {
+                        indexerOverride = MovieOverride(indexer.Settings, (int)target, catalog, IntList(Value(copies.Application, "syncCategories")));
+                    }
                 }
                 catch (Exception ex) when (SourceDocuments.IsBad(ex))
                 {
-                    session.Warn($"Radarr indexer \"{indexer.Name}\": its per-movie settings (languages, required flags, categories) could not be read and were not carried: {SourceDocuments.Describe(ex)}");
+                    session.Warn($"{app} indexer \"{indexer.Name}\": its per-{(copies.Kind == MediaKind.Tv ? "TV" : "movie")} settings (languages, required flags, categories) could not be read and were not carried: {SourceDocuments.Describe(ex)}");
                     continue;
                 }
 
@@ -352,14 +394,20 @@ namespace NzbDrone.Core.Upstream
 
                 if (!overridden.Add(indexerOverride.IndexerId))
                 {
-                    session.Warn($"Radarr indexer \"{indexer.Name}\" is a second Radarr copy of one Prowlarr indexer; the first copy's per-movie settings were kept and this one's were not carried.");
+                    session.Warn($"{app} indexer \"{indexer.Name}\" is a second {app} copy of one Prowlarr indexer; the first copy's per-{(copies.Kind == MediaKind.Tv ? "TV" : "movie")} settings were kept and this one's were not carried.");
                     continue;
                 }
 
                 overrides.Add(indexerOverride);
             }
 
-            _overrides.InsertMany(overrides, session.Connection, session.Transaction);
+            // One setting in Plattarr (Settings > Indexers), not one per indexer as in Sonarr.
+            if (standardFormat.Count > 0)
+            {
+                session.Warn($"{app} indexers search anime by standard episode numbers as well ({string.Join(", ", standardFormat)}). Plattarr has one setting for this: turn on \"Anime Standard Format Search\" in Settings > Indexers after the import.");
+            }
+
+            return overrides;
         }
 
         // Prowlarr's settings document, made into what Plattarr's settings type reads. Prowlarr kept
@@ -455,31 +503,88 @@ namespace NzbDrone.Core.Upstream
             return any ? result : null;
         }
 
+        // What Sonarr's copy holds that Plattarr keeps per media type. Null when nothing is set.
+        public static IndexerOverride TvOverride(JObject settings, int seasonSearchMaximumSingleEpisodeAge, int indexerId, IUpstreamCatalog catalog, JObject application)
+        {
+            var result = new IndexerOverride { IndexerId = indexerId, MediaKind = MediaKind.Tv };
+            var any = false;
+
+            var multiLanguages = Value(settings, "multiLanguages");
+
+            if (multiLanguages is JArray { Count: > 0 })
+            {
+                result.MultiLanguages = IntList(CatalogRemapper.RemapLanguages(multiLanguages, catalog));
+                any = true;
+            }
+
+            // Sonarr's flag bits differ from the global (Radarr) ones from bit 8 up (F4).
+            var requiredFlags = IntList(Value(settings, "requiredFlags"));
+
+            if (requiredFlags is { Count: > 0 })
+            {
+                result.RequiredFlags = requiredFlags.Select(f => (int)ProfilesStage.SonarrFlags(f)).ToList();
+                any = true;
+            }
+
+            var syncCategories = IntList(Value(application, "syncCategories"));
+            var categories = IntList(Value(settings, "categories"));
+
+            if (categories is { Count: > 0 } && categories.Any(c => !(syncCategories?.Contains(c) ?? IsTvCategory(c))))
+            {
+                result.Categories = categories;
+                any = true;
+            }
+
+            if (seasonSearchMaximumSingleEpisodeAge > 0)
+            {
+                result.SeasonSearchMaximumSingleEpisodeAge = seasonSearchMaximumSingleEpisodeAge;
+                any = true;
+            }
+
+            return any ? result : null;
+        }
+
+        // True when Sonarr's copy searches anime categories outside what Prowlarr syncs for anime
+        // (5070 when the application row has none) and outside the TV range Plattarr searches.
+        private static bool UnsyncedAnimeCategories(JObject settings, JObject application)
+        {
+            var anime = IntList(Value(settings, "animeCategories"));
+            var synced = IntList(Value(application, "animeSyncCategories")) ?? new List<int> { 5070 };
+
+            return anime is { Count: > 0 } && anime.Any(c => !synced.Contains(c) && !IsTvCategory(c));
+        }
+
+        private static bool IsTvCategory(int category)
+        {
+            // No application settings: Prowlarr's default TV categories are the 5000 range.
+            return category >= 5000 && category < 6000;
+        }
+
         private static bool IsSyncCategory(int category, List<int> syncCategories)
         {
             // No application settings: Prowlarr's default movie categories are the 2000 range.
             return syncCategories?.Contains(category) ?? (category >= 2000 && category < 3000);
         }
 
-        private static void WarnFlagDifferences(ImportSession session, AppIndexer indexer, SearchFlags prowlarr)
+        private static void WarnFlagDifferences(ImportSession session, string app, AppIndexer indexer, SearchFlags prowlarr)
         {
             var differences = new List<string>();
 
-            Compare(differences, "RSS", indexer.Row.GetNullableLong("EnableRss"), prowlarr.Rss);
-            Compare(differences, "automatic search", indexer.Row.GetNullableLong("EnableAutomaticSearch"), prowlarr.Automatic);
-            Compare(differences, "interactive search", indexer.Row.GetNullableLong("EnableInteractiveSearch"), prowlarr.Interactive);
+            Compare(differences, app, "RSS", indexer.Row.GetNullableLong("EnableRss"), prowlarr.Rss);
+            Compare(differences, app, "automatic search", indexer.Row.GetNullableLong("EnableAutomaticSearch"), prowlarr.Automatic);
+            Compare(differences, app, "interactive search", indexer.Row.GetNullableLong("EnableInteractiveSearch"), prowlarr.Interactive);
 
             if (differences.Count > 0)
             {
-                session.Warn($"Radarr indexer \"{indexer.Name}\" differs from Prowlarr ({string.Join(", ", differences)}). Plattarr has one setting per indexer and keeps Prowlarr's.");
+                session.Warn($"{app} indexer \"{indexer.Name}\" differs from Prowlarr ({string.Join(", ", differences)}). Plattarr has one setting per indexer and keeps Prowlarr's.");
             }
         }
 
-        private static void Compare(List<string> differences, string label, long? radarr, bool prowlarr)
+        private static void Compare(List<string> differences, string app, string label, long? copy, bool prowlarr)
         {
-            if (radarr.HasValue && (radarr.Value != 0) != prowlarr)
+            if (copy.HasValue && (copy.Value != 0) != prowlarr)
             {
-                differences.Add($"{label} {(prowlarr ? "off" : "on")} in Radarr, {(prowlarr ? "on" : "off")} in Prowlarr");
+                differences.Add($"{label} {(prowlarr ? "off" : "on")} in {app}, {(prowlarr ? "on" : "off")} in Prowlarr");
             }
         }
 
@@ -657,6 +762,24 @@ namespace NzbDrone.Core.Upstream
             }
 
             return array.Select(i => i.Value<int>()).ToList();
+        }
+
+        // One app's synchronized copies and the Prowlarr application row they were synchronized
+        // through (null when Prowlarr has none for the app).
+        private sealed class AppCopies
+        {
+            public AppCopies(string app, MediaKind kind, JObject application, List<AppIndexer> indexers)
+            {
+                App = app;
+                Kind = kind;
+                Application = application;
+                Indexers = indexers;
+            }
+
+            public string App { get; }
+            public MediaKind Kind { get; }
+            public JObject Application { get; }
+            public List<AppIndexer> Indexers { get; }
         }
 
         private sealed class AppIndexer

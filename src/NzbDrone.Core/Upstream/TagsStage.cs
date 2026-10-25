@@ -22,7 +22,8 @@ namespace NzbDrone.Core.Upstream
         public IReadOnlyList<SourceTableRef> Tables { get; } = new[]
         {
             new SourceTableRef(UpstreamApps.Radarr, TagMerger.Table),
-            new SourceTableRef(UpstreamApps.Prowlarr, TagMerger.Table)
+            new SourceTableRef(UpstreamApps.Prowlarr, TagMerger.Table),
+            new SourceTableRef(UpstreamApps.Sonarr, TagMerger.Table)
         };
 
         public void Run(ImportSession session)

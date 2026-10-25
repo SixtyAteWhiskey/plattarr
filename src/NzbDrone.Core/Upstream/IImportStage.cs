@@ -7,6 +7,7 @@ namespace NzbDrone.Core.Upstream
     {
         public const string Radarr = "Radarr";
         public const string Prowlarr = "Prowlarr";
+        public const string Sonarr = "Sonarr";
     }
 
     // Where each stage runs. Dependencies decide the order (docs/importer.md, "Write
@@ -21,12 +22,16 @@ namespace NzbDrone.Core.Upstream
         // stores an indexer ID (release profiles, download history).
         public const int Indexers = 300;
         public const int RootFolders = 500;
+        public const int TvRootFolders = 510;
         public const int ImportExclusions = 550;
 
         // Metadata, then the library (movies, then their files), then what hangs off the files.
+        // TV keeps its metadata on the series, so it has no metadata stage.
         public const int MovieMetadata = 600;
         public const int Movies = 700;
+        public const int Series = 710;
         public const int MovieExtras = 800;
+        public const int TvExtras = 810;
     }
 
     // One source table of one app.
