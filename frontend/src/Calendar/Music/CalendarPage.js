@@ -3,6 +3,7 @@ import React, { Component } from 'react';
 import NoArtist from 'Artist/NoArtist';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import Measure from 'Components/Measure';
+import MediaKindSwitcher from 'Components/MediaKindSwitcher';
 import FilterMenu from 'Components/Menu/FilterMenu';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
@@ -103,6 +104,8 @@ class CalendarPage extends Component {
       <PageContent title={translate('Calendar')}>
         <PageToolbar>
           <PageToolbarSection>
+            <MediaKindSwitcher />
+
             <PageToolbarButton
               label={translate('ICalLink')}
               iconName={icons.CALENDAR}

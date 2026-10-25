@@ -1303,6 +1303,7 @@
   "IndexerStatusCheckAllClientMessage": "All indexers are unavailable due to failures",
   "IndexerStatusCheckSingleClientMessage": "Indexers unavailable due to failures: {indexerNames}",
   "IndexerTagMovieHelpText": "Only use this indexer for movies with at least one matching tag. Leave blank to use with all movies.",
+  "IndexerTagsHelpText": "Tags shared with an indexer proxy route requests through that proxy. Other tags restrict this indexer to matching tagged movies, TV shows, or artists. Without other tags, media tag matching does not restrict the indexer.",
   "IndexerTorrentSyndikatSettingsApiKeyHelpText": "Site API Key",
   "Indexers": "Indexers",
   "IndexersAvailable": "{count} indexer(s) available",

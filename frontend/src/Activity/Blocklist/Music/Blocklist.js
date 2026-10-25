@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import Alert from 'Components/Alert';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import MediaKindSwitcher from 'Components/MediaKindSwitcher';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
@@ -139,6 +140,8 @@ class Blocklist extends Component {
       <PageContent title={translate('Blocklist')}>
         <PageToolbar>
           <PageToolbarSection>
+            <MediaKindSwitcher />
+
             <PageToolbarButton
               label={translate('RemoveSelected')}
               iconName={icons.REMOVE}

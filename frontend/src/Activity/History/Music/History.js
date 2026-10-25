@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import Alert from 'Components/Alert';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import MediaKindSwitcher from 'Components/MediaKindSwitcher';
 import FilterMenu from 'Components/Menu/FilterMenu';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
@@ -73,6 +74,8 @@ class History extends Component {
       <PageContent title={translate('History')}>
         <PageToolbar>
           <PageToolbarSection>
+            <MediaKindSwitcher />
+
             <PageToolbarButton
               label={translate('Refresh')}
               iconName={icons.REFRESH}

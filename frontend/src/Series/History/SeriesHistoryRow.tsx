@@ -104,7 +104,7 @@ function SeriesHistoryRow({
 
   return (
     <TableRow>
-      <HistoryEventTypeCell eventType={eventType} data={data} />
+      <HistoryEventTypeCell eventType={eventType} data={data} mediaKind="tv" />
 
       <TableRowCell>
         <EpisodeComponent

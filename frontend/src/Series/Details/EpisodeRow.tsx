@@ -119,6 +119,7 @@ function EpisodeRow({
               <MonitorToggleButton
                 monitored={monitored}
                 isDisabled={!seriesMonitored}
+                disabledTitle={translate('SeriesIsUnmonitored')}
                 isSaving={isSaving}
                 onPress={handleMonitorEpisodePress}
               />

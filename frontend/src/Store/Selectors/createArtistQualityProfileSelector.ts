@@ -6,7 +6,7 @@ import { createArtistSelectorForHook } from './createArtistSelector';
 
 function createArtistQualityProfileSelector(artistId: number) {
   return createSelector(
-    (state: AppState) => state.settings.qualityProfiles.items,
+    (state: AppState) => state.settings.audioQualityProfiles.items,
     createArtistSelectorForHook(artistId),
     (qualityProfiles: QualityProfile[], artist = {} as Artist) => {
       return qualityProfiles.find(

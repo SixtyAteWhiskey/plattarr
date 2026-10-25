@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import HistoryEventTypeCell from 'Activity/History/HistoryEventTypeCell';
 import HistoryDetailsConnector from 'Activity/History/Music/Details/HistoryDetailsConnector';
+import HistoryEventTypeCell from 'Activity/History/Music/HistoryEventTypeCell';
 import AlbumFormats from 'Album/AlbumFormats';
 import TrackQuality from 'Album/TrackQuality';
 import Icon from 'Components/Icon';

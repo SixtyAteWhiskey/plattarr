@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import Alert from 'Components/Alert';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import MediaKindSwitcher from 'Components/MediaKindSwitcher';
 import FilterMenu from 'Components/Menu/FilterMenu';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
 import PageContent from 'Components/Page/PageContent';
@@ -155,6 +156,8 @@ class Missing extends Component {
       <PageContent title={translate('Missing')}>
         <PageToolbar>
           <PageToolbarSection>
+            <MediaKindSwitcher />
+
             <PageToolbarButton
               label={translate('SearchSelected')}
               iconName={icons.SEARCH}
