@@ -1,14 +1,13 @@
 # Importer for `radarr.db` and `prowlarr.db`
 
 Status: **design note; built so far: the adapter read layer, the pure building blocks,
-the engine with its stage contract, the Tags, root folder, profile and movie stages, the
-indexer stage (Prowlarr proxies and indexers, Radarr's synchronized copies) and the `/import`
-command** (see [Read layer](#read-layer-built), [Building blocks](#building-blocks-built),
-[Engine and stages](#engine-and-stages-built), [Movie stages](#movie-stages-built) and
-[Indexer stage](#indexer-stage-built)), and, written in session 61 but **not yet compiled or
-tested**, the Sonarr adapter with its profile, indexer and TV stages (see
-[TV stages](#tv-stages-written-not-yet-built)). The client, settings and activity stages, the
-verifier and the boot test are not. Decisions marked
+the engine, Tags, profiles, download clients, Movies, TV, indexers, release profiles and
+portable Config settings, plus the `/import` command and explicit `/skip=` handling/report**
+(see [Read layer](#read-layer-built),
+[Building blocks](#building-blocks-built), [Engine and stages](#engine-and-stages-built),
+[Movie stages](#movie-stages-built), [Indexer stage](#indexer-stage-built) and
+[TV stages](#tv-stages-built)). Release verification and the importer Postgres slice pass;
+a separate boot-time verifier and boot test are not built. Decisions marked
 *(reversible)* were made by Claude under the owner's standing delegation
 ("least technical debt later, most efficient") and can change without rework
 elsewhere.
@@ -54,10 +53,15 @@ docker compose run --rm plattarr /import /radarr=/import/radarr.db /prowlarr=/im
   exits. The engine lives in Core (`NzbDrone.Core.Upstream`), so a UI wizard or
   a command in Phase 3 calls the same code.
 - **Arguments:** `/radarr=<path>`, `/prowlarr=<path>`, `/sonarr=<path>` (any may be omitted, not all),
-  `/options=<json file>`, `/dry-run`, `/report=<dir>` (default `/config/import-report`).
+  `/options=<json file>`, `/skip=<app:table,...>`, `/dry-run`, `/report=<dir>` (default `/config/import-report`).
   Each source path is a `.db` file or a backup `.zip` (upstream's
   `radarr_backup_*.zip` contains `radarr.db`; this is the easiest input while
   the upstream container keeps running).
+- Every non-empty source table with no import stage must appear in `/skip=` for both
+  dry-run and committed imports. Use source app and table names, for example
+  `/skip=Radarr:Notifications,Sonarr:History`. Entries for a table with a stage, a table
+  not read from a supplied source, or a duplicate entry are errors. Tables the adapters
+  count without reading are already reported by design and do not need `/skip=`.
 - **Options file (all optional):**
 
   ```json
@@ -95,22 +99,21 @@ docker compose run --rm plattarr /import /radarr=/import/radarr.db /prowlarr=/im
 5. **Nothing on disk is touched.** Media files, torrents and upstream config stay as
    they are. Cover images are not copied (see [Known costs](#known-costs)).
 
-### The command (built, partial)
+### The command (built)
 
-`/import` runs today over the stages that exist (tags, profiles, root folders, import
-exclusions and the movie tables). Built as designed: `ApplicationModes.Import` is selected by
+`/import` runs today over the stages that exist (tags, profiles, clients, indexers, root folders,
+portable settings, and the Movies and TV tables). Built as designed: `ApplicationModes.Import` is selected by
 the `/import` flag in `Bootstrap.GetApplicationMode`, `Bootstrap.RunUtilityMode` resolves
 `ImportCommand` (Host) instead of the router, and `UpstreamImportRunner` (Core) copies each
 source, reads it through its adapter, runs `UpstreamImporter` and writes the report. The process
 exits with the code of the run through `Bootstrap.UtilityExitCode` (`ConsoleApp` calls
 `Environment.Exit` when it is not 0).
 
-- **A real run is refused while any source table has rows and no stage claims it** (exit 1,
-  nothing written, the message lists the tables). Until the settings and activity stages exist a
-  committed import would look finished and leave indexers, clients and history behind, and
-  `ImportedFrom` (written by the settings stage) would not be there to stop a second run.
-  `/dry-run` is not refused: it reports those tables under "Not imported by this version".
-  *(reversible: delete the check in `UpstreamImportRunner.Run` when the last table has a stage.)*
+- **Every unclaimed table needs an explicit `/skip=` entry.** The command refuses either run
+  when a non-empty source table has no stage and is absent from the list. An accepted entry is
+  reported as "Deferred by the owner" and participates in reconciliation as skipped rows; it
+  is not a row-level `ImportSkip`, so strict mode does not treat this explicit scope choice as
+  an unexpected loss. The report still shows count-only tables separately.
 - **Report files** (`<data>/import-report`, or `/report=`): `import-<UTC timestamp>.json` and
   `.txt`, plus `import-idmap-<timestamp>.csv` for a committed run only (after a rollback the
   target IDs name rows that do not exist). Sources appear by file name, schema version and SHA-256
@@ -291,10 +294,13 @@ code the rest of the stages plug into.
 |---|---|
 | `IImportStage` | `Name`, `Order`, `Tables` (the `SourceTableRef(app, table)` pairs it accounts for), `Run(session)`. A stage plans from the `IdMap`, writes with the repositories' caller-transaction overloads, records the new IDs, and reports rows with `session.Imported` and `session.Skip`. `ImportOrder` holds the position constants (gaps left on purpose); `UpstreamApps` the app names. |
 | `ImportSession` | The connection and transaction the importer owns, the snapshots, `ImportOptions`, `IdMap`, `PathMapper`, skips, warnings, and the per-table imported counts. |
-| `ImportReconciliation` | Rows read = imported + skipped for every table a stage claims, per app. A table counted but not read (instance and runtime state) is reported by its reason and never checked. An unbalanced table throws `ImportVerificationException`, which names tables and counts and no value. |
-| `UpstreamImporter` (`IUpstreamImporter`) | Refuses two databases of one app and a target that already holds data (`Movies_Movies`, `Indexers`, `DownloadClients`, `Notifications`, `QualityProfiles`, `CustomFormats`, `Tags`) or an earlier import (Config key `importedfrom`). Runs the stages by `Order`, reconciles, then commits, or rolls back for a dry run or for strict mode with a skipped row. Any exception rolls back. `ImportResult` carries the outcome, per-table accounts, unread tables, skips, warnings and the `IdMap`. |
+| `ImportReconciliation` | Rows read = imported + skipped for every table a stage claims or the owner explicitly defers, per app. A table counted but not read (instance and runtime state) is reported by its reason and never checked. An unbalanced table throws `ImportVerificationException`, which names tables and counts and no value. |
+| `UpstreamImporter` (`IUpstreamImporter`) | Refuses two databases of one app, invalid `/skip=` selections and a target that already holds data (`Movies_Movies`, `Indexers`, `DownloadClients`, `Notifications`, `QualityProfiles`, `CustomFormats`, `Tags`) or an earlier import (Config key `importedfrom`). Runs the stages by `Order`, reconciles, then commits, or rolls back for a dry run or for strict mode with a skipped row. Any exception rolls back. `ImportResult` carries the outcome, per-table accounts, deferred tables, unread tables, skips, warnings and the `IdMap`. |
 | `TagsStage` (core) | Writes the label union (`TagMerger`) and fills the tag `IdMap`. |
 | `ProfilesStage` (core) | Radarr `CustomFormats`, `QualityProfiles`, `QualityDefinitions` and `DelayProfiles` in that order inside one stage (each reads the `IdMap` the one before filled). Documents are rewritten as JSON and parsed by the same converters the repositories use, so a shape the target cannot read skips that one row as `CORRUPT`; the report names the table, ID and column, never a value. Language conditions, quality items, cutoffs and profile languages go through the app's catalog; group IDs (1000 and up) are profile-local and kept; a score for a custom format that was not imported is dropped with one warning per profile; delay profile tags go through the tag map. The target's default delay profile (the one row migration 001 inserts) is updated in place by the source's default row; all other delay profiles are inserted. `AppliesTo` is `["Movies"]`. |
+| `DownloadClientsStage` (core) | Merges matching Radarr and Sonarr clients by endpoint, maps a matching Prowlarr copy to the same target ID, and skips a Prowlarr-only client because it has no media type. Converts each source app's category keys, remaps tags, and calls `IModuleCategorySettings.EnsureEntries` for Movies, TV and Music on every client it writes. |
+| `ReleaseProfilesStage` (core) | Imports Radarr and Sonarr release rules after indexers and tags so assigned indexer and tag IDs can be remapped. An unavailable assigned indexer makes that profile a reported `UNMATCHED_INDEXER` skip. |
+| `ConfigStage` (core) | Imports the allowlisted portable media-loop settings from Radarr and Sonarr. Other config rows are reported as `INSTANCE`; conflicting shared values keep Radarr's value and report the Sonarr row as `CONFIG_CONFLICT`. |
 | `SourceDocuments`, `RowBatch<T>` (core) | Helpers every stage shares. `SourceDocuments.IsBad` says which exceptions mean "this one document is unreadable" (a stage skips the row as `CORRUPT`; anything else fails the run) and `Describe` words them without a value. `RowBatch` collects models with their source IDs and writes them with the caller-transaction `InsertMany`, then records every new ID in the `IdMap` and counts the rows imported. |
 | `RootFoldersStage` (Movies module, `NzbDrone.Core.Movies.Upstream`) | Radarr `RootFolders` to `Movies_RootFolders` through the path map. Two folders that map onto one path become one row (both counted as imported). A folder with no path is skipped as `CORRUPT`. Nothing refers to a root folder by ID, so its `IdMap` entries serve the report only. |
 
@@ -310,7 +316,7 @@ yet. The list can only shrink: a table a stage now claims fails the test until i
 from the list, and a name that is not a table the adapter reads fails it too. A stage that
 claims a table the adapters do not read, or two stages that claim one table, also fail.
 
-**Strict means a skipped row, not an unread table.** Strict mode fails on any `ImportSkip`.
+**Strict means an unexpected skipped row, not an explicit owner deferral or unread table.** Strict mode fails on any `ImportSkip`; tables listed in `/skip=` are deliberate and are not included in that list.
 Tables the adapters only count (`Commands`, `PendingReleases`, `Config` of Prowlarr...) are
 skipped by design and would make every run fail.
 
@@ -429,18 +435,17 @@ definitions are downloaded on the first start, and a custom definition (a `.yml`
 17 of 17, `IndexerProxies` 1 of 1, `AppSyncProfiles` 1 of 1, Radarr `Indexers` 13 of 13 matched, no
 skip; no settings key lost in the round trip; no flag difference (Radarr's four all-off copies
 mirror four indexers disabled in Prowlarr); one warning, the Cardigann list. `Applications` (4)
-and `ApplicationIndexerMapping` (37) are listed as not imported by design. The tables still without
-a stage are Radarr `Blocklist`, `Config`, `DownloadClients`, `DownloadHistory`, `History`,
-`Metadata` and `NamingConfig`, so a committed run is still refused.
+and `ApplicationIndexerMapping` (37) are listed as not imported by design. Step 4 adds the
+download-client stage; other non-empty unstaged tables need explicit `/skip=` entries on both
+dry-run and committed imports.
 
 Tests (`IndexersStageFixture`, 18, SQLite and Postgres; `ImportReconciliationFixture` gained 2):
 each rule above with a read-back through the target repositories, and no warning or skip
 detail contains the fixture's API key or a URL. 27 mutants (session 60), all killed.
 
-### TV stages (written, not yet built)
+### TV stages (built)
 
-`NzbDrone.Core.Tv.Upstream`, written in session 61. **Not compiled or tested yet:** the session's
-environment could not restore NuGet packages. Built against the Sonarr 4.0.20 schema
+`NzbDrone.Core.Tv.Upstream`, implemented in session 61 and verified in session 62. Built against the Sonarr 4.0.20 schema
 (`sonarr-217.schema.sql`, from a fresh install of that release) and checked against the
 owner's live database (schema 217, same release, read-only, counts and flag values only).
 
@@ -466,9 +471,9 @@ profile, no episode with a NULL `Monitored`. F4 does not affect this data.
 
 Tests (`SonarrStagesFixture`, the two-source tests in `ProfilesStageFixture`, four Sonarr tests in
 `IndexersStageFixture`, the Sonarr cases in `UpstreamRealSchemaFixture`,
-`ImportStageCoverageFixture` and `ImportRequestFixture`): written, not yet run. Next: build, run
-on SQLite and Postgres, mutation checks, then a dry run over a backup-API copy of the live
-`sonarr.db`.
+`ImportStageCoverageFixture` and `ImportRequestFixture`): run in the full Release suite and the
+importer Postgres slice. A mutation check confirmed the episode monitored flag assertion catches
+an importer that forces episodes unmonitored. Step 3's dry-run is recorded in the project state.
 
 ## Mapping
 
@@ -504,7 +509,7 @@ reason code.
 | `DownloadHistory` | `DownloadHistory` | `MediaKind = Movies`, `MovieId` to `ParentId`, `IndexerId` and `DownloadClientId` via `IdMap`. `Release` is a serialized `ReleaseInfo` in Radarr's shape and must be converted to Prowlarr's shape (plan, finding 1: `Size` is `long?`, languages are strings, flags are a named set), using `IndexerLanguageMapper` and `IndexerFlagsMapper`. |
 | `Blocklist` | `Blocklist` | `MediaKind = Movies`, `MovieId` to `ParentId`, `Quality` and `Languages` remapped. `IndexerFlags` copied. |
 | `PendingReleases` | *(skipped)* | Transient: releases held by a delay profile for hours. They return on the next RSS sync. Reported as a count, reason `TRANSIENT`. |
-| `Config` | `Config` | See [Configuration](#configuration). |
+| `Config` | `Config` | Radarr and Sonarr portable media-loop settings go through the allowlist in [Configuration](#configuration); instance credentials and identity values are skipped. |
 | `Users`, `ScheduledTasks`, `Commands`, `Logs`, `UpdateHistory`, `VersionInfo`, `IndexerStatus`, `DownloadClientStatus`, `NotificationStatus`, `ImportListStatus` | *(skipped)* | Instance or runtime state. `TRANSIENT` or `INSTANCE`. |
 
 **Event type maps.** `History.EventType` and `DownloadHistory.EventType` are
@@ -525,7 +530,7 @@ It gets the most real-row coverage (see [Tests](#tests)).
 | `AppSyncProfiles` | *(folded into `Indexers`)* | Provides `EnableRss`, `EnableAutomaticSearch`, `EnableInteractiveSearch` and the default `MinimumSeeders`. |
 | `IndexerProxies` | `IndexerProxies` | Implementations that exist (FlareSolverr and the rest of Prowlarr's layer). `Tags` via `IdMap`. |
 | `Applications` | *(skipped)* | Prowlarr's sync targets (Radarr, Sonarr). Plattarr has no sync. Used only to learn which Radarr indexer came from which Prowlarr indexer. `OBSOLETE`. |
-| `DownloadClients` | `DownloadClients` | Only when no Radarr client matches (see [Download clients](#download-clients)). |
+| `DownloadClients` | `DownloadClients` | A matching Prowlarr endpoint maps to the imported Radarr/Sonarr client. A Prowlarr-only client is skipped as `NO_MEDIA_TYPE` (see [Download clients](#download-clients)). |
 | `Notifications` | `Notifications` | Only implementations that still exist. |
 | `Tags`, `CustomFilters` | `Tags`, `CustomFilters` | Tags merge by label (see below). |
 | `Config` | `Config` | Global settings; see [Configuration](#configuration). |
@@ -534,15 +539,46 @@ It gets the most real-row coverage (see [Tests](#tests)).
 
 ### From `sonarr.db`
 
-Built so far (see [TV stages](#tv-stages-written-not-yet-built)): `Tags`, `CustomFormats`,
+Built (see [TV stages](#tv-stages-built)): `Tags`, `CustomFormats`,
 `QualityProfiles`, `QualityDefinitions`, `DelayProfiles`, `Indexers`, `RootFolders`, `Series`,
-`Episodes`, `EpisodeFiles`, `SubtitleFiles`, `ExtraFiles`, `MetadataFiles`, each into the shared
-or `Tv_*` table. Not claimed yet (a committed run with rows in them is refused): `ReleaseProfiles`,
-`DownloadClients`, `RemotePathMappings`, `Notifications`, `AutoTagging`, `CustomFilters`,
+`Episodes`, `EpisodeFiles`, `SubtitleFiles`, `ExtraFiles`, `MetadataFiles` into the shared or
+`Tv_*` tables. Shared stages also import `ReleaseProfiles` and allowlisted `Config` rows.
+Deferred by `/skip=` when non-empty and not
+staged: `RemotePathMappings`, `Notifications`, `AutoTagging`, `CustomFilters`,
 `NamingConfig`, `Metadata`, `ImportLists`, `ImportListExclusions`, `History`, `DownloadHistory`,
-`Blocklist`, `Config`. Count only: `PendingReleases`, `SceneMappings`, `ImportListItems`,
+`Blocklist`. `DownloadClients` now has a stage. Count only: `PendingReleases`, `SceneMappings`, `ImportListItems`,
 `ScheduledTasks`, `Commands` and the four status tables (`TRANSIENT`); `Users`, `VersionInfo`
 (`INSTANCE`). `SceneMappings` is downloaded again by the TV module.
+
+### Cutover disposition from the protected-copy rehearsal (2026-10-25)
+
+The rehearsal read 51 source tables and found 13,663 imported rows plus 16,582 rows in
+13 non-empty, unstaged source tables. Read-only counts from the protected Radarr, Sonarr
+and Prowlarr copies identified these exact rows:
+
+| Source table | Rows | Cutover decision |
+|---|---:|---|
+| Radarr `Blocklist` | 53 | Defer to Tier 2. Old rejected releases may be retried. |
+| Radarr `DownloadHistory` | 352 | Defer to Tier 2. Historical records do not drive the current queue; converting `Release` JSON remains the highest-risk mapping. |
+| Radarr `History` | 277 | Defer to Tier 2. Activity history only. |
+| Radarr `Metadata` | 5 | Defer. All five providers are disabled. |
+| Radarr `NamingConfig` | 1 | Defer; naming will be set by hand after import. |
+| Radarr `Config` | 8 | Tier 1 selective stage. Import three portable settings; skip five instance-specific values. |
+| Sonarr `Blocklist` | 1,900 | Defer to Tier 2. Old rejected releases may be retried. |
+| Sonarr `DownloadHistory` | 6,173 | Defer to Tier 2. Historical records do not drive the current queue; converting `Release` JSON remains the highest-risk mapping. |
+| Sonarr `History` | 7,797 | Defer to Tier 2. Activity history only. |
+| Sonarr `Metadata` | 5 | Defer. All five providers are disabled. |
+| Sonarr `NamingConfig` | 1 | Defer; naming will be set by hand after import. |
+| Sonarr `ReleaseProfiles` | 1 | Tier 1 stage. The row is enabled and contains active required/ignored release terms. |
+| Sonarr `Config` | 9 | Tier 1 selective stage. Import four portable settings; skip five instance-specific values. |
+
+The release-profile stage remaps tags and assigned indexer IDs. The config stage allows
+only `MaximumSize`, both `AutoUnmonitorPreviouslyDownloaded*` flags,
+`EnableCompletedDownloadHandling`, and `CleanupMetadataImages`. The two `MaximumSize`
+values were equal in the rehearsal; when they conflict, Radarr wins and the Sonarr row is
+reported as `CONFIG_CONFLICT`. The ten unportable config rows remain `INSTANCE` skips;
+their values never enter a report. After these additions, ten tables and 16,564 rows
+remain safe to defer for this cutover. The Prowlarr copies had no deferred non-empty tables.
 
 ### Tags
 
@@ -573,7 +609,7 @@ Order: custom formats first (profiles reference them), then profiles.
   by a planner test with two synthetic sources.
 - **Name collisions** (same name, different content, from different sources) are
   written with the source appended (`HD-1080p (Sonarr)`) and reported.
-- **Built for Sonarr (session 61, not yet compiled).** `ProfilesStage` reads Radarr then
+- **Built for Sonarr (session 61; verified in session 62).** `ProfilesStage` reads Radarr then
   Sonarr. A row is merged only with a same-name row from the other app whose content is equal
   (custom formats: the renaming flag and the serialized specifications; profiles: cutoff,
   language, flags, scores, formats and items), and then `AppliesTo` gets both kinds. Otherwise
@@ -609,9 +645,14 @@ Order: custom formats first (profiles reference them), then profiles.
   does **not** replace it with `plattarr-movies`, so torrents already in that category
   keep being tracked. A test feeds the same rows through migration 003 and through the
   importer and asserts the settings JSON is equal.
-- **Matching a Prowlarr client.** Two clients are the same when implementation, host,
-  port, SSL flag and URL base are equal. A Prowlarr client that matches a Radarr one
-  is dropped (reported as `DUPLICATE`, naming the Radarr client it matched).
+- Sonarr's old `tvCategory`, `tvImportedCategory`, `recentTvPriority` and
+  `olderTvPriority` keys become the TV entry. After merging the apps, `EnsureEntries`
+  fills any missing media type with the client's default category and priority; existing
+  entries are preserved.
+- **Matching clients.** Two clients are the same when implementation, host, port, SSL
+  flag and URL base are equal. Matching Radarr and Sonarr definitions become one target
+  client, retaining each app's category entry and Radarr's other settings if those differ.
+  A matching Prowlarr client maps to that target ID.
   A Prowlarr-only client has no media type and no category that means anything to
   Plattarr, so it is skipped and reported (`NO_MEDIA_TYPE`). *(reversible: it could
   instead be imported with a default `plattarr-movies` entry.)*
@@ -661,23 +702,17 @@ would duplicate every indexer.
 
 ### Configuration
 
-Two kinds of keys, per the spec ("Configuration"):
+The current `ConfigStage` handles Radarr and Sonarr settings that affect core media behavior:
+`MaximumSize`, `AutoUnmonitorPreviouslyDownloadedMovies`,
+`AutoUnmonitorPreviouslyDownloadedEpisodes`, `EnableCompletedDownloadHandling`, and
+`CleanupMetadataImages`. Boolean and integer values are parsed and normalized before being
+written. When both apps set the same key to different values, Radarr's value wins and the
+Sonarr row is reported as `CONFIG_CONFLICT`.
 
-- **Global-only and override-capable keys** are imported. `prowlarr.db` supplies the
-  global value for keys it has; a differing `radarr.db` value for a key on the override
-  list becomes `Movies.<key>`; a differing value for a global-only key is reported
-  (`CONFIG_CONFLICT`) and the Prowlarr value wins.
-- **Instance and environment keys** are not imported: `Port`, `SslPort`, `BindAddress`,
-  `UrlBase`, `EnableSsl`, `SslCertPath`, `SslCertPassword`, `ApiKey`, `AuthenticationMethod`,
-  `AuthenticationRequired`, `InstanceName`, `LogLevel`, `Branch`, `UpdateMechanism`,
-  `UpdateAutomatically`, `UpdateScriptPath`, `ProxyHostname` and the other proxy keys,
-  `BackupFolder`, `BackupInterval`, `BackupRetention`. Plattarr's port is 7880 and its
-  authentication starts unset; copying a second app's values would mix two identities.
-  Users and API keys are skipped for the same reason. Each is listed once under
-  `INSTANCE`. *(reversible: carrying over the Radarr API key is a one-line opt-in if the
-  compatibility APIs arrive and a tool needs it.)*
-- `UILanguage` is imported through `RadarrLanguageIds` (it stores a language ID).
-- A key the target does not know is skipped as `UNKNOWN_KEY`.
+Every other source config row is reported as `INSTANCE` and omitted. This keeps HMAC and
+Rijndael passphrases/salts, Plex client identifiers, API keys, and other machine-bound
+values out of Plattarr. Values never appear in logs or reports. Prowlarr Config is count-only
+in v1; it is not part of this stage.
 
 ### Paths
 
@@ -701,15 +736,17 @@ adapter reads has a position.
 
 1. Tags
 2. Custom formats, then quality profiles, quality definitions, delay profiles
-3. Indexer proxies, indexers, indexer overrides, then release profiles (their `IndexerId` is a
-   target indexer ID, which exists only after the indexers are written)
-4. Download clients, remote path mappings, notifications, auto tagging, custom filters
-5. Root folders, naming config, import exclusions, metadata consumers, import lists
-6. Movie metadata, alternative titles, translations, credits, collections
-7. Movies, then movie files, then `Movies.MovieFileId`
-8. Import list movies, metadata files, extra files, subtitle files
-9. History, download history, blocklist
-10. Config
+3. Download clients (their IDs are needed by Prowlarr's per-indexer client overrides)
+4. Indexer proxies, indexers and indexer overrides
+5. Release profiles (their `IndexerId` is a target indexer ID, which exists only after the
+   indexers are written)
+6. Remote path mappings, notifications, auto tagging, custom filters
+7. Root folders, naming config, import exclusions, metadata consumers, import lists
+8. Movie metadata, alternative titles, translations, credits, collections
+9. Movies, then movie files, then `Movies.MovieFileId`
+10. Import list movies, metadata files, extra files, subtitle files
+11. History, download history, blocklist
+12. Portable Config settings
 
 ## Verification
 
@@ -737,7 +774,8 @@ failed.
 `/config/import-report/import-<timestamp>.json` and `.txt`:
 
 - source files, their `VersionInfo` maxima, and SHA-256 of the copies;
-- per table: read, written, skipped, with the reason-code histogram;
+- per table: read, written, skipped, with the reason-code histogram; deferred tables appear
+  in a separate "Deferred by the owner with /skip=" section and balance as skipped rows;
 - every skipped row: table, source ID, name or title, reason code, one-line detail;
 - warnings (path not reachable, config conflict, client override dropped, Cardigann
   definitions to confirm);

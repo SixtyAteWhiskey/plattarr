@@ -237,9 +237,19 @@ namespace NzbDrone.Core.Upstream
                     usedProfiles.Add(profile.GetLong("Id"));
                 }
 
-                if ((row.GetNullableLong("DownloadClientId") ?? 0) != 0)
+                var sourceClientId = row.GetNullableInt("DownloadClientId") ?? 0;
+                var targetClientId = 0;
+
+                if (sourceClientId > 0)
                 {
-                    session.Warn($"Prowlarr indexer \"{name}\" sends its grabs to a chosen download client. The importer does not carry that choice yet: pick the client again on the indexer after the import.");
+                    if (session.IdMap.TryResolve(UpstreamApps.Prowlarr, DownloadClientsStage.Table, sourceClientId, out var resolvedClientId))
+                    {
+                        targetClientId = checked((int)resolvedClientId);
+                    }
+                    else
+                    {
+                        session.Warn($"Prowlarr indexer \"{name}\" sends its grabs to a chosen download client that was not imported. Pick a download client again on the indexer after the import.");
+                    }
                 }
 
                 var enable = (row.GetNullableLong("Enable") ?? 0) != 0;
@@ -265,7 +275,7 @@ namespace NzbDrone.Core.Upstream
                     Redirect = (row.GetNullableLong("Redirect") ?? 0) != 0,
                     Added = row.GetNullableDateTime("Added") ?? session.ImportedAt,
                     Tags = new HashSet<int>(tags),
-                    DownloadClientId = 0,
+                    DownloadClientId = targetClientId,
                     EnableRss = flags.Rss,
                     EnableAutomaticSearch = flags.Automatic,
                     EnableInteractiveSearch = flags.Interactive

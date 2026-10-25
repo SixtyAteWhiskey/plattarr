@@ -17,10 +17,12 @@ namespace NzbDrone.Core.Upstream
     {
         public const int Tags = 100;
         public const int Profiles = 200;
+        public const int DownloadClients = 250;
 
         // Indexer proxies, indexers and their per-media-type overrides. Before anything that
         // stores an indexer ID (release profiles, download history).
         public const int Indexers = 300;
+        public const int ReleaseProfiles = 350;
         public const int RootFolders = 500;
         public const int TvRootFolders = 510;
         public const int ImportExclusions = 550;
@@ -32,6 +34,7 @@ namespace NzbDrone.Core.Upstream
         public const int Series = 710;
         public const int MovieExtras = 800;
         public const int TvExtras = 810;
+        public const int Config = 900;
     }
 
     // One source table of one app.

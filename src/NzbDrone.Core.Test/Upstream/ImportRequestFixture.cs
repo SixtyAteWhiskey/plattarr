@@ -20,6 +20,7 @@ namespace NzbDrone.Core.Test.Upstream
                 "/radarr=/import/radarr.db",
                 "/prowlarr=/import/prowlarr_backup.zip",
                 "/options=/import/options.json",
+                "/skip=Radarr:Notifications,Sonarr:History",
                 "/report=/import/out",
                 "/dry-run");
 
@@ -28,6 +29,11 @@ namespace NzbDrone.Core.Test.Upstream
             request.RadarrPath.Should().Be("/import/radarr.db");
             request.ProwlarrPath.Should().Be("/import/prowlarr_backup.zip");
             request.OptionsPath.Should().Be("/import/options.json");
+            request.SkipTables.Should().BeEquivalentTo(new[]
+            {
+                new SourceTableRef("Radarr", "Notifications"),
+                new SourceTableRef("Sonarr", "History")
+            });
             request.ReportDirectory.Should().Be("/import/out");
             request.DryRun.Should().BeTrue();
         }
@@ -65,6 +71,16 @@ namespace NzbDrone.Core.Test.Upstream
         public void should_treat_an_empty_value_as_not_given()
         {
             var act = () => ImportRequest.From(new StartupContext("/import", "/radarr="), Default);
+
+            act.Should().Throw<UpstreamImportException>();
+        }
+
+        [TestCase("Radarr:Notifications,Radarr:Notifications")]
+        [TestCase("Radarr")]
+        [TestCase(":Notifications")]
+        public void should_reject_invalid_skip_lists(string value)
+        {
+            var act = () => ImportRequest.From(new StartupContext("/import", "/radarr=/import/radarr.db", "/skip=" + value), Default);
 
             act.Should().Throw<UpstreamImportException>();
         }

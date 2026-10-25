@@ -19,25 +19,23 @@ namespace NzbDrone.Core.Test.Upstream
     {
         private static readonly string[] RadarrNotYetClaimed =
         {
-            "ReleaseProfiles",
-            "DownloadClients", "RemotePathMappings", "Notifications", "AutoTagging",
+            "RemotePathMappings", "Notifications", "AutoTagging",
             "CustomFilters", "NamingConfig", "Metadata", "ImportLists", "ImportListMovies",
-            "History", "DownloadHistory", "Blocklist", "Config"
+            "History", "DownloadHistory", "Blocklist"
         };
 
         private static readonly string[] ProwlarrNotYetClaimed =
         {
-            "DownloadClients", "Notifications", "CustomFilters"
+            "Notifications", "CustomFilters"
         };
 
         // Tier 2 or not needed to run (docs/importer.md, "From sonarr.db"); Plattarr has no TV
         // import lists, so ImportLists and ImportListExclusions wait for them.
         private static readonly string[] SonarrNotYetClaimed =
         {
-            "ReleaseProfiles",
-            "DownloadClients", "RemotePathMappings", "Notifications", "AutoTagging",
+            "RemotePathMappings", "Notifications", "AutoTagging",
             "CustomFilters", "NamingConfig", "Metadata", "ImportLists", "ImportListExclusions",
-            "History", "DownloadHistory", "Blocklist", "Config"
+            "History", "DownloadHistory", "Blocklist"
         };
 
         // The stage classes, built with null dependencies: Tables and Order never use them.

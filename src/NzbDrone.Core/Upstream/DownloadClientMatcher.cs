@@ -3,10 +3,9 @@ using Newtonsoft.Json.Linq;
 
 namespace NzbDrone.Core.Upstream
 {
-    // Two download clients, one from Radarr and one from Prowlarr, are the same
-    // client when implementation, host, port, SSL flag and URL base are equal
-    // (docs/importer.md, "Download clients"). The Prowlarr copy of a matching pair
-    // is dropped as a duplicate.
+    // Two download clients are the same client when implementation, host, port, SSL flag and URL
+    // base are equal (docs/importer.md, "Download clients"). This merges Radarr and Sonarr clients
+    // and maps Prowlarr's matching copy to the same target row.
     public static class DownloadClientMatcher
     {
         public static bool AreSame(SourceRow a, SourceRow b)

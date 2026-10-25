@@ -40,6 +40,7 @@ namespace NzbDrone.Core.Upstream
     {
         public ImportOutcome Outcome { get; set; }
         public List<ReconciliationRow> Tables { get; set; } = new List<ReconciliationRow>();
+        public List<DeferredSourceTable> DeferredTables { get; set; } = new List<DeferredSourceTable>();
         public List<UnreadTable> UnreadTables { get; set; } = new List<UnreadTable>();
         public List<ImportSkip> Skips { get; set; } = new List<ImportSkip>();
         public List<string> Warnings { get; set; } = new List<string>();
@@ -94,6 +95,7 @@ namespace NzbDrone.Core.Upstream
             }
 
             var stages = _stages.OrderBy(s => s.Order).ToList();
+            var deferredTables = ValidateDeferredTables(snapshots, stages, options.SkipTables);
 
             // Disposing a transaction that was not committed rolls it back, so every exit
             // below but the commit leaves the target untouched.
@@ -103,6 +105,11 @@ namespace NzbDrone.Core.Upstream
             EnsureTargetIsEmpty(connection, transaction);
 
             var session = new ImportSession(connection, transaction, snapshots, options);
+
+            foreach (var deferred in deferredTables)
+            {
+                session.DeferTable(deferred.App, deferred.Table, deferred.Rows);
+            }
 
             foreach (var stage in stages)
             {
@@ -120,6 +127,7 @@ namespace NzbDrone.Core.Upstream
             var result = new ImportResult
             {
                 Tables = tables,
+                DeferredTables = session.DeferredTables.ToList(),
                 UnreadTables = snapshots.SelectMany(s => s.SkippedTables.Select(t => new UnreadTable(s.AppName, t)))
                     .Concat(session.TablesNotImportedByDesign.Select(t => new UnreadTable(t.App, new SkippedTable(t.Table, session.Snapshot(t.App)?.Rows(t.Table).Count ?? 0, t.Reason))))
                     .ToList(),
@@ -145,6 +153,48 @@ namespace NzbDrone.Core.Upstream
             }
 
             return result;
+        }
+
+        private static List<DeferredSourceTable> ValidateDeferredTables(
+            IReadOnlyList<SourceSnapshot> snapshots,
+            IReadOnlyList<IImportStage> stages,
+            IReadOnlyList<SourceTableRef> requested)
+        {
+            var claimed = stages.SelectMany(s => s.Tables).ToHashSet();
+            var available = snapshots.SelectMany(s => s.Tables.Select(t => new SourceTableRef(s.AppName, t.Name))).ToHashSet();
+            var requestedSet = new HashSet<SourceTableRef>();
+
+            foreach (var selection in requested)
+            {
+                var canonical = available.SingleOrDefault(t => string.Equals(t.App, selection.App, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(t.Table, selection.Table, StringComparison.OrdinalIgnoreCase));
+
+                if (canonical == default)
+                {
+                    throw new UpstreamImportException($"/skip= names a table that was not read from a supplied source: {selection.App} {selection.Table}");
+                }
+
+                if (claimed.Contains(canonical))
+                {
+                    throw new UpstreamImportException($"/skip= cannot defer {canonical.App} {canonical.Table}; an import stage handles it.");
+                }
+
+                if (!requestedSet.Add(canonical))
+                {
+                    throw new UpstreamImportException($"/skip= names {canonical.App} {canonical.Table} more than once.");
+                }
+            }
+
+            return requestedSet
+                .Select(selection => new DeferredSourceTable
+                {
+                    App = selection.App,
+                    Table = selection.Table,
+                    Rows = snapshots.Single(s => string.Equals(s.AppName, selection.App, StringComparison.OrdinalIgnoreCase)).Rows(selection.Table).Count
+                })
+                .OrderBy(t => t.App, StringComparer.Ordinal)
+                .ThenBy(t => t.Table, StringComparer.Ordinal)
+                .ToList();
         }
 
         private static void EnsureTargetIsEmpty(IDbConnection connection, IDbTransaction transaction)

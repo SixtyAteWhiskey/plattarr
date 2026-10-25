@@ -14,5 +14,8 @@ namespace NzbDrone.Core.Upstream
 
         // Let a source database newer than the supported range through, with a warning.
         public bool AllowNewerSource { get; set; }
+
+        // Table references provided by the explicit /skip= command-line argument.
+        public IReadOnlyList<SourceTableRef> SkipTables { get; set; } = Array.Empty<SourceTableRef>();
     }
 }
