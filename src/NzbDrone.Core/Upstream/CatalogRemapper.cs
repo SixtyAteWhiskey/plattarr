@@ -30,6 +30,21 @@ namespace NzbDrone.Core.Upstream
         }
     }
 
+    public class SonarrCatalog : IUpstreamCatalog
+    {
+        public string AppName => UpstreamApps.Sonarr;
+
+        public int QualityToCatalog(int upstreamId)
+        {
+            return SonarrQualityIds.ToCatalog(upstreamId);
+        }
+
+        public int LanguageToCatalog(int upstreamId)
+        {
+            return SonarrLanguageIds.ToCatalog(upstreamId);
+        }
+    }
+
     // Rewrites the upstream IDs inside stored JSON columns to catalog IDs. Both
     // shapes below are what QualityIntConverter and LanguageIntConverter write,
     // which is also what Radarr's own database holds:

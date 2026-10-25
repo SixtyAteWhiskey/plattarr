@@ -13,7 +13,8 @@ namespace NzbDrone.Core.Test.Upstream
 {
     // The schemas in Files/Upstream were dumped from the owner's live databases
     // (Radarr VersionInfo 242, Prowlarr 44; docs/importer.md, "Dump findings") and
-    // contain no rows. Building an empty database from one gives the adapter the
+    // contain no rows. The Sonarr schema (217) was dumped from a fresh start of the owner's
+    // release, Sonarr 4.0.20.3014, which migrates an empty database to the same version. Building an empty database from one gives the adapter the
     // true table and column set without any private data.
     [TestFixture]
     public class UpstreamRealSchemaFixture : CoreTest
@@ -88,6 +89,24 @@ namespace NzbDrone.Core.Test.Upstream
         }
 
         [Test]
+        public void should_read_or_count_every_table_in_the_real_sonarr_schema()
+        {
+            var snapshot = ReadSchema(new SonarrAdapter(), "sonarr-217.schema.sql", 217, out var upstreamTables);
+
+            upstreamTables.Should().HaveCount(38, "Sonarr 4.0.20 creates 38 tables in sonarr.db");
+            Accounted(snapshot).Should().BeEquivalentTo(upstreamTables);
+            Accounted(snapshot).Should().OnlyHaveUniqueItems("a table is read or counted, never both");
+        }
+
+        [Test]
+        public void should_refuse_a_sonarr_database_newer_than_the_supported_range()
+        {
+            var act = () => ReadSchema(new SonarrAdapter(), "sonarr-217.schema.sql", 218, out _);
+
+            act.Should().Throw<UpstreamImportException>().WithMessage("*Sonarr*218*");
+        }
+
+        [Test]
         public void should_never_read_the_tables_that_hold_credentials_or_instance_identity()
         {
             var radarr = ReadSchema(new RadarrAdapter(), "radarr-242.schema.sql", 242, out _);
@@ -98,6 +117,10 @@ namespace NzbDrone.Core.Test.Upstream
 
             prowlarr.Table("Users").Exists.Should().BeFalse();
             prowlarr.Table("Config").Exists.Should().BeFalse();
+
+            var sonarr = ReadSchema(new SonarrAdapter(), "sonarr-217.schema.sql", 217, out _);
+
+            sonarr.Table("Users").Exists.Should().BeFalse();
         }
 
         [Test]

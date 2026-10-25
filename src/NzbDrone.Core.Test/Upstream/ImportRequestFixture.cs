@@ -44,6 +44,16 @@ namespace NzbDrone.Core.Test.Upstream
         }
 
         [Test]
+        public void should_accept_a_sonarr_database_as_the_only_source()
+        {
+            var request = ImportRequest.From(new StartupContext("/import", "/sonarr=/import/sonarr.db"), Default);
+
+            request.SonarrPath.Should().Be("/import/sonarr.db");
+            request.RadarrPath.Should().BeNull();
+            request.ProwlarrPath.Should().BeNull();
+        }
+
+        [Test]
         public void should_refuse_a_run_with_no_source()
         {
             var act = () => ImportRequest.From(new StartupContext("/import", "/dry-run"), Default);

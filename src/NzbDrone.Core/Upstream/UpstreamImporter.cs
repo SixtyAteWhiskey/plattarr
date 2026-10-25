@@ -64,6 +64,7 @@ namespace NzbDrone.Core.Upstream
         private static readonly string[] TablesThatMustBeEmpty =
         {
             "Movies_Movies",
+            "Tv_Series",
             "Indexers",
             "DownloadClients",
             "Notifications",

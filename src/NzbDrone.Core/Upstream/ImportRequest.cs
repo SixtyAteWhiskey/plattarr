@@ -11,15 +11,17 @@ namespace NzbDrone.Core.Upstream
         public const string DryRunFlag = "dry-run";
         public const string RadarrArg = "radarr";
         public const string ProwlarrArg = "prowlarr";
+        public const string SonarrArg = "sonarr";
         public const string OptionsArg = "options";
         public const string ReportArg = "report";
 
         public const string Usage = "Usage: /import [/radarr=<radarr.db or backup .zip>] [/prowlarr=<prowlarr.db or backup .zip>] "
-            + "[/options=<options.json>] [/dry-run] [/report=<directory>]. At least one source is required.";
+            + "[/sonarr=<sonarr.db or backup .zip>] [/options=<options.json>] [/dry-run] [/report=<directory>]. At least one source is required.";
 
         // Null when that app's database was not given.
         public string RadarrPath { get; set; }
         public string ProwlarrPath { get; set; }
+        public string SonarrPath { get; set; }
         public string OptionsPath { get; set; }
 
         // Runs every stage on the real schema and rolls back.
@@ -36,12 +38,13 @@ namespace NzbDrone.Core.Upstream
             {
                 RadarrPath = Arg(context, RadarrArg),
                 ProwlarrPath = Arg(context, ProwlarrArg),
+                SonarrPath = Arg(context, SonarrArg),
                 OptionsPath = Arg(context, OptionsArg),
                 DryRun = context.Flags.Contains(DryRunFlag),
                 ReportDirectory = Arg(context, ReportArg) ?? defaultReportDirectory
             };
 
-            if (request.RadarrPath == null && request.ProwlarrPath == null)
+            if (request.RadarrPath == null && request.ProwlarrPath == null && request.SonarrPath == null)
             {
                 throw new UpstreamImportException("No source database was given. " + Usage);
             }

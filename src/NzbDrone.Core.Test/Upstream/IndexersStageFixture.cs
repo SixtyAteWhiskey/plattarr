@@ -9,6 +9,7 @@ using NzbDrone.Core.Indexers.Definitions.Cardigann;
 using NzbDrone.Core.Indexers.Overrides;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Tags;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Upstream;
@@ -42,7 +43,7 @@ namespace NzbDrone.Core.Test.Upstream
             Mocker.SetConstant<IIndexerProxyRepository>(_proxies);
             Mocker.SetConstant<IIndexerOverrideRepository>(_overrides);
             Mocker.SetConstant<ITagRepository>(_tags);
-            Mocker.SetConstant<IEnumerable<IUpstreamCatalog>>(new[] { new RadarrCatalog() });
+            Mocker.SetConstant<IEnumerable<IUpstreamCatalog>>(new IUpstreamCatalog[] { new RadarrCatalog(), new SonarrCatalog() });
             Mocker.SetConstant<IEnumerable<IImportStage>>(new IImportStage[] { Mocker.Resolve<TagsStage>(), Mocker.Resolve<IndexersStage>() });
         }
 
@@ -111,7 +112,33 @@ namespace NzbDrone.Core.Test.Upstream
             return UpstreamFixtureTest.Mapping(id, prowlarrId, 1, radarrId);
         }
 
-        private ImportResult Run(IEnumerable<string> prowlarrRows, IEnumerable<string> radarrRows = null, bool strict = false)
+        // Prowlarr's Sonarr application (Prowlarr's default TV and anime sync categories).
+        private static string SonarrApplication(int id = 2)
+        {
+            var settings = "{\"prowlarrUrl\":\"http://prowlarr.invalid:9696\",\"baseUrl\":\"http://sonarr.invalid\",\"apiKey\":\"" + Secret + "\","
+                + "\"syncCategories\":[5000,5010,5020,5030,5040,5045,5050,5090],\"animeSyncCategories\":[5070],"
+                + "\"syncAnimeStandardFormatSearch\":false,\"syncRejectBlocklistedTorrentHashesWhileGrabbing\":false}";
+
+            return UpstreamFixtureTest.Insert(
+                "Applications",
+                "Id, Name, Implementation, Settings, ConfigContract, SyncLevel, Tags",
+                $"{id}, 'Sonarr', 'Sonarr', {UpstreamFixtureTest.Sql(settings)}, 'SonarrSettings', 2, '[]'");
+        }
+
+        // Sonarr's synchronized copy of a Prowlarr indexer (Sonarr 4 Torznab settings).
+        private static string SonarrCopy(int id, string name, int prowlarrId, string extra = "", int seasonSearchMaximumSingleEpisodeAge = 0)
+        {
+            var settings = "{\"baseUrl\":\"http://prowlarr.invalid:9696/" + prowlarrId + "/\",\"apiPath\":\"/api\",\"apiKey\":\"" + Secret + "\","
+                + "\"minimumSeeders\":1,\"seedCriteria\":{},\"rejectBlocklistedTorrentHashesWhileGrabbing\":false"
+                + (extra.Length > 0 ? "," + extra : ",\"categories\":[5000,5040],\"animeCategories\":[5070],\"animeStandardFormatSearch\":false,\"multiLanguages\":[],\"failDownloads\":[]") + "}";
+
+            return UpstreamFixtureTest.Insert(
+                "Indexers",
+                "Id, Name, Implementation, Settings, ConfigContract, EnableRss, EnableAutomaticSearch, EnableInteractiveSearch, Priority, Tags, DownloadClientId, SeasonSearchMaximumSingleEpisodeAge",
+                $"{id}, {UpstreamFixtureTest.Sql(name)}, 'Torznab', {UpstreamFixtureTest.Sql(settings)}, 'TorznabSettings', 1, 1, 1, 25, '[]', 0, {seasonSearchMaximumSingleEpisodeAge}");
+        }
+
+        private ImportResult Run(IEnumerable<string> prowlarrRows, IEnumerable<string> radarrRows = null, bool strict = false, IEnumerable<string> sonarrRows = null)
         {
             var snapshots = new List<SourceSnapshot>();
 
@@ -123,6 +150,11 @@ namespace NzbDrone.Core.Test.Upstream
             if (radarrRows != null)
             {
                 snapshots.Add(UpstreamFixtureTest.ReadSnapshot(new RadarrAdapter(), GetTestPath("Files/Upstream/radarr-242.schema.sql"), 242, radarrRows, TempFolder + "/radarr"));
+            }
+
+            if (sonarrRows != null)
+            {
+                snapshots.Add(UpstreamFixtureTest.ReadSnapshot(new SonarrAdapter(), GetTestPath("Files/Upstream/sonarr-217.schema.sql"), 217, sonarrRows, TempFolder + "/sonarr"));
             }
 
             return Mocker.Resolve<UpstreamImporter>().Run(snapshots, new ImportOptions { Strict = strict }, false);
@@ -501,6 +533,95 @@ namespace NzbDrone.Core.Test.Upstream
 
             _indexers.All().Should().BeEmpty();
             result.Skips.Should().ContainSingle(s => s.App == "Radarr" && s.Table == "Indexers" && s.Reason == SkipReason.UnmatchedIndexer);
+        }
+
+        [Test]
+        public void should_match_sonarrs_copies_and_keep_their_tv_settings_as_an_override()
+        {
+            var result = Run(
+                new[]
+                {
+                    Profile(1, "Standard", 1, 1, 1, 1),
+                    SonarrApplication(),
+                    Indexer(5, "Tuned", "Cardigann", "CardigannSettings", Cardigann("tuned")),
+                    Indexer(6, "Plain", "Cardigann", "CardigannSettings", Cardigann("plain")),
+                    UpstreamFixtureTest.Mapping(1, 5, 2, 30),
+                    UpstreamFixtureTest.Mapping(2, 6, 2, 31)
+                },
+                sonarrRows: new[]
+                {
+                    SonarrCopy(30, "Tuned (Prowlarr)", 5, "\"categories\":[5000,100002],\"animeCategories\":[5070],\"multiLanguages\":[3],\"requiredFlags\":[8],\"failDownloads\":[]", seasonSearchMaximumSingleEpisodeAge: 7),
+                    SonarrCopy(31, "Plain (Prowlarr)", 6)
+                });
+
+            var tuned = _indexers.All().Single(i => i.Name == "Tuned").Id;
+            var plain = _indexers.All().Single(i => i.Name == "Plain").Id;
+            var indexerOverride = _overrides.All().Single();
+
+            indexerOverride.IndexerId.Should().Be(tuned);
+            indexerOverride.MediaKind.Should().Be(MediaKind.Tv);
+            indexerOverride.MultiLanguages.Should().Equal(Language.Spanish.Id);
+
+            // Sonarr's bit 8 is Internal; the global vocabulary's Internal is 32 (F4).
+            indexerOverride.RequiredFlags.Should().Equal((int)IndexerFlags.G_Internal);
+            indexerOverride.Categories.Should().Equal(5000, 100002);
+            indexerOverride.SeasonSearchMaximumSingleEpisodeAge.Should().Be(7);
+            indexerOverride.RemoveYear.Should().BeNull();
+
+            result.IdMap.Resolve("Sonarr", "Indexers", 30).Should().Be(tuned);
+            result.IdMap.Resolve("Sonarr", "Indexers", 31).Should().Be(plain);
+            result.Tables.Should().ContainSingle(t => t.App == "Sonarr" && t.Table == "Indexers" && t.Read == 2 && t.Imported == 2 && t.Skipped == 0);
+            result.Skips.Should().BeEmpty();
+            ShouldNotLeakSecrets(result);
+        }
+
+        [Test]
+        public void should_keep_a_movie_and_a_tv_override_for_one_prowlarr_indexer()
+        {
+            Run(
+                new[]
+                {
+                    Profile(1, "Standard", 1, 1, 1, 1),
+                    RadarrApplication(),
+                    SonarrApplication(),
+                    Indexer(5, "Both", "Cardigann", "CardigannSettings", Cardigann("both")),
+                    Mapping(1, 5, 20),
+                    UpstreamFixtureTest.Mapping(2, 5, 2, 30)
+                },
+                new[] { RadarrCopy(20, "Both (Prowlarr)", 5, "\"categories\":[2000],\"multiLanguages\":[],\"requiredFlags\":[],\"removeYear\":true") },
+                sonarrRows: new[] { SonarrCopy(30, "Both (Prowlarr)", 5, seasonSearchMaximumSingleEpisodeAge: 3) });
+
+            _overrides.All().Select(o => o.MediaKind).Should().BeEquivalentTo(new[] { MediaKind.Movies, MediaKind.Tv });
+            _overrides.All().Single(o => o.MediaKind == MediaKind.Tv).SeasonSearchMaximumSingleEpisodeAge.Should().Be(3);
+            _overrides.All().Single(o => o.MediaKind == MediaKind.Movies).RemoveYear.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_report_a_sonarr_copy_that_searches_anime_by_standard_numbers()
+        {
+            var result = Run(
+                new[]
+                {
+                    Profile(1, "Standard", 1, 1, 1, 1),
+                    SonarrApplication(),
+                    Indexer(5, "Anime", "Cardigann", "CardigannSettings", Cardigann("anime")),
+                    UpstreamFixtureTest.Mapping(1, 5, 2, 30)
+                },
+                sonarrRows: new[] { SonarrCopy(30, "Anime (Prowlarr)", 5, "\"categories\":[5000],\"animeCategories\":[5070,140679],\"animeStandardFormatSearch\":true,\"multiLanguages\":[]") });
+
+            _overrides.All().Should().BeEmpty();
+            result.Warnings.Should().ContainSingle(w => w.Contains("Anime Standard Format Search") && w.Contains("Anime (Prowlarr)"));
+            result.Warnings.Should().ContainSingle(w => w.Contains("anime categories that Prowlarr does not sync"));
+            ShouldNotLeakSecrets(result);
+        }
+
+        [Test]
+        public void should_skip_sonarrs_indexers_without_a_prowlarr_database()
+        {
+            var result = Run(null, sonarrRows: new[] { SonarrCopy(30, "Tracker (Prowlarr)", 5) });
+
+            _indexers.All().Should().BeEmpty();
+            result.Skips.Should().ContainSingle(s => s.App == "Sonarr" && s.Table == "Indexers" && s.Reason == SkipReason.UnmatchedIndexer);
         }
     }
 }
