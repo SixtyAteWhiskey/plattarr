@@ -117,7 +117,7 @@ namespace NzbDrone.Core.Test.Upstream
             profile.Enabled.Should().BeTrue();
             profile.Required.Should().BeEmpty();
             profile.Ignored.Should().BeEquivalentTo(new[] { "bad-group" });
-            profile.Tags.Should().ContainSingle().Which.Should().Be(result.IdMap.Resolve("Sonarr", "Tags", 3));
+            profile.Tags.Should().ContainSingle().Which.Should().Be(checked((int)result.IdMap.Resolve("Sonarr", "Tags", 3)));
 
             var values = _configs.All().ToDictionary(c => c.Key, c => c.Value);
             values.Should().ContainKey("maximumsize").WhoseValue.Should().Be("15000");
