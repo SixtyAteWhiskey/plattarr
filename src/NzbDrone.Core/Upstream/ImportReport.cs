@@ -160,7 +160,7 @@ namespace NzbDrone.Core.Upstream
             if (report.NotRead.Count > 0)
             {
                 text.AppendLine();
-                text.AppendLine("Not read by design:");
+                text.AppendLine("Not imported by design:");
 
                 foreach (var table in report.NotRead)
                 {

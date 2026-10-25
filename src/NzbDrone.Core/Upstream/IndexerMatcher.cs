@@ -46,35 +46,39 @@ namespace NzbDrone.Core.Upstream
     {
         private static readonly string[] SynchronizedImplementations = { "Torznab", "Newznab" };
 
+        private readonly string _application;
         private readonly HashSet<long> _prowlarrIndexers;
-        private readonly HashSet<long> _radarrApplications;
+        private readonly HashSet<long> _applications;
         private readonly List<(long IndexerId, long AppId, long RemoteIndexerId)> _mappings;
 
-        public IndexerMatcher(SourceSnapshot prowlarr)
+        // application is the Prowlarr application implementation whose indexers are matched
+        // (Radarr; Sonarr when its adapter exists).
+        public IndexerMatcher(SourceSnapshot prowlarr, string application = "Radarr")
         {
+            _application = application;
             _prowlarrIndexers = prowlarr.Rows("Indexers").Select(r => r.GetLong("Id")).ToHashSet();
 
-            _radarrApplications = prowlarr.Rows("Applications")
-                .Where(r => string.Equals(r.GetString("Implementation"), "Radarr", StringComparison.OrdinalIgnoreCase))
+            _applications = prowlarr.Rows("Applications")
+                .Where(r => string.Equals(r.GetString("Implementation"), application, StringComparison.OrdinalIgnoreCase))
                 .Select(r => r.GetLong("Id"))
                 .ToHashSet();
 
             _mappings = prowlarr.Rows("ApplicationIndexerMapping")
                 .Select(r => (IndexerId: r.GetLong("IndexerId"), AppId: r.GetLong("AppId"), RemoteIndexerId: r.GetLong("RemoteIndexerId")))
-                .Where(m => _radarrApplications.Contains(m.AppId))
+                .Where(m => _applications.Contains(m.AppId))
                 .ToList();
         }
 
-        public IndexerMatch Match(SourceRow radarrIndexer)
+        public IndexerMatch Match(SourceRow appIndexer)
         {
-            var implementation = radarrIndexer.GetString("Implementation");
+            var implementation = appIndexer.GetString("Implementation");
 
             if (!SynchronizedImplementations.Contains(implementation, StringComparer.OrdinalIgnoreCase))
             {
                 return IndexerMatch.NotFound("Not a Torznab or Newznab indexer");
             }
 
-            if (!(radarrIndexer.GetJson("Settings") is JObject settings))
+            if (!(appIndexer.GetJson("Settings") is JObject settings))
             {
                 return IndexerMatch.NotFound("No settings");
             }
@@ -86,9 +90,9 @@ namespace NzbDrone.Core.Upstream
                 return IndexerMatch.NotFound("The URL does not end in an indexer ID");
             }
 
-            if (_radarrApplications.Count == 0)
+            if (_applications.Count == 0)
             {
-                return IndexerMatch.NotFound("Prowlarr has no Radarr application");
+                return IndexerMatch.NotFound($"Prowlarr has no {_application} application");
             }
 
             if (!_prowlarrIndexers.Contains(candidate.Value))
@@ -101,9 +105,9 @@ namespace NzbDrone.Core.Upstream
                 return IndexerMatch.Found(candidate.Value, false);
             }
 
-            var radarrId = radarrIndexer.GetLong("Id");
+            var appIndexerId = appIndexer.GetLong("Id");
 
-            return _mappings.Any(m => m.IndexerId == candidate.Value && m.RemoteIndexerId == radarrId)
+            return _mappings.Any(m => m.IndexerId == candidate.Value && m.RemoteIndexerId == appIndexerId)
                 ? IndexerMatch.Found(candidate.Value, true)
                 : IndexerMatch.NotFound("Prowlarr has no sync record pairing this indexer with the one in the URL");
         }

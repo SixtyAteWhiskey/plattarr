@@ -20,14 +20,13 @@ namespace NzbDrone.Core.Test.Upstream
         private static readonly string[] RadarrNotYetClaimed =
         {
             "ReleaseProfiles",
-            "Indexers", "DownloadClients", "RemotePathMappings", "Notifications", "AutoTagging",
+            "DownloadClients", "RemotePathMappings", "Notifications", "AutoTagging",
             "CustomFilters", "NamingConfig", "Metadata", "ImportLists", "ImportListMovies",
             "History", "DownloadHistory", "Blocklist", "Config"
         };
 
         private static readonly string[] ProwlarrNotYetClaimed =
         {
-            "AppSyncProfiles", "Indexers", "IndexerProxies", "Applications", "ApplicationIndexerMapping",
             "DownloadClients", "Notifications", "CustomFilters"
         };
 

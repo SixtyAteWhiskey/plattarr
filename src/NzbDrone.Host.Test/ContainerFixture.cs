@@ -236,6 +236,15 @@ namespace NzbDrone.App.Test
             _container.GetRequiredService<NzbDrone.Core.Music.MediaFiles.TrackImport.Manual.IManualImportService>().Should().NotBeNull();
         }
 
+        // The importer takes every registered stage; a stage whose dependency is missing would only
+        // fail when someone runs /import.
+        [Test]
+        public void should_resolve_the_import_stages()
+        {
+            _container.GetRequiredService<IEnumerable<NzbDrone.Core.Upstream.IImportStage>>().Select(s => s.GetType().Name)
+                .Should().Contain(new[] { "TagsStage", "ProfilesStage", "IndexersStage", "MoviesStage" });
+        }
+
         // A scheduled task whose command nothing executes fails on every run.
         [Test]
         public void should_execute_the_command_of_every_scheduled_task_of_every_module()
