@@ -552,9 +552,9 @@ staged: `RemotePathMappings`, `Notifications`, `AutoTagging`, `CustomFilters`,
 
 ### Cutover disposition from the protected-copy rehearsal (2026-10-25)
 
-The rehearsal read 51 source tables and found 13,663 imported rows plus 16,582 rows in
-13 non-empty, unstaged source tables. Read-only counts from the protected Radarr, Sonarr
-and Prowlarr copies identified these exact rows:
+The first rehearsal read 51 source tables and found 13,663 imported rows plus 16,582 rows in
+13 non-empty tables that had no stage at the time. Read-only counts from the protected Radarr,
+Sonarr and Prowlarr copies identified these exact rows:
 
 | Source table | Rows | Cutover decision |
 |---|---:|---|
@@ -579,6 +579,15 @@ values were equal in the rehearsal; when they conflict, Radarr wins and the Sona
 reported as `CONFIG_CONFLICT`. The ten unportable config rows remain `INSTANCE` skips;
 their values never enter a report. After these additions, ten tables and 16,564 rows
 remain safe to defer for this cutover. The Prowlarr copies had no deferred non-empty tables.
+
+**Step 4 protected-copy replay (2026-10-25).** After adding the release-profile and selective
+Config stages, both dry-run and committed import succeeded against the same read-only backup-API
+copies. The report read 30,245 rows, imported 13,671 rows, explicitly deferred 16,564 rows across
+the ten safe tables above, and recorded nine warnings. The dry-run target had zero Movies, TV
+series and release profiles after rollback. The committed scratch target contained 87 Movies,
+32 TV series, one download client, 17 indexers, three tags and one release profile. It had the
+five allowlisted Config keys and no HMAC, Rijndael or Plex client identity setting. The scratch
+targets and reports were removed; no source database or running app was written.
 
 ### Tags
 
