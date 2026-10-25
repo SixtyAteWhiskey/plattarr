@@ -1,0 +1,30 @@
+.protocol {
+  width: 100px;
+}
+
+.name {
+  width: 220px;
+  font-weight: bold;
+}
+
+.language {
+  width: 90px;
+}
+
+.description {
+  min-width: 200px;
+}
+
+.privacy {
+  width: 110px;
+}
+
+.categories {
+  width: 300px;
+}
+
+.categoryList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}

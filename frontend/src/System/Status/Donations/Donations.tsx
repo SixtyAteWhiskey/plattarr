@@ -4,40 +4,24 @@ import Link from 'Components/Link/Link';
 import translate from 'Utilities/String/translate';
 import styles from '../styles.css';
 
+// Plattarr is built on these projects; the section links to their donation
+// pages as text (no upstream logos).
+const upstreamProjects = [
+  { name: 'Radarr', url: 'https://radarr.video/donate' },
+  { name: 'Sonarr', url: 'https://sonarr.tv/donate' },
+  { name: 'Lidarr', url: 'https://lidarr.audio/donate' },
+  { name: 'Prowlarr', url: 'https://prowlarr.com/donate' },
+];
+
 function Donations() {
   return (
     <FieldSet legend={translate('Donations')}>
-      <div className={styles.logoContainer} title="Radarr (upstream)">
-        <Link to="https://radarr.video/donate">
-          <img
-            className={styles.logo}
-            src={`${window.Radarr.urlBase}/Content/Images/Icons/logo-radarr.png`}
-          />
-        </Link>
-      </div>
-      <div className={styles.logoContainer} title="Lidarr">
-        <Link to="https://lidarr.audio/donate">
-          <img
-            className={styles.logo}
-            src={`${window.Radarr.urlBase}/Content/Images/Icons/logo-lidarr.png`}
-          />
-        </Link>
-      </div>
-      <div className={styles.logoContainer} title="Prowlarr">
-        <Link to="https://prowlarr.com/donate">
-          <img
-            className={styles.logo}
-            src={`${window.Radarr.urlBase}/Content/Images/Icons/logo-prowlarr.png`}
-          />
-        </Link>
-      </div>
-      <div className={styles.logoContainer} title="Sonarr">
-        <Link to="https://sonarr.tv/donate">
-          <img
-            className={styles.logo}
-            src={`${window.Radarr.urlBase}/Content/Images/Icons/logo-sonarr.png`}
-          />
-        </Link>
+      <div className={styles.upstream}>
+        {upstreamProjects.map(({ name, url }) => (
+          <Link key={name} to={url}>
+            {name}
+          </Link>
+        ))}
       </div>
     </FieldSet>
   );
