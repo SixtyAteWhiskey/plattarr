@@ -59,7 +59,7 @@ namespace Radarr.Api.V3.Tv.Series
                             SeriesExistsValidator seriesExistsValidator,
                             SeriesAncestorValidator seriesAncestorValidator,
                             SystemFolderValidator systemFolderValidator,
-                            QualityProfileExistsValidator qualityProfileExistsValidator,
+                            TvQualityProfileExistsValidator qualityProfileExistsValidator,
                             SeriesRootFolderExistsValidator rootFolderExistsValidator,
                             SeriesFolderAsRootFolderValidator seriesFolderAsRootFolderValidator)
             : base(signalRBroadcaster)
