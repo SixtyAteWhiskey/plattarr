@@ -422,6 +422,15 @@ definitions are downloaded on the first start, and a custom definition (a `.yml`
 `Definitions/Custom`) must be copied to Plattarr's `Definitions/Custom` (supported by
 `IndexerDefinitionUpdateService`). The owner has one: `torrentdownload-server01`.
 
+**Dry run over the owner's data** (2026-10-25, image `sha-28319e9`, backup-API copies of the live
+`prowlarr.db` (schema 44) and `radarr.db` (242) on SERVER01, scratch `/config`): Prowlarr `Indexers`
+17 of 17, `IndexerProxies` 1 of 1, `AppSyncProfiles` 1 of 1, Radarr `Indexers` 13 of 13 matched, no
+skip; no settings key lost in the round trip; no flag difference (Radarr's four all-off copies
+mirror four indexers disabled in Prowlarr); one warning, the Cardigann list. `Applications` (4)
+and `ApplicationIndexerMapping` (37) are listed as not imported by design. The tables still without
+a stage are Radarr `Blocklist`, `Config`, `DownloadClients`, `DownloadHistory`, `History`,
+`Metadata` and `NamingConfig`, so a committed run is still refused.
+
 Tests (`IndexersStageFixture`, 18, SQLite and Postgres; `ImportReconciliationFixture` gained 2):
 each rule above with a read-back through the target repositories, and no warning or skip
 detail contains the fixture's API key or a URL. 27 mutants (session 60), all killed.
