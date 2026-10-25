@@ -23,6 +23,7 @@ using NzbDrone.Core.Tv;
 using NzbDrone.SignalR;
 using Radarr.Http;
 using Radarr.Http.Extensions;
+using Radarr.Http.Middleware;
 using Radarr.Http.REST;
 using Radarr.Http.REST.Attributes;
 
@@ -196,10 +197,16 @@ namespace Radarr.Api.V3.Queue
             var hasLanguageFilter = languages is { Count: > 0 };
             var hasQualityFilter = quality is { Count: > 0 };
             var hasStatusFilter = status is { Count: > 0 };
+            var seerrApplication = SeerrCompatibilityMiddleware.GetApplication(HttpContext);
 
             var fullQueue = filteredQueue.Concat(pending).Where(q =>
             {
-                var include = true;
+                var include = seerrApplication switch
+                {
+                    SeerrCompatibilityMiddleware.RadarrApplication => q.IsKind(MediaKind.Movies),
+                    SeerrCompatibilityMiddleware.SonarrApplication => q.IsKind(MediaKind.Tv),
+                    _ => true
+                };
 
                 if (hasMovieIdFilter)
                 {

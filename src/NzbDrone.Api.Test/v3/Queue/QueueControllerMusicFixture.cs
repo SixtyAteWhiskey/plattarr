@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.CustomFormats;
@@ -16,6 +18,7 @@ using NzbDrone.Core.Tv.Parser.Model;
 using NzbDrone.Test.Common;
 using Radarr.Api.V3.Queue;
 using Radarr.Http;
+using Radarr.Http.Middleware;
 using MovieBlocklist = NzbDrone.Core.Movies.Blocklisting;
 using MusicBlocklist = NzbDrone.Core.Music.Blocklisting;
 using TvBlocklist = NzbDrone.Core.Tv.Blocklisting;
@@ -214,6 +217,19 @@ namespace NzbDrone.Api.Test.v3.Queue
                   .Verify(s => s.Block((RemoteMovie)_movie.RemoteRelease, It.IsAny<string>()), Times.Once());
             Mocker.GetMock<MusicBlocklist.IBlocklistService>()
                   .Verify(s => s.Block(It.IsAny<RemoteAlbum>(), It.IsAny<string>()), Times.Never());
+        }
+
+        [TestCase(SeerrCompatibilityMiddleware.RadarrApplication, 1)]
+        [TestCase(SeerrCompatibilityMiddleware.SonarrApplication, 2)]
+        public void should_filter_the_Seerr_queue_to_the_requested_application(
+            string application,
+            int expectedId)
+        {
+            var context = new DefaultHttpContext();
+            context.Items[SeerrCompatibilityMiddleware.ApplicationItemKey] = application;
+            Subject.ControllerContext = new ControllerContext { HttpContext = context };
+
+            Subject.GetQueue(Paging()).Value.Records.Select(r => r.Id).Should().Equal(expectedId);
         }
     }
 

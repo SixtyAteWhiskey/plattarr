@@ -52,6 +52,25 @@ the `playwright` Python package and Chromium. Each shot records what went wrong 
 The checks find what they know about. Open the screenshots too: the raw key, the doubled heading and the movie-only help text above
 were all found by looking.
 
+## Seerr contract replay
+
+`seerr_contract.py` replays the Servarr requests used by Seerr 3.5.1's Radarr and Sonarr adapters: the shared status, profile,
+root-folder, queue and tag calls; movie and series lookup, add, read, update and delete; Sonarr language profiles and episode
+monitoring; and `RefreshMonitoredDownloads`. It sends the API key in the `apikey` query parameter, as Seerr does. The contract
+is based on the pinned [Seerr 3.5.1 Servarr API sources](https://github.com/seerr-team/seerr/tree/v3.5.1/server/api/servarr).
+
+The script refuses any target except `localhost:7881`. Start a fresh scratch instance from the code under review, copy its
+`config.xml` path into `PLATTARR_SEERR_CONFIG_XML`, then run:
+
+```bash
+PLATTARR_SEERR_URL=http://127.0.0.1:7881 \
+PLATTARR_SEERR_CONFIG_XML=/tmp/plattarr-seerr/config/config.xml \
+python3 tools/liveproof/seerr_contract.py
+```
+
+It creates and removes one temporary movie and series, updates one temporary tag, and posts `RefreshMonitoredDownloads` for
+both compatibility bases. The scratch copy must have download clients disabled; discard that copy after the replay.
+
 ## The undo journal
 
 A proof writes each change to the journal (`LIVEPROOF_STATE`, default `./liveproof-state.json`, mode 600) **before** it edits a

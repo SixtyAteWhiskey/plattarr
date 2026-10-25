@@ -198,6 +198,7 @@ namespace NzbDrone.Host
             app.UseHostFiltering();
             app.UseMiddleware<LoggingMiddleware>();
             app.UsePathBase(new PathString(configFileProvider.UrlBase));
+            app.UseMiddleware<SeerrCompatibilityMiddleware>();
             app.UseExceptionHandler(new ExceptionHandlerOptions
             {
                 AllowStatusCode404Response = true,
