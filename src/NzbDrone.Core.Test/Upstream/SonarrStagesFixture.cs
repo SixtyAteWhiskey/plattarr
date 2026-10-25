@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
@@ -88,6 +87,11 @@ namespace NzbDrone.Core.Test.Upstream
 
         private ImportResult Run(params string[] rows)
         {
+            return Run(new ImportOptions(), rows);
+        }
+
+        private ImportResult Run(ImportOptions options, params string[] rows)
+        {
             var common = new[]
             {
                 UpstreamFixtureTest.Insert("Tags", "Id, Label", "1, 'Kids'"),
@@ -101,7 +105,7 @@ namespace NzbDrone.Core.Test.Upstream
                 common.Concat(rows),
                 TempFolder);
 
-            return Mocker.Resolve<UpstreamImporter>().Run(new[] { snapshot }, new ImportOptions(), false);
+            return Mocker.Resolve<UpstreamImporter>().Run(new[] { snapshot }, options, false);
         }
 
         // Sonarr 4 profiles have no Language column.
@@ -140,14 +144,20 @@ namespace NzbDrone.Core.Test.Upstream
         [Test]
         public void should_import_root_folders_and_merge_two_that_map_to_one_path()
         {
-            var result = Run(
+            var result = Run(new ImportOptions
+                {
+                    PathMap = new Dictionary<string, string>
+                    {
+                        ["/tv"] = "/shows",
+                        ["/anime"] = "/shows"
+                    }
+                },
                 UpstreamFixtureTest.Insert("RootFolders", "Id, Path", "1, '/tv'"),
-                UpstreamFixtureTest.Insert("RootFolders", "Id, Path", "2, '/tv'"),
-                UpstreamFixtureTest.Insert("RootFolders", "Id, Path", "3, '/anime'"));
+                UpstreamFixtureTest.Insert("RootFolders", "Id, Path", "2, '/anime'"));
 
-            _rootFolders.All().Select(r => r.Path).Should().BeEquivalentTo("/tv", "/anime");
+            _rootFolders.All().Select(r => r.Path).Should().BeEquivalentTo("/shows");
             result.IdMap.Resolve("Sonarr", "RootFolders", 2).Should().Be(result.IdMap.Resolve("Sonarr", "RootFolders", 1));
-            result.Tables.Single(t => t.App == "Sonarr" && t.Table == "RootFolders").Should().Match<ReconciliationRow>(r => r.Read == 3 && r.Imported == 3);
+            result.Tables.Single(t => t.App == "Sonarr" && t.Table == "RootFolders").Should().Match<ReconciliationRow>(r => r.Read == 2 && r.Imported == 2);
         }
 
         [Test]
