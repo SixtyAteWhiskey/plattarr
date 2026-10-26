@@ -73,11 +73,6 @@ namespace NzbDrone.Core.Hygiene
 
         public void Process(IEnumerable<QueueItem> queue)
         {
-            if (!_config.HygieneActionsEnabled)
-            {
-                return;
-            }
-
             lock (_processLock)
             {
                 var queueItems = queue.ToList();
@@ -85,6 +80,11 @@ namespace NzbDrone.Core.Hygiene
                 // Finish an earlier journal entry before considering the same queue item again.
                 // This prevents a failed substep from being retried twice during one refresh.
                 var resumed = ResumeInterruptedActions(queueItems);
+
+                if (!_config.HygieneActionsEnabled)
+                {
+                    return;
+                }
 
                 foreach (var assessment in _decisions.Evaluate(queueItems).Where(x => x.WouldAct))
                 {
@@ -155,6 +155,11 @@ namespace NzbDrone.Core.Hygiene
             try
             {
                 var tracked = _trackedDownloads.Find(queueItem.DownloadId);
+                if (!MatchesTrackedIdentity(tracked, queueItem.DownloadClientId, queueItem.DownloadId))
+                {
+                    throw new InvalidOperationException("The tracked download client identity changed.");
+                }
+
                 Continue(action, tracked, assessment.Kind, queueItem);
             }
             catch (Exception ex)
@@ -185,6 +190,23 @@ namespace NzbDrone.Core.Hygiene
                 }
 
                 var tracked = _trackedDownloads.Find(action.DownloadId);
+                if (tracked != null && !MatchesTrackedIdentity(tracked, action.DownloadClientId, action.DownloadId))
+                {
+                    if (action.Checkpoint == ReplacementRequested)
+                    {
+                        action.Status = Completed;
+                        action.LastError = null;
+                        action.UpdatedAt = DateTime.UtcNow;
+                        _actions.Update(action);
+                    }
+                    else
+                    {
+                        RecordFailure(action, new InvalidOperationException("The tracked download client identity changed."));
+                    }
+
+                    continue;
+                }
+
                 if (tracked == null)
                 {
                     if (action.Checkpoint == ReplacementRequested)
@@ -335,6 +357,14 @@ namespace NzbDrone.Core.Hygiene
             action.LastError = null;
             action.UpdatedAt = DateTime.UtcNow;
             _actions.Update(action);
+        }
+
+        private static bool MatchesTrackedIdentity(TrackedDownload tracked, int downloadClientId, string downloadId)
+        {
+            return tracked != null &&
+                   tracked.DownloadClient == downloadClientId &&
+                   tracked.DownloadItem != null &&
+                   tracked.DownloadItem.DownloadId == downloadId;
         }
     }
 }

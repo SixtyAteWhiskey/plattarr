@@ -158,6 +158,62 @@ namespace NzbDrone.Core.Test.QueueTests
         }
 
         [Test]
+        public void gate_off_pauses_an_interrupted_action_on_the_next_queue_refresh()
+        {
+            var context = new ActionContext(MediaKind.Tv, true);
+            context.FailedDownloads
+                .Setup(x => x.MarkAsFailed(context.TrackedDownload, false))
+                .Throws(new InvalidOperationException("simulated event outage"));
+
+            context.Service.Process(new[] { context.QueueItem });
+            ExceptionVerification.ExpectedWarns(1);
+            context.Actions[0].Checkpoint.Should().Be("client-removed");
+
+            context.GateEnabled = false;
+            context.Service.Process(Array.Empty<QueueItem>());
+
+            context.Actions[0].Status.Should().Be("paused");
+            context.Actions[0].Checkpoint.Should().Be("client-removed");
+            context.FailedDownloads.Verify(x => x.MarkAsFailed(context.TrackedDownload, false), Times.Once);
+        }
+
+        [Test]
+        public void journal_resume_does_not_continue_against_a_different_download_client()
+        {
+            var context = new ActionContext(MediaKind.Tv, true);
+            var action = new HygieneAction
+            {
+                Id = 15,
+                DownloadClientId = context.QueueItem.DownloadClientId,
+                DownloadId = context.QueueItem.DownloadId,
+                MediaKind = (int)MediaKind.Tv,
+                ReasonCode = "client-failed",
+                RuleId = 9,
+                Status = "failed",
+                Checkpoint = "client-removed",
+                RecoveryPath = "manual recovery"
+            };
+            context.Actions.Add(action);
+            var otherClientDownload = new TrackedDownload
+            {
+                DownloadClient = context.QueueItem.DownloadClientId + 1,
+                DownloadItem = new DownloadClientItem { DownloadId = context.QueueItem.DownloadId, CanBeRemoved = true },
+                Kind = MediaKind.Tv,
+                State = TrackedDownloadState.Downloading
+            };
+            context.TrackedDownloads.Setup(x => x.Find(context.QueueItem.DownloadId)).Returns(otherClientDownload);
+
+            context.Service.Process(Array.Empty<QueueItem>());
+            ExceptionVerification.ExpectedWarns(1);
+
+            action.Status.Should().Be("failed");
+            action.Checkpoint.Should().Be("client-removed");
+            action.LastError.Should().Be(nameof(InvalidOperationException));
+            context.FailedDownloads.Verify(x => x.MarkAsFailed(It.IsAny<TrackedDownload>(), It.IsAny<bool>()), Times.Never);
+            context.TrackedDownloads.Verify(x => x.StopTracking(It.IsAny<string>()), Times.Never);
+        }
+
+        [Test]
         public void action_is_completed_if_tracking_stopped_before_the_final_journal_write()
         {
             var context = new ActionContext(MediaKind.Music, true);
