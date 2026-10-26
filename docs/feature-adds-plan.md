@@ -155,12 +155,21 @@ This is not Cleanuparr parity. The other feature areas above remain open.
 
 ## Local follow-up — 2026-10-26
 
-On the clean base `7088996e8` (`origin/develop`), a disabled-by-default action
-gate and journal now cover the first failed-download/import-blocked slice.
+The Hygiene action gate and journal were built from the clean base
+`7088996e8` and cover the first failed-download/import-blocked slice.
 Movie, TV, and Music unit recovery fixtures exercise retained files and
 checkpoint resumption. A disposable Movie end-to-end proof passed with local
 synthetic Newznab and SABnzbd fixtures. The indexer comparison harness passed
 against local Prowlarr and Plattarr APIs using the same synthetic Torznab feed;
 a same-indexer comparison with real tracker results remains outstanding.
-Ombi contract capture is also outstanding. These changes have not been
-deployed.
+A source-pinned Ombi contract replay is now available; a live Ombi packet
+capture remains outstanding. These changes have not been deployed.
+
+Ombi's latest stable release at this checkpoint is v4.53.10. The upstream
+Radarr v3 and Sonarr v3 request methods were inspected, and
+`tools/liveproof/ombi_contract.py` now replays the AddOnly movie and series
+flows against a disposable Plattarr instance. The replay passed on a fresh
+scratch instance at `localhost:7882`, creating and removing its temporary
+records. It is source-derived, not a live Ombi packet capture; compatibility
+with a configured Ombi installation remains unverified until its runtime calls
+and version are captured.
