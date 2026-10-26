@@ -12,10 +12,16 @@ namespace NzbDrone.Core.Hygiene
         public string Title { get; set; }
         public MediaKind? Kind { get; set; }
         public string DownloadClient { get; set; }
+        public int DownloadClientId { get; set; }
         public string ReasonCode { get; set; }
         public string Explanation { get; set; }
         public string RecommendedAction { get; set; }
         public bool NeedsAttention { get; set; }
+        public int Strikes { get; set; }
+        public int? StrikeLimit { get; set; }
+        public bool RuleEnabled { get; set; }
+        public bool Eligible { get; set; }
+        public string RuleExplanation { get; set; }
         public bool WouldAct { get; set; }
     }
 
@@ -41,6 +47,7 @@ namespace NzbDrone.Core.Hygiene
                 Title = item.Title,
                 Kind = item.RemoteRelease?.Kind,
                 DownloadClient = item.DownloadClient,
+                DownloadClientId = item.DownloadClientId,
                 WouldAct = false
             };
 

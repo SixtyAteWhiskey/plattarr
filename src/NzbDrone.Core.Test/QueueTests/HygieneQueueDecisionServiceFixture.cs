@@ -1,0 +1,64 @@
+using System.Collections.Generic;
+using FluentAssertions;
+using Moq;
+using NUnit.Framework;
+using NzbDrone.Core.Hygiene;
+using NzbDrone.Core.Queue;
+using QueueItem = NzbDrone.Core.Queue.Queue;
+
+namespace NzbDrone.Core.Test.QueueTests
+{
+    [TestFixture]
+    public class HygieneQueueDecisionServiceFixture
+    {
+        [Test]
+        public void reached_threshold_is_eligible_but_cannot_execute_cleanup()
+        {
+            var item = new QueueItem
+            {
+                DownloadClientId = 7,
+                DownloadId = "test-hash",
+                Status = QueueStatus.Failed
+            };
+            var states = new Mock<IHygieneQueueStateRepository>();
+            states.Setup(x => x.All()).Returns(new[]
+            {
+                new HygieneQueueState
+                {
+                    DownloadClientId = 7,
+                    DownloadId = "test-hash",
+                    ReasonCode = "client-failed",
+                    Strikes = 3
+                }
+            });
+            var rules = new Mock<IHygieneRuleRepository>();
+            rules.Setup(x => x.All()).Returns(new List<HygieneRule>
+            {
+                new() { ReasonCode = "client-failed", Enabled = true, StrikeLimit = 3, StrikeIntervalMinutes = 5 }
+            });
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object));
+
+            var assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+
+            assessment.Strikes.Should().Be(3);
+            assessment.Eligible.Should().BeTrue();
+            assessment.WouldAct.Should().BeFalse();
+        }
+
+        [Test]
+        public void pending_item_without_a_download_id_has_no_strikes()
+        {
+            var states = new Mock<IHygieneQueueStateRepository>();
+            states.Setup(x => x.All()).Returns(new List<HygieneQueueState>());
+            var rules = new Mock<IHygieneRuleRepository>();
+            rules.Setup(x => x.All()).Returns(new List<HygieneRule>());
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object));
+
+            var assessment = decisions.Evaluate(new[] { new QueueItem { Status = QueueStatus.Delay } }).Should().ContainSingle().Subject;
+
+            assessment.Strikes.Should().Be(0);
+            assessment.Eligible.Should().BeFalse();
+            assessment.WouldAct.Should().BeFalse();
+        }
+    }
+}

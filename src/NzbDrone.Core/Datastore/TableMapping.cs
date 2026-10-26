@@ -10,6 +10,7 @@ using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Datastore.Converters;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.History;
+using NzbDrone.Core.Hygiene;
 using NzbDrone.Core.IndexerHistory;
 using NzbDrone.Core.IndexerProxies;
 using NzbDrone.Core.IndexerVersions;
@@ -110,6 +111,9 @@ namespace NzbDrone.Core.Datastore
             Mapper.Entity<CustomFilter>("CustomFilters").RegisterModel();
 
             Mapper.Entity<DownloadHistory>("DownloadHistory").RegisterModel();
+
+            Mapper.Entity<HygieneQueueState>("HygieneQueueStates").RegisterModel();
+            Mapper.Entity<HygieneRule>("HygieneRules").RegisterModel();
 
             Mapper.Entity<UpdateHistory>("UpdateHistory").RegisterModel();
 

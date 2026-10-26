@@ -136,7 +136,17 @@ code, short explanation, and suggested manual recovery step. It distinguishes
 ignored, failed, import-blocked, warning, unavailable-client, pending, and
 otherwise healthy items. All assessments currently report `wouldAct: false`.
 
-This is a foundation for the rule engine, not Cleanuparr parity. Next, add
-persisted progress/strike snapshots and rule settings; ensure preview and
-execution share the evaluator before enabling any cleanup. The other feature
-areas above remain open.
+The next local slice adds migration 12 with persisted per-client/download strike
+state and scoped monitoring rules. Rules select a reason, media kind (or all),
+and download client (or all), with a strike threshold and minimum interval.
+Specific rules override broad rules, including when a specific rule is
+disabled. Progress, recovery, and a changed reason reset consecutive strikes.
+Strike tracking stays off until a matching monitoring rule is enabled. The
+Hygiene page can create, edit, and remove these rules and shows the count and
+eligibility explanation. It remains read only with respect to downloads:
+`eligible` can become true, while `wouldAct` stays false. A future executor
+must consume the same `IHygieneQueueDecisionService` output, add a separate
+action enablement gate and journal, and pass isolated removal tests before any
+client or file action is enabled.
+
+This is not Cleanuparr parity. The other feature areas above remain open.
