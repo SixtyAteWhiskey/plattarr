@@ -129,15 +129,17 @@ Any production rollout remains a separate controlled step.
 
 ## Implementation checkpoint — 2026-10-25
 
-The first native Hygiene slice is local only. `GET /api/v3/hygiene/preview`
+The first native Hygiene preview and monitoring-rule slices are committed and
+pushed to `develop` at `79becc43b`; they have not been deployed to production.
+`GET /api/v3/hygiene/preview`
 evaluates the current tracked and pending queue without changing clients or files. The
 Activity > Hygiene page shows each download's media kind, client, stable reason
 code, short explanation, and suggested manual recovery step. It distinguishes
 ignored, failed, import-blocked, warning, unavailable-client, pending, and
 otherwise healthy items. All assessments currently report `wouldAct: false`.
 
-The next local slice adds migration 12 with persisted per-client/download strike
-state and scoped monitoring rules. Rules select a reason, media kind (or all),
+Migration 12 adds persisted per-client/download strike state and scoped
+monitoring rules. Rules select a reason, media kind (or all),
 and download client (or all), with a strike threshold and minimum interval.
 Specific rules override broad rules, including when a specific rule is
 disabled. Progress, recovery, and a changed reason reset consecutive strikes.

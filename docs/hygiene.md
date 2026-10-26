@@ -29,8 +29,9 @@ normal API authentication applies.
 ## Current limit and next implementation
 
 Migration 12 creates `HygieneQueueStates` and `HygieneRules` in the main
-database. This local work has not been pushed or deployed. Before enabling
-automatic cleanup, add an executor that consumes the same
+database. The monitoring and read-only preview implementation is committed and
+pushed to `develop` at `79becc43b`; it has not been deployed to production.
+Before enabling automatic cleanup, add an executor that consumes the same
 `IHygieneQueueDecisionService` assessments, an explicit action setting and
 action journal, and isolated tests of client removal, blocklisting, replacement
 search, private torrents, category changes, and import recovery.

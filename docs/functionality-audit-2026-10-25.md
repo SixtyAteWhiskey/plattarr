@@ -1,5 +1,15 @@
 # Plattarr functionality audit — 2026-10-25
 
+## Current status
+
+This document preserves the dated audit evidence below. Its original “local,
+not deployed” labels describe the state during that audit and may have changed.
+As of `79becc43b` on 2026-10-25, the Music Manual Import collision guard,
+cover backfill, replacement-flow fixes, indexer catalog indicator, and Hygiene
+preview/rule work are committed and pushed to `develop`. None of these updates
+has been deployed to production. Production rollout remains a separate,
+owner-controlled step.
+
 ## Scope and evidence
 
 This began as an acceptance checkpoint for commit `421f334f6`; later passes
