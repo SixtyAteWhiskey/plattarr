@@ -145,6 +145,35 @@ was checked read-only afterward.
   test.
 - The owner feature requests are scoped in `docs/feature-adds-plan.md`.
 
+## Local follow-up on the clean development base — 2026-10-26
+
+The current change set is based on `7088996e8` (`origin/develop`) and has not
+been deployed.
+
+- The frontend now has a `typecheck` script and `skipLibCheck` in its project
+  configuration. This keeps checking application source while skipping noisy
+  dependency declaration diagnostics; a typecheck pass does not establish
+  correctness of third-party declarations.
+- The Hygiene action gate defaults off. The executor consumes the same
+  decision service as preview, journals the reason/rule/checkpoint/recovery
+  path, retains files when removing client jobs, and routes Movie, TV, and
+  Music failures through the existing failure services. Unit fixtures cover
+  all three media kinds and retries. A disposable Movie client/indexer
+  end-to-end proof passed with local synthetic Newznab and SABnzbd fixtures;
+  the action gate remains off by default.
+- The liveproof harness has a read-only Hygiene idle-state check and a
+  same-query Prowlarr/Plattarr flag comparison. The comparison passed against
+  local app APIs using the same synthetic Torznab feed. A same-indexer capture
+  with real tracker results remains outstanding; no mapper change is claimed.
+- `docs/first-run.md` now covers the request, download, import, library scan,
+  compatibility API checks, security boundary, and current Jellyfin/Emby/Plex
+  and Jellyseerr/Ombi limits. Ombi remains unverified.
+- The UI's inherited Radarr help and update links now point to Plattarr's
+  first-run guide and release page; upstream donations are labeled as upstream
+  projects. Radarr package updates, hosted notification checks, and the hosted
+  time check are disabled until Plattarr-owned services exist. The operating-
+  system clock remains outside Plattarr health reporting.
+
 After all code changes, `tools/verify.sh` passed with zero build warnings:
 206 API, 78 Host, and 10,768 Core tests passed (54 Core skips). The cover
 backfill and Music collision guard are in local commit `ff1d9e1ec`. The audit

@@ -21,17 +21,9 @@ function UpdateChanges(props: UpdateChangesProps) {
       <div className={styles.title}>{title}</div>
       <ul>
         {uniqueChanges.map((change, index) => {
-          const checkChange = change.replace(
-            /#\d{4,5}\b/g,
-            (match) =>
-              `[${match}](https://github.com/Radarr/Radarr/issues/${match.substring(
-                1
-              )})`
-          );
-
           return (
             <li key={index}>
-              <InlineMarkdown data={checkChange} />
+              <InlineMarkdown data={change} />
             </li>
           );
         })}

@@ -56,7 +56,7 @@ function NotificationEventItems(props) {
       <div>
         <FormInputHelpText
           text={translate('NotificationTriggersHelpText')}
-          link="https://wiki.servarr.com/radarr/settings#connections"
+          link="https://github.com/SixtyAteWhiskey/plattarr/blob/develop/docs/first-run.md"
         />
         <div className={styles.events}>
           <div>

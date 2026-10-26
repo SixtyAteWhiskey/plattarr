@@ -19,10 +19,12 @@ namespace NzbDrone.Core.Hygiene
         public bool NeedsAttention { get; set; }
         public int Strikes { get; set; }
         public int? StrikeLimit { get; set; }
+        public int? RuleId { get; set; }
         public bool RuleEnabled { get; set; }
         public bool Eligible { get; set; }
         public string RuleExplanation { get; set; }
         public bool WouldAct { get; set; }
+        public string ActionExplanation { get; set; }
     }
 
     public interface IHygieneQueueEvaluator

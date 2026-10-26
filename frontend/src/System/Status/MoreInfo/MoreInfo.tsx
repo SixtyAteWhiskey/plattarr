@@ -14,36 +14,15 @@ function MoreInfo() {
           {translate('HomePage')}
         </DescriptionListItemTitle>
         <DescriptionListItemDescription>
-          <Link to="https://radarr.video/">radarr.video</Link>
+          <Link to="https://github.com/SixtyAteWhiskey/plattarr">
+            github.com/SixtyAteWhiskey/plattarr
+          </Link>
         </DescriptionListItemDescription>
 
         <DescriptionListItemTitle>{translate('Wiki')}</DescriptionListItemTitle>
         <DescriptionListItemDescription>
-          <Link to="https://wiki.servarr.com/radarr">
-            wiki.servarr.com/radarr
-          </Link>
-        </DescriptionListItemDescription>
-
-        <DescriptionListItemTitle>
-          {translate('Reddit')}
-        </DescriptionListItemTitle>
-        <DescriptionListItemDescription>
-          <Link to="https://www.reddit.com/r/Radarr/">/r/Radarr</Link>
-        </DescriptionListItemDescription>
-
-        <DescriptionListItemTitle>
-          {translate('Discord')}
-        </DescriptionListItemTitle>
-        <DescriptionListItemDescription>
-          <Link to="https://radarr.video/discord">radarr.video/discord</Link>
-        </DescriptionListItemDescription>
-
-        <DescriptionListItemTitle>
-          {translate('Source')}
-        </DescriptionListItemTitle>
-        <DescriptionListItemDescription>
-          <Link to="https://github.com/Radarr/Radarr/">
-            github.com/Radarr/Radarr
+          <Link to="https://github.com/SixtyAteWhiskey/plattarr/blob/develop/docs/first-run.md">
+            Plattarr first-run guide
           </Link>
         </DescriptionListItemDescription>
 
@@ -51,8 +30,8 @@ function MoreInfo() {
           {translate('FeatureRequests')}
         </DescriptionListItemTitle>
         <DescriptionListItemDescription>
-          <Link to="https://github.com/Radarr/Radarr/issues">
-            github.com/Radarr/Radarr/issues
+          <Link to="https://github.com/SixtyAteWhiskey/plattarr/issues">
+            github.com/SixtyAteWhiskey/plattarr/issues
           </Link>
         </DescriptionListItemDescription>
       </DescriptionList>
