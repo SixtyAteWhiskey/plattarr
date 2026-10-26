@@ -14,6 +14,7 @@ using NzbDrone.Core.IndexerHistory;
 using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.IndexerVersions;
 using NzbDrone.Core.Lifecycle;
+using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
@@ -100,6 +101,12 @@ namespace NzbDrone.Core.Jobs
                     {
                         Interval = 24 * 60,
                         TypeName = typeof(HousekeepingCommand).FullName
+                    },
+
+                    new ScheduledTask
+                    {
+                        Interval = 12 * 60,
+                        TypeName = typeof(BackfillMediaCoversCommand).FullName
                     },
 
                     new ScheduledTask

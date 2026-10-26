@@ -35,5 +35,6 @@ public enum ImportRejectionReason
     NotAlbumUpgrade,
     ArtistPathNotInRootFolder,
     FailedToAddArtist,
-    FailedToAddAlbum
+    FailedToAddAlbum,
+    DestinationAlreadyExists
 }

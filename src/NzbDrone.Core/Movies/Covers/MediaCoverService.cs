@@ -22,10 +22,17 @@ namespace NzbDrone.Core.Movies.Covers
         string GetCoverPath(int movieId, MediaCoverTypes coverType, int? height = null);
     }
 
+    public interface IEnsureMovieCovers
+    {
+        string GetCoverPath(int movieId, MediaCoverTypes coverType, int? height = null);
+        bool EnsureCovers(Movie movie);
+    }
+
     public class MediaCoverService :
         IHandleAsync<MovieUpdatedEvent>,
         IHandleAsync<MoviesDeletedEvent>,
-        IMapCoversToLocal
+        IMapCoversToLocal,
+        IEnsureMovieCovers
     {
         private readonly IMediaCoverProxy _mediaCoverProxy;
         private readonly IImageResizer _resizer;
@@ -135,7 +142,7 @@ namespace NzbDrone.Core.Movies.Covers
             return Path.Combine(_coverRootFolder, movieId.ToString());
         }
 
-        private bool EnsureCovers(Movie movie)
+        public bool EnsureCovers(Movie movie)
         {
             var updated = false;
             var toResize = new List<Tuple<MediaCover.MediaCover, bool>>();

@@ -1102,18 +1102,24 @@ what the stored JSON and constraints look like.
 
 ## Known costs
 
-- **Cover images** are not copied. IDs differ, and `MediaCover` is a cache that
-  refreshes from the stored `remoteUrl`. Expect one image fetch per movie after the
-  first refresh.
+- **Cover images** are not copied from the source config because IDs differ.
+  After a committed import, the runner downloads and resizes missing Movie and TV
+  covers from their stored `remoteUrl` under the new IDs. A dry run writes no
+  covers. If an image source is unavailable, the committed import report counts
+  the covers still missing; `BackfillMediaCovers` retries them every 12 hours
+  and can also be run from System > Tasks. Existing nonempty cover files are
+  left alone. The committed report is saved before downloads start and updated
+  when they finish, so an interrupted run records how to retry. A metadata
+  refresh is not needed for this backfill.
 - **In-flight downloads at cutover.** Plattarr tracks only its own client categories.
   A torrent still downloading in Radarr's category when Plattarr takes over will not be
   imported by Plattarr unless the client keeps Radarr's category (it does: the
   importer preserves the stored category). Cutover instructions: let the Radarr queue
   drain, then stop the container.
 - **IDs change.** See [Pipeline](#pipeline).
-- **First start after import** refreshes metadata for every movie through the metadata
-  proxy (existing behavior for a stale `LastInfoSync`). The importer does not change
-  `LastInfoSync`.
+- **First start after import** may refresh metadata for stale titles. The importer
+  does not change `LastInfoSync`, so a recent source value can skip a refresh;
+  cover backfill runs independently of that decision.
 
 ## Open items
 

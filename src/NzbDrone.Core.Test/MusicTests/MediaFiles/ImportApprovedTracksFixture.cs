@@ -6,6 +6,7 @@ using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
+using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Messaging.Events;
@@ -14,6 +15,7 @@ using NzbDrone.Core.Music;
 using NzbDrone.Core.Music.MediaFiles;
 using NzbDrone.Core.Music.MediaFiles.Events;
 using NzbDrone.Core.Music.MediaFiles.TrackImport;
+using NzbDrone.Core.Music.Organizer;
 using NzbDrone.Core.Music.Parser.Model;
 using NzbDrone.Core.Music.Profiles;
 using NzbDrone.Core.Qualities;
@@ -96,6 +98,30 @@ namespace NzbDrone.Core.Test.MusicTests.MediaFiles
             Subject.Import(_rejectedDecisions, false).Where(i => i.Result == ImportResultType.Imported).Should().BeEmpty();
 
             Mocker.GetMock<IMediaFileService>().Verify(v => v.Add(It.IsAny<TrackFile>()), Times.Never());
+        }
+
+        [Test]
+        public void should_preserve_an_existing_destination_when_manual_replace_is_disabled()
+        {
+            const string destination = "/testdata/music/existing.mp3";
+            var decision = _approvedDecisions.First();
+
+            Mocker.GetMock<IBuildFileNames>()
+                .Setup(s => s.BuildTrackFilePath(It.IsAny<List<Track>>(), It.IsAny<Artist>(), It.IsAny<Album>(), It.IsAny<TrackFile>(), It.IsAny<string>(), null, null))
+                .Returns(destination);
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(s => s.FileExists(destination))
+                .Returns(true);
+
+            var result = Subject.Import(new List<ImportDecision<LocalTrack>> { decision }, false).Single();
+
+            result.Result.Should().Be(ImportResultType.Rejected);
+            result.Errors.Should().ContainSingle().Which.Should().Contain("replacing existing files is disabled");
+            Mocker.GetMock<IUpgradeMediaFiles>()
+                .Verify(s => s.UpgradeTrackFile(It.IsAny<TrackFile>(), It.IsAny<LocalTrack>(), It.IsAny<bool>()), Times.Never());
+            Mocker.GetMock<IReleaseService>()
+                .Verify(s => s.SetMonitored(It.IsAny<AlbumRelease>()), Times.Never());
         }
 
         [Test]
