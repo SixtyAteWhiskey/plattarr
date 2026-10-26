@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Replay Ombi v4.53.10's Radarr v3 and Sonarr v3 request flows.
 
-The request methods and payloads are pinned to the stable Ombi v4.53.10 source.
-This writes one disposable movie, one series, and two temporary tags, then
-removes them. It is limited to a local Plattarr scratch instance on port 7882.
+The request methods and payloads are pinned to Ombi v4.53.10 source and a
+disposable runtime capture. This writes one movie, one series, and a shared
+temporary user tag, then removes them. It is limited to a local Plattarr
+scratch instance on port 7882.
 """
 import argparse
 import json
@@ -110,9 +111,14 @@ def read_profiles_and_roots(api, profile_route="/qualityprofile", root_route="/r
     return profiles[0], root["path"]
 
 
-def create_tag(api, label, cleanups):
+def get_or_create_tag(api, label, cleanups):
     existing = api.call("GET", "/tag")
     require(isinstance(existing, list), f"{api.server} tag response was not a list")
+
+    tag = next((item for item in existing if item.get("label", "").casefold() == label.casefold()), None)
+    if tag is not None:
+        require(tag.get("id"), f"{api.server} existing tag had no id")
+        return tag
 
     tag = api.call("POST", "/tag", {"Label": label})
     require(isinstance(tag, dict) and tag.get("id"), f"{api.server} tag create returned no id")
@@ -138,14 +144,18 @@ def replay_radarr(api, cleanups, label):
     profile, root_path = read_profiles_and_roots(api, "/qualityProfile", "/rootfolder")
 
     # Ombi calls GetTags/CreateTag when its per-user tag option is enabled.
-    tag = create_tag(api, f"{label}-radarr", cleanups)
+    tag = get_or_create_tag(api, label, cleanups)
     movies = api.call("GET", "/movie")
     require(isinstance(movies, list), "Radarr movie response was not a list")
     tmdb_id, metadata = lookup_first_unused(api, "/movie/lookup", DEFAULT_MOVIE_IDS, movies, "tmdbId", "tmdb")
 
-    # Mirrors RadarrV3Api.AddMovie with Ombi's AddOnly option enabled. Ombi
-    # omits addOptions entirely in this mode, so no search command is queued.
+    # Ombi serializes addOptions as null in AddOnly mode, so no search command
+    # is queued. The empty images and null Error fields were present in its
+    # v4.53.10 runtime request.
     movie_options = {
+        "Error": None,
+        "addOptions": None,
+        "images": [],
         "title": metadata["title"],
         "tmdbId": tmdb_id,
         "qualityProfileId": profile["id"],
@@ -174,7 +184,7 @@ def replay_sonarr(api, cleanups, label):
     )
 
     # Ombi calls GetTags/CreateTag when its per-user tag option is enabled.
-    tag = create_tag(api, f"{label}-sonarr", cleanups)
+    tag = get_or_create_tag(api, label, cleanups)
     series = api.call("GET", "/series")
     require(isinstance(series, list), "Sonarr series response was not a list")
     tvdb_id, metadata = lookup_first_unused(api, "/series/lookup", DEFAULT_TVDB_IDS, series, "tvdbId", "tvdb")
@@ -184,12 +194,15 @@ def replay_sonarr(api, cleanups, label):
         for season in metadata.get("seasons", [])
         if season.get("seasonNumber") is not None
     ]
-    total_seasons = max(season_numbers, default=0)
-    require(total_seasons > 0, "Sonarr lookup returned no regular seasons")
+    require(1 in season_numbers, "Sonarr lookup returned no season 1")
 
-    # Mirrors Ombi's NewSeries and AddOptions models for one requested season.
-    # It adds the series without starting a missing-episode search.
+    # Ombi's one-episode request sends seasons 0 and 1, both initially
+    # unmonitored. Its runtime request also serialized default id, tvRageId,
+    # images and season statistics fields.
     series_options = {
+        "id": 0,
+        "tvRageId": 0,
+        "images": [],
         "tvdbId": tvdb_id,
         "title": metadata["title"],
         "imdbId": metadata.get("imdbId", ""),
@@ -208,8 +221,8 @@ def replay_sonarr(api, cleanups, label):
         "languageProfileId": languages[0]["id"],
         "tags": [tag["id"]],
         "seasons": [
-            {"seasonNumber": season_number, "monitored": False}
-            for season_number in range(total_seasons + 1)
+            {"seasonNumber": season_number, "monitored": False, "statistics": None}
+            for season_number in (0, 1)
         ],
     }
     created = api.call("POST", "/series/", series_options)
@@ -227,16 +240,34 @@ def replay_sonarr(api, cleanups, label):
     updated = api.call("PUT", "/series/", current)
     require(isinstance(updated, dict), "Sonarr series update returned no object")
 
-    episodes = api.call("GET", f"/Episode?seriesId={series_id}")
+    # Episode rows can arrive shortly after the series response. Ombi itself
+    # polls this endpoint until they are available.
+    episodes = []
+    for _ in range(20):
+        episodes = api.call("GET", f"/Episode?seriesId={series_id}")
+        if episodes:
+            break
+        time.sleep(0.5)
     require(isinstance(episodes, list) and episodes, "Sonarr added series has no episode rows")
     season_episodes = [item for item in episodes if item.get("seasonNumber") == 1 and item.get("id")]
     require(season_episodes, "Sonarr added series has no season 1 episodes")
     episode_ids = [item["id"] for item in season_episodes]
+    requested_episode = next((item for item in season_episodes if item.get("episodeNumber") == 1), None)
+    require(requested_episode is not None, "Sonarr added series has no season 1 episode 1")
 
-    # Ombi first clears monitoring for the season, then monitors requested
-    # episodes. Search commands remain disabled by the AddOnly scenario.
+    # Ombi clears the whole season, then monitors only the requested episode.
+    # Search commands remain disabled by the AddOnly scenario.
     api.call("PUT", "/episode/monitor", {"episodeIds": episode_ids, "monitored": False})
-    api.call("PUT", "/episode/monitor", {"episodeIds": episode_ids, "monitored": True})
+    api.call("PUT", "/episode/monitor", {"episodeIds": [requested_episode["id"]], "monitored": True})
+
+    final_episodes = api.call("GET", f"/Episode?seriesId={series_id}")
+    require(isinstance(final_episodes, list), "Sonarr episode readback was not a list")
+    final_season = [item for item in final_episodes if item.get("seasonNumber") == 1]
+    require(
+        final_season
+        and all(item.get("monitored") is (item.get("id") == requested_episode["id"]) for item in final_season),
+        "Sonarr episode monitoring did not match the one-episode request",
+    )
 
 
 def validate_target(base_url):
