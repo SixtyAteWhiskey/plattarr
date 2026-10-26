@@ -306,6 +306,34 @@ namespace NzbDrone.Core.Test.MusicTests.MetadataSource
             ExceptionVerification.ExpectedWarns(1);
         }
 
+        [Test]
+        public void album_text_search_should_explain_an_upstream_500_and_the_id_lookup_recovery()
+        {
+            var request = new HttpRequest("https://metadata.example/search");
+            var response = new HttpResponse(request, new HttpHeader(), string.Empty, HttpStatusCode.InternalServerError);
+
+            Mocker.GetMock<IHttpClient>()
+                .Setup(c => c.Get<List<AlbumResource>>(It.IsAny<HttpRequest>()))
+                .Throws(new HttpException(request, response));
+
+            Assert.Throws<SkyHookException>(() => _proxy.SearchForNewAlbum("Thickfreakness", "The Black Keys"))
+                .Message.Should().Contain("upstream HTTP 500").And.Contain("mbid:");
+        }
+
+        [Test]
+        public void combined_music_text_search_should_explain_an_upstream_500()
+        {
+            var request = new HttpRequest("https://metadata.example/search");
+            var response = new HttpResponse(request, new HttpHeader(), string.Empty, HttpStatusCode.InternalServerError);
+
+            Mocker.GetMock<IHttpClient>()
+                .Setup(c => c.Get<List<EntityResource>>(It.IsAny<HttpRequest>()))
+                .Throws(new HttpException(request, response));
+
+            Assert.Throws<SkyHookException>(() => _proxy.SearchForNewEntity("Thickfreakness"))
+                .Message.Should().Contain("upstream HTTP 500").And.Contain("mbid:");
+        }
+
         public List<AlbumResource> GivenExampleAlbums()
         {
             var result = new List<AlbumResource>();

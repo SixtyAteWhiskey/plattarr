@@ -111,6 +111,21 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
         }
 
         [Test]
+        public void changing_a_grabbed_download_category_should_not_transfer_ownership()
+        {
+            GivenDownloadHistory(MediaKind.Movies);
+
+            var client = Client((MediaKind.Movies, "movies"), (MediaKind.Tv, "tv"));
+            var before = Subject.TrackDownload(client, Item(category: "movies"));
+            var after = Subject.TrackDownload(client, Item(category: "tv"));
+
+            before.Kind.Should().Be(MediaKind.Movies);
+            after.Kind.Should().Be(MediaKind.Movies);
+            _movieMatcher.Verify(m => m.Match(It.IsAny<TrackedDownload>(), It.IsAny<DownloadHistory>()), Times.Exactly(2));
+            _tvMatcher.Verify(m => m.Match(It.IsAny<TrackedDownload>(), It.IsAny<DownloadHistory>()), Times.Never());
+        }
+
+        [Test]
         public void should_pass_the_download_history_to_the_matcher()
         {
             GivenDownloadHistory(MediaKind.Movies, DownloadHistoryEventType.DownloadImported);

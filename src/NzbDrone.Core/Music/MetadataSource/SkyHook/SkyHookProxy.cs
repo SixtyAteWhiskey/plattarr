@@ -307,12 +307,7 @@ namespace NzbDrone.Core.Music.MetadataSource.SkyHook
             }
             catch (HttpException ex)
             {
-                if (ex.Response != null && ex.Response.StatusCode == HttpStatusCode.ServiceUnavailable)
-                {
-                    throw new SkyHookException("Search for '{0}' failed. LidarrAPI Temporarily Unavailable (503)", title);
-                }
-
-                throw new SkyHookException("Search for '{0}' failed. Unable to communicate with LidarrAPI. {1}", ex, title, ex.Message);
+                throw MetadataSearchFailure(title, ex);
             }
             catch (SkyHookException)
             {
@@ -411,12 +406,7 @@ namespace NzbDrone.Core.Music.MetadataSource.SkyHook
             }
             catch (HttpException ex)
             {
-                if (ex.Response != null && ex.Response.StatusCode == HttpStatusCode.ServiceUnavailable)
-                {
-                    throw new SkyHookException("Search for '{0}' failed. LidarrAPI Temporarily Unavailable (503)", title);
-                }
-
-                throw new SkyHookException("Search for '{0}' failed. Unable to communicate with LidarrAPI. {1}", ex, title, ex.Message);
+                throw MetadataSearchFailure(title, ex);
             }
             catch (SkyHookException)
             {
@@ -427,6 +417,20 @@ namespace NzbDrone.Core.Music.MetadataSource.SkyHook
                 _logger.Warn(ex, ex.Message);
                 throw new SkyHookException("Search for '{0}' failed. Invalid response received from LidarrAPI.", title);
             }
+        }
+
+        private static SkyHookException MetadataSearchFailure(string title, HttpException ex)
+        {
+            if (ex.Response != null && (int)ex.Response.StatusCode >= 500)
+            {
+                return new SkyHookException(
+                    "Music metadata text search for '{0}' is unavailable (upstream HTTP {1}). Retry later, or look up a known album or artist with mbid:<MusicBrainz ID>.",
+                    ex,
+                    title,
+                    (int)ex.Response.StatusCode);
+            }
+
+            return new SkyHookException("Search for '{0}' failed. Unable to communicate with LidarrAPI. {1}", ex, title, ex.Message);
         }
 
         private static bool IsMbidQuery(string query)
