@@ -1,11 +1,16 @@
 using System.Collections.Generic;
 using NzbDrone.Core.Queue;
+using QueueModel = NzbDrone.Core.Queue.Queue;
 
 namespace NzbDrone.Core.Hygiene
 {
     public static class HygieneQueueSignalClassifier
     {
-        public static void Apply(Queue item, HygieneQueueAssessment assessment, IEnumerable<HygieneRule> rules, IHygieneRuleService ruleService)
+        public static void Apply(
+            QueueModel item,
+            HygieneQueueAssessment assessment,
+            IEnumerable<HygieneRule> rules,
+            IHygieneRuleService ruleService)
         {
             if (assessment.ReasonCode is "ignored" or "client-failed" or "import-blocked" or "client-unavailable")
             {
