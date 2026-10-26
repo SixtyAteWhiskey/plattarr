@@ -6,6 +6,7 @@ import TvBlocklist from 'Activity/Blocklist/Tv/TvBlocklist';
 import History from 'Activity/History/History';
 import MusicHistory from 'Activity/History/Music/HistoryConnector';
 import TvHistory from 'Activity/History/Tv/TvHistory';
+import Hygiene from 'Activity/Hygiene/Hygiene';
 import Queue from 'Activity/Queue/Queue';
 import AddNewItemConnector from 'AddArtist/AddNewItemConnector';
 import AddNewMovieConnector from 'AddMovie/AddNewMovie/AddNewMovieConnector';
@@ -152,6 +153,8 @@ function AppRoutes() {
       <Route path="/activity/history" component={HistoryPage} />
 
       <Route path="/activity/queue" component={Queue} />
+
+      <Route path="/activity/hygiene" component={Hygiene} />
 
       <Route path="/activity/blocklist" component={BlocklistRoutePage} />
 

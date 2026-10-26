@@ -126,3 +126,17 @@ workflow guide and errors, prove request-app and indexer compatibility, build
 the complete Hygiene feature set in tested increments, and run the public-build
 security and size gates.
 Any production rollout remains a separate controlled step.
+
+## Implementation checkpoint — 2026-10-25
+
+The first native Hygiene slice is local only. `GET /api/v3/hygiene/preview`
+evaluates the current tracked and pending queue without changing clients or files. The
+Activity > Hygiene page shows each download's media kind, client, stable reason
+code, short explanation, and suggested manual recovery step. It distinguishes
+ignored, failed, import-blocked, warning, unavailable-client, pending, and
+otherwise healthy items. All assessments currently report `wouldAct: false`.
+
+This is a foundation for the rule engine, not Cleanuparr parity. Next, add
+persisted progress/strike snapshots and rule settings; ensure preview and
+execution share the evaluator before enabling any cleanup. The other feature
+areas above remain open.
