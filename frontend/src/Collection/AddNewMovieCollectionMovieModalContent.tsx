@@ -207,7 +207,7 @@ function AddNewMovieCollectionMovieModalContent({
                   type={inputTypes.AVAILABILITY_SELECT}
                   name="minimumAvailability"
                   {...minimumAvailability}
-                  helpLink="https://wiki.servarr.com/radarr/faq#what-is-minimum-availability"
+                  helpLink="https://github.com/SixtyAteWhiskey/plattarr/blob/develop/docs/first-run.md"
                   onChange={handleInputChange}
                 />
               </FormGroup>

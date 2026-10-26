@@ -134,7 +134,7 @@ class AddNewMovie extends Component {
                 <Alert kind={kinds.DANGER}>{getErrorMessage(error)}</Alert>
 
                 <div>
-                  <Link to="https://wiki.servarr.com/radarr/troubleshooting#invalid-response-received-from-tmdb">
+                  <Link to="https://github.com/SixtyAteWhiskey/plattarr/blob/develop/docs/first-run.md">
                     {translate('WhySearchesCouldBeFailing')}
                   </Link>
                 </div>
@@ -167,7 +167,7 @@ class AddNewMovie extends Component {
                   {translate('YouCanAlsoSearch')}
                 </div>
                 <div>
-                  <Link to="https://wiki.servarr.com/radarr/faq#why-can-i-not-add-a-new-movie-to-radarr">
+                  <Link to="https://github.com/SixtyAteWhiskey/plattarr/blob/develop/docs/first-run.md">
                     {translate('CantFindMovie')}
                   </Link>
                 </div>

@@ -1,0 +1,370 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using NLog;
+using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Download;
+using NzbDrone.Core.Download.TrackedDownloads;
+using NzbDrone.Core.Modules;
+using QueueItem = NzbDrone.Core.Queue.Queue;
+
+namespace NzbDrone.Core.Hygiene
+{
+    public class HygieneAction : NzbDrone.Core.Datastore.ModelBase
+    {
+        public int DownloadClientId { get; set; }
+        public string DownloadId { get; set; }
+        public int MediaKind { get; set; }
+        public string ReasonCode { get; set; }
+        public int RuleId { get; set; }
+        public string Title { get; set; }
+        public string Status { get; set; }
+        public string Checkpoint { get; set; }
+        public string RecoveryPath { get; set; }
+        public string LastError { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+    }
+
+    public interface IHygieneQueueActionService
+    {
+        void Process(IEnumerable<QueueItem> queue);
+        List<HygieneAction> Recent(int limit = 100);
+    }
+
+    public class HygieneQueueActionService : IHygieneQueueActionService
+    {
+        private const string Processing = "processing";
+        private const string Failed = "failed";
+        private const string Paused = "paused";
+        private const string Completed = "completed";
+        private const string Prepared = "prepared";
+        private const string ClientRemoved = "client-removed";
+        private const string FailureRecorded = "failure-recorded";
+        private const string ReplacementRequested = "replacement-requested";
+        private const string Recovery = "Review the Hygiene journal. Confirm the client job and the matching media blocklist entry, then use the normal queue or search controls to finish recovery.";
+
+        private readonly object _processLock = new();
+        private readonly IHygieneQueueDecisionService _decisions;
+        private readonly IHygieneActionRepository _actions;
+        private readonly IConfigService _config;
+        private readonly ITrackedDownloadService _trackedDownloads;
+        private readonly IProvideDownloadClient _downloadClients;
+        private readonly IFailedDownloadService _failedDownloads;
+        private readonly Logger _logger;
+
+        public HygieneQueueActionService(
+            IHygieneQueueDecisionService decisions,
+            IHygieneActionRepository actions,
+            IConfigService config,
+            ITrackedDownloadService trackedDownloads,
+            IProvideDownloadClient downloadClients,
+            IFailedDownloadService failedDownloads,
+            Logger logger)
+        {
+            _decisions = decisions;
+            _actions = actions;
+            _config = config;
+            _trackedDownloads = trackedDownloads;
+            _downloadClients = downloadClients;
+            _failedDownloads = failedDownloads;
+            _logger = logger;
+        }
+
+        public void Process(IEnumerable<QueueItem> queue)
+        {
+            lock (_processLock)
+            {
+                var queueItems = queue.ToList();
+
+                // Finish an earlier journal entry before considering the same queue item again.
+                // This prevents a failed substep from being retried twice during one refresh.
+                var resumed = ResumeInterruptedActions(queueItems);
+
+                if (!_config.HygieneActionsEnabled)
+                {
+                    return;
+                }
+
+                foreach (var assessment in _decisions.Evaluate(queueItems).Where(x => x.WouldAct))
+                {
+                    Execute(assessment, queueItems, resumed);
+                }
+            }
+        }
+
+        public List<HygieneAction> Recent(int limit = 100)
+        {
+            return _actions.All().OrderByDescending(x => x.Id).Take(Math.Clamp(limit, 1, 500)).ToList();
+        }
+
+        private void Execute(HygieneQueueAssessment assessment, IReadOnlyCollection<QueueItem> queue, ISet<int> alreadyResumed)
+        {
+            if (assessment.Kind == null || assessment.RuleId == null)
+            {
+                return;
+            }
+
+            var queueItem = queue.SingleOrDefault(x => x.Id == assessment.QueueId);
+            if (queueItem == null || string.IsNullOrWhiteSpace(queueItem.DownloadId))
+            {
+                return;
+            }
+
+            var existing = _actions.All()
+                .Where(x => x.DownloadClientId == queueItem.DownloadClientId && x.DownloadId == queueItem.DownloadId &&
+                            x.ReasonCode == assessment.ReasonCode)
+                .OrderByDescending(x => x.Id)
+                .FirstOrDefault();
+
+            if (existing?.Status == Completed)
+            {
+                return;
+            }
+
+            if (existing != null && alreadyResumed.Contains(existing.Id))
+            {
+                return;
+            }
+
+            if (!CanStart(queueItem, assessment.ReasonCode, assessment.RuleId, assessment.Kind))
+            {
+                return;
+            }
+
+            var action = existing ?? _actions.Insert(new HygieneAction
+            {
+                DownloadClientId = queueItem.DownloadClientId,
+                DownloadId = queueItem.DownloadId,
+                MediaKind = (int)assessment.Kind.Value,
+                ReasonCode = assessment.ReasonCode,
+                RuleId = assessment.RuleId ?? 0,
+                Title = assessment.Title,
+                Status = Processing,
+                Checkpoint = Prepared,
+                RecoveryPath = Recovery,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+
+            action.Status = Processing;
+            action.LastError = null;
+            action.UpdatedAt = DateTime.UtcNow;
+            _actions.Update(action);
+
+            try
+            {
+                var tracked = _trackedDownloads.Find(queueItem.DownloadId);
+                if (!MatchesTrackedIdentity(tracked, queueItem.DownloadClientId, queueItem.DownloadId))
+                {
+                    throw new InvalidOperationException("The tracked download client identity changed.");
+                }
+
+                Continue(action, tracked, assessment.Kind, queueItem);
+            }
+            catch (Exception ex)
+            {
+                action.Status = Failed;
+                action.LastError = ex.GetType().Name;
+                action.UpdatedAt = DateTime.UtcNow;
+                _actions.Update(action);
+                _logger.Warn("Hygiene action {0} stopped at checkpoint {1}; review its journal entry", action.Id, action.Checkpoint);
+            }
+        }
+
+        private HashSet<int> ResumeInterruptedActions(IReadOnlyCollection<QueueItem> queue)
+        {
+            var resumed = new HashSet<int>();
+
+            foreach (var action in _actions.All().Where(x => x.Status != Completed).ToList())
+            {
+                QueueItem queueItem = null;
+                if (action.Checkpoint == Prepared)
+                {
+                    queueItem = queue.FirstOrDefault(x => x.DownloadClientId == action.DownloadClientId && x.DownloadId == action.DownloadId);
+                    if (!CanStart(queueItem, action.ReasonCode, action.RuleId, (MediaKind)action.MediaKind))
+                    {
+                        Pause(action);
+                        continue;
+                    }
+                }
+
+                var tracked = _trackedDownloads.Find(action.DownloadId);
+                if (tracked != null && !MatchesTrackedIdentity(tracked, action.DownloadClientId, action.DownloadId))
+                {
+                    if (action.Checkpoint == ReplacementRequested)
+                    {
+                        action.Status = Completed;
+                        action.LastError = null;
+                        action.UpdatedAt = DateTime.UtcNow;
+                        _actions.Update(action);
+                    }
+                    else
+                    {
+                        RecordFailure(action, new InvalidOperationException("The tracked download client identity changed."));
+                    }
+
+                    continue;
+                }
+
+                if (tracked == null)
+                {
+                    if (action.Checkpoint == ReplacementRequested)
+                    {
+                        action.Status = Completed;
+                        action.LastError = null;
+                        action.UpdatedAt = DateTime.UtcNow;
+                        _actions.Update(action);
+                    }
+
+                    continue;
+                }
+
+                try
+                {
+                    resumed.Add(action.Id);
+                    action.Status = Processing;
+                    action.LastError = null;
+                    action.UpdatedAt = DateTime.UtcNow;
+                    _actions.Update(action);
+                    Continue(action, tracked, (MediaKind)action.MediaKind, queueItem);
+                }
+                catch (Exception ex)
+                {
+                    RecordFailure(action, ex);
+                }
+            }
+
+            return resumed;
+        }
+
+        private void Continue(HygieneAction action, TrackedDownload tracked, MediaKind? kind, QueueItem queueItem)
+        {
+            if (!GateIsOpen(action))
+            {
+                return;
+            }
+
+            if (tracked == null || tracked.Kind != kind || tracked.State == TrackedDownloadState.Ignored ||
+                tracked.DownloadItem == null || !tracked.DownloadItem.CanBeRemoved)
+            {
+                throw new InvalidOperationException("The tracked download is no longer eligible for removal.");
+            }
+
+            if (tracked.Protocol == NzbDrone.Core.Indexers.DownloadProtocol.Torrent &&
+                tracked.RemoteRelease?.Release?.IndexerPrivacy != NzbDrone.Core.Indexers.IndexerPrivacy.Public)
+            {
+                throw new InvalidOperationException("Private or unverified torrent releases require manual review.");
+            }
+
+            var downloadClient = _downloadClients.Get(tracked.DownloadClient);
+            if (action.Checkpoint == Prepared)
+            {
+                if (!GateIsOpen(action) || !CanStart(queueItem, action.ReasonCode, action.RuleId, kind))
+                {
+                    Pause(action);
+                    return;
+                }
+
+                var clientItem = downloadClient.GetItems().FirstOrDefault(x => x.DownloadId == tracked.DownloadItem.DownloadId);
+                if (clientItem != null)
+                {
+                    // Keep source files for manual recovery; the Hygiene executor never deletes data.
+                    downloadClient.RemoveItem(clientItem, false);
+                    tracked.DownloadItem.Removed = true;
+                }
+
+                SetCheckpoint(action, ClientRemoved);
+            }
+
+            if (action.Checkpoint == ClientRemoved)
+            {
+                if (!GateIsOpen(action))
+                {
+                    return;
+                }
+
+                _failedDownloads.MarkAsFailed(tracked, false);
+                SetCheckpoint(action, FailureRecorded);
+            }
+
+            if (action.Checkpoint == FailureRecorded)
+            {
+                if (!GateIsOpen(action))
+                {
+                    return;
+                }
+
+                SetCheckpoint(action, ReplacementRequested);
+            }
+
+            if (action.Checkpoint == ReplacementRequested)
+            {
+                if (!GateIsOpen(action))
+                {
+                    return;
+                }
+
+                _trackedDownloads.StopTracking(tracked.DownloadItem.DownloadId);
+                action.Status = Completed;
+                action.UpdatedAt = DateTime.UtcNow;
+                _actions.Update(action);
+                _logger.Info("Hygiene recovered journal action {0} in {1} (reason: {2})", action.Id, kind, action.ReasonCode);
+            }
+        }
+
+        private void RecordFailure(HygieneAction action, Exception ex)
+        {
+            action.Status = Failed;
+            action.LastError = ex.GetType().Name;
+            action.UpdatedAt = DateTime.UtcNow;
+            _actions.Update(action);
+            _logger.Warn("Hygiene action {0} stopped at checkpoint {1}; review its journal entry", action.Id, action.Checkpoint);
+        }
+
+        private void SetCheckpoint(HygieneAction action, string checkpoint)
+        {
+            action.Checkpoint = checkpoint;
+            action.UpdatedAt = DateTime.UtcNow;
+            _actions.Update(action);
+        }
+
+        private bool GateIsOpen(HygieneAction action)
+        {
+            if (_config.HygieneActionsEnabled)
+            {
+                return true;
+            }
+
+            Pause(action);
+            return false;
+        }
+
+        private bool CanStart(QueueItem queueItem, string reasonCode, int? ruleId, MediaKind? kind)
+        {
+            if (queueItem == null || queueItem.DownloadClientId <= 0 || string.IsNullOrWhiteSpace(queueItem.DownloadId))
+            {
+                return false;
+            }
+
+            var current = _decisions.Evaluate(new[] { queueItem }).SingleOrDefault();
+            return current?.WouldAct == true && current.ReasonCode == reasonCode && current.RuleId == ruleId && current.Kind == kind;
+        }
+
+        private void Pause(HygieneAction action)
+        {
+            action.Status = Paused;
+            action.LastError = null;
+            action.UpdatedAt = DateTime.UtcNow;
+            _actions.Update(action);
+        }
+
+        private static bool MatchesTrackedIdentity(TrackedDownload tracked, int downloadClientId, string downloadId)
+        {
+            return tracked != null &&
+                   tracked.DownloadClient == downloadClientId &&
+                   tracked.DownloadItem != null &&
+                   tracked.DownloadItem.DownloadId == downloadId;
+        }
+    }
+}

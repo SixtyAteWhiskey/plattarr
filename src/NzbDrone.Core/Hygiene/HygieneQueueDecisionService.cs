@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
+using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Indexers;
 
 namespace NzbDrone.Core.Hygiene
 {
@@ -14,12 +16,18 @@ namespace NzbDrone.Core.Hygiene
         private readonly IHygieneQueueEvaluator _evaluator;
         private readonly IHygieneQueueStateRepository _states;
         private readonly IHygieneRuleService _rules;
+        private readonly IConfigService _config;
 
-        public HygieneQueueDecisionService(IHygieneQueueEvaluator evaluator, IHygieneQueueStateRepository states, IHygieneRuleService rules)
+        public HygieneQueueDecisionService(
+            IHygieneQueueEvaluator evaluator,
+            IHygieneQueueStateRepository states,
+            IHygieneRuleService rules,
+            IConfigService config)
         {
             _evaluator = evaluator;
             _states = states;
             _rules = rules;
+            _config = config;
         }
 
         public List<HygieneQueueAssessment> Evaluate(IEnumerable<NzbDrone.Core.Queue.Queue> queue)
@@ -38,15 +46,42 @@ namespace NzbDrone.Core.Hygiene
 
                 assessment.Strikes = state?.ReasonCode == assessment.ReasonCode ? state.Strikes : 0;
                 assessment.StrikeLimit = rule?.StrikeLimit;
+                assessment.RuleId = rule?.Id;
                 assessment.RuleEnabled = rule?.Enabled == true;
                 assessment.Eligible = assessment.RuleEnabled && assessment.Strikes >= rule.StrikeLimit;
                 assessment.RuleExplanation = rule == null ? "No monitoring rule is configured for this reason and scope."
                     : !rule.Enabled ? "The matching monitoring rule is disabled."
-                    : assessment.Eligible ? "The strike threshold is reached; automatic cleanup is not enabled."
+                    : assessment.Eligible ? "The strike threshold is reached."
                     : $"{assessment.Strikes} of {rule.StrikeLimit} strikes recorded.";
+
+                assessment.WouldAct = false;
+                assessment.ActionExplanation = !assessment.Eligible ? "The rule threshold has not been reached."
+                    : !_config.HygieneActionsEnabled ? "Automatic actions are disabled by the global Hygiene gate."
+                    : assessment.ReasonCode is not ("client-failed" or "import-blocked")
+                        ? "This reason is monitor-only and requires manual review."
+                    : item.DownloadClientId <= 0 || string.IsNullOrWhiteSpace(item.DownloadId)
+                        ? "This item is not a tracked download-client item."
+                    : assessment.Kind == null
+                        ? "The media kind is unknown, so automatic actions are held."
+                    : IsPrivateTorrent(item)
+                        ? "Automatic actions are held for private or unverified torrent releases."
+                    : SetWouldAct(assessment);
             }
 
             return assessments;
+        }
+
+        private static bool IsPrivateTorrent(NzbDrone.Core.Queue.Queue item)
+        {
+            return item.Protocol == DownloadProtocol.Torrent &&
+                   item.RemoteRelease?.Release?.IndexerPrivacy != IndexerPrivacy.Public;
+        }
+
+        private static string SetWouldAct(HygieneQueueAssessment assessment)
+        {
+            assessment.WouldAct = true;
+            assessment.ActionExplanation = "The scoped rule is eligible; the executor will remove the client job without deleting its files, blocklist the release, and request the configured replacement search.";
+            return assessment.ActionExplanation;
         }
     }
 }

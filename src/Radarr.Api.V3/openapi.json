@@ -4388,6 +4388,107 @@
         }
       }
     },
+    "/api/v3/hygiene/action": {
+      "get": {
+        "tags": [
+          "HygieneAction"
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HygieneAction"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v3/hygiene/config": {
+      "get": {
+        "tags": [
+          "HygieneConfig"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HygieneConfigResource"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v3/hygiene/config/{id}": {
+      "put": {
+        "tags": [
+          "HygieneConfig"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HygieneConfigResource"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HygieneConfigResource"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/HygieneConfigResource"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HygieneConfigResource"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v3/hygiene/preview": {
       "get": {
         "tags": [
@@ -17236,6 +17337,77 @@
         },
         "additionalProperties": false
       },
+      "HygieneAction": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "downloadClientId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "downloadId": {
+            "type": "string",
+            "nullable": true
+          },
+          "mediaKind": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reasonCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "ruleId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "checkpoint": {
+            "type": "string",
+            "nullable": true
+          },
+          "recoveryPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastError": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "HygieneConfigResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "actionsEnabled": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "HygieneQueueAssessment": {
         "type": "object",
         "properties": {
@@ -17282,6 +17454,11 @@
             "format": "int32",
             "nullable": true
           },
+          "ruleId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
           "ruleEnabled": {
             "type": "boolean"
           },
@@ -17294,6 +17471,10 @@
           },
           "wouldAct": {
             "type": "boolean"
+          },
+          "actionExplanation": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -24579,6 +24760,12 @@
     },
     {
       "name": "HostConfig"
+    },
+    {
+      "name": "HygieneAction"
+    },
+    {
+      "name": "HygieneConfig"
     },
     {
       "name": "HygienePreview"

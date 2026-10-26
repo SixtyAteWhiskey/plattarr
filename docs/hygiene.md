@@ -1,8 +1,9 @@
 # Hygiene queue monitoring
 
-Hygiene is built into Plattarr. Activity > Hygiene shows a read-only assessment
-of tracked and pending downloads. It does not remove, blocklist, search, change
-categories, or delete files. An eligible rule still reports `wouldAct: false`.
+Hygiene is built into Plattarr. Activity > Hygiene shows a queue assessment of
+tracked and pending downloads, persisted strikes, scoped monitoring rules, and
+the action journal. With the global gate off, the queue preview and monitoring
+are read only and `wouldAct` remains false.
 
 ## Monitoring rules
 
@@ -26,12 +27,38 @@ rule threshold, eligibility, and an explanation. `GET`, `POST`, `PUT /{id}`,
 and `DELETE /{id}` on `/api/v3/hygiene/rule` manage monitoring rules. The
 normal API authentication applies.
 
-## Current limit and next implementation
+## Action gate and journal
 
-Migration 12 creates `HygieneQueueStates` and `HygieneRules` in the main
-database. The monitoring and read-only preview implementation is committed and
-pushed to `develop` at `79becc43b`; it has not been deployed to production.
-Before enabling automatic cleanup, add an executor that consumes the same
-`IHygieneQueueDecisionService` assessments, an explicit action setting and
-action journal, and isolated tests of client removal, blocklisting, replacement
-search, private torrents, category changes, and import recovery.
+Migration 13 adds `HygieneActions`. The global action gate is available at
+`/api/v3/hygiene/config` and defaults off. A scoped rule must still be enabled
+and reach its strike threshold. The preview and executor share the same
+`IHygieneQueueDecisionService` assessments, so `wouldAct` identifies the items
+the executor would process under the current settings.
+
+The first executor slice handles tracked `client-failed` and `import-blocked`
+items. Generic `download-warning` items stay monitor-only. For an eligible
+item, it removes the job from the download client **without deleting its
+files**, records the failure through the existing per-kind failed-download
+handlers, and stops tracking it. Those handlers record a blocklist entry and
+request the normal replacement search when the existing failed-download
+settings allow it. Private or unverified torrent releases remain manual-review
+items. Pending releases and unmatched downloads are never acted on.
+
+Each action records its media kind, reason, authorizing rule, current
+checkpoint, status, and recovery guidance in the main database. Checkpoints
+allow later queue refreshes to continue after client removal if a later step
+failed. `GET /api/v3/hygiene/action` returns the latest entries. If the global
+gate is turned off mid-action, the action pauses at its last checkpoint;
+re-enabling the gate resumes the journal, while an unstarted action also needs
+its original rule to remain eligible. Failures keep a safe error type and a
+recovery path; raw exception text and download paths are not persisted.
+
+`tools/liveproof/run.py hygiene` is a read-only rollout check. It confirms the
+global gate is off and no action remains failed or incomplete. Disposable
+Movie, TV, and Music recovery tests cover successful removal while retaining
+files, client-removal retry, and journal resumption after a later failed-
+download step. The `hygiene-recovery` proof passed on a disposable localhost
+Movie instance with synthetic Newznab and SABnzbd fixtures, including
+blocklisting and replacement search. The action gate remains off by default;
+rollout is a separate step. The scratch proof does not validate live tracker
+behavior or shared-instance settings.

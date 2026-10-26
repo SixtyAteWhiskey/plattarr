@@ -1,7 +1,6 @@
 import React from 'react';
 import FieldSet from 'Components/FieldSet';
 import Link from 'Components/Link/Link';
-import translate from 'Utilities/String/translate';
 import styles from '../styles.css';
 
 // Plattarr is built on these projects; the section links to their donation
@@ -15,7 +14,7 @@ const upstreamProjects = [
 
 function Donations() {
   return (
-    <FieldSet legend={translate('Donations')}>
+    <FieldSet legend="Upstream projects">
       <div className={styles.upstream}>
         {upstreamProjects.map(({ name, url }) => (
           <Link key={name} to={url}>
