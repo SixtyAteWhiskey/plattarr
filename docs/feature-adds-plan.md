@@ -160,16 +160,22 @@ The Hygiene action gate and journal were built from the clean base
 Movie, TV, and Music unit recovery fixtures exercise retained files and
 checkpoint resumption. A disposable Movie end-to-end proof passed with local
 synthetic Newznab and SABnzbd fixtures. The indexer comparison harness passed
-against local Prowlarr and Plattarr APIs using the same synthetic Torznab feed;
-a same-indexer comparison with real tracker results remains outstanding.
-A source-pinned Ombi contract replay is now available; a live Ombi packet
-capture remains outstanding. These changes have not been deployed.
+against local Prowlarr and Plattarr APIs using the same synthetic Torznab feed.
+A real single-indexer comparison later found 32 matching releases with no mapped
+flag differences. The unmatched sets were captured under different search terms
+and categories, so they were not a full result-set parity test. A source-pinned
+Ombi contract replay and a disposable Ombi runtime capture are now available.
+These changes have not been deployed.
 
 Ombi's latest stable release at this checkpoint is v4.53.10. The upstream
 Radarr v3 and Sonarr v3 request methods were inspected, and
 `tools/liveproof/ombi_contract.py` now replays the AddOnly movie and series
 flows against a disposable Plattarr instance. The replay passed on a fresh
 scratch instance at `localhost:7882`, creating and removing its temporary
-records. It is source-derived, not a live Ombi packet capture; compatibility
-with a configured Ombi installation remains unverified until its runtime calls
-and version are captured.
+records. A disposable Ombi v4.53.10 instance then sent its actual AddOnly
+movie and one-episode TV requests through a redacting proxy to scratch
+Plattarr. Every observed call succeeded, and the replay was adjusted for the
+runtime's null movie fields, shared tag, and single-episode monitoring, then
+passed again. See `tools/liveproof/README.md` for the sanitized call sequence.
+Other Ombi versions, 4K requests, search-on-add, and production configuration
+remain outside this proof.

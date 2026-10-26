@@ -195,10 +195,13 @@ it.
 
 ### Ombi
 
-Ombi compatibility has not been verified. Do not configure it against a shared
-instance based only on the Radarr/Sonarr URL bases. Capture its actual requests
-in a disposable environment, then add those calls to a contract replay before
-claiming support.
+Ombi v4.53.10 sent AddOnly movie and one-episode TV requests successfully to
+the `/radarr` and `/sonarr` API bases of a disposable Plattarr instance. The
+actual methods and payload shapes were captured without credentials and added
+to the [contract replay](../tools/liveproof/README.md#ombi-contract-replay).
+This verifies that specific request flow. Test a shared installation's own
+profiles, root paths, and tags before connecting Ombi there; 4K and
+search-on-add requests have not been checked.
 
 ## 8. Compare indexer flags across Prowlarr and Plattarr
 

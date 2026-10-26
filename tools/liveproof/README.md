@@ -107,7 +107,8 @@ divergence.
 
 `ombi_contract.py` replays the Radarr v3 and Sonarr v3 calls used by Ombi's
 AddOnly request flow. Its request paths, `X-Api-Key` authentication, and payloads
-are pinned to the stable [Ombi v4.53.10 release](https://github.com/Ombi-app/Ombi/releases/tag/v4.53.10),
+are pinned to [Ombi v4.53.10](https://github.com/Ombi-app/Ombi/releases/tag/v4.53.10)
+source and a disposable runtime capture, using its
 using its [RadarrV3Api](https://github.com/Ombi-app/Ombi/blob/v4.53.10/src/Ombi.Api.External/ExternalApis/Radarr/RadarrV3Api.cs),
 [SonarrV3Api](https://github.com/Ombi-app/Ombi/blob/v4.53.10/src/Ombi.Api.External/ExternalApis/Sonarr/SonarrV3Api.cs),
 [MovieSender](https://github.com/Ombi-app/Ombi/blob/v4.53.10/src/Ombi.Core/Senders/MovieSender.cs),
@@ -115,14 +116,39 @@ and [TvSender](https://github.com/Ombi-app/Ombi/blob/v4.53.10/src/Ombi.Core/Send
 
 The replay covers connection status, profiles, root folders, language profiles,
 tags, adding a movie and series, reading the new series and episodes, and
-updating season and episode monitoring. Metadata lookups are setup calls made
+updating season and episode monitoring. It reuses a user tag across both
+compatibility bases when the tag already exists. Metadata lookups are setup calls made
 by the harness to select valid disposable records; Ombi itself gets that
 metadata from its request catalog. The script does not send search commands:
 its request bodies match Ombi's AddOnly mode. It removes created media with
-`deleteFiles=false` and then removes the temporary tags. It logs only route
+`deleteFiles=false` and then removes its temporary tag. It logs only route
 and status, never API keys, response bodies, or filesystem paths.
 
-This is a source-pinned replay, not a live Ombi packet capture. It refuses
+The runtime capture used `lscr.io/linuxserver/ombi:v4.53.10-ls265` and scratch
+Plattarr image `sha-ad98a7c` on 2026-10-26. Ombi was configured through its own
+API with AddOnly and per-user tags enabled. One movie request and one TV
+season 1 episode 1 request were submitted through Ombi's request APIs. A
+redacting proxy recorded method, route, status, and JSON field shapes without
+credentials, media titles, query values, or response bodies. The sanitized
+14-call capture is in [`fixtures/ombi_v4_53_10_addonly.json`](fixtures/ombi_v4_53_10_addonly.json).
+These Ombi-origin calls all succeeded; routes below are relative to each
+flow's `/api/v3` base:
+
+| Flow | Observed calls | Status |
+|---|---|---|
+| Movie (`/radarr/api/v3`) | `GET tag`, `POST tag`, `GET movie`, `POST movie` | 200, 201, 200, 201 |
+| TV (`/sonarr/api/v3`) | `GET rootfolder`, `GET tag`, `GET series`, `POST series/`, `GET series/{id}`, `PUT series/`, `GET Episode`, `PUT series/`, `PUT episode/monitor` twice | 200, 200, 200, 201, 200, 202, 200, 202, 202, 202 |
+
+The movie POST serialized `addOptions` and `Error` as null and `images` as an
+empty array. The TV POST sent seasons 0 and 1 with all three search options
+false; Ombi then cleared monitoring for all ten season 1 episodes and enabled
+only the requested episode. The Sonarr tag POST was skipped because Plattarr
+shares the tag created through its Radarr base. The scratch app ended with one
+movie, one TV show, and exactly one monitored episode. The replay was updated
+to match these fields and this one-episode behavior, then passed on the same
+scratch app with its temporary records removed.
+
+The replay refuses
 every target except `http://localhost:7882` and requires an explicit
 disposable-instance flag. Start a fresh Plattarr scratch instance on that port,
 provide its `config.xml`, and run:
@@ -135,10 +161,10 @@ python3 tools/liveproof/ombi_contract.py --confirm-disposable
 
 Do not configure download clients or indexers on the scratch instance. A
 passing replay checks Plattarr's request and response contract; it does not
-establish compatibility with other Ombi releases or exercise the search-command
-branch. Plattarr may fetch metadata and artwork for its public test records from
-configured metadata providers. The replay does not contact indexers or download
-clients.
+establish compatibility with other Ombi releases, 4K requests, or the
+search-command branch. Plattarr may fetch metadata and artwork for its public
+test records from configured metadata providers. The replay does not contact
+indexers or download clients.
 
 ## The undo journal
 
