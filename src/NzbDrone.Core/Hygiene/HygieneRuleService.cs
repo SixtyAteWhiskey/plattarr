@@ -20,7 +20,9 @@ namespace NzbDrone.Core.Hygiene
         {
             "client-failed",
             "import-blocked",
-            "download-warning"
+            "download-warning",
+            "download-stalled",
+            "download-slow"
         };
 
         private readonly IHygieneRuleRepository _repository;
@@ -45,7 +47,9 @@ namespace NzbDrone.Core.Hygiene
             if (rule == null || !SupportedReasons.Contains(rule.ReasonCode) ||
                 (rule.MediaKind != 0 && !Enum.IsDefined((MediaKind)rule.MediaKind)) ||
                 rule.DownloadClientId < 0 || rule.StrikeLimit < 1 || rule.StrikeLimit > 100 ||
-                rule.StrikeIntervalMinutes < 1 || rule.StrikeIntervalMinutes > 1440)
+                rule.StrikeIntervalMinutes < 1 || rule.StrikeIntervalMinutes > 1440 ||
+                (rule.ReasonCode == "download-slow" && (rule.MinimumDownloadRateKiBps < 1 || rule.MinimumDownloadRateKiBps > 1048576)) ||
+                (rule.ReasonCode != "download-slow" && rule.MinimumDownloadRateKiBps != 0))
             {
                 throw new ArgumentException("Invalid Hygiene rule scope, reason, or strike threshold.");
             }

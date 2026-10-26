@@ -253,6 +253,8 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
                     Category = category,
                     Title = torrent.Name,
                     TotalSize = torrent.Size,
+                    DownloadRateBytesPerSecond = torrent.DownloadSpeed,
+                    DownloadClientStalled = torrent.State == "stalledDL",
                     DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, Settings.ForCategory(category).ImportedCategory.IsNotNullOrWhiteSpace()),
                     RemainingSize = (long)(torrent.Size * (1.0 - torrent.Progress)),
                     RemainingTime = GetRemainingTime(torrent),

@@ -41,6 +41,7 @@ namespace NzbDrone.Core.Hygiene
             {
                 var item = items[i];
                 var assessment = assessments[i];
+                HygieneQueueSignalClassifier.Apply(item, assessment, rules, _rules);
                 var rule = _rules.Match(rules, assessment.ReasonCode, (int?)assessment.Kind ?? 0, item.DownloadClientId);
                 states.TryGetValue((item.DownloadClientId, item.DownloadId), out var state);
 

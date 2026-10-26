@@ -109,9 +109,10 @@ function Hygiene() {
           </label>
           <p>
             Only client failures and blocked imports can run automatically.
-            Private or unverified torrent releases and generic warnings require
-            manual review. Source files are kept. Replacement searches follow
-            the existing failed-download settings.
+            Stalled downloads, slow downloads, private or unverified torrent
+            releases, and other warnings remain monitor only. Source files are
+            kept. Replacement searches follow the existing failed-download
+            settings.
           </p>
           {saveError && <Alert kind="danger">{saveError}</Alert>}
         </FieldSet>

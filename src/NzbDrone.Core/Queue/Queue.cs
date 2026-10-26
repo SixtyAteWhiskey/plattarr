@@ -16,6 +16,8 @@ namespace NzbDrone.Core.Queue
         public decimal Size { get; set; }
         public string Title { get; set; }
         public decimal SizeLeft { get; set; }
+        public long? DownloadRateBytesPerSecond { get; set; }
+        public bool DownloadClientStalled { get; set; }
         public TimeSpan? TimeLeft { get; set; }
         public DateTime? EstimatedCompletionTime { get; set; }
         public DateTime? Added { get; set; }

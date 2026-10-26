@@ -8,7 +8,8 @@ are read only and `wouldAct` remains false.
 ## Monitoring rules
 
 Create rules on the Hygiene page or through `/api/v3/hygiene/rule`. A rule names
-one of `client-failed`, `import-blocked`, or `download-warning`; a media kind
+one of `client-failed`, `import-blocked`, `download-warning`,
+`download-stalled`, or `download-slow`; a media kind
 (Movies, TV, Music, or all); a download client (or all); a strike limit; and a
 minimum number of minutes between strikes. New rules are disabled. A rule
 enabled for a specific kind and client takes priority over one for just the
@@ -17,10 +18,19 @@ enabled rule.
 
 Each queue refresh observes active downloads. A strike starts at one for a
 matching problem and increases only after the configured interval with the
-same problem and no download progress. Progress, a different reason, recovery,
-or disabling the matching rule resets the count. Strike state is stored by
+same problem. Progress resets strikes for failures and stalled downloads. For
+a slow-download rule, progress does not reset strikes while the measured rate
+remains below its threshold; a recovered rate or different reason resets the
+count. Disabling the matching rule also resets it. Strike state is stored by
 download-client ID and download ID; records not seen for 30 days are removed.
 Pending releases have no client download ID and do not accumulate strikes.
+
+`download-stalled` is reported when qBittorrent explicitly reports its
+`stalledDL` state. `download-slow` is reported when the active rate is below
+the minimum KiB/s configured on a matching slow-download rule. The current
+rate is available from qBittorrent; clients that do not report a rate remain
+eligible for stalled and other assessments, but are not classified as slow.
+Both reasons are monitor only and require manual review.
 
 `GET /api/v3/hygiene/preview` reports the current reason, count, matching
 rule threshold, eligibility, and an explanation. `GET`, `POST`, `PUT /{id}`,
@@ -36,7 +46,8 @@ and reach its strike threshold. The preview and executor share the same
 the executor would process under the current settings.
 
 The first executor slice handles tracked `client-failed` and `import-blocked`
-items. Generic `download-warning` items stay monitor-only. For an eligible
+items. Generic `download-warning`, `download-stalled`, and `download-slow`
+items stay monitor-only. For an eligible
 item, it removes the job from the download client **without deleting its
 files**, records the failure through the existing per-kind failed-download
 handlers, and stops tracking it. Those handlers record a blocklist entry and
