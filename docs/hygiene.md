@@ -58,7 +58,11 @@ global gate is off and no action remains failed or incomplete. Disposable
 Movie, TV, and Music recovery tests cover successful removal while retaining
 files, client-removal retry, and journal resumption after a later failed-
 download step. The `hygiene-recovery` proof passed on a disposable localhost
-Movie instance with synthetic Newznab and SABnzbd fixtures, including
-blocklisting and replacement search. The action gate remains off by default;
+Movie instance with synthetic Newznab and SABnzbd fixtures. It changes the
+mock SAB category from Movie to TV after the grab, then verifies that grab
+history keeps the action Movie-scoped, the source remains on disk, the original
+is blocklisted, and a distinct replacement is queued in the Movie category.
+The replacement remains in the synthetic client; this does not validate a
+real client's transfer behavior. The action gate remains off by default;
 rollout is a separate step. The scratch proof does not validate live tracker
 behavior or shared-instance settings.
