@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using NzbDrone.Core.MediaCover;
+using NzbDrone.Core.Movies.Upstream;
+using NzbDrone.Core.Tv.Upstream;
 
 namespace NzbDrone.Core.Upstream
 {
@@ -39,12 +42,17 @@ namespace NzbDrone.Core.Upstream
         private readonly IEnumerable<IUpstreamAdapter> _adapters;
         private readonly IEnumerable<IImportStage> _stages;
         private readonly IUpstreamImporter _importer;
+        private readonly IMediaCoverBackfillService _coverBackfill;
 
-        public UpstreamImportRunner(IEnumerable<IUpstreamAdapter> adapters, IEnumerable<IImportStage> stages, IUpstreamImporter importer)
+        public UpstreamImportRunner(IEnumerable<IUpstreamAdapter> adapters,
+                                    IEnumerable<IImportStage> stages,
+                                    IUpstreamImporter importer,
+                                    IMediaCoverBackfillService coverBackfill)
         {
             _adapters = adapters;
             _stages = stages;
             _importer = importer;
+            _coverBackfill = coverBackfill;
         }
 
         public ImportRunResult Run(ImportRequest request)
@@ -80,8 +88,51 @@ namespace NzbDrone.Core.Upstream
                 RequireExplicitSkips(snapshots, request.SkipTables);
 
                 var result = _importer.Run(snapshots, options, request.DryRun);
+
+                // Persist the committed outcome before network cover downloads. If the process
+                // stops during backfill, the report still records the commit and how to retry.
+                const string backfillPending = "Cover backfill pending; if interrupted, run BackfillMediaCovers";
+                var committed = result.Outcome == ImportOutcome.Committed;
+
+                if (committed)
+                {
+                    result.Warnings.Add(backfillPending);
+                }
+
                 var report = ImportReportWriter.Build(result, sources, request.DryRun, DateTime.UtcNow);
                 var files = ImportReportWriter.Write(request.ReportDirectory, report, result);
+
+                if (committed)
+                {
+                    try
+                    {
+                        var movieIds = result.IdMap.Entries
+                            .Where(e => e.App == UpstreamApps.Radarr && e.Table == MoviesStage.MoviesTable)
+                            .Select(e => checked((int)e.TargetId));
+
+                        var seriesIds = result.IdMap.Entries
+                            .Where(e => e.App == UpstreamApps.Sonarr && e.Table == SeriesStage.SeriesTable)
+                            .Select(e => checked((int)e.TargetId));
+
+                        var covers = _coverBackfill.Backfill(movieIds, seriesIds);
+
+                        if (covers.Missing > 0)
+                        {
+                            result.Warnings.Add($"Cover backfill: {covers.Missing} of {covers.Checked} imported Movie/TV covers are still missing; the scheduled task will retry");
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // The database has already committed. Report an incomplete cover pass and
+                        // leave the scheduled task to retry instead of claiming the import rolled back.
+                        result.Warnings.Add("Cover backfill did not complete after commit; the scheduled task will retry");
+                    }
+                    finally
+                    {
+                        result.Warnings.Remove(backfillPending);
+                        ImportReportWriter.Write(request.ReportDirectory, report, result);
+                    }
+                }
 
                 return new ImportRunResult
                 {

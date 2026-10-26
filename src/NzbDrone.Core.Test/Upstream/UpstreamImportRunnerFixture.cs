@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
+using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Upstream;
 
@@ -24,6 +25,7 @@ namespace NzbDrone.Core.Test.Upstream
         private IReadOnlyList<SourceSnapshot> _snapshots;
         private ImportOptions _options;
         private bool? _dryRun;
+        private IdMap _idMap;
 
         [SetUp]
         public void Setup()
@@ -34,6 +36,11 @@ namespace NzbDrone.Core.Test.Upstream
             _snapshots = null;
             _options = null;
             _dryRun = null;
+            _idMap = new IdMap();
+
+            Mocker.GetMock<IMediaCoverBackfillService>()
+                .Setup(c => c.Backfill(It.IsAny<IEnumerable<int>>(), It.IsAny<IEnumerable<int>>()))
+                .Returns(new CoverBackfillResult());
 
             Mocker.SetConstant<IEnumerable<IUpstreamAdapter>>(new IUpstreamAdapter[] { new RadarrAdapter(), new ProwlarrAdapter() });
 
@@ -66,7 +73,7 @@ namespace NzbDrone.Core.Test.Upstream
 
                             return new ReconciliationRow(selection.App, selection.Table, rows, 0, rows);
                         }).ToList(),
-                        IdMap = new IdMap()
+                        IdMap = _idMap
                     };
                 });
 
@@ -146,6 +153,88 @@ namespace NzbDrone.Core.Test.Upstream
             _dryRun.Should().BeFalse();
             result.Report.Outcome.Should().Be("Committed");
             result.ReportFiles.Select(Path.GetFileName).Should().Contain(f => f.StartsWith("import-idmap-"));
+        }
+
+        [Test]
+        public void should_backfill_only_committed_movie_and_tv_ids_after_import()
+        {
+            _idMap.Record(UpstreamApps.Radarr, "Movies", 9, 2);
+            _idMap.Record(UpstreamApps.Sonarr, "Series", 8, 2);
+            _idMap.Record(UpstreamApps.Radarr, "Tags", 1, 1);
+
+            Subject.Run(Request()).ExitCode.Should().Be(0);
+
+            Mocker.GetMock<IMediaCoverBackfillService>()
+                .Verify(c => c.Backfill(
+                    It.Is<IEnumerable<int>>(ids => ids.SequenceEqual(new[] { 2 })),
+                    It.Is<IEnumerable<int>>(ids => ids.SequenceEqual(new[] { 2 }))),
+                    Times.Once());
+        }
+
+        [Test]
+        public void should_not_backfill_a_dry_run_or_strict_skip()
+        {
+            Subject.Run(Request(true)).ExitCode.Should().Be(0);
+
+            _outcome = ImportOutcome.SkippedRows;
+            Subject.Run(Request()).ExitCode.Should().Be(2);
+
+            Mocker.GetMock<IMediaCoverBackfillService>()
+                .Verify(c => c.Backfill(It.IsAny<IEnumerable<int>>(), It.IsAny<IEnumerable<int>>()), Times.Never());
+        }
+
+        [Test]
+        public void should_report_missing_covers_without_claiming_a_committed_import_rolled_back()
+        {
+            Mocker.GetMock<IMediaCoverBackfillService>()
+                .Setup(c => c.Backfill(It.IsAny<IEnumerable<int>>(), It.IsAny<IEnumerable<int>>()))
+                .Returns(new CoverBackfillResult { Checked = 2, Missing = 1 });
+
+            var result = Subject.Run(Request());
+
+            result.ExitCode.Should().Be(0);
+            result.Report.Outcome.Should().Be("Committed");
+            result.Report.Warnings.Should().ContainSingle(w => w.Contains("1 of 2"));
+        }
+
+        [Test]
+        public void should_write_the_committed_report_before_cover_backfill_and_clear_pending_when_done()
+        {
+            Mocker.GetMock<IMediaCoverBackfillService>()
+                .Setup(c => c.Backfill(It.IsAny<IEnumerable<int>>(), It.IsAny<IEnumerable<int>>()))
+                .Returns(() =>
+                {
+                    Directory.GetFiles(_reportDirectory, "import-*.json")
+                        .Should().ContainSingle()
+                        .Which.Should().Contain("import-");
+
+                    File.ReadAllText(Directory.GetFiles(_reportDirectory, "import-*.json").Single())
+                        .Should().Contain("Cover backfill pending").And.Contain("Committed");
+
+                    return new CoverBackfillResult();
+                });
+
+            var result = Subject.Run(Request());
+
+            result.Report.Warnings.Should().NotContain(w => w.Contains("Cover backfill pending"));
+            File.ReadAllText(result.ReportFiles.Single(f => Path.GetExtension(f) == ".json"))
+                .Should().NotContain("Cover backfill pending");
+        }
+
+        [Test]
+        public void should_keep_the_committed_outcome_and_report_a_backfill_exception()
+        {
+            Mocker.GetMock<IMediaCoverBackfillService>()
+                .Setup(c => c.Backfill(It.IsAny<IEnumerable<int>>(), It.IsAny<IEnumerable<int>>()))
+                .Throws(new InvalidOperationException("download failed"));
+
+            var result = Subject.Run(Request());
+
+            result.ExitCode.Should().Be(0);
+            result.Report.Outcome.Should().Be("Committed");
+            result.Report.Warnings.Should().ContainSingle(w => w.Contains("did not complete"));
+            File.ReadAllText(result.ReportFiles.Single(f => Path.GetExtension(f) == ".json"))
+                .Should().Contain("did not complete").And.NotContain("Cover backfill pending");
         }
 
         [Test]

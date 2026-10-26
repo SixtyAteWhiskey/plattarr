@@ -442,7 +442,7 @@ namespace NzbDrone.Core.Music.MediaFiles.TrackImport.Manual
                 }
             }
 
-            _logger.ProgressTrace("Manually imported {0} files", imported.Count);
+            _logger.ProgressTrace("Manually imported {0} of {1} files", imported.Count(r => r.Result == ImportResultType.Imported), message.Files.Count);
 
             foreach (var groupedTrackedDownload in importedTrackedDownload.GroupBy(i => i.TrackedDownload.DownloadItem.DownloadId).ToList())
             {

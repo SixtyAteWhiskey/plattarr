@@ -22,6 +22,7 @@ using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.Lifecycle;
+using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
@@ -30,6 +31,7 @@ using NzbDrone.Core.Movies.Downloads;
 using NzbDrone.Core.Movies.MediaFiles.Events;
 using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Movies.Search;
+using NzbDrone.Core.Upstream;
 using NzbDrone.Host;
 using NzbDrone.SignalR;
 using NzbDrone.Test.Common;
@@ -82,6 +84,16 @@ namespace NzbDrone.App.Test
             _container.GetRequiredService<ISearchTranslator<MovieSearchRequest>>().Should().BeOfType<MovieSearchTranslator>();
             _container.GetRequiredService<IMovieReleaseMatcher>().Should().BeOfType<MovieReleaseMatcher>();
             _container.GetRequiredService<ISearchForReleases>().Should().NotBeNull();
+        }
+
+        [Test]
+        public void should_resolve_import_cover_backfill_and_its_retry_command()
+        {
+            _container.GetRequiredService<IUpstreamImportRunner>().Should().NotBeNull();
+            _container.GetRequiredService<IMediaCoverBackfillService>().Should().NotBeNull();
+            _container.GetRequiredService<IExecute<BackfillMediaCoversCommand>>().Should().NotBeNull();
+            _container.GetServices<IMediaCoverBackfillSource>().Select(s => s.Kind)
+                .Should().BeEquivalentTo(new[] { MediaKind.Movies, MediaKind.Tv });
         }
 
         [Test]

@@ -22,10 +22,17 @@ namespace NzbDrone.Core.Tv.Covers
         string GetCoverPath(int seriesId, MediaCoverTypes coverType, int? height = null);
     }
 
+    public interface IEnsureSeriesCovers
+    {
+        string GetCoverPath(int seriesId, MediaCoverTypes coverType, int? height = null);
+        bool EnsureCovers(Series series);
+    }
+
     public class MediaCoverService :
         IHandleAsync<SeriesUpdatedEvent>,
         IHandleAsync<SeriesDeletedEvent>,
-        IMapCoversToLocal
+        IMapCoversToLocal,
+        IEnsureSeriesCovers
     {
         // Series covers live in MediaCover/Series/{id}. Movies keep MediaCover/{id} and Music uses
         // MediaCover/Artists/{id} and MediaCover/Albums/{id}, so ids from different media kinds never share a folder.
@@ -139,7 +146,7 @@ namespace NzbDrone.Core.Tv.Covers
             return Path.Combine(_coverRootFolder, SeriesCoverFolder, seriesId.ToString());
         }
 
-        private bool EnsureCovers(Series series)
+        public bool EnsureCovers(Series series)
         {
             var updated = false;
             var toResize = new List<Tuple<MediaCover.MediaCover, bool>>();

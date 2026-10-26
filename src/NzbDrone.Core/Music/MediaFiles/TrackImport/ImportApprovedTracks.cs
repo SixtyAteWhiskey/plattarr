@@ -16,6 +16,7 @@ using NzbDrone.Core.Music.Commands;
 using NzbDrone.Core.Music.Events;
 using NzbDrone.Core.Music.History;
 using NzbDrone.Core.Music.MediaFiles.Events;
+using NzbDrone.Core.Music.Organizer;
 using NzbDrone.Core.Music.Parser.Model;
 using NzbDrone.Core.Music.Qualities;
 using NzbDrone.Core.Music.RootFolders;
@@ -43,6 +44,7 @@ namespace NzbDrone.Core.Music.MediaFiles.TrackImport
         private readonly IDiskProvider _diskProvider;
         private readonly IHistoryService _historyService;
         private readonly IReleaseService _releaseService;
+        private readonly IBuildFileNames _fileNameBuilder;
         private readonly IEventAggregator _eventAggregator;
         private readonly IManageCommandQueue _commandQueueManager;
         private readonly Logger _logger;
@@ -60,6 +62,7 @@ namespace NzbDrone.Core.Music.MediaFiles.TrackImport
                                     IDiskProvider diskProvider,
                                     IHistoryService historyService,
                                     IReleaseService releaseService,
+                                    IBuildFileNames fileNameBuilder,
                                     IEventAggregator eventAggregator,
                                     IManageCommandQueue commandQueueManager,
                                     Logger logger)
@@ -77,6 +80,7 @@ namespace NzbDrone.Core.Music.MediaFiles.TrackImport
             _diskProvider = diskProvider;
             _historyService = historyService;
             _releaseService = releaseService;
+            _fileNameBuilder = fileNameBuilder;
             _eventAggregator = eventAggregator;
             _commandQueueManager = commandQueueManager;
             _logger = logger;
@@ -88,6 +92,30 @@ namespace NzbDrone.Core.Music.MediaFiles.TrackImport
             var allImportedTrackFiles = new List<TrackFile>();
             var allOldTrackFiles = new List<TrackFile>();
             var addedArtists = new List<Artist>();
+
+            // Manual import may leave replacement disabled. Reject a collision before switching
+            // the monitored release or deleting a file linked to another release of this album.
+            if (!replaceExisting)
+            {
+                foreach (var decision in decisions.Where(d => d.Approved && !d.Item.ExistingFile))
+                {
+                    var track = decision.Item;
+                    var candidate = new TrackFile
+                    {
+                        Path = track.Path,
+                        AlbumId = track.Album.Id,
+                        Quality = track.Quality,
+                        ReleaseGroup = track.ReleaseGroup
+                    };
+
+                    var destination = _fileNameBuilder.BuildTrackFilePath(track.Tracks, track.Artist, track.Album, candidate, Path.GetExtension(track.Path));
+
+                    if (_diskProvider.FileExists(destination))
+                    {
+                        decision.Reject(new ImportRejection(ImportRejectionReason.DestinationAlreadyExists, "Destination already exists; replacing existing files is disabled"));
+                    }
+                }
+            }
 
             var albumDecisions = decisions.Where(e => e.Item.Album != null && e.Approved)
                 .GroupBy(e => e.Item.Album.ForeignAlbumId).ToList();
