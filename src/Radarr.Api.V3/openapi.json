@@ -4388,6 +4388,161 @@
         }
       }
     },
+    "/api/v3/hygiene/preview": {
+      "get": {
+        "tags": [
+          "HygienePreview"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HygieneQueueAssessment"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v3/hygiene/rule": {
+      "get": {
+        "tags": [
+          "HygieneRule"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HygieneRule"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "HygieneRule"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HygieneRule"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HygieneRule"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/HygieneRule"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HygieneRule"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v3/hygiene/rule/{id}": {
+      "put": {
+        "tags": [
+          "HygieneRule"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HygieneRule"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HygieneRule"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/HygieneRule"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HygieneRule"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "HygieneRule"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v3/importlist": {
       "get": {
         "tags": [
@@ -17081,6 +17236,101 @@
         },
         "additionalProperties": false
       },
+      "HygieneQueueAssessment": {
+        "type": "object",
+        "properties": {
+          "queueId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "kind": {
+            "$ref": "#/components/schemas/MediaKind"
+          },
+          "downloadClient": {
+            "type": "string",
+            "nullable": true
+          },
+          "downloadClientId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reasonCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "explanation": {
+            "type": "string",
+            "nullable": true
+          },
+          "recommendedAction": {
+            "type": "string",
+            "nullable": true
+          },
+          "needsAttention": {
+            "type": "boolean"
+          },
+          "strikes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "strikeLimit": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "ruleEnabled": {
+            "type": "boolean"
+          },
+          "eligible": {
+            "type": "boolean"
+          },
+          "ruleExplanation": {
+            "type": "string",
+            "nullable": true
+          },
+          "wouldAct": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "HygieneRule": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reasonCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "mediaKind": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "downloadClientId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "strikeLimit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "strikeIntervalMinutes": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "ImportListBulkResource": {
         "type": "object",
         "properties": {
@@ -24329,6 +24579,12 @@
     },
     {
       "name": "HostConfig"
+    },
+    {
+      "name": "HygienePreview"
+    },
+    {
+      "name": "HygieneRule"
     },
     {
       "name": "ImportList"
