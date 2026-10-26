@@ -120,6 +120,10 @@ const LINKS: SidebarItem[] = [
         statusComponent: QueueStatus,
       },
       {
+        title: 'Hygiene',
+        to: '/activity/hygiene',
+      },
+      {
         title: () => translate('History'),
         to: '/activity/history',
       },
