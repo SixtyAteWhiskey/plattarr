@@ -1,10 +1,11 @@
 import React, { useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import ProtocolLabel from 'Activity/Queue/ProtocolLabel';
+import Icon from 'Components/Icon';
 import Label, { LabelProps } from 'Components/Label';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import TableRowButton from 'Components/Table/TableRowButton';
-import { kinds } from 'Helpers/Props';
+import { icons, kinds } from 'Helpers/Props';
 import { selectIndexerSchema } from 'Store/Actions/settingsActions';
 import Indexer, { IndexerPrivacy } from 'typings/Indexer';
 import translate from 'Utilities/String/translate';
@@ -13,6 +14,7 @@ import styles from './AddIndexerRow.css';
 
 interface AddIndexerRowProps {
   indexer: Indexer;
+  isAdded: boolean;
   onIndexerSelect: () => void;
 }
 
@@ -31,7 +33,11 @@ function getPrivacyLabel(
   }
 }
 
-function AddIndexerRow({ indexer, onIndexerSelect }: AddIndexerRowProps) {
+function AddIndexerRow({
+  indexer,
+  isAdded,
+  onIndexerSelect,
+}: AddIndexerRowProps) {
   const dispatch = useDispatch();
   const { implementation, implementationName, name, protocol } = indexer;
   const privacy = getPrivacyLabel(indexer.privacy);
@@ -55,7 +61,16 @@ function AddIndexerRow({ indexer, onIndexerSelect }: AddIndexerRowProps) {
         <ProtocolLabel protocol={protocol} />
       </TableRowCell>
 
-      <TableRowCell className={styles.name}>{name}</TableRowCell>
+      <TableRowCell className={styles.name}>
+        <div className={styles.nameContent}>
+          <span>{name}</span>
+          {isAdded && (
+            <Label kind={kinds.SUCCESS}>
+              <Icon name={icons.CHECK} size={10} /> {translate('Added')}
+            </Label>
+          )}
+        </div>
+      </TableRowCell>
 
       <TableRowCell className={styles.language}>
         {indexer.language}

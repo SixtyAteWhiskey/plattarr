@@ -20,6 +20,7 @@ import { InputChanged } from 'typings/inputs';
 import translate from 'Utilities/String/translate';
 import AddIndexerRow from './AddIndexerRow';
 import getIndexerCategories from './getIndexerCategories';
+import getIndexerSchemaIdentity from './getIndexerSchemaIdentity';
 import styles from './AddIndexerModalContent.css';
 
 interface AddIndexerModalContentProps {
@@ -78,8 +79,21 @@ function AddIndexerModalContent({
 }: AddIndexerModalContentProps) {
   const dispatch = useDispatch();
 
-  const { isSchemaFetching, isSchemaPopulated, schemaError, schema } =
-    useSelector((state: AppState) => state.settings.indexers);
+  const {
+    isSchemaFetching,
+    isSchemaPopulated,
+    schemaError,
+    schema,
+    items: addedIndexers,
+  } = useSelector((state: AppState) => state.settings.indexers);
+
+  const addedIndexerIdentities = useMemo(() => {
+    return new Set(
+      addedIndexers
+        .map(getIndexerSchemaIdentity)
+        .filter((identity): identity is string => identity !== null)
+    );
+  }, [addedIndexers]);
 
   // Built here, not at module level: translations load after the bundle.
   const protocolValues = useMemo(
@@ -323,6 +337,9 @@ function AddIndexerModalContent({
                     <AddIndexerRow
                       key={`${indexer.implementation}:${indexer.name}`}
                       indexer={indexer}
+                      isAdded={addedIndexerIdentities.has(
+                        getIndexerSchemaIdentity(indexer) ?? ''
+                      )}
                       onIndexerSelect={onIndexerSelect}
                     />
                   ))}
