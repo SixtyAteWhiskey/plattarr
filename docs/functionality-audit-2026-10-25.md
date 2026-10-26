@@ -163,11 +163,15 @@ been deployed.
   the action gate remains off by default.
 - The liveproof harness has a read-only Hygiene idle-state check and a
   same-query Prowlarr/Plattarr flag comparison. The comparison passed against
-  local app APIs using the same synthetic Torznab feed. A same-indexer capture
-  with real tracker results remains outstanding; no mapper change is claimed.
+  local app APIs using the same synthetic Torznab feed. A later real
+  single-indexer capture matched 32 releases with no mapped-flag differences.
+  The unmatched releases were captured under different query terms and
+  categories, so full search-result parity remains untested; no mapper change
+  is claimed.
 - `docs/first-run.md` now covers the request, download, import, library scan,
   compatibility API checks, security boundary, and current Jellyfin/Emby/Plex
-  and Jellyseerr/Ombi limits. Ombi remains unverified.
+  and Jellyseerr/Ombi limits. A later disposable Ombi v4.53.10 AddOnly movie
+  and one-episode TV runtime capture passed; other Ombi modes remain unverified.
 - The UI's inherited Radarr help and update links now point to Plattarr's
   first-run guide and release page; upstream donations are labeled as upstream
   projects. Radarr package updates, hosted notification checks, and the hosted

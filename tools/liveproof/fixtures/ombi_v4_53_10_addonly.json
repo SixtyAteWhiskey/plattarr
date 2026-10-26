@@ -1,0 +1,326 @@
+{
+  "calls": [
+    {
+      "method": "GET",
+      "path": "/radarr/api/v3/tag",
+      "query_keys": [],
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/radarr/api/v3/tag",
+      "query_keys": [],
+      "shape": {
+        "Label": "str"
+      },
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/radarr/api/v3/movie",
+      "query_keys": [],
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/radarr/api/v3/movie",
+      "query_keys": [],
+      "shape": {
+        "Error": null,
+        "addOptions": null,
+        "images": {
+          "count": 0,
+          "item": null
+        },
+        "minimumAvailability": "str",
+        "monitored": true,
+        "qualityProfileId": "int",
+        "rootFolderPath": "str",
+        "sizeOnDisk": "int",
+        "tags": {
+          "count": 1,
+          "item": "int"
+        },
+        "title": "str",
+        "titleSlug": "str",
+        "tmdbId": "int",
+        "year": "int"
+      },
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/sonarr/api/v3/rootfolder",
+      "query_keys": [],
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/sonarr/api/v3/tag",
+      "query_keys": [],
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/sonarr/api/v3/series",
+      "query_keys": [],
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/sonarr/api/v3/series/",
+      "query_keys": [],
+      "shape": {
+        "addOptions": {
+          "ignoreEpisodesWithFiles": false,
+          "ignoreEpisodesWithoutFiles": false,
+          "searchForMissingEpisodes": false
+        },
+        "cleanTitle": "str",
+        "id": "int",
+        "images": {
+          "count": 0,
+          "item": null
+        },
+        "imdbId": "str",
+        "languageProfileId": "int",
+        "monitored": true,
+        "qualityProfileId": "int",
+        "rootFolderPath": "str",
+        "seasonFolder": true,
+        "seasons": {
+          "count": 2,
+          "item": {
+            "monitored": false,
+            "seasonNumber": "int",
+            "statistics": null
+          }
+        },
+        "seriesType": "str",
+        "tags": {
+          "count": 1,
+          "item": "int"
+        },
+        "title": "str",
+        "titleSlug": "str",
+        "tvRageId": "int",
+        "tvdbId": "int"
+      },
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/sonarr/api/v3/series/<id>",
+      "query_keys": [],
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/sonarr/api/v3/series/",
+      "query_keys": [],
+      "shape": {
+        "added": "str",
+        "airTime": "str",
+        "alternateTitles": {
+          "count": 3,
+          "item": {
+            "sceneSeasonNumber": "int",
+            "seasonNumber": "int",
+            "title": "str"
+          }
+        },
+        "certification": "str",
+        "cleanTitle": "str",
+        "episodeCount": "int",
+        "episodeFileCount": "int",
+        "firstAired": "str",
+        "genres": {
+          "count": 4,
+          "item": "str"
+        },
+        "id": "int",
+        "images": {
+          "count": 4,
+          "item": {
+            "coverType": "str",
+            "url": "str"
+          }
+        },
+        "imdbId": "str",
+        "languageProfileId": "int",
+        "lastInfoSync": "str",
+        "monitored": true,
+        "network": "str",
+        "nextAiring": "str",
+        "overview": "str",
+        "path": "str",
+        "previousAiring": "str",
+        "profileId": "int",
+        "qualityProfileId": "int",
+        "ratings": {
+          "value": "float",
+          "votes": "int"
+        },
+        "runtime": "int",
+        "seasonCount": "int",
+        "seasonFolder": true,
+        "seasons": {
+          "count": 9,
+          "item": {
+            "monitored": false,
+            "seasonNumber": "int",
+            "statistics": {
+              "episodeCount": "int",
+              "episodeFileCount": "int",
+              "nextAiring": "str",
+              "percentOfEpisodes": "int",
+              "previousAiring": "str",
+              "sizeOnDisk": "int",
+              "totalEpisodeCount": "int"
+            }
+          }
+        },
+        "seriesType": "str",
+        "sizeOnDisk": "int",
+        "sortTitle": "str",
+        "status": "str",
+        "tags": {
+          "count": 1,
+          "item": "int"
+        },
+        "title": "str",
+        "titleSlug": "str",
+        "totalEpisodeCount": "int",
+        "tvMazeId": "int",
+        "tvRageId": "int",
+        "tvdbId": "int",
+        "useSceneNumbering": false,
+        "year": "int"
+      },
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/sonarr/api/v3/Episode",
+      "query_keys": [
+        "seriesId"
+      ],
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/sonarr/api/v3/series/",
+      "query_keys": [],
+      "shape": {
+        "added": "str",
+        "airTime": "str",
+        "alternateTitles": {
+          "count": 3,
+          "item": {
+            "sceneSeasonNumber": "int",
+            "seasonNumber": "int",
+            "title": "str"
+          }
+        },
+        "certification": "str",
+        "cleanTitle": "str",
+        "episodeCount": "int",
+        "episodeFileCount": "int",
+        "firstAired": "str",
+        "genres": {
+          "count": 4,
+          "item": "str"
+        },
+        "id": "int",
+        "images": {
+          "count": 4,
+          "item": {
+            "coverType": "str",
+            "url": "str"
+          }
+        },
+        "imdbId": "str",
+        "languageProfileId": "int",
+        "lastInfoSync": "str",
+        "monitored": true,
+        "network": "str",
+        "nextAiring": "str",
+        "overview": "str",
+        "path": "str",
+        "previousAiring": "str",
+        "profileId": "int",
+        "qualityProfileId": "int",
+        "ratings": {
+          "value": "float",
+          "votes": "int"
+        },
+        "runtime": "int",
+        "seasonCount": "int",
+        "seasonFolder": true,
+        "seasons": {
+          "count": 9,
+          "item": {
+            "monitored": false,
+            "seasonNumber": "int",
+            "statistics": {
+              "episodeCount": "int",
+              "episodeFileCount": "int",
+              "nextAiring": "str",
+              "percentOfEpisodes": "int",
+              "previousAiring": "str",
+              "sizeOnDisk": "int",
+              "totalEpisodeCount": "int"
+            }
+          }
+        },
+        "seriesType": "str",
+        "sizeOnDisk": "int",
+        "sortTitle": "str",
+        "status": "str",
+        "tags": {
+          "count": 1,
+          "item": "int"
+        },
+        "title": "str",
+        "titleSlug": "str",
+        "totalEpisodeCount": "int",
+        "tvMazeId": "int",
+        "tvRageId": "int",
+        "tvdbId": "int",
+        "useSceneNumbering": false,
+        "year": "int"
+      },
+      "status": 202
+    },
+    {
+      "method": "PUT",
+      "path": "/sonarr/api/v3/episode/monitor",
+      "query_keys": [],
+      "shape": {
+        "episodeIds": {
+          "count": 10,
+          "item": "int"
+        },
+        "monitored": false
+      },
+      "status": 202
+    },
+    {
+      "method": "PUT",
+      "path": "/sonarr/api/v3/episode/monitor",
+      "query_keys": [],
+      "shape": {
+        "episodeIds": {
+          "count": 1,
+          "item": "int"
+        },
+        "monitored": true
+      },
+      "status": 202
+    }
+  ],
+  "ombiImage": "lscr.io/linuxserver/ombi:v4.53.10-ls265",
+  "plattarrImage": "ghcr.io/sixtyatewhiskey/plattarr:sha-ad98a7c",
+  "scenario": "Ombi 4.53.10 AddOnly movie and TV season 1 episode 1",
+  "schemaVersion": 1
+}
