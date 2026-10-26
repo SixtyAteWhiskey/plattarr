@@ -188,6 +188,13 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("EnableCompletedDownloadHandling", value); }
         }
 
+        public bool HygieneActionsEnabled
+        {
+            get { return GetValueBoolean("HygieneActionsEnabled", false); }
+
+            set { SetValue("HygieneActionsEnabled", value); }
+        }
+
         public bool PreferIndexerFlags
         {
             get { return GetValueBoolean("PreferIndexerFlags", false); }

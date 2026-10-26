@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Hygiene;
 using NzbDrone.Core.Queue;
 using QueueItem = NzbDrone.Core.Queue.Queue;
@@ -36,7 +37,9 @@ namespace NzbDrone.Core.Test.QueueTests
             {
                 new() { ReasonCode = "client-failed", Enabled = true, StrikeLimit = 3, StrikeIntervalMinutes = 5 }
             });
-            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object));
+            var config = new Mock<IConfigService>();
+            config.SetupGet(x => x.HygieneActionsEnabled).Returns(false);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object), config.Object);
 
             var assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
 
@@ -52,13 +55,51 @@ namespace NzbDrone.Core.Test.QueueTests
             states.Setup(x => x.All()).Returns(new List<HygieneQueueState>());
             var rules = new Mock<IHygieneRuleRepository>();
             rules.Setup(x => x.All()).Returns(new List<HygieneRule>());
-            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object));
+            var config = new Mock<IConfigService>();
+            config.SetupGet(x => x.HygieneActionsEnabled).Returns(false);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object), config.Object);
 
             var assessment = decisions.Evaluate(new[] { new QueueItem { Status = QueueStatus.Delay } }).Should().ContainSingle().Subject;
 
             assessment.Strikes.Should().Be(0);
             assessment.Eligible.Should().BeFalse();
             assessment.WouldAct.Should().BeFalse();
+        }
+
+        [Test]
+        public void private_torrent_release_is_held_even_when_gate_and_rule_are_enabled()
+        {
+            var item = new QueueItem
+            {
+                DownloadClientId = 7,
+                DownloadId = "private-test-hash",
+                Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Torrent,
+                Status = QueueStatus.Failed,
+                RemoteRelease = new NzbDrone.Core.Movies.Parser.Model.RemoteMovie
+                {
+                    Release = new NzbDrone.Core.Parser.Model.ReleaseInfo
+                    {
+                        IndexerPrivacy = NzbDrone.Core.Indexers.IndexerPrivacy.Private
+                    }
+                }
+            };
+            var states = new Mock<IHygieneQueueStateRepository>();
+            states.Setup(x => x.All()).Returns(new[]
+            {
+                new HygieneQueueState { DownloadClientId = 7, DownloadId = "private-test-hash", ReasonCode = "client-failed", Strikes = 3 }
+            });
+            var rule = new HygieneRule { Id = 8, ReasonCode = "client-failed", Enabled = true, StrikeLimit = 3, StrikeIntervalMinutes = 5 };
+            var rules = new Mock<IHygieneRuleRepository>();
+            rules.Setup(x => x.All()).Returns(new List<HygieneRule> { rule });
+            var config = new Mock<IConfigService>();
+            config.SetupGet(x => x.HygieneActionsEnabled).Returns(true);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object), config.Object);
+
+            var assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+
+            assessment.Eligible.Should().BeTrue();
+            assessment.WouldAct.Should().BeFalse();
+            assessment.ActionExplanation.Should().Contain("private");
         }
     }
 }

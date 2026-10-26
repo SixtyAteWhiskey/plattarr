@@ -13,10 +13,11 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import checks  # noqa: E402
+import hygiene_recovery  # noqa: E402
 from client import Plattarr  # noqa: E402
 from journal import Journal  # noqa: E402
 
-ALL = ("smoke", "covers", "baseline", "defaults", "fingerprint", "restore")
+ALL = ("smoke", "covers", "baseline", "defaults", "fingerprint", "hygiene", "hygiene-recovery", "restore")
 
 
 def main():
@@ -26,6 +27,8 @@ def main():
     parser.add_argument("--baseline-movie", type=int, default=1, help="movie id for the baseline release search (default 1)")
     parser.add_argument("--allow-health", default="", metavar="SOURCE,SOURCE", help="health sources that may be present")
     parser.add_argument("--allow-missing-covers", action="store_true", help="report cover files not on disk as a warning")
+    parser.add_argument("--confirm-disposable", action="store_true",
+                        help="confirm that hygiene-recovery may modify this disposable localhost instance")
     args = parser.parse_args()
 
     api = Plattarr()
@@ -49,6 +52,10 @@ def main():
             checks.defaults(api, report)
         elif name == "fingerprint":
             checks.fingerprint(api, report, journal)
+        elif name == "hygiene":
+            checks.hygiene(api, report)
+        elif name == "hygiene-recovery":
+            hygiene_recovery.run(api, report, confirmed=args.confirm_disposable)
         elif name == "restore":
             failures = journal.restore(api)
             report.check(failures == 0, "restore", "journal empty" if not failures else "some entries could not be restored")

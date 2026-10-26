@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { FormEvent, useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Alert from 'Components/Alert';
 import FieldSet from 'Components/FieldSet';
@@ -6,6 +6,7 @@ import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
 import useApiQuery from 'Helpers/Hooks/useApiQuery';
+import fetchJson, { apiRoot } from 'Utilities/Fetch/fetchJson';
 import HygieneRules from './HygieneRules';
 
 interface HygieneAssessment {
@@ -23,13 +24,37 @@ interface HygieneAssessment {
   eligible: boolean;
   ruleExplanation: string;
   wouldAct: boolean;
+  actionExplanation: string;
+}
+
+interface HygieneConfig {
+  id: number;
+  actionsEnabled: boolean;
+}
+
+interface HygieneAction {
+  id: number;
+  title: string;
+  reasonCode: string;
+  status: string;
+  checkpoint: string;
+  recoveryPath: string;
+  lastError?: string;
+  updatedAt: string;
 }
 
 function Hygiene() {
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string>();
   const { data, isLoading, isError, refetch } = useApiQuery<
     HygieneAssessment[]
   >({
     path: '/hygiene/preview',
+    queryOptions: { refetchInterval: 15000 },
+  });
+  const configQuery = useApiQuery<HygieneConfig>({ path: '/hygiene/config' });
+  const actionsQuery = useApiQuery<HygieneAction[]>({
+    path: '/hygiene/action?limit=50',
     queryOptions: { refetchInterval: 15000 },
   });
 
@@ -37,15 +62,59 @@ function Hygiene() {
     refetch();
   }, [refetch]);
 
+  const handleGateChange = useCallback(
+    async (event: FormEvent<HTMLInputElement>) => {
+      const actionsEnabled = event.currentTarget.checked;
+      setIsSaving(true);
+      setSaveError(undefined);
+
+      try {
+        await fetchJson<HygieneConfig, HygieneConfig>({
+          method: 'PUT',
+          path: `${apiRoot}/hygiene/config/1`,
+          headers: { 'X-Api-Key': window.Radarr.apiKey },
+          body: { id: 1, actionsEnabled },
+        });
+        await configQuery.refetch();
+        await refetch();
+      } catch {
+        setSaveError('Unable to update the Hygiene action gate.');
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [configQuery, refetch]
+  );
+
   return (
     <PageContent title="Hygiene">
       <PageContentBody>
         <h1>Hygiene</h1>
         <Alert>
-          Queue preview is read only. No automatic cleanup is enabled by this
-          page. Review an item in the <Link to="/activity/queue">queue</Link>{' '}
-          before taking action.
+          {configQuery.data?.actionsEnabled
+            ? 'Automatic Hygiene actions are enabled. Eligible tracked downloads are removed from the client without deleting their files, blocklisted, and sent through the configured failed-download replacement flow.'
+            : 'The global Hygiene action gate is off. Queue preview and monitoring remain read only.'}{' '}
+          Review items in the <Link to="/activity/queue">queue</Link> before
+          enabling automatic actions.
         </Alert>
+        <FieldSet legend="Automatic actions">
+          <label>
+            <input
+              type="checkbox"
+              checked={configQuery.data?.actionsEnabled ?? false}
+              disabled={!configQuery.data || isSaving}
+              onChange={handleGateChange}
+            />
+            Enable automatic cleanup for eligible Hygiene rules
+          </label>
+          <p>
+            Only client failures and blocked imports can run automatically.
+            Private or unverified torrent releases and generic warnings require
+            manual review. Source files are kept. Replacement searches follow
+            the existing failed-download settings.
+          </p>
+          {saveError && <Alert kind="danger">{saveError}</Alert>}
+        </FieldSet>
         <p>
           <button type="button" onClick={handleRefresh}>
             Refresh preview
@@ -86,9 +155,32 @@ function Hygiene() {
                 {item.eligible && ' · Threshold reached'}
               </p>
             )}
-            <p>{item.wouldAct ? 'Action proposed' : 'No automatic action'}</p>
+            <p>
+              {item.wouldAct ? 'Action proposed' : 'No automatic action'} ·{' '}
+              {item.actionExplanation}
+            </p>
           </FieldSet>
         ))}
+        <FieldSet legend="Action journal">
+          {actionsQuery.isLoading && <LoadingIndicator />}
+          {actionsQuery.isError && (
+            <Alert kind="danger">
+              Unable to load the Hygiene action journal.
+            </Alert>
+          )}
+          {actionsQuery.data?.length === 0 && (
+            <p>No automatic actions recorded.</p>
+          )}
+          {actionsQuery.data?.map((action) => (
+            <p key={action.id}>
+              <strong>{action.title || 'Untitled download'}</strong> ·{' '}
+              {action.reasonCode} · {action.status} ({action.checkpoint})
+              {action.lastError && ` · ${action.lastError}`}
+              {' · '}
+              {action.recoveryPath}
+            </p>
+          ))}
+        </FieldSet>
         <HygieneRules onChanged={handleRefresh} />
       </PageContentBody>
     </PageContent>

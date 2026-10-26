@@ -216,3 +216,34 @@ def fingerprint(api, report, journal, music_root=None):
     finally:
         failures = journal.restore(api, log=lambda line: print(scrub(f"      {line}")))
         report.check(failures == 0, "fingerprint.restore", "settings and root folder put back" if not failures else "restore failed: run `run.py restore`")
+
+
+def hygiene(api, report):
+    """Read-only rollout check: the global action gate is off and the journal has no partial actions."""
+    try:
+        config = api.get("/api/v3/hygiene/config")
+        actions = api.get("/api/v3/hygiene/action?limit=500")
+    except ApiError as error:
+        report.fail("hygiene.api", str(error))
+        return
+
+    report.check(config.get("actionsEnabled") is False, "hygiene.actions_disabled",
+                 "global gate is off" if config.get("actionsEnabled") is False else
+                 "global gate is on; disable it before treating this instance as idle")
+
+    statuses = {}
+    malformed = []
+    partial = []
+    for action in actions:
+        status = action.get("status", "unknown")
+        statuses[status] = statuses.get(status, 0) + 1
+        if status not in ("completed", "failed") or not action.get("recoveryPath"):
+            malformed.append(str(action.get("id", "?")))
+        if status in ("failed", "paused", "processing"):
+            partial.append(f"{action.get('id', '?')} ({action.get('mediaKind', '?')}, {action.get('checkpoint', '?')})")
+
+    report.info("hygiene.journal", ", ".join(f"{key}={value}" for key, value in sorted(statuses.items())) or "empty")
+    report.check(not malformed, "hygiene.journal_shape", "all entries have stable states and recovery paths" if not malformed else
+                 f"incomplete entries: {', '.join(malformed[:5])}")
+    report.check(not partial, "hygiene.no_partial_actions", "no action needs recovery" if not partial else
+                 "; ".join(partial[:5]))

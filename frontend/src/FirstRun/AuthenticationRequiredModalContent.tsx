@@ -113,7 +113,7 @@ export default function AuthenticationRequiredModalContent() {
                     ? translate('AuthenticationMethodHelpTextWarning')
                     : undefined
                 }
-                helpLink="https://wiki.servarr.com/radarr/faq#forced-authentication"
+                helpLink="https://github.com/SixtyAteWhiskey/plattarr/blob/develop/docs/first-run.md"
                 onChange={onInputChange}
                 {...authenticationMethod}
               />
@@ -154,7 +154,7 @@ export default function AuthenticationRequiredModalContent() {
                 name="allowedHosts"
                 helpText={translate('AllowedHostsHelpText')}
                 helpTextWarning={translate('RestartRequiredHelpTextWarning')}
-                helpLink="https://wiki.servarr.com/radarr/settings#host"
+                helpLink="https://github.com/SixtyAteWhiskey/plattarr/blob/develop/docs/first-run.md"
                 onChange={onInputChange}
                 {...allowedHosts}
               />

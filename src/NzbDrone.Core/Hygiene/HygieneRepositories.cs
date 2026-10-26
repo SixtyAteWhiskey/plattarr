@@ -33,4 +33,16 @@ namespace NzbDrone.Core.Hygiene
         {
         }
     }
+
+    public interface IHygieneActionRepository : IBasicRepository<HygieneAction>
+    {
+    }
+
+    public class HygieneActionRepository : BasicRepository<HygieneAction>, IHygieneActionRepository
+    {
+        public HygieneActionRepository(IMainDatabase database, IEventAggregator eventAggregator)
+            : base(database, eventAggregator)
+        {
+        }
+    }
 }

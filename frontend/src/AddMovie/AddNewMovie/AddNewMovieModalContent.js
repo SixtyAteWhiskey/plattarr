@@ -141,7 +141,7 @@ class AddNewMovieModalContent extends Component {
                     name="minimumAvailability"
                     onChange={onInputChange}
                     {...minimumAvailability}
-                    helpLink="https://wiki.servarr.com/radarr/faq#what-is-minimum-availability"
+                    helpLink="https://github.com/SixtyAteWhiskey/plattarr/blob/develop/docs/first-run.md"
                   />
                 </FormGroup>
 
