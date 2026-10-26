@@ -19,7 +19,9 @@ namespace NzbDrone.Core.Hygiene
 
             if (item.DownloadClientStalled)
             {
-                Set(assessment, "download-stalled",
+                Set(
+                    assessment,
+                    "download-stalled",
                     "The download client reports this download in its stalled state.",
                     "Check seed availability and client connectivity; resume or replace the release if it remains stalled.");
                 return;
@@ -40,7 +42,9 @@ namespace NzbDrone.Core.Hygiene
                 return;
             }
 
-            Set(assessment, "download-slow",
+            Set(
+                assessment,
+                "download-slow",
                 $"The reported download rate is {rate.Value / 1024.0:F1} KiB/s, below this rule's {rule.MinimumDownloadRateKiBps} KiB/s threshold.",
                 "Check seed availability, client connectivity, and the configured speed threshold.");
         }
