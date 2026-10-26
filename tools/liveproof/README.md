@@ -109,7 +109,7 @@ divergence.
 AddOnly request flow. Its request paths, `X-Api-Key` authentication, and payloads
 are pinned to [Ombi v4.53.10](https://github.com/Ombi-app/Ombi/releases/tag/v4.53.10)
 source and a disposable runtime capture, using its
-using its [RadarrV3Api](https://github.com/Ombi-app/Ombi/blob/v4.53.10/src/Ombi.Api.External/ExternalApis/Radarr/RadarrV3Api.cs),
+[RadarrV3Api](https://github.com/Ombi-app/Ombi/blob/v4.53.10/src/Ombi.Api.External/ExternalApis/Radarr/RadarrV3Api.cs),
 [SonarrV3Api](https://github.com/Ombi-app/Ombi/blob/v4.53.10/src/Ombi.Api.External/ExternalApis/Sonarr/SonarrV3Api.cs),
 [MovieSender](https://github.com/Ombi-app/Ombi/blob/v4.53.10/src/Ombi.Core/Senders/MovieSender.cs),
 and [TvSender](https://github.com/Ombi-app/Ombi/blob/v4.53.10/src/Ombi.Core/Senders/TvSender.cs).
@@ -117,12 +117,12 @@ and [TvSender](https://github.com/Ombi-app/Ombi/blob/v4.53.10/src/Ombi.Core/Send
 The replay covers connection status, profiles, root folders, language profiles,
 tags, adding a movie and series, reading the new series and episodes, and
 updating season and episode monitoring. It reuses a user tag across both
-compatibility bases when the tag already exists. Metadata lookups are setup calls made
-by the harness to select valid disposable records; Ombi itself gets that
-metadata from its request catalog. The script does not send search commands:
-its request bodies match Ombi's AddOnly mode. It removes created media with
-`deleteFiles=false` and then removes its temporary tag. It logs only route
-and status, never API keys, response bodies, or filesystem paths.
+compatibility bases when the tag already exists. Metadata lookups are setup
+calls made by the harness to select valid disposable records; Ombi itself gets
+that metadata from its request catalog. The script does not send search
+commands: its request bodies match Ombi's AddOnly mode. It removes created
+media with `deleteFiles=false` and then removes its temporary tag. It logs only
+route and status, never API keys, response bodies, or filesystem paths.
 
 The runtime capture used `lscr.io/linuxserver/ombi:v4.53.10-ls265` and scratch
 Plattarr image `sha-ad98a7c` on 2026-10-26. Ombi was configured through its own
@@ -148,10 +148,9 @@ movie, one TV show, and exactly one monitored episode. The replay was updated
 to match these fields and this one-episode behavior, then passed on the same
 scratch app with its temporary records removed.
 
-The replay refuses
-every target except `http://localhost:7882` and requires an explicit
-disposable-instance flag. Start a fresh Plattarr scratch instance on that port,
-provide its `config.xml`, and run:
+The replay refuses every target except `http://localhost:7882` and requires an
+explicit disposable-instance flag. Start a fresh Plattarr scratch instance on
+that port, provide its `config.xml`, and run:
 
 ```bash
 PLATTARR_OMBI_URL=http://127.0.0.1:7882 \
