@@ -13,6 +13,7 @@ interface HygieneRule {
   enabled: boolean;
   strikeLimit: number;
   strikeIntervalMinutes: number;
+  minimumDownloadRateKiBps: number;
 }
 
 interface DownloadClient {
@@ -24,6 +25,8 @@ const reasonOptions = [
   { value: 'client-failed', label: 'Client failed' },
   { value: 'import-blocked', label: 'Import blocked' },
   { value: 'download-warning', label: 'Download warning' },
+  { value: 'download-stalled', label: 'Download stalled' },
+  { value: 'download-slow', label: 'Slow download' },
 ];
 
 const kindOptions = [
@@ -79,6 +82,16 @@ function HygieneRuleEditor({ rule, clients, onSaved }: EditorProps) {
       setDraft((current) => ({
         ...current,
         strikeIntervalMinutes: Number(event.target.value),
+      }));
+    },
+    []
+  );
+
+  const handleMinimumRateChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        minimumDownloadRateKiBps: Number(event.target.value),
       }));
     },
     []
@@ -160,6 +173,19 @@ function HygieneRuleEditor({ rule, clients, onSaved }: EditorProps) {
             onChange={handleIntervalChange}
           />
         </label>
+        {draft.reasonCode === 'download-slow' && (
+          <label>
+            Treat speeds below (KiB/s) as slow
+            <input
+              type="number"
+              min="1"
+              max="1048576"
+              required
+              value={draft.minimumDownloadRateKiBps}
+              onChange={handleMinimumRateChange}
+            />
+          </label>
+        )}
         <button type="submit" disabled={isSaving}>
           Save
         </button>
@@ -182,6 +208,7 @@ function HygieneRules({ onChanged }: HygieneRulesProps) {
     path: '/downloadclient',
   });
   const [reasonCode, setReasonCode] = useState('import-blocked');
+  const [minimumDownloadRateKiBps, setMinimumDownloadRateKiBps] = useState(100);
   const [mediaKind, setMediaKind] = useState(0);
   const [downloadClientId, setDownloadClientId] = useState(0);
   const [error, setError] = useState<string>();
@@ -195,6 +222,13 @@ function HygieneRules({ onChanged }: HygieneRulesProps) {
   const handleReasonChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
       setReasonCode(event.target.value);
+    },
+    []
+  );
+
+  const handleMinimumRateChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setMinimumDownloadRateKiBps(Number(event.target.value));
     },
     []
   );
@@ -228,6 +262,8 @@ function HygieneRules({ onChanged }: HygieneRulesProps) {
           enabled: false,
           strikeLimit: 3,
           strikeIntervalMinutes: 5,
+          minimumDownloadRateKiBps:
+            reasonCode === 'download-slow' ? minimumDownloadRateKiBps : 0,
         });
         rulesQuery.refetch();
         onChanged();
@@ -239,7 +275,14 @@ function HygieneRules({ onChanged }: HygieneRulesProps) {
         setIsSaving(false);
       }
     },
-    [reasonCode, mediaKind, downloadClientId, rulesQuery, onChanged]
+    [
+      reasonCode,
+      mediaKind,
+      downloadClientId,
+      minimumDownloadRateKiBps,
+      rulesQuery,
+      onChanged,
+    ]
   );
 
   return (
@@ -248,6 +291,10 @@ function HygieneRules({ onChanged }: HygieneRulesProps) {
       <p>
         Rules count consecutive problem observations. Monitoring never removes a
         download.
+      </p>
+      <p>
+        Stalled-state detection and download speed reporting are currently
+        available only from qBittorrent.
       </p>
       {(rulesQuery.isLoading || clientsQuery.isLoading) && <LoadingIndicator />}
       {(rulesQuery.isError || clientsQuery.isError) && (
@@ -275,6 +322,19 @@ function HygieneRules({ onChanged }: HygieneRulesProps) {
               ))}
             </select>
           </label>
+          {reasonCode === 'download-slow' && (
+            <label>
+              Treat speeds below (KiB/s) as slow
+              <input
+                type="number"
+                min="1"
+                max="1048576"
+                required
+                value={minimumDownloadRateKiBps}
+                onChange={handleMinimumRateChange}
+              />
+            </label>
+          )}
           <label>
             Media
             <select value={mediaKind} onChange={handleKindChange}>

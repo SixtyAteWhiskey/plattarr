@@ -12,5 +12,6 @@ namespace NzbDrone.Core.Hygiene
         public bool Enabled { get; set; }
         public int StrikeLimit { get; set; }
         public int StrikeIntervalMinutes { get; set; }
+        public int MinimumDownloadRateKiBps { get; set; }
     }
 }

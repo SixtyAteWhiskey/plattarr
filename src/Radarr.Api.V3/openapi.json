@@ -17508,6 +17508,10 @@
           "strikeIntervalMinutes": {
             "type": "integer",
             "format": "int32"
+          },
+          "minimumDownloadRateKiBps": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
