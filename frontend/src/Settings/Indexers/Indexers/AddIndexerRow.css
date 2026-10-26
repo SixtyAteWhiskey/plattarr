@@ -7,6 +7,13 @@
   font-weight: bold;
 }
 
+.nameContent {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .language {
   width: 90px;
 }

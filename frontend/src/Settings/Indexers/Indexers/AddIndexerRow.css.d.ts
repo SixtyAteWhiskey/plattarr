@@ -6,6 +6,7 @@ interface CssExports {
   'description': string;
   'language': string;
   'name': string;
+  'nameContent': string;
   'privacy': string;
   'protocol': string;
 }

@@ -10,6 +10,7 @@ export interface IndexerCategory {
 }
 
 interface Indexer extends Provider {
+  definitionName?: string;
   enableRss: boolean;
   enableAutomaticSearch: boolean;
   enableInteractiveSearch: boolean;
