@@ -129,6 +129,30 @@ proof indexer had RSS disabled. All isolated containers, listener, media, and
 temporary scripts were removed after the assertions. The production container
 was checked read-only afterward.
 
+## F7 category-switch recovery proof (2026-10-26)
+
+A fresh loopback-only scratch instance running `sha-ad98a7c` used the existing
+`hygiene-recovery` liveproof with local synthetic Newznab and SABnzbd services.
+After a Movie release was grabbed and its grab-history row was recorded, the
+SAB fixture changed that job's reported category from the Movie category to
+the TV category before Plattarr refreshed the queue. A one-strike
+Movie/client-failed rule and the global Hygiene gate were enabled only in this
+scratch instance.
+
+The action journal completed as Movie / `client-failed` at the
+`replacement-requested` checkpoint. SAB removed the failed job with
+`deleteFiles=0`, and the source file remained. Movie failed history and a
+matching Movie blocklist entry were recorded. The replacement search returned
+a different synthetic release; exactly one active replacement job entered the
+Movie category and Plattarr tracked it as a Movie. The original release was
+rejected by the normal blocklist decision. The gate reset to off, then the
+scratch container, config, data, and newly pulled image tag were removed.
+
+The category update and replacement transfer were simulated by the SAB
+fixture; this proves Plattarr's history-first routing, action journal,
+blocklist, and replacement handoff, not a real client's category API or a
+completed download. No production or dev app was changed.
+
 ## Audit decisions and local changes
 
 - A download with a Plattarr grab-history row keeps that media kind when its

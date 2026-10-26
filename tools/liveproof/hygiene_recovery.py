@@ -11,8 +11,8 @@ from urllib.parse import parse_qs, urlsplit
 from client import ApiError, scrub
 
 
-MOVIE_TITLE = "The Matrix"
-RELEASE_TITLE = "The.Matrix.1999.1080p.WEB-DL"
+FAILED_RELEASE_TITLE = "The.Matrix.1999.1080p.WEB-DL.x264-F7-FAILED"
+REPLACEMENT_RELEASE_TITLE = "The.Matrix.1999.1080p.WEB-DL.x264-F7-REPLACEMENT"
 
 CAPS = b'''<?xml version="1.0" encoding="UTF-8"?>
 <caps><server version="1.0" title="Disposable liveproof"/><limits max="1000" default="1000"/>
@@ -28,12 +28,14 @@ class FixtureState:
         self.downloads_root = Path(downloads_root)
         self.downloads_root.mkdir(parents=True, exist_ok=True)
         self.jobs = []
+        self.replacement_jobs = []
         self.removed = []
         self.files = []
         self.search_requests = 0
+        self.phase = "failed"
         self.lock = threading.Lock()
 
-    def add_failed_job(self, category):
+    def add_failed_job(self, category, title):
         with self.lock:
             number = len(self.files) + 1
             job_id = f"LIVEPROOF-{number}"
@@ -46,23 +48,54 @@ class FixtureState:
                 "fail_message": "synthetic fixture failure",
                 "bytes": 1073741824,
                 "category": category,
-                "nzb_name": RELEASE_TITLE,
+                "nzb_name": title,
                 "download_time": 1,
                 "storage": str(job_dir),
                 "status": "Failed",
                 "nzo_id": job_id,
-                "name": RELEASE_TITLE,
+                "name": title,
             })
             return job_id
+
+    def add_replacement_job(self, category):
+        with self.lock:
+            job_id = f"LIVEPROOF-REPLACEMENT-{len(self.replacement_jobs) + 1}"
+            self.replacement_jobs.append({
+                "status": "Downloading",
+                "index": len(self.replacement_jobs),
+                "timeleft": "0:00:00",
+                "mb": 1024,
+                "filename": REPLACEMENT_RELEASE_TITLE,
+                "priority": "Normal",
+                "cat": category,
+                "mbleft": 1024,
+                "percentage": 0,
+                "nzo_id": job_id,
+            })
+            return job_id
+
+    def switch_category(self, job_id, category):
+        with self.lock:
+            job = next((item for item in self.jobs if item["nzo_id"] == job_id), None)
+            if job is None:
+                return None
+            job["category"] = category
+            return dict(job)
+
+    def set_phase(self, phase):
+        with self.lock:
+            self.phase = phase
 
     def snapshot(self):
         with self.lock:
             return {
                 "jobs": [dict(job) for job in self.jobs],
+                "replacementJobs": [dict(job) for job in self.replacement_jobs],
                 "removed": [dict(job) for job in self.removed],
                 "files": list(self.files),
                 "filesPresent": [Path(path).is_file() for path in self.files],
                 "searchRequests": self.search_requests,
+                "phase": self.phase,
             }
 
 
@@ -91,17 +124,23 @@ class DisposableServices:
                         return self.send_body(CAPS, "application/xml; charset=utf-8")
                     with state.lock:
                         state.search_requests += 1
+                        release_title = (FAILED_RELEASE_TITLE if state.phase == "failed"
+                                         else REPLACEMENT_RELEASE_TITLE)
+                        release_guid = ("liveproof-failed" if state.phase == "failed"
+                                        else "liveproof-replacement")
+                        release_file = ("failed.nzb" if state.phase == "failed"
+                                        else "replacement.nzb")
                     rss = f'''<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"><channel><title>Disposable Newznab</title><description>Synthetic release</description>
 <link>http://127.0.0.1:{self.server.server_port}</link>
-<item><title>{RELEASE_TITLE}</title><guid isPermaLink="false">liveproof-nzb-001</guid>
-<link>http://127.0.0.1:{self.server.server_port}/release.nzb</link>
-<comments>http://127.0.0.1:{self.server.server_port}/details?id=liveproof-nzb-001</comments>
+<item><title>{release_title}</title><guid isPermaLink="false">{release_guid}</guid>
+<link>http://127.0.0.1:{self.server.server_port}/{release_file}</link>
+<comments>http://127.0.0.1:{self.server.server_port}/details?id={release_guid}</comments>
 <pubDate>Tue, 20 Oct 2026 03:00:00 GMT</pubDate><enclosure url="http://127.0.0.1:{self.server.server_port}/release.nzb" length="512" type="application/x-nzb"/>
 <category>2000</category><size>1073741824</size><attr name="tmdbid" value="603"/></item></channel></rss>'''.encode("utf-8")
                     return self.send_body(rss, "application/xml; charset=utf-8")
 
-                if parsed.path == "/release.nzb":
+                if parsed.path in ("/release.nzb", "/failed.nzb", "/replacement.nzb"):
                     return self.send_body(NZB, "application/x-nzb")
 
                 if parsed.path == "/sab/api":
@@ -111,7 +150,9 @@ class DisposableServices:
                     if mode == "queue":
                         if query.get("name", [""])[0] == "delete":
                             return self.send_json({"status": True})
-                        return self.send_json({"queue": {"paused": False, "slots": [], "my_home": str(state.downloads_root)}})
+                        with state.lock:
+                            slots = [dict(job) for job in state.replacement_jobs]
+                        return self.send_json({"queue": {"paused": False, "slots": slots, "my_home": str(state.downloads_root)}})
                     if mode == "history":
                         if query.get("name", [""])[0] == "delete":
                             job_id = query.get("value", [""])[0]
@@ -166,7 +207,11 @@ class DisposableServices:
                     length = int(self.headers.get("Content-Length", "0"))
                     if length:
                         self.rfile.read(length)
-                    job_id = state.add_failed_job(query.get("cat", ["plattarr-liveproof-movies"])[0])
+                    category = query.get("cat", ["plattarr-liveproof-movies"])[0]
+                    if state.snapshot()["phase"] == "failed":
+                        job_id = state.add_failed_job(category, FAILED_RELEASE_TITLE)
+                    else:
+                        job_id = state.add_replacement_job(category)
                     return self.send_json({"status": True, "nzo_ids": [job_id]})
 
                 self.send_json({"status": True})
@@ -210,7 +255,7 @@ def _set_gate(api, enabled):
 
 
 def run(api, report, confirmed=False):
-    """Create a synthetic movie grab and verify its failed-download recovery on an empty scratch app."""
+    """Verify category-switched failure recovery and replacement on an empty scratch app."""
     parsed = urlsplit(api.base)
     loopback = parsed.hostname in ("127.0.0.1", "localhost", "::1")
     if not confirmed or not loopback:
@@ -312,8 +357,6 @@ def run(api, report, confirmed=False):
         _require(report, empty_refresh.get("status") == "completed" and not _get_actions(api),
                  "hygiene-recovery.gate-off", "the default-off gate produces no actions on an empty queue")
 
-        _set_gate(api, True)
-        gate_owned = True
         release_rows = api.get(f"/api/v3/release?movieId={movie_id}")
         release = next((item for item in release_rows
                         if item.get("indexer") == "Liveproof Newznab" and item.get("protocol") == "usenet"), None)
@@ -322,9 +365,29 @@ def run(api, report, confirmed=False):
         baseline_searches = services.state.snapshot()["searchRequests"]
         api.post("/api/v3/release", release)
 
+        failed_job = services.state.snapshot()["jobs"][-1]
+        history_deadline = time.time() + 30
+        grabbed = False
+        while time.time() < history_deadline:
+            page = api.get("/api/v3/history?page=1&pageSize=100&sortKey=date&sortDirection=descending")
+            grabbed = any(item.get("downloadId") == failed_job["nzo_id"] and
+                          item.get("eventType", "").lower() == "grabbed" for item in page.get("records", []))
+            if grabbed:
+                break
+            time.sleep(0.5)
+        _require(report, grabbed, "hygiene-recovery.grab-history", "Movie grab history is recorded before the category switch")
+
+        switched = services.state.switch_category(failed_job["nzo_id"], "plattarr-liveproof-tv")
+        _require(report, switched is not None and switched.get("category") == "plattarr-liveproof-tv",
+                 "hygiene-recovery.category-switch", "failed Movie grab now reports the TV client category")
+
+        # The replacement search must see a different release from the same local indexer.
+        services.state.set_phase("replacement")
+        _set_gate(api, True)
+        gate_owned = True
         refreshed = api.run_command("RefreshMonitoredDownloads", seconds=90)
         _require(report, refreshed.get("status") == "completed",
-                 "hygiene-recovery.refresh", "failed client job refreshed")
+                 "hygiene-recovery.refresh", "category-switched failure action and replacement refresh completed")
 
         deadline = time.time() + 60
         actions = []
@@ -334,10 +397,11 @@ def run(api, report, confirmed=False):
                 break
             time.sleep(1)
 
-        action = next((item for item in actions if item.get("downloadId") and item.get("mediaKind") == 1), None)
+        action = next((item for item in actions if item.get("downloadId") == failed_job["nzo_id"]), None)
         _require(report, action is not None and action.get("status") == "completed" and
+                 action.get("mediaKind") == 1 and action.get("reasonCode") == "client-failed" and
                  action.get("checkpoint") == "replacement-requested" and action.get("recoveryPath"),
-                 "hygiene-recovery.journal", "Movie action completed with a durable recovery path")
+                 "hygiene-recovery.journal", "Movie action completed at replacement checkpoint with a durable recovery path")
 
         fixture_state = services.state.snapshot()
         removed = next((item for item in fixture_state["removed"] if item.get("id") == action["downloadId"]), None)
@@ -353,21 +417,33 @@ def run(api, report, confirmed=False):
 
         blocklist = api.get("/api/v3/blocklist?page=1&pageSize=100&sortKey=date&sortDirection=descending")
         blocklist_records = blocklist.get("records", [])
-        blocked = any(item.get("movieId") == movie_id and item.get("sourceTitle") == RELEASE_TITLE
+        blocked = any(item.get("movieId") == movie_id and item.get("sourceTitle") == FAILED_RELEASE_TITLE
                       for item in blocklist_records)
         _require(report, blocked, "hygiene-recovery.blocklist", "matching Movie release added to the blocklist")
 
         search_deadline = time.time() + 30
         while time.time() < search_deadline:
-            if services.state.snapshot()["searchRequests"] > baseline_searches:
+            if services.state.snapshot()["replacementJobs"]:
                 break
             time.sleep(1)
-        replacement_requested = services.state.snapshot()["searchRequests"] > baseline_searches
-        _require(report, replacement_requested, "hygiene-recovery.replacement-search",
-                 "existing failed-download flow issued another search")
+        fixture_state = services.state.snapshot()
+        replacement_jobs = fixture_state["replacementJobs"]
+        replacement_queued = (fixture_state["searchRequests"] > baseline_searches and len(replacement_jobs) == 1 and
+                              replacement_jobs[0].get("filename") == REPLACEMENT_RELEASE_TITLE and
+                              replacement_jobs[0].get("cat") == "plattarr-liveproof-movies")
+        _require(report, replacement_queued, "hygiene-recovery.replacement-search",
+                 "a distinct replacement was queued once in the original Movie category")
 
+        api.run_command("RefreshMonitoredDownloads", seconds=90)
+        preview = api.get("/api/v3/hygiene/preview")
+        replacement_assessment = next((item for item in preview if item.get("title") == REPLACEMENT_RELEASE_TITLE), None)
+        replacement_kind = replacement_assessment and str(replacement_assessment.get("kind", "")).casefold() in ("1", "movie", "movies")
+        _require(report, replacement_kind,
+                 "hygiene-recovery.replacement-route", "replacement is tracked as a Movie")
+
+        services.state.set_phase("failed")
         after = api.get(f"/api/v3/release?movieId={movie_id}")
-        blocked_release = next((item for item in after if item.get("indexer") == "Liveproof Newznab"), None)
+        blocked_release = next((item for item in after if item.get("title") == FAILED_RELEASE_TITLE), None)
         _require(report, blocked_release is not None and blocked_release.get("approved") is False and
                  any("blocklist" in reason.lower() for reason in blocked_release.get("rejections", [])),
                  "hygiene-recovery.replacement-filter", "the failed release is rejected by the normal blocklist decision")
