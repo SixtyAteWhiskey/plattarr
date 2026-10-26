@@ -54,7 +54,7 @@ class RemotePathMappings extends Component {
         >
 
           <Alert kind={kinds.INFO}>
-            <InlineMarkdown data={translate('RemotePathMappingsInfo', { wikiLink: 'https://wiki.servarr.com/radarr/settings#remote-path-mappings' })} />
+            <InlineMarkdown data={translate('RemotePathMappingsInfo', { wikiLink: 'https://github.com/SixtyAteWhiskey/plattarr/blob/develop/docs/first-run.md' })} />
           </Alert>
 
           <div className={styles.remotePathMappingsHeader}>

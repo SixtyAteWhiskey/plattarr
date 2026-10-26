@@ -21,13 +21,19 @@ namespace NzbDrone.Core.Queue
     {
         private readonly IEventAggregator _eventAggregator;
         private readonly NzbDrone.Core.Hygiene.IHygieneQueueStrikeService _hygieneQueueStrikeService;
+        private readonly NzbDrone.Core.Hygiene.IHygieneQueueActionService _hygieneQueueActionService;
         private readonly Logger _logger;
         private static List<Queue> _queue = new();
 
-        public QueueService(IEventAggregator eventAggregator, NzbDrone.Core.Hygiene.IHygieneQueueStrikeService hygieneQueueStrikeService, Logger logger)
+        public QueueService(
+            IEventAggregator eventAggregator,
+            NzbDrone.Core.Hygiene.IHygieneQueueStrikeService hygieneQueueStrikeService,
+            NzbDrone.Core.Hygiene.IHygieneQueueActionService hygieneQueueActionService,
+            Logger logger)
         {
             _eventAggregator = eventAggregator;
             _hygieneQueueStrikeService = hygieneQueueStrikeService;
+            _hygieneQueueActionService = hygieneQueueActionService;
             _logger = logger;
         }
 
@@ -95,6 +101,7 @@ namespace NzbDrone.Core.Queue
             try
             {
                 _hygieneQueueStrikeService.Observe(_queue);
+                _hygieneQueueActionService.Process(_queue);
             }
             catch (Exception ex)
             {

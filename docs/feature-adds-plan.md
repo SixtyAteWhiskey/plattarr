@@ -152,3 +152,15 @@ action enablement gate and journal, and pass isolated removal tests before any
 client or file action is enabled.
 
 This is not Cleanuparr parity. The other feature areas above remain open.
+
+## Local follow-up — 2026-10-26
+
+On the clean base `7088996e8` (`origin/develop`), a disabled-by-default action
+gate and journal now cover the first failed-download/import-blocked slice.
+Movie, TV, and Music unit recovery fixtures exercise retained files and
+checkpoint resumption. A disposable Movie end-to-end proof passed with local
+synthetic Newznab and SABnzbd fixtures. The indexer comparison harness passed
+against local Prowlarr and Plattarr APIs using the same synthetic Torznab feed;
+a same-indexer comparison with real tracker results remains outstanding.
+Ombi contract capture is also outstanding. These changes have not been
+deployed.

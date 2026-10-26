@@ -21,6 +21,9 @@ namespace NzbDrone.Core.Configuration
         // Completed/Failed Download Handling (Download client)
         bool EnableCompletedDownloadHandling { get; set; }
 
+        // Hygiene's action executor is globally disabled until an administrator opts in.
+        bool HygieneActionsEnabled { get; set; }
+
         bool AutoRedownloadFailed { get; set; }
         bool AutoRedownloadFailedFromInteractiveSearch { get; set; }
 

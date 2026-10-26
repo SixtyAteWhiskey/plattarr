@@ -138,7 +138,14 @@ function Updates() {
         {isPopulated || hasError ? null : <LoadingIndicator />}
 
         {noUpdates ? (
-          <Alert kind={kinds.INFO}>{translate('NoUpdatesAreAvailable')}</Alert>
+          <Alert kind={kinds.INFO}>
+            Plattarr update packages are not published through this page yet.{' '}
+            Check the{' '}
+            <a href="https://github.com/SixtyAteWhiskey/plattarr/releases">
+              Plattarr releases
+            </a>{' '}
+            for installation instructions.
+          </Alert>
         ) : null}
 
         {hasUpdateToInstall ? (
@@ -284,8 +291,8 @@ function Updates() {
               <div>
                 <InlineMarkdown
                   data={translate('InstallMajorVersionUpdateMessageLink', {
-                    domain: 'radarr.video',
-                    url: 'https://radarr.video/#downloads',
+                    domain: 'github.com/SixtyAteWhiskey/plattarr/releases',
+                    url: 'https://github.com/SixtyAteWhiskey/plattarr/releases',
                   })}
                 />
               </div>

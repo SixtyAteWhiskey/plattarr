@@ -258,7 +258,7 @@ function SecuritySettings({
           name="trustedNetworks"
           helpText={translate('TrustedNetworksHelpText')}
           helpTextWarning={translate('RestartRequiredHelpTextWarning')}
-          helpLink="https://wiki.servarr.com/radarr/settings#security"
+          helpLink="https://github.com/SixtyAteWhiskey/plattarr/blob/develop/docs/first-run.md"
           onChange={onInputChange}
           {...trustedNetworks}
         />

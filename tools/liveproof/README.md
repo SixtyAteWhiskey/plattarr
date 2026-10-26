@@ -12,6 +12,8 @@ export PLATTARR_CONFIG_XML=<the instance's config dir>/config.xml   # or PLATTAR
 python3 tools/liveproof/run.py smoke covers
 python3 tools/liveproof/run.py baseline --expect-baseline 71,57,64
 python3 tools/liveproof/run.py fingerprint
+python3 tools/liveproof/run.py hygiene
+python3 tools/liveproof/run.py hygiene-recovery --confirm-disposable
 python3 tools/liveproof/run.py restore
 ```
 
@@ -25,7 +27,11 @@ environment or `config.xml`, sent only as the `X-Api-Key` header, and scrubbed f
 | `baseline` | `RssSync` completes, then the release search for one movie (`--baseline-movie`, default 1) returns the expected counts (`--expect-baseline total,approved,mapped`; without it the counts are only printed). The counts follow the indexers: when they move, run the previous image against the same query before blaming a change. | Runs a command |
 | `defaults` | The shipped defaults (`allowFingerprinting` is `never`). **Only meaningful on an instance with an empty config**: an instance whose settings page was saved stores the values it showed. | No |
 | `fingerprint` | `FpcalcCheck` warns when fingerprinting is on and `fpcalc` is missing, and clears when it is `never`. Creates a Music root folder (`LIVEPROOF_MUSIC_ROOT`, default `/testdata/music`, which must exist on the instance) if there is none, flips the setting, and restores everything. | Yes, journaled |
+| `hygiene` | Confirms the global Hygiene action gate is off and the action journal contains no incomplete or failed actions. This is a read-only rollout check; review failed entries in the Hygiene page before clearing them. | No |
+| `hygiene-recovery` | On an empty localhost scratch instance, creates a synthetic Movie, local Newznab/SABnzbd fixtures, and a one-strike rule; confirms the gate starts off, then enables it for one failed download and checks the journal, source-file retention, failed history, blocklist, and replacement search. The gate is reset to off in `finally`. | Yes, scratch instance only |
 | `restore` | Replays the undo journal. | Undoes |
+
+`hygiene-recovery` requires `--confirm-disposable`, a localhost `PLATTARR_URL`, and an empty scratch instance with the Hygiene action gate off. It uses only local HTTP fixtures for the indexer and download client; adding its Movie metadata uses the normal movie lookup. The proof leaves its completed journal, history, blocklist and temporary root in the disposable app so they can be inspected. Discard that app and the `/tmp/plattarr-liveproof-hygiene-*` directory when finished. It does not contact or change a production client or indexer.
 
 ## The walkthrough gallery
 
@@ -71,6 +77,32 @@ python3 tools/liveproof/seerr_contract.py
 It creates and removes one temporary movie and series, updates one temporary tag, and posts `RefreshMonitoredDownloads` for
 both compatibility bases. The scratch copy must have download clients disabled; discard that copy after the replay.
 
+## Indexer flag parity
+
+`indexer_parity.py` compares Prowlarr's search response with Plattarr's
+Movie-release response for the same query. Set `PROWLARR_URL`,
+`PROWLARR_API_KEY`, `PLATTARR_URL`, and `PLATTARR_API_KEY` in the environment,
+then run:
+
+```bash
+python3 tools/liveproof/indexer_parity.py --query "Sample Movie" --movie-id 1
+```
+
+It reads credentials only from the environment, does not save responses, and
+never prints download URLs. Rows match on title, indexer name, and protocol;
+unmatched rows are reported separately because results can change between
+requests. A zero-match run is a failure, not evidence of parity. It compares
+Prowlarr's named flags and torrent volume factors with Plattarr's mapped enum
+flags. Do not run the request against a production instance if the search could
+expose private release names in the terminal. For local, already-sanitized
+snapshots, use `--prowlarr-json` and `--plattarr-json` instead.
+
+The harness has also been exercised against local Prowlarr and Plattarr APIs
+using the same synthetic Torznab feed. That checks the request and mapping path;
+it does not stand in for a same-indexer comparison against real tracker results.
+Change the mapper only after a sanitized same-indexer comparison shows a
+divergence.
+
 ## The undo journal
 
 A proof writes each change to the journal (`LIVEPROOF_STATE`, default `./liveproof-state.json`, mode 600) **before** it edits a
@@ -81,6 +113,9 @@ a run, the runner says so. Keep the journal file out of the repository: it can h
 
 ## Next increments
 
-The end-to-end flows (Movies, TV and Music: add, grab through a throwaway qBittorrent, import, failure, notifications, clean-up)
-are still recipes in the project playbook. They move here one at a time on the same journal, together with the listeners they need
-(webhook, Emby / Jellyfin, a fake Torznab indexer). Delete a recipe from the playbook only when its flow runs from this directory.
+The wider media flows (Movies, TV and Music: add, grab, import, failure, notifications, clean-up) are still recipes in the project
+playbook. They move here one at a time with their own disposable listeners and journal coverage. The focused Hygiene recovery
+fixture exercises the real Plattarr API, a local synthetic SABnzbd failure, failed history, blocklisting, and the existing
+replacement search. Core fixtures exercise the action executor for Movies, TV, and Music, and the failed-download source routing
+for each media kind. Private and unverified torrent releases remain manual-review items. `run.py hygiene` remains the read-only
+idle check for an instance where the action gate is off.

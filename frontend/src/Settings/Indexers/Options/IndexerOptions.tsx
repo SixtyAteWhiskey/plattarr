@@ -148,7 +148,7 @@ function IndexerOptions({
                   type={inputTypes.CHECK}
                   name="preferIndexerFlags"
                   helpText={translate('PreferIndexerFlagsHelpText')}
-                  helpLink="https://wiki.servarr.com/radarr/settings#indexer-flags"
+                  helpLink="https://github.com/SixtyAteWhiskey/plattarr/blob/develop/docs/first-run.md"
                   onChange={handleInputChange}
                   {...settings.preferIndexerFlags}
                 />
@@ -180,7 +180,7 @@ function IndexerOptions({
               unit="minutes"
               helpText={translate('RssSyncIntervalHelpText')}
               helpTextWarning={translate('RssSyncIntervalHelpTextWarning')}
-              helpLink="https://wiki.servarr.com/radarr/faq#how-does-radarr-work"
+              helpLink="https://github.com/SixtyAteWhiskey/plattarr/blob/develop/docs/first-run.md"
               onChange={handleInputChange}
               {...settings.rssSyncInterval}
             />

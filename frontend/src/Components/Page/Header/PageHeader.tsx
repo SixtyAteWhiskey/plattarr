@@ -6,7 +6,6 @@ import Link from 'Components/Link/Link';
 import useKeyboardShortcuts from 'Helpers/Hooks/useKeyboardShortcuts';
 import { icons } from 'Helpers/Props';
 import { setIsSidebarVisible } from 'Store/Actions/appActions';
-import translate from 'Utilities/String/translate';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import MediaSearchInput from './MediaSearchInput';
 import PageHeaderActionsMenu from './PageHeaderActionsMenu';
@@ -75,23 +74,6 @@ function PageHeader({ isSmallScreen }: PageHeaderProps) {
       <MediaSearchInput />
 
       <div className={styles.right}>
-        <IconButton
-          className={styles.donate}
-          name={icons.HEART}
-          aria-label={translate('Donate')}
-          to="https://radarr.video/donate"
-          size={14}
-          title={translate('Donate')}
-        />
-
-        <IconButton
-          className={styles.translate}
-          title={translate('SuggestTranslationChange')}
-          name={icons.TRANSLATE}
-          to="https://translate.servarr.com/projects/radarr/radarr/"
-          size={24}
-        />
-
         <PageHeaderActionsMenu
           onKeyboardShortcutsPress={handleOpenKeyboardShortcutsModal}
         />
