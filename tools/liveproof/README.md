@@ -103,6 +103,43 @@ it does not stand in for a same-indexer comparison against real tracker results.
 Change the mapper only after a sanitized same-indexer comparison shows a
 divergence.
 
+## Ombi contract replay
+
+`ombi_contract.py` replays the Radarr v3 and Sonarr v3 calls used by Ombi's
+AddOnly request flow. Its request paths, `X-Api-Key` authentication, and payloads
+are pinned to the stable [Ombi v4.53.10 release](https://github.com/Ombi-app/Ombi/releases/tag/v4.53.10),
+using its [RadarrV3Api](https://github.com/Ombi-app/Ombi/blob/v4.53.10/src/Ombi.Api.External/ExternalApis/Radarr/RadarrV3Api.cs),
+[SonarrV3Api](https://github.com/Ombi-app/Ombi/blob/v4.53.10/src/Ombi.Api.External/ExternalApis/Sonarr/SonarrV3Api.cs),
+[MovieSender](https://github.com/Ombi-app/Ombi/blob/v4.53.10/src/Ombi.Core/Senders/MovieSender.cs),
+and [TvSender](https://github.com/Ombi-app/Ombi/blob/v4.53.10/src/Ombi.Core/Senders/TvSender.cs).
+
+The replay covers connection status, profiles, root folders, language profiles,
+tags, adding a movie and series, reading the new series and episodes, and
+updating season and episode monitoring. Metadata lookups are setup calls made
+by the harness to select valid disposable records; Ombi itself gets that
+metadata from its request catalog. The script does not send search commands:
+its request bodies match Ombi's AddOnly mode. It removes created media with
+`deleteFiles=false` and then removes the temporary tags. It logs only route
+and status, never API keys, response bodies, or filesystem paths.
+
+This is a source-pinned replay, not a live Ombi packet capture. It refuses
+every target except `http://localhost:7882` and requires an explicit
+disposable-instance flag. Start a fresh Plattarr scratch instance on that port,
+provide its `config.xml`, and run:
+
+```bash
+PLATTARR_OMBI_URL=http://127.0.0.1:7882 \
+PLATTARR_OMBI_CONFIG_XML=/tmp/plattarr-ombi/config/config.xml \
+python3 tools/liveproof/ombi_contract.py --confirm-disposable
+```
+
+Do not configure download clients or indexers on the scratch instance. A
+passing replay checks Plattarr's request and response contract; it does not
+establish compatibility with other Ombi releases or exercise the search-command
+branch. Plattarr may fetch metadata and artwork for its public test records from
+configured metadata providers. The replay does not contact indexers or download
+clients.
+
 ## The undo journal
 
 A proof writes each change to the journal (`LIVEPROOF_STATE`, default `./liveproof-state.json`, mode 600) **before** it edits a
