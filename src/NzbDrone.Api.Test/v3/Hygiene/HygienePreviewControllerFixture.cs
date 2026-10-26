@@ -22,8 +22,11 @@ namespace NzbDrone.Api.Test.v3.Hygiene
             var pendingService = Mocker.GetMock<IPendingQueueService>();
             queueService.Setup(x => x.GetQueue()).Returns(new List<NzbDrone.Core.Queue.Queue> { tracked });
             pendingService.Setup(x => x.GetPendingQueue()).Returns(new List<NzbDrone.Core.Queue.Queue> { pending });
+            var decisions = Mocker.GetMock<IHygieneQueueDecisionService>();
+            decisions.Setup(x => x.Evaluate(It.IsAny<IEnumerable<NzbDrone.Core.Queue.Queue>>()))
+                .Returns((IEnumerable<NzbDrone.Core.Queue.Queue> items) => new HygieneQueueEvaluator().Evaluate(items));
 
-            var controller = new HygienePreviewController(queueService.Object, pendingService.Object, new HygieneQueueEvaluator());
+            var controller = new HygienePreviewController(queueService.Object, pendingService.Object, decisions.Object);
 
             var assessments = controller.GetPreview().Value;
 

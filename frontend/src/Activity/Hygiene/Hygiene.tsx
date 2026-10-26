@@ -6,6 +6,7 @@ import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
 import useApiQuery from 'Helpers/Hooks/useApiQuery';
+import HygieneRules from './HygieneRules';
 
 interface HygieneAssessment {
   queueId: number;
@@ -16,6 +17,11 @@ interface HygieneAssessment {
   explanation: string;
   recommendedAction: string;
   needsAttention: boolean;
+  strikes: number;
+  strikeLimit?: number;
+  ruleEnabled: boolean;
+  eligible: boolean;
+  ruleExplanation: string;
   wouldAct: boolean;
 }
 
@@ -36,9 +42,9 @@ function Hygiene() {
       <PageContentBody>
         <h1>Hygiene</h1>
         <Alert>
-          Queue preview is read only. No cleanup rules are enabled by this page.
-          Review an item in the <Link to="/activity/queue">queue</Link> before
-          taking action.
+          Queue preview is read only. No automatic cleanup is enabled by this
+          page. Review an item in the <Link to="/activity/queue">queue</Link>{' '}
+          before taking action.
         </Alert>
         <p>
           <button type="button" onClick={handleRefresh}>
@@ -73,9 +79,17 @@ function Hygiene() {
               : {item.explanation}
             </p>
             <p>{item.recommendedAction}</p>
+            <p>{item.ruleExplanation}</p>
+            {item.ruleEnabled && (
+              <p>
+                Strikes: {item.strikes} / {item.strikeLimit}
+                {item.eligible && ' · Threshold reached'}
+              </p>
+            )}
             <p>{item.wouldAct ? 'Action proposed' : 'No automatic action'}</p>
           </FieldSet>
         ))}
+        <HygieneRules onChanged={handleRefresh} />
       </PageContentBody>
     </PageContent>
   );

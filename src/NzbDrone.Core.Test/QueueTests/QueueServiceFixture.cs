@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using FizzWare.NBuilder;
 using FluentAssertions;
+using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
+using NzbDrone.Core.Hygiene;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Parser.Model;
@@ -116,6 +118,18 @@ namespace NzbDrone.Core.Test.QueueTests
             queue.Quality.Quality.Should().Be(Quality.Unknown);
             queue.Languages.Should().BeEquivalentTo(new[] { Language.Unknown });
             queue.GetMovie().Should().BeNull();
+        }
+
+        [Test]
+        public void strike_storage_failure_should_not_prevent_the_queue_from_refreshing()
+        {
+            Mocker.GetMock<IHygieneQueueStrikeService>()
+                .Setup(x => x.Observe(It.IsAny<IEnumerable<NzbDrone.Core.Queue.Queue>>()))
+                .Throws(new InvalidOperationException("test storage failure"));
+
+            Subject.Handle(new TrackedDownloadRefreshedEvent(_trackedDownloads));
+
+            Subject.GetQueue().Should().HaveCount(1);
         }
     }
 }

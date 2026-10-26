@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using NLog;
 using NzbDrone.Common.Crypto;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Languages;
@@ -19,11 +20,15 @@ namespace NzbDrone.Core.Queue
     public class QueueService : IQueueService, IHandle<TrackedDownloadRefreshedEvent>
     {
         private readonly IEventAggregator _eventAggregator;
+        private readonly NzbDrone.Core.Hygiene.IHygieneQueueStrikeService _hygieneQueueStrikeService;
+        private readonly Logger _logger;
         private static List<Queue> _queue = new();
 
-        public QueueService(IEventAggregator eventAggregator)
+        public QueueService(IEventAggregator eventAggregator, NzbDrone.Core.Hygiene.IHygieneQueueStrikeService hygieneQueueStrikeService, Logger logger)
         {
             _eventAggregator = eventAggregator;
+            _hygieneQueueStrikeService = hygieneQueueStrikeService;
+            _logger = logger;
         }
 
         public List<Queue> GetQueue()
@@ -62,6 +67,7 @@ namespace NzbDrone.Core.Queue
                 DownloadId = trackedDownload.DownloadItem.DownloadId,
                 Protocol = trackedDownload.Protocol,
                 DownloadClient = trackedDownload.DownloadItem.DownloadClientInfo.Name,
+                DownloadClientId = trackedDownload.DownloadClient,
                 Indexer = trackedDownload.Indexer,
                 OutputPath = trackedDownload.DownloadItem.OutputPath.ToString(),
                 Added = trackedDownload.Added,
@@ -85,6 +91,15 @@ namespace NzbDrone.Core.Queue
                 .OrderBy(c => c.DownloadItem.RemainingTime)
                 .Select(MapQueue)
                 .ToList();
+
+            try
+            {
+                _hygieneQueueStrikeService.Observe(_queue);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Unable to update Hygiene queue strikes");
+            }
 
             _eventAggregator.PublishEvent(new QueueUpdatedEvent());
         }

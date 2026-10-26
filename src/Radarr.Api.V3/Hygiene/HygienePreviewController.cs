@@ -15,20 +15,20 @@ namespace Radarr.Api.V3.Hygiene
     {
         private readonly IQueueService _queueService;
         private readonly IPendingQueueService _pendingQueueService;
-        private readonly IHygieneQueueEvaluator _evaluator;
+        private readonly IHygieneQueueDecisionService _decisions;
 
-        public HygienePreviewController(IQueueService queueService, IPendingQueueService pendingQueueService, IHygieneQueueEvaluator evaluator)
+        public HygienePreviewController(IQueueService queueService, IPendingQueueService pendingQueueService, IHygieneQueueDecisionService decisions)
         {
             _queueService = queueService;
             _pendingQueueService = pendingQueueService;
-            _evaluator = evaluator;
+            _decisions = decisions;
         }
 
         [HttpGet]
         [Produces("application/json")]
         public Ok<List<HygieneQueueAssessment>> GetPreview()
         {
-            return TypedResults.Ok(_evaluator.Evaluate(_queueService.GetQueue().Concat(_pendingQueueService.GetPendingQueue())));
+            return TypedResults.Ok(_decisions.Evaluate(_queueService.GetQueue().Concat(_pendingQueueService.GetPendingQueue())));
         }
     }
 }
