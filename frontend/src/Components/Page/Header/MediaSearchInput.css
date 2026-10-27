@@ -32,12 +32,15 @@
   }
 
   &:focus {
-    outline: 0;
     border-bottom-color: transparent;
 
     &::placeholder {
       color: transparent;
     }
+  }
+
+  &:focus-visible {
+    outline-color: var(--focusRingOnDarkColor);
   }
 }
 

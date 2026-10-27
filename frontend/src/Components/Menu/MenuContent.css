@@ -1,4 +1,6 @@
 .menuContent {
+  --focusRingColor: var(--focusRingOnDarkColor);
+
   z-index: $popperZIndex;
   display: flex;
   flex-direction: column;

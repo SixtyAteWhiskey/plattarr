@@ -1,0 +1,54 @@
+.pageHeader {
+  max-width: 760px;
+}
+
+.grid {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  min-width: 0;
+}
+
+.cardLink {
+  display: block;
+  height: 100%;
+  border-radius: $radiusSmall;
+  color: var(--textColor);
+
+  &:hover {
+    color: var(--textColor);
+    text-decoration: none;
+  }
+
+  &:hover .card {
+    border-color: var(--linkColor);
+    background-color: var(--surfaceMutedBackgroundColor);
+  }
+
+  &:hover .cardArrow {
+    transform: translateX($spaceXSmall);
+  }
+}
+
+.card {
+  height: 100%;
+  transition: border-color $defaultSpeed, background-color $defaultSpeed;
+}
+
+.cardIcon {
+  flex: 0 0 auto;
+  color: var(--linkColor);
+}
+
+.cardMeta {
+  flex: 0 0 auto;
+}
+
+.cardArrow {
+  flex: 0 0 auto;
+  color: var(--secondaryTextColor);
+  transition: transform $defaultSpeed;
+}

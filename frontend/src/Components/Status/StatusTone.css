@@ -1,0 +1,75 @@
+.danger {
+  --statusBackground: var(--alertDangerBackgroundColor);
+  --statusBorder: var(--alertDangerBorderColor);
+  --statusText: var(--alertDangerColor);
+  --statusPatternAngle: 90deg;
+  --statusBorderStyle: solid;
+  --statusBorderWidth: 1px;
+  --statusOutlineWidth: 0;
+}
+
+.warning {
+  --statusBackground: var(--alertWarningBackgroundColor);
+  --statusBorder: var(--alertWarningBorderColor);
+  --statusText: var(--alertWarningColor);
+  --statusPatternAngle: 45deg;
+  --statusBorderStyle: solid;
+  --statusBorderWidth: 1px;
+  --statusOutlineWidth: 0;
+}
+
+.monitor,
+.info {
+  --statusBackground: var(--alertInfoBackgroundColor);
+  --statusBorder: var(--alertInfoBorderColor);
+  --statusText: var(--alertInfoColor);
+  --statusPatternAngle: 135deg;
+  --statusBorderStyle: solid;
+  --statusBorderWidth: 1px;
+  --statusOutlineWidth: 0;
+}
+
+.neutral {
+  --statusBackground: var(--surfaceMutedBackgroundColor);
+  --statusBorder: var(--surfaceBorderColor);
+  --statusText: var(--textColor);
+  --statusPatternAngle: 0deg;
+  --statusBorderStyle: solid;
+  --statusBorderWidth: 1px;
+  --statusOutlineWidth: 0;
+}
+
+.success {
+  --statusBackground: var(--alertSuccessBackgroundColor);
+  --statusBorder: var(--alertSuccessBorderColor);
+  --statusText: var(--alertSuccessColor);
+  --statusPatternAngle: 135deg;
+  --statusBorderStyle: solid;
+  --statusBorderWidth: 1px;
+  --statusOutlineWidth: 0;
+}
+
+.colorImpaired.danger {
+  --statusBorderStyle: double;
+  --statusBorderWidth: 3px;
+}
+
+.colorImpaired.warning {
+  --statusBorderStyle: dashed;
+  --statusBorderWidth: 2px;
+}
+
+.colorImpaired.monitor,
+.colorImpaired.info {
+  --statusBorderStyle: dotted;
+  --statusBorderWidth: 2px;
+}
+
+.colorImpaired.neutral {
+  --statusBorderWidth: 2px;
+}
+
+.colorImpaired.success {
+  --statusBorderWidth: 2px;
+  --statusOutlineWidth: 1px;
+}

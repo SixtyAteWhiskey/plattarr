@@ -77,6 +77,10 @@ module.exports = {
 
   // Accents
   borderColor: '#e5e5e5',
+  focusRingColor: '#005fcc',
+  focusRingOnDarkColor: '#ffffff',
+  focusRingWidth: '2px',
+  focusRingOffset: '2px',
   inputBorderColor: '#dde6e9',
   inputBoxShadowColor: 'rgba(0, 0, 0, 0.075)',
   inputFocusBorderColor: '#66afe9',
@@ -157,6 +161,13 @@ module.exports = {
   cardShadowColor: '#e1e1e1',
   cardAlternateBackgroundColor: '#f5f5f5',
   cardCenterBackgroundColor: '#fff',
+
+  // Surfaces
+  surfaceBackgroundColor: '#fff',
+  surfaceMutedBackgroundColor: '#f5f5f5',
+  surfaceBorderColor: '#e5e5e5',
+  surfaceShadowColor: '#e1e1e1',
+  secondaryTextColor: '#62676d',
 
   //
   // Alert

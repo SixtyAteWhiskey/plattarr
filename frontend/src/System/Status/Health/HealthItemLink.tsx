@@ -18,6 +18,7 @@ function HealthItemLink(props: HealthItemLinkProps) {
     case 'IndexerLongTermStatusCheck':
       return (
         <IconButton
+          aria-label={translate('Settings')}
           name={icons.SETTINGS}
           title={translate('Settings')}
           to="/settings/indexers"
@@ -28,6 +29,7 @@ function HealthItemLink(props: HealthItemLinkProps) {
     case 'ImportMechanismCheck':
       return (
         <IconButton
+          aria-label={translate('Settings')}
           name={icons.SETTINGS}
           title={translate('Settings')}
           to="/settings/downloadclients"
@@ -36,6 +38,7 @@ function HealthItemLink(props: HealthItemLinkProps) {
     case 'NotificationStatusCheck':
       return (
         <IconButton
+          aria-label={translate('Settings')}
           name={icons.SETTINGS}
           title={translate('Settings')}
           to="/settings/connect"
@@ -44,6 +47,7 @@ function HealthItemLink(props: HealthItemLinkProps) {
     case 'MovieCollectionRootFolderCheck':
       return (
         <IconButton
+          aria-label={translate('Collections')}
           name={icons.MOVIE_CONTINUING}
           title={translate('Collections')}
           to="/collections"
@@ -52,6 +56,7 @@ function HealthItemLink(props: HealthItemLinkProps) {
     case 'RootFolderCheck':
       return (
         <IconButton
+          aria-label={translate('MovieEditor')}
           name={icons.MOVIE_CONTINUING}
           title={translate('MovieEditor')}
           to="/"
@@ -60,6 +65,7 @@ function HealthItemLink(props: HealthItemLinkProps) {
     case 'UpdateCheck':
       return (
         <IconButton
+          aria-label={translate('Updates')}
           name={icons.UPDATE}
           title={translate('Updates')}
           to="/system/updates"

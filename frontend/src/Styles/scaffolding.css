@@ -8,8 +8,13 @@
   box-sizing: border-box;
 }
 
-*:focus {
+*:focus:not(:focus-visible) {
   outline: none;
+}
+
+*:focus-visible {
+  outline: var(--focusRingWidth) solid var(--focusRingColor);
+  outline-offset: var(--focusRingOffset);
 }
 /* stylelint-enable */
 

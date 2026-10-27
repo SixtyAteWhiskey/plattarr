@@ -1,13 +1,17 @@
 .link {
   margin: 0;
   padding: 0;
-  outline: none;
   border: 0;
   background: none;
   color: inherit;
   text-align: inherit;
   text-decoration: none;
   cursor: pointer;
+
+  &:focus-visible {
+    outline: var(--focusRingWidth) solid var(--focusRingColor);
+    outline-offset: var(--focusRingOffset);
+  }
 
   &:global(.isDisabled) {
     cursor: default;

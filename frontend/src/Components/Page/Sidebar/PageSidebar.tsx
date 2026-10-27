@@ -9,6 +9,7 @@ import React, {
 import ReactDOM from 'react-dom';
 import { useDispatch } from 'react-redux';
 import { useLocation } from 'react-router';
+import HygieneSidebarStatus from 'Activity/Hygiene/HygieneSidebarStatus';
 import QueueStatus from 'Activity/Queue/Status/QueueStatus';
 import { IconName } from 'Components/Icon';
 import OverlayScroller from 'Components/Scroller/OverlayScroller';
@@ -107,6 +108,7 @@ const LINKS: SidebarItem[] = [
     iconName: icons.HYGIENE,
     title: 'Hygiene',
     to: '/activity/hygiene',
+    statusComponent: HygieneSidebarStatus,
   },
 
   {
@@ -156,89 +158,13 @@ const LINKS: SidebarItem[] = [
     iconName: icons.SETTINGS,
     title: () => translate('Settings'),
     to: '/settings',
-    children: [
-      {
-        title: () => translate('MediaManagement'),
-        to: '/settings/mediamanagement',
-      },
-      {
-        title: () => translate('Profiles'),
-        to: '/settings/profiles',
-      },
-      {
-        title: () => translate('Quality'),
-        to: '/settings/quality',
-      },
-      {
-        title: () => translate('CustomFormats'),
-        to: '/settings/customformats',
-      },
-      {
-        title: () => translate('Indexers'),
-        to: '/settings/indexers',
-      },
-      {
-        title: () => translate('DownloadClients'),
-        to: '/settings/downloadclients',
-      },
-      {
-        title: () => translate('ImportLists'),
-        to: '/settings/importlists',
-      },
-      {
-        title: () => translate('Connect'),
-        to: '/settings/connect',
-      },
-      {
-        title: () => translate('Metadata'),
-        to: '/settings/metadata',
-      },
-      {
-        title: () => translate('Tags'),
-        to: '/settings/tags',
-      },
-      {
-        title: () => translate('General'),
-        to: '/settings/general',
-      },
-      {
-        title: () => translate('Ui'),
-        to: '/settings/ui',
-      },
-    ],
   },
 
   {
     iconName: icons.SYSTEM,
     title: () => translate('System'),
-    to: '/system/status',
-    children: [
-      {
-        title: () => translate('Status'),
-        to: '/system/status',
-        statusComponent: HealthStatus,
-      },
-      {
-        title: () => translate('Tasks'),
-        to: '/system/tasks',
-      },
-      {
-        title: () => translate('Backup'),
-        to: '/system/backup',
-      },
-      {
-        title: () => translate('Updates'),
-        to: '/system/updates',
-      },
-      {
-        title: () => translate('Events'),
-        to: '/system/events',
-      },
-      {
-        title: () => translate('LogFiles'),
-        to: '/system/logs/files',
-      },
-    ],
+    to: '/system',
+    statusComponent: HealthStatus,
   },
 ];
 

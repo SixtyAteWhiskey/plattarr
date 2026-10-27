@@ -37,6 +37,7 @@ function QueueStatusCell(props: QueueStatusCellProps) {
         statusMessages={statusMessages}
         errorMessage={errorMessage}
         position="right"
+        display="badge"
       />
     </TableRowCell>
   );
