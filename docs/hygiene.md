@@ -1,9 +1,15 @@
 # Hygiene queue monitoring
 
-Hygiene is built into Plattarr. Activity > Hygiene shows a queue assessment of
-tracked and pending downloads, persisted strikes, scoped monitoring rules, and
-the action journal. With the global gate off, the queue preview and monitoring
-are read only and `wouldAct` remains false.
+Hygiene is built into Plattarr and appears as a top-level page in the main
+navigation. It shows a queue assessment of tracked and pending downloads,
+persisted strikes, scoped monitoring rules, and the action journal. The preview
+shows aggregate counts by reason before the per-download explanation and
+recommendation. These counts are informational. With the global gate off, the
+queue preview and monitoring are read only and `wouldAct` remains false.
+
+The [Cleanuparr parity verification](hygiene-parity-2026-10-26.md) records
+which behaviors are proven on the current checkout and which feature areas
+remain different or unimplemented.
 
 ## Monitoring rules
 
@@ -15,6 +21,11 @@ minimum number of minutes between strikes. New rules are disabled. A rule
 enabled for a specific kind and client takes priority over one for just the
 kind, just the client, or all. A disabled specific rule also overrides a broad
 enabled rule.
+
+Each saved rule card shows how many current queue assessments select that
+specific rule and, when enabled, how many have reached its strike threshold.
+This read-only preview uses the same matched rule ID and eligibility decision
+as the queue preview; edits do not change the summary until saved.
 
 Each queue refresh observes active downloads. A strike starts at one for a
 matching problem and increases only after the configured interval with the
@@ -62,7 +73,10 @@ failed. `GET /api/v3/hygiene/action` returns the latest entries. If the global
 gate is turned off mid-action, the action pauses at its last checkpoint;
 re-enabling the gate resumes the journal, while an unstarted action also needs
 its original rule to remain eligible. Failures keep a safe error type and a
-recovery path; raw exception text and download paths are not persisted.
+recovery path; raw exception text and download paths are not persisted. The
+System log records the action ID, media kind, reason, client ID, checkpoint,
+and error type. Failed journal entries expose a concise stage explanation and
+manual recovery steps in the expandable **Failure details** section.
 
 `tools/liveproof/run.py hygiene` is a read-only rollout check. It confirms the
 global gate is off and no action remains failed or incomplete. Disposable

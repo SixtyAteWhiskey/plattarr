@@ -5,6 +5,36 @@ uses the same download and import path, with an Artist and Album instead of a
 Movie or Series. The checks below use read-only API calls unless labeled
 otherwise.
 
+## Request-to-library lifecycle
+
+1. **Create the request.** Add a Movie or TV show in Plattarr, or submit one
+   through a configured request app. Choose its root folder, profile, and
+   monitoring options. Music uses an Artist and Album.
+2. **Find and review a release.** An interactive search lists returned
+   candidates and their approval or rejection reasons. Automatic search can
+   choose a candidate without this review step. No candidates means the query
+   returned no releases; a rejected candidate was returned but did not pass the
+   configured rules.
+3. **Grab and download.** When a release is grabbed, Plattarr sends it to the
+   configured download client with the media kind's category. Follow progress
+   and import state in **Activity > Queue**.
+4. **Import the completed files.** After the client reports completion,
+   Plattarr matches the files to the requested item and applies the configured
+   import and rename rules. If the queue reports an import warning, inspect the
+   warning and use Manual Import to review the file mapping before changing
+   files.
+5. **Confirm library placement.** **Activity > History** records the grab and
+   import. The item's detail page and file list show whether the imported file
+   is in the expected library path.
+6. **Refresh connected libraries.** Configured Emby/Jellyfin notifications can
+   trigger a library refresh after import. Plex uses its own scheduled or
+   manual scan. A request app may need to sync with its media server before it
+   displays the item as available; check that app after the library scan.
+
+The setup sections below connect the paths, client, indexer, media server, and
+request app used by this flow. Request-app compatibility depends on the tested
+routes and request modes documented for that app.
+
 ## Before connecting services
 
 Keep Plattarr, your download client, and your media server on a private network.
@@ -89,7 +119,7 @@ a profile or release rule.
 
 ## 4. Add a test request and inspect the release
 
-Add a test Movie or Series from the Plattarr library UI, or connect Jellyseerr
+Add a test Movie or Series from the Plattarr library UI, or connect Seerr
 to the compatibility API described below. Select the quality and metadata
 profiles, root folder, and monitoring options that fit the library. Run an
 interactive search and review why each candidate passed or failed before
@@ -139,6 +169,7 @@ the same mounted library path and that the item is visible after a scan.
 | Candidate is rejected or blocklisted | A result exists, but a quality, custom-format, delay, or blocklist rule rejected it. | Open the candidate details and read its rejection reason; adjust only the intended profile/rule. |
 | Download client reports failure | The client accepted a grab but reports a failed job or unavailable payload. | Inspect the client's message and Plattarr History; use the normal remove/blocklist controls only after confirming the release. |
 | Import is blocked | The client completed, but Plattarr could not match or import one or more files. | Read the queue's import message and use Manual Import to inspect the mapping before changing files. |
+| Remote path mapping health warning | The client reports a completed-download path Plattarr cannot access. A download category may have its own save path. | Compare the client's reported path with the container mounts and Plattarr's remote-path mappings. Correct the mount, mapping, or category save path; confirm the directory exists before retrying an import. Do not move or delete files as a diagnostic. |
 
 An import failure does not mean the file is safe to delete. Confirm the client
 job, the files on disk, and the media mapping before cleanup. Hygiene actions
@@ -168,13 +199,17 @@ Configure Plex libraries to point to the same media paths. Use Plex's own
 scheduled or manual library scan to verify visibility after import. Plattarr
 does not currently provide a native Plex library-refresh connection.
 
-## 7. Connect Jellyseerr or Ombi
+## 7. Connect Seerr (formerly Jellyseerr) or Ombi
 
-### Jellyseerr
+### Seerr
 
-In Jellyseerr, add Plattarr as a Radarr server for Movies and/or a Sonarr server
+In Seerr, add Plattarr as a Radarr server for Movies and/or a Sonarr server
 for TV. Use Plattarr's reachable URL and URL base `/radarr` or `/sonarr`, and
 the Plattarr API key. For example, the read-only compatibility routes are:
+
+This connection uses Plattarr's Radarr and Sonarr compatibility APIs. Seerr does
+not call Prowlarr's management API (`/api/v1/...`); that is separate from the
+per-indexer Torznab/Newznab feeds at `/{indexerId}/api`.
 
 ```bash
 curl -fsS -H "X-Api-Key: $PLATTARR_API_KEY" "$PLATTARR_URL/radarr/api/v3/system/status"
@@ -191,7 +226,8 @@ key header. The read-only calls above prove connectivity and list the profile
 and root-folder choices. `tools/liveproof/seerr_contract.py` replays the
 adapter's read and mutation contract only against a disposable instance on
 `localhost:7881`; see [liveproof](../tools/liveproof/README.md) before running
-it.
+it. The replay is pinned to Seerr 3.5.1; recheck a different installed version
+before claiming its exact request contract.
 
 ### Ombi
 
@@ -242,5 +278,5 @@ python3 tools/liveproof/indexer_parity.py \
 - One indexer tests successfully and returns the test title in an interactive search.
 - A test release is reviewed and grabbed; the queue shows its client and category.
 - History records the grab and import, and the media server sees the imported file.
-- Jellyseerr's Radarr/Sonarr read endpoints work, or its request flow is replayed in scratch.
+- Seerr's Radarr/Sonarr read endpoints work, or its request flow is replayed in scratch.
 - No service is exposed through a direct DMZ or public-WAN port.

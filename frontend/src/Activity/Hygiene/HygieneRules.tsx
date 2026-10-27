@@ -21,7 +21,13 @@ interface DownloadClient {
   name: string;
 }
 
-const reasonOptions = [
+interface HygieneRuleAssessment {
+  ruleId: number | null;
+  strikes: number;
+  eligible: boolean;
+}
+
+export const reasonOptions = [
   { value: 'client-failed', label: 'Client failed' },
   { value: 'import-blocked', label: 'Import blocked' },
   { value: 'download-warning', label: 'Download warning' },
@@ -52,10 +58,20 @@ async function writeRule(
 interface EditorProps {
   rule: HygieneRule;
   clients: DownloadClient[];
+  assessments?: HygieneRuleAssessment[];
+  previewError: boolean;
+  previewLoading: boolean;
   onSaved: () => void;
 }
 
-function HygieneRuleEditor({ rule, clients, onSaved }: EditorProps) {
+function HygieneRuleEditor({
+  rule,
+  clients,
+  assessments,
+  previewError,
+  previewLoading,
+  onSaved,
+}: EditorProps) {
   const [draft, setDraft] = useState(rule);
   const [error, setError] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
@@ -137,6 +153,12 @@ function HygieneRuleEditor({ rule, clients, onSaved }: EditorProps) {
   const client = clients.find(
     (item) => item.id === draft.downloadClientId
   )?.name;
+  const matchingAssessments = assessments?.filter(
+    (assessment) => assessment.ruleId === draft.id
+  );
+  const atThresholdCount = matchingAssessments?.filter(
+    (assessment) => assessment.eligible
+  ).length;
 
   return (
     <FieldSet
@@ -180,7 +202,7 @@ function HygieneRuleEditor({ rule, clients, onSaved }: EditorProps) {
               type="number"
               min="1"
               max="1048576"
-              required
+              required={true}
               value={draft.minimumDownloadRateKiBps}
               onChange={handleMinimumRateChange}
             />
@@ -193,16 +215,38 @@ function HygieneRuleEditor({ rule, clients, onSaved }: EditorProps) {
           Delete
         </button>
       </form>
+      {matchingAssessments && (
+        <p>
+          Saved rule preview: {matchingAssessments.length} matching download
+          {matchingAssessments.length === 1 ? '' : 's'}
+          {rule.enabled && `; ${atThresholdCount} at the strike threshold`}
+          {!rule.enabled && '; monitoring is disabled'}.
+        </p>
+      )}
+      {!matchingAssessments && previewLoading && (
+        <p>Loading the current queue preview.</p>
+      )}
+      {!matchingAssessments && previewError && (
+        <p>Current queue preview is unavailable.</p>
+      )}
       {error && <Alert kind="danger">{error}</Alert>}
     </FieldSet>
   );
 }
 
 interface HygieneRulesProps {
+  assessments?: HygieneRuleAssessment[];
+  previewError: boolean;
+  previewLoading: boolean;
   onChanged: () => void;
 }
 
-function HygieneRules({ onChanged }: HygieneRulesProps) {
+function HygieneRules({
+  assessments,
+  previewError,
+  previewLoading,
+  onChanged,
+}: HygieneRulesProps) {
   const rulesQuery = useApiQuery<HygieneRule[]>({ path: '/hygiene/rule' });
   const clientsQuery = useApiQuery<DownloadClient[]>({
     path: '/downloadclient',
@@ -307,6 +351,9 @@ function HygieneRules({ onChanged }: HygieneRulesProps) {
           key={rule.id}
           rule={rule}
           clients={clientsQuery.data || []}
+          assessments={assessments}
+          previewError={previewError}
+          previewLoading={previewLoading}
           onSaved={handleSaved}
         />
       ))}
@@ -329,7 +376,7 @@ function HygieneRules({ onChanged }: HygieneRulesProps) {
                 type="number"
                 min="1"
                 max="1048576"
-                required
+                required={true}
                 value={minimumDownloadRateKiBps}
                 onChange={handleMinimumRateChange}
               />

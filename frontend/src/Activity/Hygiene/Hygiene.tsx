@@ -7,10 +7,11 @@ import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
 import useApiQuery from 'Helpers/Hooks/useApiQuery';
 import fetchJson, { apiRoot } from 'Utilities/Fetch/fetchJson';
-import HygieneRules from './HygieneRules';
+import HygieneRules, { reasonOptions } from './HygieneRules';
 
 interface HygieneAssessment {
   queueId: number;
+  ruleId: number | null;
   title: string;
   kind?: string;
   downloadClient: string;
@@ -43,6 +44,49 @@ interface HygieneAction {
   updatedAt: string;
 }
 
+const reasonLabels = reasonOptions.reduce<Record<string, string>>(
+  (labels, option) => {
+    labels[option.value] = option.label;
+    return labels;
+  },
+  {
+    'client-unavailable': 'Client unavailable',
+    healthy: 'Healthy',
+    ignored: 'Ignored',
+    pending: 'Pending',
+  }
+);
+
+function getReasonCounts(assessments: HygieneAssessment[]) {
+  return assessments.reduce<Record<string, number>>((counts, item) => {
+    counts[item.reasonCode] = (counts[item.reasonCode] ?? 0) + 1;
+    return counts;
+  }, {});
+}
+
+function getReasonLabel(reasonCode: string) {
+  return reasonLabels[reasonCode] || reasonCode;
+}
+
+const failureStageDescriptions: Record<string, string> = {
+  prepared:
+    'The action did not complete its eligibility check or client removal step.',
+  'client-removed':
+    'The client removal step completed; recording the failed download is still pending.',
+  'failure-recorded':
+    'The failure was recorded; the replacement recovery handoff is still pending.',
+  'replacement-requested':
+    'The recovery handoff was recorded; final tracking cleanup is still pending.',
+};
+
+const unknownFailureStageDescription =
+  'The action stopped at an unknown checkpoint. ' +
+  'Review the client job and journal before retrying.';
+
+function getFailureStageDescription(checkpoint: string) {
+  return failureStageDescriptions[checkpoint] || unknownFailureStageDescription;
+}
+
 function Hygiene() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>();
@@ -57,6 +101,11 @@ function Hygiene() {
     path: '/hygiene/action?limit=50',
     queryOptions: { refetchInterval: 15000 },
   });
+  const reasonCounts = data ? getReasonCounts(data) : {};
+  const reasonCountEntries = Object.entries(reasonCounts).sort(
+    ([left], [right]) =>
+      getReasonLabel(left).localeCompare(getReasonLabel(right))
+  );
 
   const handleRefresh = useCallback(() => {
     refetch();
@@ -127,10 +176,19 @@ function Hygiene() {
         )}
         {data && data.length === 0 && <p>The queue is empty.</p>}
         {data && data.length > 0 && (
-          <p>
-            {data.filter((item) => item.needsAttention).length} of {data.length}{' '}
-            downloads need attention.
-          </p>
+          <>
+            <p>
+              {data.filter((item) => item.needsAttention).length} of{' '}
+              {data.length} downloads need attention.
+            </p>
+            <ul aria-label="Queue preview counts by reason">
+              {reasonCountEntries.map(([reasonCode, count]) => (
+                <li key={reasonCode}>
+                  {getReasonLabel(reasonCode)}: {count}
+                </li>
+              ))}
+            </ul>
+          </>
         )}
         {data?.map((item) => (
           <FieldSet
@@ -173,16 +231,29 @@ function Hygiene() {
             <p>No automatic actions recorded.</p>
           )}
           {actionsQuery.data?.map((action) => (
-            <p key={action.id}>
-              <strong>{action.title || 'Untitled download'}</strong> ·{' '}
-              {action.reasonCode} · {action.status} ({action.checkpoint})
-              {action.lastError && ` · ${action.lastError}`}
-              {' · '}
-              {action.recoveryPath}
-            </p>
+            <div key={action.id}>
+              <p>
+                <strong>{action.title || 'Untitled download'}</strong> ·{' '}
+                {action.reasonCode} · {action.status} ({action.checkpoint})
+              </p>
+              {action.status === 'failed' && (
+                <details>
+                  <summary>Failure details</summary>
+                  <p>{getFailureStageDescription(action.checkpoint)}</p>
+                  <p>Error type: {action.lastError || 'Unknown error'}</p>
+                  <p>{action.recoveryPath}</p>
+                </details>
+              )}
+              {action.status !== 'failed' && <p>{action.recoveryPath}</p>}
+            </div>
           ))}
         </FieldSet>
-        <HygieneRules onChanged={handleRefresh} />
+        <HygieneRules
+          assessments={data}
+          previewError={isError}
+          previewLoading={isLoading}
+          onChanged={handleRefresh}
+        />
       </PageContentBody>
     </PageContent>
   );

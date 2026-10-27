@@ -2209,7 +2209,7 @@
   "Reload": "Reload",
   "RemotePath": "Remote Path",
   "RemotePathMappingCheckBadDockerPath": "You are using docker; download client {downloadClientName} places downloads in {path} but this is not a valid {osName} path.  Review your remote path mappings and download client settings.",
-  "RemotePathMappingCheckDockerFolderMissing": "You are using docker; download client {downloadClientName} places downloads in {path} but this directory does not appear to exist inside the container.  Review your remote path mappings and container volume settings.",
+  "RemotePathMappingCheckDockerFolderMissing": "Download client {downloadClientName} reports downloads in {path}, but that directory is missing inside the Plattarr container. Check the client's category-specific save path, then ensure the reported path is mounted or remotely mapped into Plattarr.",
   "RemotePathMappingCheckDownloadPermissions": "{appName} can see but not access downloaded movie {path}.  Likely permissions error.",
   "RemotePathMappingCheckFileRemoved": "File {path} was removed part way through processing.",
   "RemotePathMappingCheckFilesBadDockerPath": "You are using docker; download client {downloadClientName} reported files in {path} but this is not a valid {osName} path.  Review your remote path mappings and download client settings.",

@@ -104,6 +104,12 @@ const LINKS: SidebarItem[] = [
   },
 
   {
+    iconName: icons.HYGIENE,
+    title: 'Hygiene',
+    to: '/activity/hygiene',
+  },
+
+  {
     iconName: icons.CALENDAR,
     title: () => translate('Calendar'),
     to: '/calendar',
@@ -118,10 +124,6 @@ const LINKS: SidebarItem[] = [
         title: () => translate('Queue'),
         to: '/activity/queue',
         statusComponent: QueueStatus,
-      },
-      {
-        title: 'Hygiene',
-        to: '/activity/hygiene',
       },
       {
         title: () => translate('History'),
