@@ -37,6 +37,7 @@ import {
   faBookmark as fasBookmark,
   faBookReader as fasBookReader,
   faBroadcastTower as fasBroadcastTower,
+  faBroom as fasBroom,
   faBug as fasBug,
   faBuilding as fasBuilding,
   faBullhorn as fasBullhorn,
@@ -194,6 +195,7 @@ export const HEALTH = fasMedkit;
 export const HEART = fasHeart;
 export const HEART_OUTLINE = farHeart;
 export const HISTORY = fasHistory;
+export const HYGIENE = fasBroom;
 export const HOUSEKEEPING = fasHome;
 export const IGNORE = fasTimesCircle;
 export const IMDB = fabImdb;

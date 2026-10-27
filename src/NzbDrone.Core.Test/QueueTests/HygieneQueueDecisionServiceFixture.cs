@@ -101,5 +101,56 @@ namespace NzbDrone.Core.Test.QueueTests
             assessment.WouldAct.Should().BeFalse();
             assessment.ActionExplanation.Should().Contain("private");
         }
+
+        [TestCase("download-stalled", true)]
+        [TestCase("download-slow", false)]
+        public void stalled_and_slow_downloads_remain_monitor_only_at_the_strike_limit(string reasonCode, bool stalled)
+        {
+            var item = new QueueItem
+            {
+                DownloadClientId = 7,
+                DownloadId = "monitor-only-test-hash",
+                Status = QueueStatus.Downloading,
+                SizeLeft = 1000,
+                DownloadClientStalled = stalled,
+                DownloadRateBytesPerSecond = 1024,
+                RemoteRelease = new NzbDrone.Core.Movies.Parser.Model.RemoteMovie
+                {
+                    Release = new NzbDrone.Core.Parser.Model.ReleaseInfo
+                    {
+                        IndexerPrivacy = NzbDrone.Core.Indexers.IndexerPrivacy.Public
+                    }
+                }
+            };
+            var states = new Mock<IHygieneQueueStateRepository>();
+            states.Setup(x => x.All()).Returns(new[]
+            {
+                new HygieneQueueState { DownloadClientId = 7, DownloadId = item.DownloadId, ReasonCode = reasonCode, Strikes = 3 }
+            });
+            var rules = new Mock<IHygieneRuleRepository>();
+            rules.Setup(x => x.All()).Returns(new List<HygieneRule>
+            {
+                new()
+                {
+                    Id = 9,
+                    ReasonCode = reasonCode,
+                    Enabled = true,
+                    StrikeLimit = 3,
+                    StrikeIntervalMinutes = 5,
+                    MinimumDownloadRateKiBps = stalled ? 0 : 100
+                }
+            });
+            var config = new Mock<IConfigService>();
+            config.SetupGet(x => x.HygieneActionsEnabled).Returns(true);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object), config.Object);
+
+            var assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+
+            assessment.ReasonCode.Should().Be(reasonCode);
+            assessment.RuleId.Should().Be(9);
+            assessment.Eligible.Should().BeTrue();
+            assessment.WouldAct.Should().BeFalse();
+            assessment.ActionExplanation.Should().Contain("monitor-only");
+        }
     }
 }

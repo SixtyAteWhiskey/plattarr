@@ -44,6 +44,12 @@ Prowlarr documents both its [API](https://prowlarr.com/docs/api/) and
 passing client contract, including authentication and category behavior, for
 each advertised route.
 
+Seerr is not a Prowlarr management-API consumer: its documented service
+integrations are Radarr and Sonarr, and the existing Seerr 3.5.1 replay covers
+Plattarr's `/radarr` and `/sonarr` compatibility bases. That proof does not
+define the Prowlarr `/api/v1/...` contract. Keep management-API work unscoped
+until a client that actually calls those routes is identified.
+
 ## 4. Build Cleanuparr-style Hygiene into Plattarr
 
 The target is the functionality of a Cleanuparr-like app **inside Plattarr**.
@@ -129,14 +135,20 @@ Any production rollout remains a separate controlled step.
 
 ## Implementation checkpoint — 2026-10-25
 
-The first native Hygiene preview and monitoring-rule slices are committed and
-pushed to `develop` at `79becc43b`; they have not been deployed to production.
-`GET /api/v3/hygiene/preview`
-evaluates the current tracked and pending queue without changing clients or files. The
-Activity > Hygiene page shows each download's media kind, client, stable reason
-code, short explanation, and suggested manual recovery step. It distinguishes
-ignored, failed, import-blocked, warning, unavailable-client, pending, and
-otherwise healthy items. All assessments currently report `wouldAct: false`.
+The initial native Hygiene preview and monitoring-rule slices are deployed to
+production in `sha-8f0e68b`. `GET /api/v3/hygiene/preview` evaluates the current
+tracked and pending queue without changing clients or files. The top-level
+Hygiene page shows each download's media kind, client, stable reason code, short
+explanation, and suggested manual recovery step. It distinguishes ignored,
+failed, import-blocked, warning, unavailable-client, pending, and otherwise
+healthy items. Stalled and slow classifications remain monitor-only.
+
+The current local Hygiene UI slice adds aggregate assessment counts by reason
+above the per-download details, saved per-rule queue-preview counts, and
+expandable failure-stage guidance in the action journal. Counts and failure
+guidance are informational; neither alters monitoring, rule eligibility, or
+the action gate. Server warnings include safe action context without exception
+text, download IDs, titles, or paths.
 
 Migration 12 adds persisted per-client/download strike state and scoped
 monitoring rules. Rules select a reason, media kind (or all),
@@ -152,6 +164,9 @@ action enablement gate and journal, and pass isolated removal tests before any
 client or file action is enabled.
 
 This is not Cleanuparr parity. The other feature areas above remain open.
+The [2026-10-26 parity verification](hygiene-parity-2026-10-26.md) compares the
+current implementation to Cleanuparr's documented behavior and records a
+disposable recovery proof against the current local build.
 
 ## Local follow-up — 2026-10-26
 

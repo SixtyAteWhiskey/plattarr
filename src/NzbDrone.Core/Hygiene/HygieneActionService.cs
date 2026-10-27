@@ -164,11 +164,7 @@ namespace NzbDrone.Core.Hygiene
             }
             catch (Exception ex)
             {
-                action.Status = Failed;
-                action.LastError = ex.GetType().Name;
-                action.UpdatedAt = DateTime.UtcNow;
-                _actions.Update(action);
-                _logger.Warn("Hygiene action {0} stopped at checkpoint {1}; review its journal entry", action.Id, action.Checkpoint);
+                RecordFailure(action, ex);
             }
         }
 
@@ -316,10 +312,20 @@ namespace NzbDrone.Core.Hygiene
         private void RecordFailure(HygieneAction action, Exception ex)
         {
             action.Status = Failed;
+
+            // Download client errors may contain private paths or credentials.
+            // Keep exception text out of logs and the journal.
             action.LastError = ex.GetType().Name;
             action.UpdatedAt = DateTime.UtcNow;
             _actions.Update(action);
-            _logger.Warn("Hygiene action {0} stopped at checkpoint {1}; review its journal entry", action.Id, action.Checkpoint);
+            _logger.Warn(
+                "Hygiene action {0} failed for {1} ({2}, download client {3}) at checkpoint {4}; error type {5}. See the Hygiene action journal for recovery guidance.",
+                action.Id,
+                (MediaKind)action.MediaKind,
+                action.ReasonCode,
+                action.DownloadClientId,
+                action.Checkpoint,
+                action.LastError);
         }
 
         private void SetCheckpoint(HygieneAction action, string checkpoint)
