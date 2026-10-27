@@ -1,0 +1,173 @@
+.pageHeader {
+  max-width: 760px;
+}
+
+.sections {
+  max-width: 1100px;
+}
+
+.sectionHeader {
+  align-items: flex-start;
+}
+
+.sectionHeader > :first-child {
+  min-width: 0;
+}
+
+.sectionIntro {
+  max-width: 760px;
+}
+
+.toggleLabel,
+.checkboxField {
+  display: flex;
+  align-items: flex-start;
+  gap: $spaceSmall;
+
+  font-weight: $semiboldFontWeight;
+  cursor: pointer;
+}
+
+.checkbox {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primaryColor);
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+.previewOverview {
+  min-width: 0;
+}
+
+.reasonSummary {
+  margin: $spaceSmall 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reasonSummaryItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spaceSmall;
+}
+
+.reasonCount {
+  flex: 0 0 auto;
+  min-width: 24px;
+  text-align: center;
+  font-weight: $semiboldFontWeight;
+  font-variant-numeric: tabular-nums;
+}
+
+.assessmentList {
+  min-width: 0;
+}
+
+.assessmentCard {
+  width: 100%;
+}
+
+.assessmentHeader {
+  align-items: flex-start;
+  margin-bottom: $spaceMedium;
+}
+
+.assessmentIdentity {
+  min-width: 0;
+}
+
+.assessmentTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assessmentExplanation {
+  margin-bottom: $spaceMedium;
+}
+
+.guidance {
+  margin-bottom: $spaceMedium;
+}
+
+.detailLabel {
+  display: block;
+  margin-bottom: $spaceXSmall;
+  color: var(--statusText);
+}
+
+.assessmentDetails p {
+  margin: 6px 0;
+}
+
+.automationState {
+  padding-top: $spaceSmall;
+  border-top: 1px solid var(--surfaceBorderColor);
+}
+
+.journalEntry {
+  width: 100%;
+}
+
+.journalHeader {
+  align-items: flex-start;
+}
+
+.journalBadges {
+  justify-content: flex-start;
+}
+
+.journalCheckpoint {
+  margin-top: $spaceXSmall;
+  margin-bottom: $spaceSmall;
+}
+
+.ruleForm {
+  display: grid;
+  align-items: end;
+  gap: $spaceMedium;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, $responsiveColumnCompact), 1fr)
+  );
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: $spaceXSmall;
+
+  min-width: 0;
+  font-weight: $semiboldFontWeight;
+}
+
+.formControl {
+  composes: input from '~Components/Form/Input.css';
+
+  min-width: 0;
+}
+
+select.formControl {
+  padding: 0 $spaceSmall;
+}
+
+.checkboxField,
+.ruleActions {
+  grid-column: 1 / -1;
+}
+
+@media only screen and (max-width: $breakpointSmall) {
+  .assessmentTitle {
+    white-space: normal;
+  }
+
+  .ruleForm {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -12,7 +12,7 @@
 }
 
 .status {
-  width: 20px;
+  width: 120px;
 }
 
 .healthOk {
@@ -22,5 +22,9 @@
 .actions {
   composes: cell from '~Components/Table/Cells/TableRowCell.css';
 
-  min-width: 90px;
+  min-width: 120px;
+}
+
+.actionCluster {
+  flex-wrap: nowrap;
 }

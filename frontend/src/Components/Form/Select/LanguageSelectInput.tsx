@@ -5,6 +5,7 @@ import EnhancedSelectInput, {
 } from './EnhancedSelectInput';
 
 export interface LanguageSelectInputProps {
+  id?: string;
   name: string;
   value: number;
   values: EnhancedSelectInputValue<number>[];

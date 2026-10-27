@@ -260,7 +260,9 @@ function Queue() {
         {isRefreshing && !isAllPopulated ? <LoadingIndicator /> : null}
 
         {!isRefreshing && hasError ? (
-          <Alert kind={kinds.DANGER}>{translate('QueueLoadError')}</Alert>
+          <Alert kind={kinds.DANGER} role="alert">
+            {translate('QueueLoadError')}
+          </Alert>
         ) : null}
 
         {isAllPopulated && !hasError && !items.length ? (

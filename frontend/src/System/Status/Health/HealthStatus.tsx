@@ -1,40 +1,19 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import AppState from 'App/State/AppState';
 import PageSidebarStatus from 'Components/Page/Sidebar/PageSidebarStatus';
 import usePrevious from 'Helpers/Hooks/usePrevious';
 import { fetchHealth } from 'Store/Actions/systemActions';
-import createHealthSelector from './createHealthSelector';
+import useHealthStatus from './useHealthStatus';
 
 function HealthStatus() {
   const dispatch = useDispatch();
   const { isConnected, isReconnecting } = useSelector(
     (state: AppState) => state.app
   );
-  const { isPopulated, items } = useSelector(createHealthSelector());
+  const { count, errors, isPopulated, warnings } = useHealthStatus();
 
   const wasReconnecting = usePrevious(isReconnecting);
-
-  const { count, errors, warnings } = useMemo(() => {
-    let errors = false;
-    let warnings = false;
-
-    items.forEach((item) => {
-      if (item.type === 'error') {
-        errors = true;
-      }
-
-      if (item.type === 'warning') {
-        warnings = true;
-      }
-    });
-
-    return {
-      count: items.length,
-      errors,
-      warnings,
-    };
-  }, [items]);
 
   useEffect(() => {
     if (!isPopulated) {

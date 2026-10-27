@@ -1,3 +1,11 @@
+.pageHeader {
+  max-width: 760px;
+}
+
+.sections fieldset {
+  margin-bottom: 0;
+}
+
 .upstream {
   display: flex;
   flex-wrap: wrap;

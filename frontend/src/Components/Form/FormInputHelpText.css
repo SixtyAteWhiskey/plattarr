@@ -1,29 +1,31 @@
 .helpText {
   margin-top: 5px;
-  color: var(--helpTextColor);
+  color: var(--secondaryTextColor);
   line-height: 20px;
 }
 
 .isError {
-  color: var(--dangerColor);
+  color: var(--alertDangerColor);
 
   .link {
-    color: var(--dangerColor);
+    color: var(--alertDangerColor);
 
     &:hover {
-      color: #e01313;
+      color: var(--alertDangerColor);
+      text-decoration: underline;
     }
   }
 }
 
 .isWarning {
-  color: var(--warningColor);
+  color: var(--alertWarningColor);
 
   .link {
-    color: var(--warningColor);
+    color: var(--alertWarningColor);
 
     &:hover {
-      color: #e36c00;
+      color: var(--alertWarningColor);
+      text-decoration: underline;
     }
   }
 }

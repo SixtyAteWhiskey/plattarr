@@ -1,18 +1,50 @@
-.link {
-  composes: link from '~Components/Link/Link.css';
+.pageHeader {
+  max-width: 760px;
+}
 
-  border-bottom: 1px solid #e5e5e5;
+.grid {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  min-width: 0;
+}
+
+.cardLink {
+  display: block;
+  height: 100%;
+  border-radius: $radiusSmall;
   color: var(--textColor);
-  font-size: 21px;
 
   &:hover {
-    color: #616573;
+    color: var(--textColor);
     text-decoration: none;
+  }
+
+  &:hover .card {
+    border-color: var(--linkColor);
+    background-color: var(--surfaceMutedBackgroundColor);
+  }
+
+  &:hover .cardArrow {
+    transform: translateX($spaceXSmall);
   }
 }
 
-.summary {
-  margin-top: 10px;
-  margin-bottom: 30px;
-  color: var(--helpTextColor);
+.card {
+  height: 100%;
+  transition: border-color $defaultSpeed, background-color $defaultSpeed;
+}
+
+.cardIcon {
+  flex: 0 0 auto;
+  color: var(--linkColor);
+}
+
+.cardArrow {
+  flex: 0 0 auto;
+  color: var(--secondaryTextColor);
+  transition: transform $defaultSpeed;
 }

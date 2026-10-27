@@ -1,0 +1,55 @@
+.heading {
+  margin: 0;
+  color: var(--textColor);
+  font-weight: $semiboldFontWeight;
+  line-height: $headingLineHeight;
+}
+
+.page {
+  font-size: $pageTitleFontSize;
+}
+
+.section {
+  font-size: $sectionTitleFontSize;
+}
+
+.card {
+  font-size: $cardTitleFontSize;
+}
+
+.text {
+  margin: 0;
+  color: var(--textColor);
+  font-size: $defaultFontSize;
+  line-height: $bodyLineHeight;
+}
+
+.secondary {
+  color: var(--secondaryTextColor);
+}
+
+.small {
+  font-size: $metadataFontSize;
+}
+
+.body {
+  font-size: $defaultFontSize;
+}
+
+.lead {
+  font-size: $largeFontSize;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: $eyebrowFontSize;
+}
+
+.regular {
+  font-weight: $regularFontWeight;
+}
+
+.semibold {
+  font-weight: $semiboldFontWeight;
+}

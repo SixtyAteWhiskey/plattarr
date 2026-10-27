@@ -62,6 +62,7 @@ export const defaultState = {
       {
         name: 'status',
         columnLabel: () => translate('Status'),
+        label: () => translate('Status'),
         isSortable: true,
         isVisible: true,
         isModifiable: false

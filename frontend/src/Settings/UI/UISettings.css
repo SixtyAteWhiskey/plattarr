@@ -1,0 +1,15 @@
+.pageHeader {
+  max-width: 760px;
+}
+
+.sections {
+  max-width: 960px;
+}
+
+.sections fieldset {
+  margin-bottom: 0;
+}
+
+.sections fieldset > :last-child {
+  margin-bottom: 0;
+}

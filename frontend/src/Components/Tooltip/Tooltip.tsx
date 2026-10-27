@@ -1,5 +1,6 @@
 import classNames from 'classnames';
 import React, {
+  KeyboardEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -19,6 +20,8 @@ export interface TooltipProps {
   bodyClassName?: string;
   anchor: React.ReactNode;
   tooltip: string | React.ReactNode;
+  accessibilityLabel?: string;
+  isFocusable?: boolean;
   kind?: Extract<Kind, keyof typeof styles>;
   position?: (typeof tooltipPositions.all)[number];
   canFlip?: boolean;
@@ -29,6 +32,8 @@ function Tooltip(props: TooltipProps) {
     bodyClassName = styles.body,
     anchor,
     tooltip,
+    accessibilityLabel,
+    isFocusable = false,
     kind = kinds.DEFAULT,
     position = tooltipPositions.TOP,
     canFlip = false,
@@ -39,14 +44,17 @@ function Tooltip(props: TooltipProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleClick = useCallback(() => {
-    if (!isMobileUtil()) {
+    if (isFocusable && !isMobileUtil()) {
+      setIsOpen(true);
       return;
     }
 
-    setIsOpen((isOpen) => {
-      return !isOpen;
-    });
-  }, [setIsOpen]);
+    if (isMobileUtil()) {
+      setIsOpen((isOpen) => {
+        return !isOpen;
+      });
+    }
+  }, [isFocusable, setIsOpen]);
 
   const handleMouseEnterAnchor = useCallback(() => {
     // Mobile will fire mouse enter and click events rapidly,
@@ -80,6 +88,21 @@ function Tooltip(props: TooltipProps) {
       setIsOpen(false);
     }, 100);
   }, [setIsOpen]);
+
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLSpanElement>) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+        return;
+      }
+
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        setIsOpen((isOpen) => !isOpen);
+      }
+    },
+    [setIsOpen]
+  );
 
   const maxWidth = useMemo(() => {
     const windowWidth = window.innerWidth;
@@ -141,7 +164,13 @@ function Tooltip(props: TooltipProps) {
           <span
             ref={ref}
             className={className}
+            aria-label={accessibilityLabel}
+            aria-expanded={isFocusable ? isOpen : undefined}
+            role={isFocusable ? 'button' : undefined}
+            tabIndex={isFocusable ? 0 : undefined}
             onClick={handleClick}
+            onBlur={isFocusable ? handleMouseLeave : undefined}
+            onKeyDown={isFocusable ? handleKeyDown : undefined}
             onMouseEnter={handleMouseEnterAnchor}
             onMouseLeave={handleMouseLeave}
           >

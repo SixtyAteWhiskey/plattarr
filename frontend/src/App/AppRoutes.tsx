@@ -45,6 +45,7 @@ import BackupsConnector from 'System/Backup/BackupsConnector';
 import LogsTableConnector from 'System/Events/LogsTableConnector';
 import Logs from 'System/Logs/Logs';
 import Status from 'System/Status/Status';
+import System from 'System/System';
 import Tasks from 'System/Tasks/Tasks';
 import Updates from 'System/Updates/Updates';
 import UnmappedFilesTableConnector from 'UnmappedFiles/UnmappedFilesTableConnector';
@@ -205,6 +206,8 @@ function AppRoutes() {
       {/*
         System
       */}
+
+      <Route exact={true} path="/system" component={System} />
 
       <Route path="/system/status" component={Status} />
 

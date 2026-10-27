@@ -1,0 +1,25 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: $spaceXSmall $spaceSmall;
+  min-width: 0;
+  outline: var(--statusOutlineWidth) solid var(--statusBorder);
+  outline-offset: 1px;
+  border: var(--statusBorderWidth) var(--statusBorderStyle) var(--statusBorder);
+  border-radius: $radiusPill;
+  background-color: var(--statusBackground);
+  color: var(--statusText);
+  font-weight: $semiboldFontWeight;
+  font-size: $smallFontSize;
+  line-height: 1.25;
+  gap: 5px;
+}
+
+.icon {
+  flex: 0 0 auto;
+  color: inherit;
+}
+
+.separator {
+  opacity: 0.75;
+}
