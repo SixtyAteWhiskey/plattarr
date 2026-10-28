@@ -271,5 +271,19 @@ namespace NzbDrone.Core.Test.MusicTests.ParserTests
             parseResult.ArtistName.Should().Be("Michael Buble");
             parseResult.AlbumTitle.Should().Be("Christmas");
         }
+
+        [Test]
+        public void should_parse_half_alive_release_with_grabbed_artist_and_album()
+        {
+            GivenSearchCriteria("half·alive", "Conditions Of A Punk");
+
+            var parsed = Music.Parser.Parser.ParseAlbumTitleWithSearchCriteria(
+                "half·alive   Conditions Of A Punk (2022) [24Bit 44.1kHz] FLAC [PMEDIA] ⭐️",
+                _artist,
+                _albums);
+
+            parsed.Should().NotBeNull();
+            parsed.AlbumTitle.Should().Be("Conditions Of A Punk");
+        }
     }
 }
