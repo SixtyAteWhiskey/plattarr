@@ -158,6 +158,7 @@ const LINKS: SidebarItem[] = [
     iconName: icons.SETTINGS,
     title: () => translate('Settings'),
     to: '/settings',
+    statusComponent: HealthStatus,
   },
 
   {

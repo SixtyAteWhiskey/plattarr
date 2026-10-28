@@ -28,6 +28,7 @@ function Indexer({
   supportsRss,
   supportsSearch,
   priority,
+  isDisabled,
   showPriority,
   onCloneIndexerPress,
 }: IndexerProps) {
@@ -71,6 +72,12 @@ function Indexer({
     >
       <div className={styles.nameContainer}>
         <div className={styles.name}>{name}</div>
+
+        {isDisabled ? (
+          <Label kind={kinds.DANGER} title={translate('Unavailable')}>
+            {translate('Unavailable')}
+          </Label>
+        ) : null}
 
         <IconButton
           className={styles.cloneButton}
