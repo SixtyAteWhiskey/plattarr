@@ -1,12 +1,15 @@
 import React from 'react';
+import { useSelector } from 'react-redux';
 import Icon from 'Components/Icon';
 import { Cluster, ResponsiveGrid, Stack } from 'Components/Layout';
 import Link from 'Components/Link/Link';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
+import { StatusBadge } from 'Components/Status';
 import Surface from 'Components/Surface';
 import { Heading, Text } from 'Components/Typography';
 import { icons } from 'Helpers/Props';
+import createHealthSelector from 'System/Status/Health/createHealthSelector';
 import translate from 'Utilities/String/translate';
 import SettingsToolbar from './SettingsToolbar';
 import styles from './Settings.css';
@@ -105,6 +108,12 @@ const settingsGroups = [
 ];
 
 function Settings() {
+  const { items: healthItems } = useSelector(createHealthSelector());
+  const indexerIssues = healthItems.filter((item) =>
+    item.source.startsWith('Indexer')
+  );
+  const hasIndexerErrors = indexerIssues.some((item) => item.type === 'error');
+
   return (
     <PageContent title={translate('Settings')}>
       <SettingsToolbar showSave={false} hasPendingChanges={false} />
@@ -168,6 +177,27 @@ function Settings() {
                                     <Heading level={3} size="card">
                                       {translate(item.title)}
                                     </Heading>
+
+                                    {item.to === '/settings/indexers' &&
+                                    indexerIssues.length ? (
+                                      <StatusBadge
+                                        icon={
+                                          hasIndexerErrors
+                                            ? icons.DANGER
+                                            : icons.WARNING
+                                        }
+                                        label={translate(
+                                          hasIndexerErrors ? 'Error' : 'Warning'
+                                        )}
+                                        detail={indexerIssues.length}
+                                        tone={
+                                          hasIndexerErrors ? 'danger' : 'warning'
+                                        }
+                                        aria-label={`${translate(
+                                          hasIndexerErrors ? 'Error' : 'Warning'
+                                        )}: ${indexerIssues.length}`}
+                                      />
+                                    ) : null}
                                   </Cluster>
 
                                   <Icon
