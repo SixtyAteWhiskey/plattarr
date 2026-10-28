@@ -31,5 +31,20 @@ namespace NzbDrone.Api.Test.v3.Hygiene
 
             create.Should().Throw<BadRequestException>();
         }
+
+        [Test]
+        public void newly_created_rule_is_disabled_unless_the_request_explicitly_enables_it()
+        {
+            HygieneRule saved = null;
+            Mocker.GetMock<IHygieneRuleService>()
+                .Setup(x => x.Upsert(It.IsAny<HygieneRule>()))
+                .Callback<HygieneRule>(rule => saved = rule)
+                .Returns<HygieneRule>(rule => rule);
+
+            Subject.Create(new HygieneRule { ReasonCode = "download-stalled" });
+
+            saved.Should().NotBeNull();
+            saved.Enabled.Should().BeFalse();
+        }
     }
 }

@@ -26,7 +26,7 @@ namespace NzbDrone.Core.Test.QueueTests
                 });
             var rules = new Mock<IHygieneRuleRepository>();
             rules.Setup(x => x.All()).Returns(() => savedRules);
-            var service = new HygieneQueueStrikeService(states.Object, new HygieneRuleService(rules.Object), new HygieneQueueEvaluator());
+            var service = new HygieneQueueStrikeService(states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), new HygieneQueueEvaluator());
             var item = new QueueItem
             {
                 DownloadClientId = 4,
