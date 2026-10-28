@@ -13,6 +13,7 @@ interface ArtistTag extends TagBase {
 }
 
 export interface ArtistTagInputProps {
+  id?: string;
   name: string;
   value: number[];
   onChange: (change: InputChanged<number[]>) => void;
@@ -60,6 +61,7 @@ function createArtistTagsSelector(tags: number[]) {
 }
 
 export default function ArtistTagInput({
+  id,
   name,
   value,
   onChange,
@@ -111,6 +113,7 @@ export default function ArtistTagInput({
 
   return (
     <TagInput
+      id={id}
       name={name}
       tags={tags}
       tagList={tagList}

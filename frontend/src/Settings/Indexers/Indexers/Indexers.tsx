@@ -5,6 +5,7 @@ import Alert from 'Components/Alert';
 import Card from 'Components/Card';
 import FieldSet from 'Components/FieldSet';
 import Icon from 'Components/Icon';
+import { ResponsiveGrid } from 'Components/Layout';
 import PageSectionContent from 'Components/Page/PageSectionContent';
 import { icons, kinds } from 'Helpers/Props';
 import { cloneIndexer, fetchIndexers } from 'Store/Actions/settingsActions';
@@ -74,7 +75,7 @@ function Indexers() {
           </Alert>
         ) : null}
 
-        <div className={styles.indexers}>
+        <ResponsiveGrid minimum="wide" gap="medium">
           {items.map((item) => {
             return (
               <Indexer
@@ -86,12 +87,16 @@ function Indexers() {
             );
           })}
 
-          <Card className={styles.addIndexer} onPress={handleAddIndexerPress}>
+          <Card
+            aria-label={translate('AddIndexer')}
+            className={styles.addIndexer}
+            onPress={handleAddIndexerPress}
+          >
             <div className={styles.center}>
               <Icon name={icons.ADD} size={45} />
             </div>
           </Card>
-        </div>
+        </ResponsiveGrid>
 
         <AddIndexerModal
           isOpen={isAddIndexerModalOpen}

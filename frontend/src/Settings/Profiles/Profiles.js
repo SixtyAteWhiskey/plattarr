@@ -5,6 +5,7 @@ import MediaKindSwitcher from 'Components/MediaKindSwitcher';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
 import { useMediaKind } from 'Helpers/mediaKindStore';
+import SettingsPageHeader from 'Settings/SettingsPageHeader';
 import SettingsToolbar from 'Settings/SettingsToolbar';
 import translate from 'Utilities/String/translate';
 import DelayProfilesConnector from './Delay/DelayProfilesConnector';
@@ -30,6 +31,7 @@ function Profiles() {
       />
 
       <PageContentBody>
+        <SettingsPageHeader title="Profiles" summary="ProfilesSettingsSummary" />
         <DndProvider options={HTML5toTouch}>
           {
             isMusic ?

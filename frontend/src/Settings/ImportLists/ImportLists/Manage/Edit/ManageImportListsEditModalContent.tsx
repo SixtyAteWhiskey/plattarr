@@ -137,31 +137,35 @@ function ManageImportListsEditModalContent(
 
       <ModalBody>
         <FormGroup>
-          <FormLabel>{translate('Enabled')}</FormLabel>
+          <FormLabel name="enabled">{translate('Enabled')}</FormLabel>
 
           <FormInputGroup
             type={inputTypes.SELECT}
             name="enabled"
             value={enabled}
             values={enableOptions}
+            id="enabled"
             onChange={onInputChange}
           />
         </FormGroup>
 
         <FormGroup>
-          <FormLabel>{translate('AutomaticAdd')}</FormLabel>
+          <FormLabel name="enableAuto">{translate('AutomaticAdd')}</FormLabel>
 
           <FormInputGroup
             type={inputTypes.SELECT}
             name="enableAuto"
             value={enableAuto}
             values={enableOptions}
+            id="enableAuto"
             onChange={onInputChange}
           />
         </FormGroup>
 
         <FormGroup>
-          <FormLabel>{translate('QualityProfile')}</FormLabel>
+          <FormLabel name="qualityProfileId">
+            {translate('QualityProfile')}
+          </FormLabel>
 
           <FormInputGroup
             type={inputTypes.QUALITY_PROFILE_SELECT}
@@ -169,12 +173,15 @@ function ManageImportListsEditModalContent(
             value={qualityProfileId}
             includeNoChange={true}
             includeNoChangeDisabled={false}
+            id="qualityProfileId"
             onChange={onInputChange}
           />
         </FormGroup>
 
         <FormGroup>
-          <FormLabel>{translate('MinimumAvailability')}</FormLabel>
+          <FormLabel name="minimumAvailability">
+            {translate('MinimumAvailability')}
+          </FormLabel>
 
           <FormInputGroup
             type={inputTypes.AVAILABILITY_SELECT}
@@ -182,12 +189,13 @@ function ManageImportListsEditModalContent(
             value={minimumAvailability}
             includeNoChange={true}
             includeNoChangeDisabled={false}
+            id="minimumAvailability"
             onChange={onInputChange}
           />
         </FormGroup>
 
         <FormGroup>
-          <FormLabel>{translate('RootFolder')}</FormLabel>
+          <FormLabel name="rootFolderPath">{translate('RootFolder')}</FormLabel>
 
           <FormInputGroup
             type={inputTypes.ROOT_FOLDER_SELECT}
@@ -196,6 +204,7 @@ function ManageImportListsEditModalContent(
             includeNoChange={true}
             includeNoChangeDisabled={false}
             selectedValueOptions={{ includeFreeSpace: false }}
+            id="rootFolderPath"
             onChange={onInputChange}
           />
         </FormGroup>

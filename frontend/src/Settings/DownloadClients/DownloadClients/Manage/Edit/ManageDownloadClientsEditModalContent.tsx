@@ -127,19 +127,20 @@ function ManageDownloadClientsEditModalContent(
 
       <ModalBody>
         <FormGroup>
-          <FormLabel>{translate('Enabled')}</FormLabel>
+          <FormLabel name="enable">{translate('Enabled')}</FormLabel>
 
           <FormInputGroup
             type={inputTypes.SELECT}
             name="enable"
             value={enable}
             values={enableOptions}
+            id="enable"
             onChange={onInputChange}
           />
         </FormGroup>
 
         <FormGroup>
-          <FormLabel>{translate('Priority')}</FormLabel>
+          <FormLabel name="priority">{translate('Priority')}</FormLabel>
 
           <FormInputGroup
             type={inputTypes.NUMBER}
@@ -147,30 +148,37 @@ function ManageDownloadClientsEditModalContent(
             value={priority}
             min={1}
             max={50}
+            id="priority"
             onChange={onInputChange}
           />
         </FormGroup>
 
         <FormGroup>
-          <FormLabel>{translate('RemoveCompletedDownloads')}</FormLabel>
+          <FormLabel name="removeCompletedDownloads">
+            {translate('RemoveCompletedDownloads')}
+          </FormLabel>
 
           <FormInputGroup
             type={inputTypes.SELECT}
             name="removeCompletedDownloads"
             value={removeCompletedDownloads}
             values={enableOptions}
+            id="removeCompletedDownloads"
             onChange={onInputChange}
           />
         </FormGroup>
 
         <FormGroup>
-          <FormLabel>{translate('RemoveFailedDownloads')}</FormLabel>
+          <FormLabel name="removeFailedDownloads">
+            {translate('RemoveFailedDownloads')}
+          </FormLabel>
 
           <FormInputGroup
             type={inputTypes.SELECT}
             name="removeFailedDownloads"
             value={removeFailedDownloads}
             values={enableOptions}
+            id="removeFailedDownloads"
             onChange={onInputChange}
           />
         </FormGroup>

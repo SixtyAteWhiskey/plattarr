@@ -3,6 +3,7 @@ import React, { Component } from 'react';
 import Card from 'Components/Card';
 import FieldSet from 'Components/FieldSet';
 import Icon from 'Components/Icon';
+import { ResponsiveGrid } from 'Components/Layout';
 import PageSectionContent from 'Components/Page/PageSectionContent';
 import { icons } from 'Helpers/Props';
 import translate from 'Utilities/String/translate';
@@ -65,7 +66,7 @@ class Notifications extends Component {
           errorMessage={translate('NotificationsLoadError')}
           {...otherProps}
         >
-          <div className={styles.notifications}>
+          <ResponsiveGrid minimum="wide" gap="medium">
             {
               items.map((item) => {
                 return (
@@ -80,6 +81,7 @@ class Notifications extends Component {
             }
 
             <Card
+              aria-label={translate('AddConnection')}
               className={styles.addNotification}
               onPress={this.onAddNotificationPress}
             >
@@ -90,7 +92,7 @@ class Notifications extends Component {
                 />
               </div>
             </Card>
-          </div>
+          </ResponsiveGrid>
 
           <AddNotificationModal
             isOpen={isAddNotificationModalOpen}

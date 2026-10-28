@@ -13,6 +13,7 @@ interface MovieTag extends TagBase {
 }
 
 export interface MovieTagInputProps<V> {
+  id?: string;
   name: string;
   value: V;
   onChange: (change: InputChanged<V>) => void;
@@ -60,6 +61,7 @@ function createMovieTagsSelector(tags: number[]) {
 }
 
 export default function MovieTagInput<V>({
+  id,
   name,
   value,
   onChange,
@@ -135,6 +137,7 @@ export default function MovieTagInput<V>({
 
   return (
     <TagInput
+      id={id}
       name={name}
       tags={tags}
       tagList={tagList}

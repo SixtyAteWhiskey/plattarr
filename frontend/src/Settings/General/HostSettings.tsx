@@ -48,7 +48,7 @@ function HostSettings({
   return (
     <FieldSet legend={translate('Host')}>
       <FormGroup advancedSettings={showAdvancedSettings} isAdvanced={true}>
-        <FormLabel>{translate('BindAddress')}</FormLabel>
+        <FormLabel name="bindAddress">{translate('BindAddress')}</FormLabel>
 
         <FormInputGroup
           type={inputTypes.TEXT}
@@ -57,11 +57,12 @@ function HostSettings({
           helpTextWarning={translate('RestartRequiredHelpTextWarning')}
           onChange={onInputChange}
           {...bindAddress}
+          id="bindAddress"
         />
       </FormGroup>
 
       <FormGroup>
-        <FormLabel>{translate('PortNumber')}</FormLabel>
+        <FormLabel name="port">{translate('PortNumber')}</FormLabel>
 
         <FormInputGroup
           type={inputTypes.NUMBER}
@@ -72,11 +73,12 @@ function HostSettings({
           helpTextWarning={translate('RestartRequiredHelpTextWarning')}
           onChange={onInputChange}
           {...port}
+          id="port"
         />
       </FormGroup>
 
       <FormGroup>
-        <FormLabel>{translate('UrlBase')}</FormLabel>
+        <FormLabel name="urlBase">{translate('UrlBase')}</FormLabel>
 
         <FormInputGroup
           type={inputTypes.TEXT}
@@ -85,11 +87,12 @@ function HostSettings({
           helpTextWarning={translate('RestartRequiredHelpTextWarning')}
           onChange={onInputChange}
           {...urlBase}
+          id="urlBase"
         />
       </FormGroup>
 
       <FormGroup>
-        <FormLabel>{translate('AllowedHosts')}</FormLabel>
+        <FormLabel name="allowedHosts">{translate('AllowedHosts')}</FormLabel>
         <FormInputGroup
           type={inputTypes.TEXT}
           name="allowedHosts"
@@ -98,11 +101,12 @@ function HostSettings({
           helpLink="https://github.com/SixtyAteWhiskey/plattarr/blob/develop/docs/first-run.md"
           onChange={onInputChange}
           {...allowedHosts}
+          id="allowedHosts"
         />
       </FormGroup>
 
       <FormGroup advancedSettings={showAdvancedSettings} isAdvanced={true}>
-        <FormLabel>{translate('InstanceName')}</FormLabel>
+        <FormLabel name="instanceName">{translate('InstanceName')}</FormLabel>
 
         <FormInputGroup
           type={inputTypes.TEXT}
@@ -111,11 +115,14 @@ function HostSettings({
           helpTextWarning={translate('RestartRequiredHelpTextWarning')}
           onChange={onInputChange}
           {...instanceName}
+          id="instanceName"
         />
       </FormGroup>
 
       <FormGroup advancedSettings={showAdvancedSettings} isAdvanced={true}>
-        <FormLabel>{translate('ApplicationURL')}</FormLabel>
+        <FormLabel name="applicationUrl">
+          {translate('ApplicationURL')}
+        </FormLabel>
 
         <FormInputGroup
           type={inputTypes.TEXT}
@@ -123,6 +130,7 @@ function HostSettings({
           helpText={translate('ApplicationUrlHelpText')}
           onChange={onInputChange}
           {...applicationUrl}
+          id="applicationUrl"
         />
       </FormGroup>
 
@@ -131,7 +139,7 @@ function HostSettings({
         isAdvanced={true}
         size={sizes.MEDIUM}
       >
-        <FormLabel>{translate('EnableSsl')}</FormLabel>
+        <FormLabel name="enableSsl">{translate('EnableSsl')}</FormLabel>
 
         <FormInputGroup
           type={inputTypes.CHECK}
@@ -139,12 +147,13 @@ function HostSettings({
           helpText={translate('EnableSslHelpText')}
           onChange={onInputChange}
           {...enableSsl}
+          id="enableSsl"
         />
       </FormGroup>
 
       {enableSsl.value ? (
         <FormGroup advancedSettings={showAdvancedSettings} isAdvanced={true}>
-          <FormLabel>{translate('SslPort')}</FormLabel>
+          <FormLabel name="sslPort">{translate('SslPort')}</FormLabel>
 
           <FormInputGroup
             type={inputTypes.NUMBER}
@@ -154,6 +163,7 @@ function HostSettings({
             helpTextWarning={translate('RestartRequiredHelpTextWarning')}
             onChange={onInputChange}
             {...sslPort}
+            id="sslPort"
           />
         </FormGroup>
       ) : null}
@@ -161,7 +171,7 @@ function HostSettings({
       {enableSsl.value ? (
         <>
           <FormGroup advancedSettings={showAdvancedSettings} isAdvanced={true}>
-            <FormLabel>{translate('SslCertPath')}</FormLabel>
+            <FormLabel name="sslCertPath">{translate('SslCertPath')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.TEXT}
@@ -170,11 +180,12 @@ function HostSettings({
               helpTextWarning={translate('RestartRequiredHelpTextWarning')}
               onChange={onInputChange}
               {...sslCertPath}
+              id="sslCertPath"
             />
           </FormGroup>
 
           <FormGroup advancedSettings={showAdvancedSettings} isAdvanced={true}>
-            <FormLabel>{translate('SslKeyPath')}</FormLabel>
+            <FormLabel name="sslKeyPath">{translate('SslKeyPath')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.TEXT}
@@ -183,11 +194,14 @@ function HostSettings({
               helpTextWarning={translate('RestartRequiredHelpTextWarning')}
               onChange={onInputChange}
               {...sslKeyPath}
+              id="sslKeyPath"
             />
           </FormGroup>
 
           <FormGroup advancedSettings={showAdvancedSettings} isAdvanced={true}>
-            <FormLabel>{translate('SslCertPassword')}</FormLabel>
+            <FormLabel name="sslCertPassword">
+              {translate('SslCertPassword')}
+            </FormLabel>
 
             <FormInputGroup
               type={inputTypes.PASSWORD}
@@ -196,6 +210,7 @@ function HostSettings({
               helpTextWarning={translate('RestartRequiredHelpTextWarning')}
               onChange={onInputChange}
               {...sslCertPassword}
+              id="sslCertPassword"
             />
           </FormGroup>
         </>
@@ -203,7 +218,9 @@ function HostSettings({
 
       {isWindows && mode !== 'service' ? (
         <FormGroup size={sizes.MEDIUM}>
-          <FormLabel>{translate('OpenBrowserOnStart')}</FormLabel>
+          <FormLabel name="launchBrowser">
+            {translate('OpenBrowserOnStart')}
+          </FormLabel>
 
           <FormInputGroup
             type={inputTypes.CHECK}
@@ -211,6 +228,7 @@ function HostSettings({
             helpText={translate('OpenBrowserOnStartHelpText')}
             onChange={onInputChange}
             {...launchBrowser}
+            id="launchBrowser"
           />
         </FormGroup>
       ) : null}

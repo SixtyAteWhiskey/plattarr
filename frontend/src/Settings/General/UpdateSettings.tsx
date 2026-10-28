@@ -55,7 +55,7 @@ function UpdateSettings({
   return (
     <FieldSet legend={translate('Updates')}>
       <FormGroup advancedSettings={showAdvancedSettings} isAdvanced={true}>
-        <FormLabel>{translate('Branch')}</FormLabel>
+        <FormLabel name="branch">{translate('Branch')}</FormLabel>
 
         <FormInputGroup
           type={inputTypes.AUTO_COMPLETE}
@@ -69,6 +69,7 @@ function UpdateSettings({
           {...branch}
           values={branchValues}
           readOnly={usingExternalUpdateMechanism}
+          id="branch"
           onChange={onInputChange}
         />
       </FormGroup>
@@ -79,7 +80,9 @@ function UpdateSettings({
           isAdvanced={true}
           size={sizes.MEDIUM}
         >
-          <FormLabel>{translate('Automatic')}</FormLabel>
+          <FormLabel name="updateAutomatically">
+            {translate('Automatic')}
+          </FormLabel>
 
           <FormInputGroup
             type={inputTypes.CHECK}
@@ -92,11 +95,12 @@ function UpdateSettings({
             }
             onChange={onInputChange}
             {...updateAutomatically}
+            id="updateAutomatically"
           />
         </FormGroup>
 
         <FormGroup advancedSettings={showAdvancedSettings} isAdvanced={true}>
-          <FormLabel>{translate('Mechanism')}</FormLabel>
+          <FormLabel name="updateMechanism">{translate('Mechanism')}</FormLabel>
 
           <FormInputGroup
             type={inputTypes.SELECT}
@@ -106,12 +110,15 @@ function UpdateSettings({
             helpLink="https://github.com/SixtyAteWhiskey/plattarr/blob/develop/docs/first-run.md"
             onChange={onInputChange}
             {...updateMechanism}
+            id="updateMechanism"
           />
         </FormGroup>
 
         {updateMechanism.value === 'script' ? (
           <FormGroup advancedSettings={showAdvancedSettings} isAdvanced={true}>
-            <FormLabel>{translate('ScriptPath')}</FormLabel>
+            <FormLabel name="updateScriptPath">
+              {translate('ScriptPath')}
+            </FormLabel>
 
             <FormInputGroup
               type={inputTypes.TEXT}
@@ -119,6 +126,7 @@ function UpdateSettings({
               helpText={translate('UpdateScriptPathHelpText')}
               onChange={onInputChange}
               {...updateScriptPath}
+              id="updateScriptPath"
             />
           </FormGroup>
         ) : null}

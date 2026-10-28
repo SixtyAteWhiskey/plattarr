@@ -4,6 +4,7 @@ import { AutoTaggingAppState } from 'App/State/SettingsAppState';
 import Card from 'Components/Card';
 import FieldSet from 'Components/FieldSet';
 import Icon from 'Components/Icon';
+import { ResponsiveGrid } from 'Components/Layout';
 import PageSectionContent from 'Components/Page/PageSectionContent';
 import { icons } from 'Helpers/Props';
 import { fetchRootFolders } from 'Store/Actions/rootFolderActions';
@@ -84,7 +85,7 @@ export default function AutoTaggings({
         isFetching={isFetching}
         isPopulated={isPopulated}
       >
-        <div className={styles.autoTaggings}>
+        <ResponsiveGrid minimum="wide" gap="medium">
           {items.map((item) => {
             return (
               <AutoTagging
@@ -99,12 +100,16 @@ export default function AutoTaggings({
             );
           })}
 
-          <Card className={styles.addAutoTagging} onPress={onEditPress}>
+          <Card
+            aria-label={translate('AddAutoTag')}
+            className={styles.addAutoTagging}
+            onPress={onEditPress}
+          >
             <div className={styles.center}>
               <Icon name={icons.ADD} size={45} />
             </div>
           </Card>
-        </div>
+        </ResponsiveGrid>
 
         <EditAutoTaggingModal
           mediaKind={mediaKind}

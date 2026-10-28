@@ -1,8 +1,3 @@
-.qualityProfiles {
-  display: flex;
-  flex-wrap: wrap;
-}
-
 .addQualityProfile {
   composes: qualityProfile from '~./QualityProfile.css';
 

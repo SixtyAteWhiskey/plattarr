@@ -7,6 +7,7 @@ import FilterMenu from 'Components/Menu/FilterMenu';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
+import PageIntro from 'Components/Page/PageIntro';
 import PageToolbar from 'Components/Page/Toolbar/PageToolbar';
 import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
 import PageToolbarSection from 'Components/Page/Toolbar/PageToolbarSection';
@@ -198,6 +199,10 @@ class CutoffUnmet extends Component {
         </PageToolbar>
 
         <PageContentBody>
+          <PageIntro
+            title={translate('CutoffUnmet')}
+            description={translate('WantedCutoffUnmetSummary')}
+          />
           {
             isAnyFetching && !isAllPopulated &&
               <LoadingIndicator />
@@ -205,8 +210,8 @@ class CutoffUnmet extends Component {
 
           {
             !isAnyFetching && error &&
-              <Alert kind={kinds.DANGER}>
-                Error fetching cutoff unmet
+              <Alert kind={kinds.DANGER} role="alert">
+                {translate('CutoffUnmetLoadError')}
               </Alert>
           }
 

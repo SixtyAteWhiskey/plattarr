@@ -30,7 +30,7 @@ function OidcAuthenticationSettings({
   return (
     <>
       <FormGroup>
-        <FormLabel>{translate('OidcAuthority')}</FormLabel>
+        <FormLabel name="oidcAuthority">{translate('OidcAuthority')}</FormLabel>
 
         <FormInputGroup
           type={inputTypes.TEXT}
@@ -43,11 +43,12 @@ function OidcAuthenticationSettings({
           }
           onChange={onInputChange}
           {...oidcAuthority}
+          id="oidcAuthority"
         />
       </FormGroup>
 
       <FormGroup>
-        <FormLabel>{translate('OidcClientId')}</FormLabel>
+        <FormLabel name="oidcClientId">{translate('OidcClientId')}</FormLabel>
 
         <FormInputGroup
           type={inputTypes.TEXT}
@@ -60,11 +61,14 @@ function OidcAuthenticationSettings({
           }
           onChange={onInputChange}
           {...oidcClientId}
+          id="oidcClientId"
         />
       </FormGroup>
 
       <FormGroup>
-        <FormLabel>{translate('OidcClientSecret')}</FormLabel>
+        <FormLabel name="oidcClientSecret">
+          {translate('OidcClientSecret')}
+        </FormLabel>
 
         <FormInputGroup
           type={inputTypes.PASSWORD}
@@ -79,11 +83,14 @@ function OidcAuthenticationSettings({
           }
           onChange={onInputChange}
           {...oidcClientSecret}
+          id="oidcClientSecret"
         />
       </FormGroup>
 
       <FormGroup>
-        <FormLabel>{translate('OidcUserIdentifier')}</FormLabel>
+        <FormLabel name="oidcUserIdentifier">
+          {translate('OidcUserIdentifier')}
+        </FormLabel>
 
         <FormInputGroup
           type={inputTypes.TEXT}
@@ -98,11 +105,12 @@ function OidcAuthenticationSettings({
           }
           onChange={onInputChange}
           {...oidcUserIdentifier}
+          id="oidcUserIdentifier"
         />
       </FormGroup>
 
       <FormGroup>
-        <FormLabel>{translate('OidcScopes')}</FormLabel>
+        <FormLabel name="oidcScopes">{translate('OidcScopes')}</FormLabel>
 
         <FormInputGroup
           type={inputTypes.TEXT}
@@ -110,6 +118,7 @@ function OidcAuthenticationSettings({
           helpText={translate('OidcScopesHelpText')}
           onChange={onInputChange}
           {...oidcScopes}
+          id="oidcScopes"
         />
       </FormGroup>
     </>

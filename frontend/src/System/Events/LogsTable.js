@@ -5,6 +5,7 @@ import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import FilterMenu from 'Components/Menu/FilterMenu';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
+import PageIntro from 'Components/Page/PageIntro';
 import PageToolbar from 'Components/Page/Toolbar/PageToolbar';
 import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
 import PageToolbarSection from 'Components/Page/Toolbar/PageToolbarSection';
@@ -34,7 +35,7 @@ function LogsTable(props) {
   } = props;
 
   return (
-    <PageContent title={translate('Logs')}>
+    <PageContent title={translate('Events')}>
       <PageToolbar>
         <PageToolbarSection>
           <PageToolbarButton
@@ -76,6 +77,17 @@ function LogsTable(props) {
       </PageToolbar>
 
       <PageContentBody>
+        <PageIntro
+          title={translate('Events')}
+          description={translate('SystemEventsSummary')}
+        />
+
+        {!isFetching && error ? (
+          <Alert kind={kinds.DANGER} role="alert">
+            {translate('EventsLoadError')}
+          </Alert>
+        ) : null}
+
         {
           isFetching && !isPopulated &&
             <LoadingIndicator />

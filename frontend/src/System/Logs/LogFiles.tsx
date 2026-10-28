@@ -6,6 +6,7 @@ import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import InlineMarkdown from 'Components/Markdown/InlineMarkdown';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
+import PageIntro from 'Components/Page/PageIntro';
 import PageToolbar from 'Components/Page/Toolbar/PageToolbar';
 import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
 import PageToolbarSection from 'Components/Page/Toolbar/PageToolbarSection';
@@ -41,6 +42,7 @@ const columns: Column[] = [
 type LogFileType = 'app' | 'update';
 
 interface LogFilesProps {
+  error: unknown;
   isFetching: boolean;
   items: LogFile[];
   isDeleteFilesExecuting: boolean;
@@ -50,6 +52,7 @@ interface LogFilesProps {
 }
 
 function LogFiles({
+  error,
   isFetching,
   items,
   isDeleteFilesExecuting,
@@ -70,7 +73,7 @@ function LogFiles({
   ]);
 
   return (
-    <PageContent title={translate('LogFiles')}>
+    <PageContent title={currentLogView}>
       <PageToolbar>
         <PageToolbarSection>
           <LogsNavMenu current={currentLogView} />
@@ -94,6 +97,11 @@ function LogFiles({
         </PageToolbarSection>
       </PageToolbar>
       <PageContentBody>
+        <PageIntro
+          title={currentLogView}
+          description={translate('SystemLogFilesSummary')}
+        />
+
         <Alert>
           <div>
             {translate('LogFilesLocation', {
@@ -110,7 +118,13 @@ function LogFiles({
 
         {isFetching ? <LoadingIndicator /> : null}
 
-        {!isFetching && items.length ? (
+        {!isFetching && error ? (
+          <Alert kind={kinds.DANGER} role="alert">
+            {translate('LogFilesLoadError')}
+          </Alert>
+        ) : null}
+
+        {!isFetching && !error && items.length ? (
           <div>
             <Table columns={columns} {...otherProps}>
               <TableBody>
@@ -122,7 +136,7 @@ function LogFiles({
           </div>
         ) : null}
 
-        {!isFetching && !items.length ? (
+        {!isFetching && !error && !items.length ? (
           <Alert kind={kinds.INFO}>{translate('NoLogFiles')}</Alert>
         ) : null}
       </PageContentBody>

@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import Alert from 'Components/Alert';
+import { ResponsiveGrid } from 'Components/Layout';
 import Button from 'Components/Link/Button';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import ModalBody from 'Components/Modal/ModalBody';
@@ -10,7 +11,6 @@ import ModalHeader from 'Components/Modal/ModalHeader';
 import { kinds } from 'Helpers/Props';
 import translate from 'Utilities/String/translate';
 import AddNotificationItem from './AddNotificationItem';
-import styles from './AddNotificationModalContent.css';
 
 class AddNotificationModalContent extends Component {
 
@@ -49,7 +49,7 @@ class AddNotificationModalContent extends Component {
           {
             isSchemaPopulated && !schemaError &&
               <div>
-                <div className={styles.notifications}>
+                <ResponsiveGrid minimum="wide" gap="medium">
                   {
                     schema.map((notification) => {
                       return (
@@ -62,7 +62,7 @@ class AddNotificationModalContent extends Component {
                       );
                     })
                   }
-                </div>
+                </ResponsiveGrid>
               </div>
           }
         </ModalBody>

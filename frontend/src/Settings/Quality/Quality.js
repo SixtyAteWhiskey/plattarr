@@ -6,6 +6,7 @@ import PageContentBody from 'Components/Page/PageContentBody';
 import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
 import PageToolbarSeparator from 'Components/Page/Toolbar/PageToolbarSeparator';
 import { icons } from 'Helpers/Props';
+import SettingsPageHeader from 'Settings/SettingsPageHeader';
 import SettingsToolbar from 'Settings/SettingsToolbar';
 import translate from 'Utilities/String/translate';
 import AudioQualityDefinitionsConnector from './Definition/Audio/QualityDefinitionsConnector';
@@ -92,6 +93,7 @@ class Quality extends Component {
         />
 
         <PageContentBody>
+          <SettingsPageHeader title="QualitySettings" summary="QualitySettingsSummary" />
           <DefinitionsConnector
             onChildMounted={this.onChildMounted}
             onChildStateChange={this.onChildStateChange}

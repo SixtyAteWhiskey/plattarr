@@ -3,6 +3,7 @@ import React, { Component } from 'react';
 import Card from 'Components/Card';
 import FieldSet from 'Components/FieldSet';
 import Icon from 'Components/Icon';
+import { ResponsiveGrid } from 'Components/Layout';
 import PageSectionContent from 'Components/Page/PageSectionContent';
 import { icons } from 'Helpers/Props';
 import translate from 'Utilities/String/translate';
@@ -57,7 +58,7 @@ class QualityProfiles extends Component {
           errorMessage={translate('QualityProfilesLoadError')}
           {...otherProps}
         >
-          <div className={styles.qualityProfiles}>
+          <ResponsiveGrid minimum="wide" gap="medium">
             {
               items.map((item) => {
                 return (
@@ -73,6 +74,7 @@ class QualityProfiles extends Component {
             }
 
             <Card
+              aria-label={translate('AddQualityProfile')}
               className={styles.addQualityProfile}
               onPress={this.onEditQualityProfilePress}
             >
@@ -83,7 +85,7 @@ class QualityProfiles extends Component {
                 />
               </div>
             </Card>
-          </div>
+          </ResponsiveGrid>
 
           <EditQualityProfileModalConnector
             isOpen={this.state.isQualityProfileModalOpen}

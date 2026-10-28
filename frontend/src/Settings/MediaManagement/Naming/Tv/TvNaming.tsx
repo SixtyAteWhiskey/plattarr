@@ -295,7 +295,9 @@ function TvNaming() {
       {hasSettings && !isFetching && !error ? (
         <Form>
           <FormGroup size={sizes.MEDIUM}>
-            <FormLabel>{translate('RenameEpisodes')}</FormLabel>
+            <FormLabel name="renameEpisodes">
+              {translate('RenameEpisodes')}
+            </FormLabel>
 
             <FormInputGroup
               type={inputTypes.CHECK}
@@ -303,11 +305,14 @@ function TvNaming() {
               helpText={translate('RenameEpisodesHelpText')}
               onChange={handleInputChange}
               {...settings.renameEpisodes}
+              id="renameEpisodes"
             />
           </FormGroup>
 
           <FormGroup size={sizes.MEDIUM}>
-            <FormLabel>{translate('ReplaceIllegalCharacters')}</FormLabel>
+            <FormLabel name="replaceIllegalCharacters">
+              {translate('ReplaceIllegalCharacters')}
+            </FormLabel>
 
             <FormInputGroup
               type={inputTypes.CHECK}
@@ -315,12 +320,15 @@ function TvNaming() {
               helpText={translate('ReplaceIllegalCharactersHelpText')}
               onChange={handleInputChange}
               {...settings.replaceIllegalCharacters}
+              id="replaceIllegalCharacters"
             />
           </FormGroup>
 
           {replaceIllegalCharacters ? (
             <FormGroup size={sizes.MEDIUM}>
-              <FormLabel>{translate('ColonReplacement')}</FormLabel>
+              <FormLabel name="colonReplacementFormat">
+                {translate('ColonReplacement')}
+              </FormLabel>
 
               <FormInputGroup
                 type={inputTypes.SELECT}
@@ -329,6 +337,7 @@ function TvNaming() {
                 helpText={translate('ColonReplacementFormatHelpText')}
                 onChange={handleInputChange}
                 {...settings.colonReplacementFormat}
+                id="colonReplacementFormat"
               />
             </FormGroup>
           ) : null}
@@ -336,7 +345,9 @@ function TvNaming() {
           {replaceIllegalCharacters &&
           settings.colonReplacementFormat.value === 5 ? (
             <FormGroup size={sizes.MEDIUM}>
-              <FormLabel>{translate('CustomColonReplacement')}</FormLabel>
+              <FormLabel name="customColonReplacementFormat">
+                {translate('CustomColonReplacement')}
+              </FormLabel>
 
               <FormInputGroup
                 type={inputTypes.TEXT}
@@ -344,6 +355,7 @@ function TvNaming() {
                 helpText={translate('CustomColonReplacementFormatHelpText')}
                 onChange={handleInputChange}
                 {...settings.customColonReplacementFormat}
+                id="customColonReplacementFormat"
               />
             </FormGroup>
           ) : null}
@@ -351,7 +363,9 @@ function TvNaming() {
           {renameEpisodes ? (
             <>
               <FormGroup size={sizes.LARGE}>
-                <FormLabel>{translate('StandardEpisodeFormat')}</FormLabel>
+                <FormLabel name="standardEpisodeFormat">
+                  {translate('StandardEpisodeFormat')}
+                </FormLabel>
 
                 <FormInputGroup
                   inputClassName={styles.namingInput}
@@ -369,11 +383,14 @@ function TvNaming() {
                     ...standardEpisodeFormatErrors,
                     ...settings.standardEpisodeFormat.errors,
                   ]}
+                  id="standardEpisodeFormat"
                 />
               </FormGroup>
 
               <FormGroup size={sizes.LARGE}>
-                <FormLabel>{translate('DailyEpisodeFormat')}</FormLabel>
+                <FormLabel name="dailyEpisodeFormat">
+                  {translate('DailyEpisodeFormat')}
+                </FormLabel>
 
                 <FormInputGroup
                   inputClassName={styles.namingInput}
@@ -391,11 +408,14 @@ function TvNaming() {
                     ...dailyEpisodeFormatErrors,
                     ...settings.dailyEpisodeFormat.errors,
                   ]}
+                  id="dailyEpisodeFormat"
                 />
               </FormGroup>
 
               <FormGroup size={sizes.LARGE}>
-                <FormLabel>{translate('AnimeEpisodeFormat')}</FormLabel>
+                <FormLabel name="animeEpisodeFormat">
+                  {translate('AnimeEpisodeFormat')}
+                </FormLabel>
 
                 <FormInputGroup
                   inputClassName={styles.namingInput}
@@ -413,6 +433,7 @@ function TvNaming() {
                     ...animeEpisodeFormatErrors,
                     ...settings.animeEpisodeFormat.errors,
                   ]}
+                  id="animeEpisodeFormat"
                 />
               </FormGroup>
             </>
@@ -423,7 +444,9 @@ function TvNaming() {
             isAdvanced={true}
             size={sizes.MEDIUM}
           >
-            <FormLabel>{translate('SeriesFolderFormat')}</FormLabel>
+            <FormLabel name="seriesFolderFormat">
+              {translate('SeriesFolderFormat')}
+            </FormLabel>
 
             <FormInputGroup
               inputClassName={styles.namingInput}
@@ -444,11 +467,14 @@ function TvNaming() {
                 ...seriesFolderFormatErrors,
                 ...settings.seriesFolderFormat.errors,
               ]}
+              id="seriesFolderFormat"
             />
           </FormGroup>
 
           <FormGroup size={sizes.MEDIUM}>
-            <FormLabel>{translate('SeasonFolderFormat')}</FormLabel>
+            <FormLabel name="seasonFolderFormat">
+              {translate('SeasonFolderFormat')}
+            </FormLabel>
 
             <FormInputGroup
               inputClassName={styles.namingInput}
@@ -466,6 +492,7 @@ function TvNaming() {
                 ...seasonFolderFormatErrors,
                 ...settings.seasonFolderFormat.errors,
               ]}
+              id="seasonFolderFormat"
             />
           </FormGroup>
 
@@ -474,7 +501,9 @@ function TvNaming() {
             isAdvanced={true}
             size={sizes.MEDIUM}
           >
-            <FormLabel>{translate('SpecialsFolderFormat')}</FormLabel>
+            <FormLabel name="specialsFolderFormat">
+              {translate('SpecialsFolderFormat')}
+            </FormLabel>
 
             <FormInputGroup
               inputClassName={styles.namingInput}
@@ -492,11 +521,14 @@ function TvNaming() {
                 ...specialsFolderFormatErrors,
                 ...settings.specialsFolderFormat.errors,
               ]}
+              id="specialsFolderFormat"
             />
           </FormGroup>
 
           <FormGroup size={sizes.MEDIUM}>
-            <FormLabel>{translate('MultiEpisodeStyle')}</FormLabel>
+            <FormLabel name="multiEpisodeStyle">
+              {translate('MultiEpisodeStyle')}
+            </FormLabel>
 
             <FormInputGroup
               type={inputTypes.SELECT}
@@ -504,6 +536,7 @@ function TvNaming() {
               values={multiEpisodeStyleOptions}
               onChange={handleInputChange}
               {...settings.multiEpisodeStyle}
+              id="multiEpisodeStyle"
             />
           </FormGroup>
 

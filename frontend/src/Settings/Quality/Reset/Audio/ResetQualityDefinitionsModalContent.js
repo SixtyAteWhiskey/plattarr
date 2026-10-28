@@ -64,7 +64,7 @@ class ResetQualityDefinitionsModalContent extends Component {
           </div>
 
           <FormGroup>
-            <FormLabel>
+            <FormLabel name="resetDefinitionTitles">
               {translate('ResetTitles')}
             </FormLabel>
 
@@ -74,6 +74,7 @@ class ResetQualityDefinitionsModalContent extends Component {
               value={resetDefinitionTitles}
               helpText={translate('ResetDefinitionTitlesHelpText')}
               onChange={this.onResetDefinitionTitlesChange}
+              id="resetDefinitionTitles"
             />
           </FormGroup>
 

@@ -4,6 +4,7 @@ import { ImportListAppState } from 'App/State/SettingsAppState';
 import Card from 'Components/Card';
 import FieldSet from 'Components/FieldSet';
 import Icon from 'Components/Icon';
+import { ResponsiveGrid } from 'Components/Layout';
 import PageSectionContent from 'Components/Page/PageSectionContent';
 import { icons } from 'Helpers/Props';
 import { fetchRootFolders } from 'Store/Actions/rootFolderActions';
@@ -73,7 +74,7 @@ function ImportLists() {
         isFetching={isFetching}
         isPopulated={isPopulated}
       >
-        <div className={styles.lists}>
+        <ResponsiveGrid minimum="wide" gap="medium">
           {items.map((item) => {
             return (
               <ImportList
@@ -84,12 +85,16 @@ function ImportLists() {
             );
           })}
 
-          <Card className={styles.addList} onPress={handleAddImportListPress}>
+          <Card
+            aria-label={translate('AddImportList')}
+            className={styles.addList}
+            onPress={handleAddImportListPress}
+          >
             <div className={styles.center}>
               <Icon name={icons.ADD} size={45} />
             </div>
           </Card>
-        </div>
+        </ResponsiveGrid>
 
         <AddImportListModal
           isOpen={isAddImportListModalOpen}

@@ -115,7 +115,9 @@ function ImportListOptions({
       {hasSettings && !isFetching && !error ? (
         <Form>
           <FormGroup advancedSettings={showAdvancedSettings} isAdvanced={true}>
-            <FormLabel>{translate('CleanLibraryLevel')}</FormLabel>
+            <FormLabel name="listSyncLevel">
+              {translate('CleanLibraryLevel')}
+            </FormLabel>
             <FormInputGroup
               type={inputTypes.SELECT}
               name="listSyncLevel"
@@ -123,6 +125,7 @@ function ImportListOptions({
               helpText={translate('ListSyncLevelHelpText')}
               onChange={onInputChange}
               {...listSyncLevel}
+              id="listSyncLevel"
             />
           </FormGroup>
         </Form>

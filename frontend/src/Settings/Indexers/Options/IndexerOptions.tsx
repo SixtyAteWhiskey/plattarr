@@ -98,7 +98,7 @@ function IndexerOptions({
       {hasSettings && isPopulated && !error ? (
         <Form>
           <FormGroup>
-            <FormLabel>{translate('MinimumAge')}</FormLabel>
+            <FormLabel name="minimumAge">{translate('MinimumAge')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.NUMBER}
@@ -108,11 +108,12 @@ function IndexerOptions({
               helpText={translate('MinimumAgeHelpText')}
               onChange={handleInputChange}
               {...settings.minimumAge}
+              id="minimumAge"
             />
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>{translate('Retention')}</FormLabel>
+            <FormLabel name="retention">{translate('Retention')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.NUMBER}
@@ -122,11 +123,12 @@ function IndexerOptions({
               helpText={translate('RetentionHelpText')}
               onChange={handleInputChange}
               {...settings.retention}
+              id="retention"
             />
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>{translate('MaximumSize')}</FormLabel>
+            <FormLabel name="maximumSize">{translate('MaximumSize')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.NUMBER}
@@ -136,13 +138,16 @@ function IndexerOptions({
               helpText={translate('MaximumSizeHelpText')}
               onChange={handleInputChange}
               {...settings.maximumSize}
+              id="maximumSize"
             />
           </FormGroup>
 
           {isMovies ? (
             <>
               <FormGroup>
-                <FormLabel>{translate('PreferIndexerFlags')}</FormLabel>
+                <FormLabel name="preferIndexerFlags">
+                  {translate('PreferIndexerFlags')}
+                </FormLabel>
 
                 <FormInputGroup
                   type={inputTypes.CHECK}
@@ -151,11 +156,14 @@ function IndexerOptions({
                   helpLink="https://github.com/SixtyAteWhiskey/plattarr/blob/develop/docs/first-run.md"
                   onChange={handleInputChange}
                   {...settings.preferIndexerFlags}
+                  id="preferIndexerFlags"
                 />
               </FormGroup>
 
               <FormGroup>
-                <FormLabel>{translate('AvailabilityDelay')}</FormLabel>
+                <FormLabel name="availabilityDelay">
+                  {translate('AvailabilityDelay')}
+                </FormLabel>
 
                 <FormInputGroup
                   type={inputTypes.NUMBER}
@@ -164,13 +172,16 @@ function IndexerOptions({
                   helpText={translate('AvailabilityDelayHelpText')}
                   onChange={handleInputChange}
                   {...settings.availabilityDelay}
+                  id="availabilityDelay"
                 />
               </FormGroup>
             </>
           ) : null}
 
           <FormGroup advancedSettings={showAdvancedSettings} isAdvanced={true}>
-            <FormLabel>{translate('RssSyncInterval')}</FormLabel>
+            <FormLabel name="rssSyncInterval">
+              {translate('RssSyncInterval')}
+            </FormLabel>
 
             <FormInputGroup
               type={inputTypes.NUMBER}
@@ -183,6 +194,7 @@ function IndexerOptions({
               helpLink="https://github.com/SixtyAteWhiskey/plattarr/blob/develop/docs/first-run.md"
               onChange={handleInputChange}
               {...settings.rssSyncInterval}
+              id="rssSyncInterval"
             />
           </FormGroup>
 
@@ -192,7 +204,9 @@ function IndexerOptions({
                 advancedSettings={showAdvancedSettings}
                 isAdvanced={true}
               >
-                <FormLabel>{translate('WhitelistedSubtitleTags')}</FormLabel>
+                <FormLabel name="whitelistedHardcodedSubs">
+                  {translate('WhitelistedSubtitleTags')}
+                </FormLabel>
 
                 <FormInputGroup
                   type={inputTypes.TEXT_TAG}
@@ -200,6 +214,7 @@ function IndexerOptions({
                   helpText={translate('WhitelistedHardcodedSubsHelpText')}
                   onChange={handleWhitelistedSubtitleChange}
                   {...settings.whitelistedHardcodedSubs}
+                  id="whitelistedHardcodedSubs"
                 />
               </FormGroup>
 
@@ -207,7 +222,9 @@ function IndexerOptions({
                 advancedSettings={showAdvancedSettings}
                 isAdvanced={true}
               >
-                <FormLabel>{translate('AllowHardcodedSubs')}</FormLabel>
+                <FormLabel name="allowHardcodedSubs">
+                  {translate('AllowHardcodedSubs')}
+                </FormLabel>
 
                 <FormInputGroup
                   type={inputTypes.CHECK}
@@ -215,6 +232,7 @@ function IndexerOptions({
                   helpText={translate('AllowHardcodedSubsHelpText')}
                   onChange={handleInputChange}
                   {...settings.allowHardcodedSubs}
+                  id="allowHardcodedSubs"
                 />
               </FormGroup>
             </>
@@ -222,7 +240,9 @@ function IndexerOptions({
 
           {isTv ? (
             <FormGroup>
-              <FormLabel>{translate('AnimeStandardFormatSearch')}</FormLabel>
+              <FormLabel name="animeStandardFormatSearch">
+                {translate('AnimeStandardFormatSearch')}
+              </FormLabel>
 
               <FormInputGroup
                 type={inputTypes.CHECK}
@@ -230,6 +250,7 @@ function IndexerOptions({
                 helpText={translate('AnimeStandardFormatSearchHelpText')}
                 onChange={handleInputChange}
                 {...settings.animeStandardFormatSearch}
+                id="animeStandardFormatSearch"
               />
             </FormGroup>
           ) : null}

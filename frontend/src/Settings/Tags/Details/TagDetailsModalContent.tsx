@@ -201,7 +201,7 @@ function TagDetailsModalContent({
                     {item.required.map((r) => {
                       return (
                         <Label key={r} kind={kinds.SUCCESS}>
-                          {r}
+                          {translate('MustContain')}: {r}
                         </Label>
                       );
                     })}
@@ -211,7 +211,7 @@ function TagDetailsModalContent({
                     {item.ignored.map((i) => {
                       return (
                         <Label key={i} kind={kinds.DANGER}>
-                          {i}
+                          {translate('MustNotContain')}: {i}
                         </Label>
                       );
                     })}

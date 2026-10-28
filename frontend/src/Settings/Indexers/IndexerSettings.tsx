@@ -7,6 +7,7 @@ import PageContentBody from 'Components/Page/PageContentBody';
 import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
 import PageToolbarSeparator from 'Components/Page/Toolbar/PageToolbarSeparator';
 import { icons } from 'Helpers/Props';
+import SettingsPageHeader from 'Settings/SettingsPageHeader';
 import SettingsToolbar from 'Settings/SettingsToolbar';
 import { setIndexerFilter } from 'Store/Actions/indexerIndexActions';
 import { testAllIndexers } from 'Store/Actions/settingsActions';
@@ -112,6 +113,10 @@ function IndexerSettings() {
       />
 
       <PageContentBody>
+        <SettingsPageHeader
+          title="IndexerSettings"
+          summary="IndexersSettingsSummary"
+        />
         <Indexers />
 
         <IndexerOptions

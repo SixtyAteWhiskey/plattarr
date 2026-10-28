@@ -3,7 +3,6 @@
 interface CssExports {
   'addCustomFormat': string;
   'center': string;
-  'customFormats': string;
 }
 export const cssExports: CssExports;
 export default cssExports;

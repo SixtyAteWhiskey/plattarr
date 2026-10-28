@@ -3,6 +3,7 @@ import React, { Component } from 'react';
 import Card from 'Components/Card';
 import FieldSet from 'Components/FieldSet';
 import Icon from 'Components/Icon';
+import { ResponsiveGrid } from 'Components/Layout';
 import PageSectionContent from 'Components/Page/PageSectionContent';
 import { icons, metadataProfileNames } from 'Helpers/Props';
 import sortByProp from 'Utilities/Array/sortByProp';
@@ -57,7 +58,7 @@ class MetadataProfiles extends Component {
           errorMessage={translate('UnableToLoadMetadataProfiles')}
           {...otherProps}
         >
-          <div className={styles.metadataProfiles}>
+          <ResponsiveGrid minimum="wide" gap="medium">
             {
               items
                 .filter((item) => item.name !== metadataProfileNames.NONE)
@@ -76,6 +77,7 @@ class MetadataProfiles extends Component {
             }
 
             <Card
+              aria-label={translate('AddMetadataProfile')}
               className={styles.addMetadataProfile}
               onPress={this.onEditMetadataProfilePress}
             >
@@ -86,7 +88,7 @@ class MetadataProfiles extends Component {
                 />
               </div>
             </Card>
-          </div>
+          </ResponsiveGrid>
 
           <EditMetadataProfileModalConnector
             isOpen={this.state.isMetadataProfileModalOpen}

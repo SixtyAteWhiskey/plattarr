@@ -7,6 +7,7 @@ interface CardProps extends Pick<LinkProps, 'onPress'> {
   className?: string;
   overlayClassName?: string;
   overlayContent?: boolean;
+  'aria-label'?: string;
   children: React.ReactNode;
 }
 
@@ -17,12 +18,17 @@ function Card(props: CardProps) {
     overlayContent = false,
     children,
     onPress,
+    'aria-label': ariaLabel,
   } = props;
 
   if (overlayContent) {
     return (
       <div className={className}>
-        <Link className={styles.underlay} onPress={onPress} />
+        <Link
+          aria-label={ariaLabel}
+          className={styles.underlay}
+          onPress={onPress}
+        />
 
         <div className={overlayClassName}>{children}</div>
       </div>
@@ -30,7 +36,7 @@ function Card(props: CardProps) {
   }
 
   return (
-    <Link className={className} onPress={onPress}>
+    <Link aria-label={ariaLabel} className={className} onPress={onPress}>
       {children}
     </Link>
   );

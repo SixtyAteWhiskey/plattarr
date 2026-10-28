@@ -71,7 +71,7 @@ function EditRootFolderModalContent(props) {
           !isFetching && !error &&
             <Form {...otherProps}>
               <FormGroup>
-                <FormLabel>
+                <FormLabel name="name">
                   {translate('Name')}
                 </FormLabel>
 
@@ -80,11 +80,12 @@ function EditRootFolderModalContent(props) {
                   name="name"
                   {...name}
                   onChange={onInputChange}
+                  id="name"
                 />
               </FormGroup>
 
               <FormGroup>
-                <FormLabel>
+                <FormLabel name="path">
                   {translate('Path')}
                 </FormLabel>
 
@@ -96,11 +97,12 @@ function EditRootFolderModalContent(props) {
                   helpTextWarning={translate('PathHelpTextWarning')}
                   {...path}
                   onChange={onInputChange}
+                  id="path"
                 />
               </FormGroup>
 
               <FormGroup>
-                <FormLabel>
+                <FormLabel name="defaultMonitorOption">
                   {translate('Monitor')}
 
                   <Popover
@@ -122,12 +124,13 @@ function EditRootFolderModalContent(props) {
                   onChange={onInputChange}
                   {...defaultMonitorOption}
                   helpText={translate('DefaultMonitorOptionHelpText')}
+                  id="defaultMonitorOption"
                 />
 
               </FormGroup>
 
               <FormGroup>
-                <FormLabel>
+                <FormLabel name="defaultNewItemMonitorOption">
                   {translate('MonitorNewItems')}
                   <Popover
                     anchor={
@@ -148,11 +151,12 @@ function EditRootFolderModalContent(props) {
                   {...defaultNewItemMonitorOption}
                   onChange={onInputChange}
                   helpText={translate('MonitorNewItemsHelpText')}
+                  id="defaultNewItemMonitorOption"
                 />
               </FormGroup>
 
               <FormGroup>
-                <FormLabel>
+                <FormLabel name="defaultQualityProfileId">
                   {translate('QualityProfile')}
                 </FormLabel>
 
@@ -162,11 +166,12 @@ function EditRootFolderModalContent(props) {
                   helpText={translate('DefaultQualityProfileIdHelpText')}
                   {...defaultQualityProfileId}
                   onChange={onInputChange}
+                  id="defaultQualityProfileId"
                 />
               </FormGroup>
 
               <FormGroup className={showMetadataProfile ? undefined : styles.hideMetadataProfile}>
-                <FormLabel>
+                <FormLabel name="defaultMetadataProfileId">
                   Metadata Profile
                   <Popover
                     anchor={
@@ -188,11 +193,12 @@ function EditRootFolderModalContent(props) {
                   {...defaultMetadataProfileId}
                   includeNone={true}
                   onChange={onInputChange}
+                  id="defaultMetadataProfileId"
                 />
               </FormGroup>
 
               <FormGroup>
-                <FormLabel>
+                <FormLabel name="defaultTags">
                   {translate('DefaultLidarrTags')}
                 </FormLabel>
 
@@ -202,6 +208,7 @@ function EditRootFolderModalContent(props) {
                   helpText={translate('DefaultTagsHelpText')}
                   {...defaultTags}
                   onChange={onInputChange}
+                  id="defaultTags"
                 />
               </FormGroup>
 

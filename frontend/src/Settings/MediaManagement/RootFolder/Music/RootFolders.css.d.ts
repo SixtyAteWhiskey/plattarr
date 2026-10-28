@@ -3,7 +3,6 @@
 interface CssExports {
   'addRootFolder': string;
   'center': string;
-  'rootFolders': string;
 }
 export const cssExports: CssExports;
 export default cssExports;

@@ -1,8 +1,3 @@
-.indexers {
-  display: flex;
-  flex-wrap: wrap;
-}
-
 .addIndexer {
   composes: indexer from '~./Indexer.css';
 

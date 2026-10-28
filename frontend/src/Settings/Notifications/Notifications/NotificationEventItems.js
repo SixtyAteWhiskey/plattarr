@@ -52,7 +52,7 @@ function NotificationEventItems(props) {
 
   return (
     <FormGroup>
-      <FormLabel>{translate('NotificationTriggers')}</FormLabel>
+      <FormLabel name="onGrab">{translate('NotificationTriggers')}</FormLabel>
       <div>
         <FormInputHelpText
           text={translate('NotificationTriggersHelpText')}
@@ -67,6 +67,7 @@ function NotificationEventItems(props) {
               isDisabled={!supportsOnGrab.value}
               {...onGrab}
               onChange={onInputChange}
+              id="onGrab"
             />
           </div>
 

@@ -22,7 +22,7 @@ class ReleaseStatusItems extends Component {
 
     return (
       <FormGroup>
-        <FormLabel>
+        <FormLabel component="div">
           {translate('ReleaseStatuses')}
         </FormLabel>
         <div>

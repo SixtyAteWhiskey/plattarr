@@ -165,7 +165,9 @@ function Naming() {
       {hasSettings && !isFetching && !error ? (
         <Form>
           <FormGroup size={sizes.MEDIUM}>
-            <FormLabel>{translate('RenameMovies')}</FormLabel>
+            <FormLabel name="renameMovies">
+              {translate('RenameMovies')}
+            </FormLabel>
 
             <FormInputGroup
               type={inputTypes.CHECK}
@@ -173,11 +175,14 @@ function Naming() {
               helpText={translate('RenameMoviesHelpText')}
               onChange={handleInputChange}
               {...settings.renameMovies}
+              id="renameMovies"
             />
           </FormGroup>
 
           <FormGroup size={sizes.MEDIUM}>
-            <FormLabel>{translate('ReplaceIllegalCharacters')}</FormLabel>
+            <FormLabel name="replaceIllegalCharacters">
+              {translate('ReplaceIllegalCharacters')}
+            </FormLabel>
 
             <FormInputGroup
               type={inputTypes.CHECK}
@@ -185,12 +190,15 @@ function Naming() {
               helpText={translate('ReplaceIllegalCharactersHelpText')}
               onChange={handleInputChange}
               {...settings.replaceIllegalCharacters}
+              id="replaceIllegalCharacters"
             />
           </FormGroup>
 
           {replaceIllegalCharacters ? (
             <FormGroup size={sizes.MEDIUM}>
-              <FormLabel>{translate('ColonReplacement')}</FormLabel>
+              <FormLabel name="colonReplacementFormat">
+                {translate('ColonReplacement')}
+              </FormLabel>
 
               <FormInputGroup
                 type={inputTypes.SELECT}
@@ -199,13 +207,16 @@ function Naming() {
                 helpText={translate('ColonReplacementFormatHelpText')}
                 onChange={handleInputChange}
                 {...settings.colonReplacementFormat}
+                id="colonReplacementFormat"
               />
             </FormGroup>
           ) : null}
 
           {renameMovies ? (
             <FormGroup size={sizes.LARGE}>
-              <FormLabel>{translate('StandardMovieFormat')}</FormLabel>
+              <FormLabel name="standardMovieFormat">
+                {translate('StandardMovieFormat')}
+              </FormLabel>
 
               <FormInputGroup
                 inputClassName={styles.namingInput}
@@ -223,6 +234,7 @@ function Naming() {
                   ...standardMovieFormatErrors,
                   ...settings.standardMovieFormat.errors,
                 ]}
+                id="standardMovieFormat"
               />
             </FormGroup>
           ) : null}
@@ -232,7 +244,9 @@ function Naming() {
             isAdvanced={true}
             size={sizes.MEDIUM}
           >
-            <FormLabel>{translate('MovieFolderFormat')}</FormLabel>
+            <FormLabel name="movieFolderFormat">
+              {translate('MovieFolderFormat')}
+            </FormLabel>
 
             <FormInputGroup
               inputClassName={styles.namingInput}
@@ -256,6 +270,7 @@ function Naming() {
                 ...movieFolderFormatErrors,
                 ...settings.movieFolderFormat.errors,
               ]}
+              id="movieFolderFormat"
             />
           </FormGroup>
 

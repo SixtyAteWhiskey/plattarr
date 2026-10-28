@@ -9,6 +9,7 @@ import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
 import usePrevious from 'Helpers/Hooks/usePrevious';
 import { kinds } from 'Helpers/Props';
+import SettingsPageHeader from 'Settings/SettingsPageHeader';
 import SettingsToolbar from 'Settings/SettingsToolbar';
 import { clearPendingChanges } from 'Store/Actions/baseActions';
 import {
@@ -143,6 +144,10 @@ function GeneralSettings() {
       />
 
       <PageContentBody>
+        <SettingsPageHeader
+          title="GeneralSettings"
+          summary="GeneralSettingsSummary"
+        />
         {isFetching && !isPopulated ? <LoadingIndicator /> : null}
 
         {!isFetching && error ? (

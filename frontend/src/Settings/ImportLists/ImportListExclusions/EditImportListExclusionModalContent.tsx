@@ -131,37 +131,40 @@ function EditImportListExclusionModalContent({
         {!isFetching && !error && (
           <Form {...otherProps}>
             <FormGroup>
-              <FormLabel>{translate('TMDBId')}</FormLabel>
+              <FormLabel name="tmdbId">{translate('TMDBId')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.NUMBER}
                 name="tmdbId"
                 helpText={translate('TmdbIdExcludeHelpText')}
                 {...tmdbId}
+                id="tmdbId"
                 onChange={onInputChange}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>{translate('Title')}</FormLabel>
+              <FormLabel name="movieTitle">{translate('Title')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.TEXT}
                 name="movieTitle"
                 helpText={translate('MovieTitleToExcludeHelpText')}
                 {...movieTitle}
+                id="movieTitle"
                 onChange={onInputChange}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>{translate('Year')}</FormLabel>
+              <FormLabel name="movieYear">{translate('Year')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.NUMBER}
                 name="movieYear"
                 helpText={translate('MovieYearToExcludeHelpText')}
                 {...movieYear}
+                id="movieYear"
                 onChange={onInputChange}
               />
             </FormGroup>

@@ -97,7 +97,7 @@ function EditDelayProfileModalContent(props) {
           !isFetching && !error ?
             <Form {...otherProps}>
               <FormGroup>
-                <FormLabel>{translate('PreferredProtocol')}</FormLabel>
+                <FormLabel name="protocol">{translate('PreferredProtocol')}</FormLabel>
 
                 <FormInputGroup
                   type={inputTypes.SELECT}
@@ -106,13 +106,14 @@ function EditDelayProfileModalContent(props) {
                   values={protocolOptions}
                   helpText={translate('ProtocolHelpText')}
                   onChange={onProtocolChange}
+                  id="protocol"
                 />
               </FormGroup>
 
               {
                 enableUsenet.value ?
                   <FormGroup>
-                    <FormLabel>{translate('UsenetDelay')}</FormLabel>
+                    <FormLabel name="usenetDelay">{translate('UsenetDelay')}</FormLabel>
 
                     <FormInputGroup
                       type={inputTypes.NUMBER}
@@ -121,6 +122,7 @@ function EditDelayProfileModalContent(props) {
                       {...usenetDelay}
                       helpText={translate('UsenetDelayHelpText')}
                       onChange={onInputChange}
+                      id="usenetDelay"
                     />
                   </FormGroup> :
                   null
@@ -129,7 +131,7 @@ function EditDelayProfileModalContent(props) {
               {
                 enableTorrent.value ?
                   <FormGroup>
-                    <FormLabel>{translate('TorrentDelay')}</FormLabel>
+                    <FormLabel name="torrentDelay">{translate('TorrentDelay')}</FormLabel>
 
                     <FormInputGroup
                       type={inputTypes.NUMBER}
@@ -138,13 +140,14 @@ function EditDelayProfileModalContent(props) {
                       {...torrentDelay}
                       helpText={translate('TorrentDelayHelpText')}
                       onChange={onInputChange}
+                      id="torrentDelay"
                     />
                   </FormGroup> :
                   null
               }
 
               <FormGroup>
-                <FormLabel>{translate('BypassDelayIfHighestQuality')}</FormLabel>
+                <FormLabel name="bypassIfHighestQuality">{translate('BypassDelayIfHighestQuality')}</FormLabel>
 
                 <FormInputGroup
                   type={inputTypes.CHECK}
@@ -152,11 +155,12 @@ function EditDelayProfileModalContent(props) {
                   {...bypassIfHighestQuality}
                   helpText={translate('BypassDelayIfHighestQualityHelpText')}
                   onChange={onInputChange}
+                  id="bypassIfHighestQuality"
                 />
               </FormGroup>
 
               <FormGroup>
-                <FormLabel>{translate('BypassDelayIfAboveCustomFormatScore')}</FormLabel>
+                <FormLabel name="bypassIfAboveCustomFormatScore">{translate('BypassDelayIfAboveCustomFormatScore')}</FormLabel>
 
                 <FormInputGroup
                   type={inputTypes.CHECK}
@@ -164,13 +168,14 @@ function EditDelayProfileModalContent(props) {
                   {...bypassIfAboveCustomFormatScore}
                   helpText={translate('BypassDelayIfAboveCustomFormatScoreHelpText')}
                   onChange={onInputChange}
+                  id="bypassIfAboveCustomFormatScore"
                 />
               </FormGroup>
 
               {
                 bypassIfAboveCustomFormatScore.value ?
                   <FormGroup>
-                    <FormLabel>{translate('BypassDelayIfAboveCustomFormatScoreMinimumScore')}</FormLabel>
+                    <FormLabel name="minimumCustomFormatScore">{translate('BypassDelayIfAboveCustomFormatScoreMinimumScore')}</FormLabel>
 
                     <FormInputGroup
                       type={inputTypes.NUMBER}
@@ -178,6 +183,7 @@ function EditDelayProfileModalContent(props) {
                       {...minimumCustomFormatScore}
                       helpText={translate('BypassDelayIfAboveCustomFormatScoreMinimumScoreHelpText')}
                       onChange={onInputChange}
+                      id="minimumCustomFormatScore"
                     />
                   </FormGroup> :
                   null
@@ -190,7 +196,7 @@ function EditDelayProfileModalContent(props) {
                   </Alert> :
 
                   <FormGroup>
-                    <FormLabel>{translate('Tags')}</FormLabel>
+                    <FormLabel name="tags">{translate('Tags')}</FormLabel>
 
                     <FormInputGroup
                       type={inputTypes.TAG}
@@ -198,6 +204,7 @@ function EditDelayProfileModalContent(props) {
                       {...tags}
                       helpText={translate('DelayProfileMovieTagsHelpText')}
                       onChange={onInputChange}
+                      id="tags"
                     />
                   </FormGroup>
               }

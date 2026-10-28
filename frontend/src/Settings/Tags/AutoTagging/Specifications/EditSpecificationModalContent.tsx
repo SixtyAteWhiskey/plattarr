@@ -115,12 +115,13 @@ function EditSpecificationModalContent({
           )}
 
           <FormGroup>
-            <FormLabel>{translate('Name')}</FormLabel>
+            <FormLabel name="name">{translate('Name')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.TEXT}
               name="name"
               {...name}
+              id="name"
               onChange={onInputChange}
             />
           </FormGroup>
@@ -140,7 +141,7 @@ function EditSpecificationModalContent({
             })}
 
           <FormGroup>
-            <FormLabel>{translate('Negate')}</FormLabel>
+            <FormLabel name="negate">{translate('Negate')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.CHECK}
@@ -149,12 +150,13 @@ function EditSpecificationModalContent({
               helpText={translate('AutoTaggingNegateHelpText', {
                 implementationName,
               })}
+              id="negate"
               onChange={onInputChange}
             />
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>{translate('Required')}</FormLabel>
+            <FormLabel name="required">{translate('Required')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.CHECK}
@@ -163,6 +165,7 @@ function EditSpecificationModalContent({
               helpText={translate('AutoTaggingRequiredHelpText', {
                 implementationName,
               })}
+              id="required"
               onChange={onInputChange}
             />
           </FormGroup>

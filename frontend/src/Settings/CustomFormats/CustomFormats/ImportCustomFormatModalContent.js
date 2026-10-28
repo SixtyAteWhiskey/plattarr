@@ -105,7 +105,7 @@ class ImportCustomFormatModalContent extends Component {
               !isFetching && !error && specificationsPopulated &&
                 <Form>
                   <FormGroup size={sizes.MEDIUM}>
-                    <FormLabel>
+                    <FormLabel name="customFormatJson">
                       {translate('CustomFormatJson')}
                     </FormLabel>
                     <FormInputGroup
@@ -117,6 +117,7 @@ class ImportCustomFormatModalContent extends Component {
                       onChange={this.onChange}
                       placeholder={'{\n  "name": "Custom Format"\n}'}
                       errors={parseError ? [parseError] : []}
+                      id="customFormatJson"
                     />
                   </FormGroup>
                 </Form>

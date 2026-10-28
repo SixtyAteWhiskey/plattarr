@@ -1,8 +1,3 @@
-.autoTaggings {
-  display: flex;
-  flex-wrap: wrap;
-}
-
 .addAutoTagging {
   composes: autoTagging from '~./AutoTagging.css';
 

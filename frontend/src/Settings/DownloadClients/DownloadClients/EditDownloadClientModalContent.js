@@ -88,24 +88,26 @@ class EditDownloadClientModalContent extends Component {
                 }
 
                 <FormGroup>
-                  <FormLabel>{translate('Name')}</FormLabel>
+                  <FormLabel name="name">{translate('Name')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.TEXT}
                     name="name"
                     {...name}
                     onChange={onInputChange}
+                    id="name"
                   />
                 </FormGroup>
 
                 <FormGroup>
-                  <FormLabel>{translate('Enable')}</FormLabel>
+                  <FormLabel name="enable">{translate('Enable')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.CHECK}
                     name="enable"
                     {...enable}
                     onChange={onInputChange}
+                    id="enable"
                   />
                 </FormGroup>
 
@@ -128,7 +130,7 @@ class EditDownloadClientModalContent extends Component {
                   advancedSettings={advancedSettings}
                   isAdvanced={true}
                 >
-                  <FormLabel>{translate('ClientPriority')}</FormLabel>
+                  <FormLabel name="priority">{translate('ClientPriority')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.NUMBER}
@@ -138,11 +140,12 @@ class EditDownloadClientModalContent extends Component {
                     max={50}
                     {...priority}
                     onChange={onInputChange}
+                    id="priority"
                   />
                 </FormGroup>
 
                 <FormGroup>
-                  <FormLabel>{translate('Tags')}</FormLabel>
+                  <FormLabel name="tags">{translate('Tags')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.TAG}
@@ -150,6 +153,7 @@ class EditDownloadClientModalContent extends Component {
                     helpText={translate('DownloadClientMovieTagHelpText')}
                     {...tags}
                     onChange={onInputChange}
+                    id="tags"
                   />
                 </FormGroup>
 
@@ -158,7 +162,7 @@ class EditDownloadClientModalContent extends Component {
                   legend={translate('CompletedDownloadHandling')}
                 >
                   <FormGroup>
-                    <FormLabel>{translate('RemoveCompleted')}</FormLabel>
+                    <FormLabel name="removeCompletedDownloads">{translate('RemoveCompleted')}</FormLabel>
 
                     <FormInputGroup
                       type={inputTypes.CHECK}
@@ -166,11 +170,12 @@ class EditDownloadClientModalContent extends Component {
                       helpText={translate('RemoveCompletedDownloadsHelpText')}
                       {...removeCompletedDownloads}
                       onChange={onInputChange}
+                      id="removeCompletedDownloads"
                     />
                   </FormGroup>
 
                   <FormGroup>
-                    <FormLabel>{translate('RemoveFailed')}</FormLabel>
+                    <FormLabel name="removeFailedDownloads">{translate('RemoveFailed')}</FormLabel>
 
                     <FormInputGroup
                       type={inputTypes.CHECK}
@@ -178,6 +183,7 @@ class EditDownloadClientModalContent extends Component {
                       helpText={translate('RemoveFailedDownloadsHelpText')}
                       {...removeFailedDownloads}
                       onChange={onInputChange}
+                      id="removeFailedDownloads"
                     />
                   </FormGroup>
                 </FieldSet>

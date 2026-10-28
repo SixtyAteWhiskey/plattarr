@@ -21,7 +21,9 @@ function AnalyticSettings({
   return (
     <FieldSet legend={translate('Analytics')}>
       <FormGroup size={sizes.MEDIUM}>
-        <FormLabel>{translate('SendAnonymousUsageData')}</FormLabel>
+        <FormLabel name="analyticsEnabled">
+          {translate('SendAnonymousUsageData')}
+        </FormLabel>
 
         <FormInputGroup
           type={inputTypes.CHECK}
@@ -30,6 +32,7 @@ function AnalyticSettings({
           helpTextWarning={translate('RestartRequiredHelpTextWarning')}
           onChange={onInputChange}
           {...analyticsEnabled}
+          id="analyticsEnabled"
         />
       </FormGroup>
     </FieldSet>

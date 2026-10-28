@@ -1,6 +1,6 @@
 .container {
   position: relative;
-  display: flex;
+  display: block;
   flex: 1 1 65%;
   user-select: none;
 }
@@ -101,7 +101,7 @@
   composes: helpText from '~Components/Form/FormInputHelpText.css';
 
   margin-top: 8px;
-  margin-left: 5px;
+  margin-left: 25px;
 }
 
 .isDisabled {

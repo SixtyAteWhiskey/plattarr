@@ -5,6 +5,7 @@ import { ReleaseProfilesAppState } from 'App/State/SettingsAppState';
 import Card from 'Components/Card';
 import FieldSet from 'Components/FieldSet';
 import Icon from 'Components/Icon';
+import { ResponsiveGrid } from 'Components/Layout';
 import PageSectionContent from 'Components/Page/PageSectionContent';
 import useModalOpenState from 'Helpers/Hooks/useModalOpenState';
 import { icons } from 'Helpers/Props';
@@ -47,8 +48,9 @@ function ReleaseProfiles() {
         isPopulated={isPopulated}
         error={error}
       >
-        <div className={styles.releaseProfiles}>
+        <ResponsiveGrid minimum="wide" gap="medium">
           <Card
+            aria-label={translate('AddReleaseProfile')}
             className={styles.addReleaseProfile}
             onPress={setAddReleaseProfileModalOpen}
           >
@@ -67,7 +69,7 @@ function ReleaseProfiles() {
               />
             );
           })}
-        </div>
+        </ResponsiveGrid>
 
         <EditReleaseProfileModal
           isOpen={isAddReleaseProfileModalOpen}

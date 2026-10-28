@@ -100,9 +100,17 @@ export default function AutoTagging({
             kind = 'danger';
           }
 
+          let conditionLabel = item.name;
+          if (item.required) {
+            conditionLabel = `${translate('Required')}: ${item.name}`;
+          }
+          if (item.negate) {
+            conditionLabel = `${translate('Negated')}: ${item.name}`;
+          }
+
           return (
             <Label key={index} kind={kind}>
-              {item.name}
+              {conditionLabel}
             </Label>
           );
         })}

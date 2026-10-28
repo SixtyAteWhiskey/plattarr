@@ -167,7 +167,9 @@ function SecuritySettings({
   return (
     <FieldSet legend={translate('Security')}>
       <FormGroup>
-        <FormLabel>{translate('Authentication')}</FormLabel>
+        <FormLabel name="authenticationMethod">
+          {translate('Authentication')}
+        </FormLabel>
 
         <FormInputGroup
           type={inputTypes.SELECT}
@@ -177,12 +179,15 @@ function SecuritySettings({
           helpTextWarning={translate('AuthenticationRequiredWarning')}
           onChange={onInputChange}
           {...authenticationMethod}
+          id="authenticationMethod"
         />
       </FormGroup>
 
       {authenticationEnabled ? (
         <FormGroup>
-          <FormLabel>{translate('AuthenticationRequired')}</FormLabel>
+          <FormLabel name="authenticationRequired">
+            {translate('AuthenticationRequired')}
+          </FormLabel>
 
           <FormInputGroup
             type={inputTypes.SELECT}
@@ -191,6 +196,7 @@ function SecuritySettings({
             helpText={translate('AuthenticationRequiredHelpText')}
             onChange={onInputChange}
             {...authenticationRequired}
+            id="authenticationRequired"
           />
         </FormGroup>
       ) : null}
@@ -209,7 +215,7 @@ function SecuritySettings({
       />
 
       <FormGroup>
-        <FormLabel>{translate('ApiKey')}</FormLabel>
+        <FormLabel name="apiKey">{translate('ApiKey')}</FormLabel>
 
         <FormInputGroup
           type={inputTypes.TEXT}
@@ -234,11 +240,14 @@ function SecuritySettings({
           onChange={onInputChange}
           onFocus={handleApikeyFocus}
           {...apiKey}
+          id="apiKey"
         />
       </FormGroup>
 
       <FormGroup>
-        <FormLabel>{translate('CertificateValidation')}</FormLabel>
+        <FormLabel name="certificateValidation">
+          {translate('CertificateValidation')}
+        </FormLabel>
 
         <FormInputGroup
           type={inputTypes.SELECT}
@@ -247,11 +256,14 @@ function SecuritySettings({
           helpText={translate('CertificateValidationHelpText')}
           onChange={onInputChange}
           {...certificateValidation}
+          id="certificateValidation"
         />
       </FormGroup>
 
       <FormGroup>
-        <FormLabel>{translate('TrustedNetworks')}</FormLabel>
+        <FormLabel name="trustedNetworks">
+          {translate('TrustedNetworks')}
+        </FormLabel>
 
         <FormInputGroup
           type={inputTypes.TEXT}
@@ -261,6 +273,7 @@ function SecuritySettings({
           helpLink="https://github.com/SixtyAteWhiskey/plattarr/blob/develop/docs/first-run.md"
           onChange={onInputChange}
           {...trustedNetworks}
+          id="trustedNetworks"
         />
       </FormGroup>
 

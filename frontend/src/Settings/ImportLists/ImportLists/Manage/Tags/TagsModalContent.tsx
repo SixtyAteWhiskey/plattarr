@@ -97,18 +97,19 @@ function TagsModalContent(props: TagsModalContentProps) {
       <ModalBody>
         <Form>
           <FormGroup>
-            <FormLabel>{translate('Tags')}</FormLabel>
+            <FormLabel name="tags">{translate('Tags')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.TAG}
               name="tags"
               value={tags}
+              id="tags"
               onChange={onTagsChange}
             />
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>{translate('ApplyTags')}</FormLabel>
+            <FormLabel name="applyTags">{translate('ApplyTags')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.SELECT}
@@ -121,12 +122,13 @@ function TagsModalContent(props: TagsModalContentProps) {
                 translate('ApplyTagsHelpTextRemove'),
                 translate('ApplyTagsHelpTextReplace'),
               ]}
+              id="applyTags"
               onChange={onApplyTagsChange}
             />
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>{translate('Result')}</FormLabel>
+            <FormLabel component="div">{translate('Result')}</FormLabel>
 
             <div className={styles.result}>
               {importListsTags.map((id) => {

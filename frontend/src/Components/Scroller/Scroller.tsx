@@ -19,6 +19,12 @@ export interface OnScroll {
 
 interface ScrollerProps {
   className?: string;
+  id?: string;
+  role?: string;
+  tabIndex?: number;
+  onKeyDown?: React.KeyboardEventHandler<HTMLDivElement>;
+  'aria-activedescendant'?: string;
+  'aria-multiselectable'?: boolean;
   scrollDirection?: ScrollDirection;
   autoFocus?: boolean;
   autoScroll?: boolean;
@@ -36,6 +42,7 @@ const Scroller = forwardRef(
       autoFocus = false,
       autoScroll = true,
       scrollDirection = 'vertical',
+      tabIndex = -1,
       children,
       scrollTop,
       initialScrollTop,
@@ -94,7 +101,7 @@ const Scroller = forwardRef(
           styles[scrollDirection],
           autoScroll && styles.autoScroll
         )}
-        tabIndex={-1}
+        tabIndex={tabIndex}
       >
         {children}
       </div>

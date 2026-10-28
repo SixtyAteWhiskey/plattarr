@@ -1,8 +1,3 @@
-.rootFolders {
-  display: flex;
-  flex-wrap: wrap;
-}
-
 .addRootFolder {
   composes: rootFolder from '~./RootFolder.css';
 

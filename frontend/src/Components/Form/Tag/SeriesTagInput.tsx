@@ -13,6 +13,7 @@ interface SeriesTag extends TagBase {
 }
 
 export interface SeriesTagInputProps {
+  id?: string;
   name: string;
   value: number[];
   onChange: (change: InputChanged<number[]>) => void;
@@ -60,6 +61,7 @@ function createSeriesTagsSelector(tags: number[]) {
 }
 
 export default function SeriesTagInput({
+  id,
   name,
   value,
   onChange,
@@ -111,6 +113,7 @@ export default function SeriesTagInput({
 
   return (
     <TagInput
+      id={id}
       name={name}
       tags={tags}
       tagList={tagList}

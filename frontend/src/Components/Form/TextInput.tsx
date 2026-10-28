@@ -2,6 +2,7 @@ import classNames from 'classnames';
 import React, {
   ChangeEvent,
   FocusEvent,
+  KeyboardEvent,
   SyntheticEvent,
   useCallback,
   useEffect,
@@ -24,8 +25,16 @@ export interface CommonTextInputProps {
   step?: number;
   min?: number;
   max?: number;
+  role?: 'combobox';
+  'aria-haspopup'?: 'listbox';
+  'aria-expanded'?: boolean;
+  'aria-controls'?: string;
+  'aria-activedescendant'?: string;
+  'aria-labelledby'?: string;
+  'aria-autocomplete'?: 'list';
   onFocus?: (event: FocusEvent<HTMLInputElement, Element>) => void;
   onBlur?: (event: SyntheticEvent) => void;
+  onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void;
   onCopy?: (event: SyntheticEvent) => void;
   onSelectionChange?: (start: number | null, end: number | null) => void;
 }
@@ -55,8 +64,16 @@ function TextInput({
   step,
   min,
   max,
+  role,
+  'aria-haspopup': ariaHasPopup,
+  'aria-expanded': ariaExpanded,
+  'aria-controls': ariaControls,
+  'aria-activedescendant': ariaActiveDescendant,
+  'aria-labelledby': ariaLabelledBy,
+  'aria-autocomplete': ariaAutoComplete,
   onBlur,
   onFocus,
+  onKeyDown,
   onCopy,
   onChange,
   onSelectionChange,
@@ -172,9 +189,17 @@ function TextInput({
       step={step}
       min={min}
       max={max}
+      role={role}
+      aria-haspopup={ariaHasPopup}
+      aria-expanded={ariaExpanded}
+      aria-controls={ariaControls}
+      aria-activedescendant={ariaActiveDescendant}
+      aria-labelledby={ariaLabelledBy}
+      aria-autocomplete={ariaAutoComplete}
       onChange={handleChange}
       onFocus={handleFocus}
       onBlur={onBlur}
+      onKeyDown={onKeyDown}
       onCopy={onCopy}
       onCut={onCopy}
       onKeyUp={handleKeyUp}

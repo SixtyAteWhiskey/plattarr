@@ -9,7 +9,7 @@ import LogFiles from '../LogFiles';
 
 function UpdateLogFiles() {
   const dispatch = useDispatch();
-  const { isFetching, items } = useSelector(
+  const { isFetching, error, items } = useSelector(
     (state: AppState) => state.system.updateLogFiles
   );
 
@@ -39,6 +39,7 @@ function UpdateLogFiles() {
   return (
     <LogFiles
       isDeleteFilesExecuting={isDeleteFilesExecuting}
+      error={error}
       isFetching={isFetching}
       items={items}
       type="update"

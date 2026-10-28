@@ -3,6 +3,7 @@ import React, { Component } from 'react';
 import Card from 'Components/Card';
 import FieldSet from 'Components/FieldSet';
 import Icon from 'Components/Icon';
+import { ResponsiveGrid } from 'Components/Layout';
 import PageSectionContent from 'Components/Page/PageSectionContent';
 import { icons } from 'Helpers/Props';
 import translate from 'Utilities/String/translate';
@@ -65,7 +66,7 @@ class DownloadClients extends Component {
           errorMessage={translate('DownloadClientsLoadError')}
           {...otherProps}
         >
-          <div className={styles.downloadClients}>
+          <ResponsiveGrid minimum="wide" gap="medium">
             {
               items.map((item) => {
                 return (
@@ -80,6 +81,7 @@ class DownloadClients extends Component {
             }
 
             <Card
+              aria-label={translate('AddDownloadClient')}
               className={styles.addDownloadClient}
               onPress={this.onAddDownloadClientPress}
             >
@@ -90,7 +92,7 @@ class DownloadClients extends Component {
                 />
               </div>
             </Card>
-          </div>
+          </ResponsiveGrid>
 
           <AddDownloadClientModal
             isOpen={isAddDownloadClientModalOpen}

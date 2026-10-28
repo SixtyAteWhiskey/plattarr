@@ -62,7 +62,7 @@ function EditRemotePathMappingModalContent(props) {
           !isFetching && !error &&
             <Form {...otherProps}>
               <FormGroup>
-                <FormLabel>{translate('Host')}</FormLabel>
+                <FormLabel name="host">{translate('Host')}</FormLabel>
 
                 <FormInputGroup
                   type={inputTypes.SELECT}
@@ -71,11 +71,12 @@ function EditRemotePathMappingModalContent(props) {
                   {...host}
                   values={downloadClientHosts}
                   onChange={onInputChange}
+                  id="host"
                 />
               </FormGroup>
 
               <FormGroup>
-                <FormLabel>{translate('RemotePath')}</FormLabel>
+                <FormLabel name="remotePath">{translate('RemotePath')}</FormLabel>
 
                 <FormInputGroup
                   type={inputTypes.TEXT}
@@ -83,11 +84,12 @@ function EditRemotePathMappingModalContent(props) {
                   helpText={translate('RemotePathMappingRemotePathHelpText')}
                   {...remotePath}
                   onChange={onInputChange}
+                  id="remotePath"
                 />
               </FormGroup>
 
               <FormGroup>
-                <FormLabel>{translate('LocalPath')}</FormLabel>
+                <FormLabel name="localPath">{translate('LocalPath')}</FormLabel>
 
                 <FormInputGroup
                   type={inputTypes.PATH}
@@ -95,6 +97,7 @@ function EditRemotePathMappingModalContent(props) {
                   helpText={translate('RemotePathMappingLocalPathHelpText')}
                   {...localPath}
                   onChange={onInputChange}
+                  id="localPath"
                 />
               </FormGroup>
             </Form>

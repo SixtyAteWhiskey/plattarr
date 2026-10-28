@@ -3,7 +3,6 @@
 interface CssExports {
   'addDownloadClient': string;
   'center': string;
-  'downloadClients': string;
 }
 export const cssExports: CssExports;
 export default cssExports;

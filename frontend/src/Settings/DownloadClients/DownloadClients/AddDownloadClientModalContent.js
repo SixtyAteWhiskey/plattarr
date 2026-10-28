@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import Alert from 'Components/Alert';
 import FieldSet from 'Components/FieldSet';
+import { ResponsiveGrid } from 'Components/Layout';
 import Button from 'Components/Link/Button';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import ModalBody from 'Components/Modal/ModalBody';
@@ -11,7 +12,6 @@ import ModalHeader from 'Components/Modal/ModalHeader';
 import { kinds } from 'Helpers/Props';
 import translate from 'Utilities/String/translate';
 import AddDownloadClientItem from './AddDownloadClientItem';
-import styles from './AddDownloadClientModalContent.css';
 
 class AddDownloadClientModalContent extends Component {
 
@@ -62,7 +62,7 @@ class AddDownloadClientModalContent extends Component {
                 </Alert>
 
                 <FieldSet legend={translate('Usenet')}>
-                  <div className={styles.downloadClients}>
+                  <ResponsiveGrid minimum="wide" gap="medium">
                     {
                       usenetDownloadClients.map((downloadClient) => {
                         return (
@@ -75,11 +75,11 @@ class AddDownloadClientModalContent extends Component {
                         );
                       })
                     }
-                  </div>
+                  </ResponsiveGrid>
                 </FieldSet>
 
                 <FieldSet legend={translate('Torrents')}>
-                  <div className={styles.downloadClients}>
+                  <ResponsiveGrid minimum="wide" gap="medium">
                     {
                       torrentDownloadClients.map((downloadClient) => {
                         return (
@@ -92,7 +92,7 @@ class AddDownloadClientModalContent extends Component {
                         );
                       })
                     }
-                  </div>
+                  </ResponsiveGrid>
                 </FieldSet>
               </div>
           }
