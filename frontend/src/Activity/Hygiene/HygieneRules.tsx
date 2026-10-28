@@ -15,6 +15,7 @@ interface HygieneRule {
   mediaKind: number;
   downloadClientId: number;
   enabled: boolean;
+  deleteFilesOnFailure: boolean;
   strikeLimit: number;
   strikeIntervalMinutes: number;
   minimumDownloadRateKiBps: number;
@@ -83,6 +84,16 @@ function HygieneRuleEditor({
   const handleEnabledChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       setDraft((current) => ({ ...current, enabled: event.target.checked }));
+    },
+    []
+  );
+
+  const handleDeleteFilesChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        deleteFilesOnFailure: event.target.checked,
+      }));
     },
     []
   );
@@ -206,6 +217,30 @@ function HygieneRuleEditor({
             </span>
           </label>
 
+          {draft.reasonCode === 'download-warning' ? null : (
+            <label className={styles.checkboxField}>
+              <input
+                id={`hygiene-rule-${draft.id}-delete-files`}
+                aria-describedby={`hygiene-rule-${draft.id}-delete-files-description`}
+                className={styles.checkbox}
+                type="checkbox"
+                checked={draft.deleteFilesOnFailure}
+                onChange={handleDeleteFilesChange}
+              />
+              <span className={styles.checkboxCopy}>
+                <span>Delete source files when this rule acts</span>
+                <span
+                  id={`hygiene-rule-${draft.id}-delete-files-description`}
+                  className={styles.fieldHint}
+                >
+                  Permanently removes the download client job and its files.
+                  Existing leftover files are unaffected. Requires this rule and
+                  automatic cleanup to be enabled.
+                </span>
+              </span>
+            </label>
+          )}
+
           <label className={styles.formField}>
             <span>Strikes required</span>
             <input
@@ -316,6 +351,7 @@ function HygieneRules({
     path: '/downloadclient',
   });
   const [reasonCode, setReasonCode] = useState('import-blocked');
+  const [deleteFilesOnFailure, setDeleteFilesOnFailure] = useState(false);
   const [minimumDownloadRateKiBps, setMinimumDownloadRateKiBps] = useState(100);
   const [mediaKind, setMediaKind] = useState(0);
   const [downloadClientId, setDownloadClientId] = useState(0);
@@ -330,6 +366,7 @@ function HygieneRules({
   const handleReasonChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
       setReasonCode(event.target.value);
+      setDeleteFilesOnFailure(false);
     },
     []
   );
@@ -337,6 +374,13 @@ function HygieneRules({
   const handleMinimumRateChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       setMinimumDownloadRateKiBps(Number(event.target.value));
+    },
+    []
+  );
+
+  const handleDeleteFilesChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDeleteFilesOnFailure(event.target.checked);
     },
     []
   );
@@ -368,6 +412,7 @@ function HygieneRules({
           mediaKind,
           downloadClientId,
           enabled: false,
+          deleteFilesOnFailure,
           strikeLimit: 3,
           strikeIntervalMinutes: 5,
           minimumDownloadRateKiBps:
@@ -385,6 +430,7 @@ function HygieneRules({
     },
     [
       reasonCode,
+      deleteFilesOnFailure,
       mediaKind,
       downloadClientId,
       minimumDownloadRateKiBps,
@@ -407,8 +453,9 @@ function HygieneRules({
           <Text tone="secondary">
             Enabled rules can remove eligible tracked downloads after the strike
             threshold when automatic cleanup is enabled. Removed client jobs
-            keep their files; the failed-download flow handles blocklisting and
-            any configured replacement search.
+            keep their files by default. Each rule can instead delete source
+            files; the failed-download flow handles blocklisting and any
+            configured replacement search.
           </Text>
           <Text size="small" tone="secondary">
             Stalled-state detection and download speed reporting are currently
@@ -515,6 +562,30 @@ function HygieneRules({
                     ))}
                   </select>
                 </label>
+
+                {reasonCode === 'download-warning' ? null : (
+                  <label className={styles.checkboxField}>
+                    <input
+                      id="hygiene-new-rule-delete-files"
+                      aria-describedby="hygiene-new-rule-delete-files-description"
+                      className={styles.checkbox}
+                      type="checkbox"
+                      checked={deleteFilesOnFailure}
+                      onChange={handleDeleteFilesChange}
+                    />
+                    <span className={styles.checkboxCopy}>
+                      <span>Delete source files when this rule acts</span>
+                      <span
+                        id="hygiene-new-rule-delete-files-description"
+                        className={styles.fieldHint}
+                      >
+                        Permanently removes the download client job and its
+                        files. New rules remain disabled until you turn on
+                        monitoring; automatic cleanup has a separate gate.
+                      </span>
+                    </span>
+                  </label>
+                )}
 
                 <Cluster
                   className={styles.ruleActions}

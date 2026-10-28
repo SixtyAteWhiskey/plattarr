@@ -10,6 +10,7 @@ namespace NzbDrone.Core.Hygiene
         public int MediaKind { get; set; }
         public int DownloadClientId { get; set; }
         public bool Enabled { get; set; }
+        public bool DeleteFilesOnFailure { get; set; }
         public int StrikeLimit { get; set; }
         public int StrikeIntervalMinutes { get; set; }
         public int MinimumDownloadRateKiBps { get; set; }

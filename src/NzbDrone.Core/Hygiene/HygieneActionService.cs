@@ -17,6 +17,7 @@ namespace NzbDrone.Core.Hygiene
         public int MediaKind { get; set; }
         public string ReasonCode { get; set; }
         public int RuleId { get; set; }
+        public bool DeleteFilesOnFailure { get; set; }
         public string Title { get; set; }
         public string Status { get; set; }
         public string Checkpoint { get; set; }
@@ -145,7 +146,8 @@ namespace NzbDrone.Core.Hygiene
                 return;
             }
 
-            if (!CanStart(queueItem, assessment.ReasonCode, assessment.RuleId, assessment.Kind))
+            var currentAssessment = CurrentEligibleAssessment(queueItem, assessment.ReasonCode, assessment.RuleId, assessment.Kind);
+            if (currentAssessment == null)
             {
                 return;
             }
@@ -157,6 +159,7 @@ namespace NzbDrone.Core.Hygiene
                 MediaKind = (int)assessment.Kind.Value,
                 ReasonCode = assessment.ReasonCode,
                 RuleId = assessment.RuleId ?? 0,
+                DeleteFilesOnFailure = currentAssessment.DeleteFilesOnFailure,
                 Title = assessment.Title,
                 Status = Processing,
                 Checkpoint = Prepared,
@@ -290,10 +293,24 @@ namespace NzbDrone.Core.Hygiene
             var downloadClient = _downloadClients.Get(tracked.DownloadClient);
             if (action.Checkpoint == Prepared)
             {
-                if (!GateIsOpen(action) || !CanStart(queueItem, action.ReasonCode, action.RuleId, kind))
+                if (!GateIsOpen(action))
+                {
+                    return;
+                }
+
+                var currentAssessment = CurrentEligibleAssessment(queueItem, action.ReasonCode, action.RuleId, kind);
+                if (currentAssessment == null)
                 {
                     Pause(action);
                     return;
+                }
+
+                // An edited rule may turn deletion off before a retry. Never turn it on
+                // for an action that was originally prepared to keep source files.
+                if (action.DeleteFilesOnFailure && !currentAssessment.DeleteFilesOnFailure)
+                {
+                    action.DeleteFilesOnFailure = false;
+                    _actions.Update(action);
                 }
 
                 IEnumerable<DownloadClientItem> clientItems;
@@ -309,10 +326,9 @@ namespace NzbDrone.Core.Hygiene
                 var clientItem = clientItems.FirstOrDefault(x => x.DownloadId == tracked.DownloadItem.DownloadId);
                 if (clientItem != null)
                 {
-                    // Keep source files for manual recovery; the Hygiene executor never deletes data.
                     try
                     {
-                        downloadClient.RemoveItem(clientItem, false);
+                        downloadClient.RemoveItem(clientItem, action.DeleteFilesOnFailure);
                     }
                     catch (Exception ex)
                     {
@@ -411,13 +427,20 @@ namespace NzbDrone.Core.Hygiene
 
         private bool CanStart(QueueItem queueItem, string reasonCode, int? ruleId, MediaKind? kind)
         {
+            return CurrentEligibleAssessment(queueItem, reasonCode, ruleId, kind) != null;
+        }
+
+        private HygieneQueueAssessment CurrentEligibleAssessment(QueueItem queueItem, string reasonCode, int? ruleId, MediaKind? kind)
+        {
             if (queueItem == null || queueItem.DownloadClientId <= 0 || string.IsNullOrWhiteSpace(queueItem.DownloadId))
             {
-                return false;
+                return null;
             }
 
             var current = _decisions.Evaluate(new[] { queueItem }).SingleOrDefault();
-            return current?.WouldAct == true && current.ReasonCode == reasonCode && current.RuleId == ruleId && current.Kind == kind;
+            return current?.WouldAct == true && current.ReasonCode == reasonCode && current.RuleId == ruleId && current.Kind == kind
+                ? current
+                : null;
         }
 
         private void Pause(HygieneAction action)

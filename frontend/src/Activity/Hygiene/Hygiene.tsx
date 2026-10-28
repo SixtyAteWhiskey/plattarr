@@ -29,6 +29,7 @@ interface HygieneAction {
   id: number;
   title: string;
   reasonCode: string;
+  deleteFilesOnFailure: boolean;
   status: string;
   checkpoint: string;
   recoveryPath: string;
@@ -626,6 +627,12 @@ function Hygiene() {
                             tone="secondary"
                           >
                             Checkpoint: {action.checkpoint}
+                          </Text>
+                          <Text size="small" tone="secondary">
+                            Client removal policy:{' '}
+                            {action.deleteFilesOnFailure
+                              ? 'delete source files'
+                              : 'keep source files'}
                           </Text>
                           {action.status === 'failed' ? (
                             <details>

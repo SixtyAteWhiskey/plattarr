@@ -42,6 +42,22 @@ namespace NzbDrone.Core.Test.QueueTests
             context.Actions.Should().ContainSingle().Which.Status.Should().Be("completed");
             context.Actions[0].Checkpoint.Should().Be("replacement-requested");
             context.Actions[0].RuleId.Should().Be(9);
+            context.Actions[0].DeleteFilesOnFailure.Should().BeFalse();
+        }
+
+        [TestCase(MediaKind.Movies)]
+        [TestCase(MediaKind.Tv)]
+        [TestCase(MediaKind.Music)]
+        public void opted_in_rule_removes_client_job_and_source_files(MediaKind kind)
+        {
+            var context = new ActionContext(kind, true, "download-stalled", deleteFilesOnFailure: true);
+
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), true), Times.Once);
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), false), Times.Never);
+            context.Actions.Should().ContainSingle().Which.DeleteFilesOnFailure.Should().BeTrue();
+            context.Actions[0].Status.Should().Be("completed");
         }
 
         [TestCase("download-stalled")]
@@ -164,7 +180,7 @@ namespace NzbDrone.Core.Test.QueueTests
         [Test]
         public void global_gate_prevents_all_executor_work()
         {
-            var context = new ActionContext(MediaKind.Movies, false);
+            var context = new ActionContext(MediaKind.Movies, false, deleteFilesOnFailure: true);
 
             context.Service.Process(new[] { context.QueueItem });
 
@@ -207,6 +223,68 @@ namespace NzbDrone.Core.Test.QueueTests
 
             context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), false), Times.Exactly(2));
             context.FailedDownloads.Verify(x => x.MarkAsFailed(context.TrackedDownload, false), Times.Once);
+            context.Actions[0].Status.Should().Be("completed");
+        }
+
+        [Test]
+        public void disabling_file_deletion_before_a_prepared_retry_keeps_source_files()
+        {
+            var context = new ActionContext(MediaKind.Tv, true, deleteFilesOnFailure: true);
+            var failFirstAttempt = true;
+            context.DownloadClient
+                .Setup(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), true))
+                .Callback(() =>
+                {
+                    if (failFirstAttempt)
+                    {
+                        failFirstAttempt = false;
+                        throw new InvalidOperationException("simulated client outage");
+                    }
+                });
+
+            context.Service.Process(new[] { context.QueueItem });
+            ExceptionVerification.ExpectedWarns(1);
+            context.Actions[0].Checkpoint.Should().Be("prepared");
+            context.Actions[0].DeleteFilesOnFailure.Should().BeTrue();
+
+            context.Assessment.DeleteFilesOnFailure = false;
+            context.Actions[0].NextAttemptAt = DateTime.UtcNow.AddSeconds(-1);
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), true), Times.Once);
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), false), Times.Once);
+            context.Actions[0].DeleteFilesOnFailure.Should().BeFalse();
+            context.Actions[0].Status.Should().Be("completed");
+        }
+
+        [Test]
+        public void enabling_file_deletion_does_not_escalate_an_existing_prepared_action()
+        {
+            var context = new ActionContext(MediaKind.Tv, true);
+            var failFirstAttempt = true;
+            context.DownloadClient
+                .Setup(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), false))
+                .Callback(() =>
+                {
+                    if (failFirstAttempt)
+                    {
+                        failFirstAttempt = false;
+                        throw new InvalidOperationException("simulated client outage");
+                    }
+                });
+
+            context.Service.Process(new[] { context.QueueItem });
+            ExceptionVerification.ExpectedWarns(1);
+            context.Actions[0].Checkpoint.Should().Be("prepared");
+            context.Actions[0].DeleteFilesOnFailure.Should().BeFalse();
+
+            context.Assessment.DeleteFilesOnFailure = true;
+            context.Actions[0].NextAttemptAt = DateTime.UtcNow.AddSeconds(-1);
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), false), Times.Exactly(2));
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), true), Times.Never);
+            context.Actions[0].DeleteFilesOnFailure.Should().BeFalse();
             context.Actions[0].Status.Should().Be("completed");
         }
 
@@ -463,9 +541,10 @@ namespace NzbDrone.Core.Test.QueueTests
             public Mock<ITrackedDownloadService> TrackedDownloads { get; } = new();
             public Mock<IFailedDownloadService> FailedDownloads { get; } = new();
             public Mock<IHygieneQueueDecisionService> Decisions { get; } = new();
+            public HygieneQueueAssessment Assessment { get; }
             public IHygieneQueueActionService Service { get; }
 
-            public ActionContext(MediaKind kind, bool gateEnabled, string reasonCode = "client-failed", IFailedDownloadService failedDownloadService = null)
+            public ActionContext(MediaKind kind, bool gateEnabled, string reasonCode = "client-failed", IFailedDownloadService failedDownloadService = null, bool deleteFilesOnFailure = false)
             {
                 GateEnabled = gateEnabled;
                 var isStalledOrSlow = reasonCode is "download-stalled" or "download-slow";
@@ -514,7 +593,7 @@ namespace NzbDrone.Core.Test.QueueTests
                 var downloadProvider = new Mock<IProvideDownloadClient>();
                 downloadProvider.Setup(x => x.Get(4)).Returns(DownloadClient.Object);
                 TrackedDownloads.Setup(x => x.Find(clientItem.DownloadId)).Returns(TrackedDownload);
-                var eligibleAssessment = new HygieneQueueAssessment
+                Assessment = new HygieneQueueAssessment
                 {
                     QueueId = QueueItem.Id,
                     DownloadClientId = QueueItem.DownloadClientId,
@@ -524,11 +603,12 @@ namespace NzbDrone.Core.Test.QueueTests
                     RuleId = 9,
                     Title = QueueItem.Title,
                     Eligible = true,
+                    DeleteFilesOnFailure = deleteFilesOnFailure,
                     WouldAct = true
                 };
                 Decisions.Setup(x => x.Evaluate(It.IsAny<IEnumerable<QueueItem>>()))
                     .Returns((IEnumerable<QueueItem> queue) => queue.Any()
-                        ? new List<HygieneQueueAssessment> { eligibleAssessment }
+                        ? new List<HygieneQueueAssessment> { Assessment }
                         : new List<HygieneQueueAssessment>());
                 var config = new Mock<IConfigService>();
                 config.SetupGet(x => x.HygieneActionsEnabled).Returns(() => GateEnabled);
