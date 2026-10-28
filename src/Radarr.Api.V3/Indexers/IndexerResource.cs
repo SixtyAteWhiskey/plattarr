@@ -41,15 +41,18 @@ namespace Radarr.Api.V3.Indexers
         public IndexerCapabilityResource Capabilities { get; set; }
         public DateTime Added { get; set; }
         public string SortName { get; set; }
+        public bool IsDisabled { get; set; }
     }
 
     public class IndexerResourceMapper : ProviderResourceMapper<IndexerResource, IndexerDefinition>
     {
         private readonly IIndexerDefinitionUpdateService _definitionService;
+        private readonly IIndexerStatusService _indexerStatusService;
 
-        public IndexerResourceMapper(IIndexerDefinitionUpdateService definitionService)
+        public IndexerResourceMapper(IIndexerDefinitionUpdateService definitionService, IIndexerStatusService indexerStatusService)
         {
             _definitionService = definitionService;
+            _indexerStatusService = indexerStatusService;
         }
 
         public override IndexerResource ToResource(IndexerDefinition definition)
@@ -109,6 +112,7 @@ namespace Radarr.Api.V3.Indexers
             resource.DownloadClientId = definition.DownloadClientId;
             resource.Added = definition.Added;
             resource.SortName = definition.Name?.NormalizeSortTitle();
+            resource.IsDisabled = _indexerStatusService.IsDisabled(definition.Id);
 
             return resource;
         }

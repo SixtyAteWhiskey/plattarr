@@ -18404,6 +18404,9 @@
           "sortName": {
             "type": "string",
             "nullable": true
+          },
+          "isDisabled": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false

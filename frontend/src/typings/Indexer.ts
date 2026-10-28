@@ -19,6 +19,7 @@ interface Indexer extends Provider {
   protocol: DownloadProtocol;
   priority: number;
   downloadClientId: number;
+  isDisabled: boolean;
   tags: number[];
   description?: string;
   language?: string;

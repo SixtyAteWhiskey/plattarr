@@ -11,7 +11,7 @@ import { fetchMovies } from 'Store/Actions/movieActions';
 import { fetchQueue, fetchQueueDetails } from 'Store/Actions/queueActions';
 import { fetchRootFolders } from 'Store/Actions/rootFolderActions';
 import { fetchSeries } from 'Store/Actions/seriesActions';
-import { fetchMusicRootFolders, fetchQualityDefinitions } from 'Store/Actions/settingsActions';
+import { fetchIndexers, fetchMusicRootFolders, fetchQualityDefinitions } from 'Store/Actions/settingsActions';
 import { fetchHealth } from 'Store/Actions/systemActions';
 import { fetchTagDetails, fetchTags } from 'Store/Actions/tagActions';
 import { fetchTvRootFolders } from 'Store/Actions/tvRootFolderActions';
@@ -30,11 +30,13 @@ function createMapStateToProps() {
     (state) => state.app.isReconnecting,
     (state) => state.app.isDisconnected,
     (state) => state.queue.paged.isPopulated,
-    (isReconnecting, isDisconnected, isQueuePopulated) => {
+    (state) => state.settings.indexers.isPopulated,
+    (isReconnecting, isDisconnected, isQueuePopulated, isIndexersPopulated) => {
       return {
         isReconnecting,
         isDisconnected,
-        isQueuePopulated
+        isQueuePopulated,
+        isIndexersPopulated
       };
     }
   );
@@ -50,6 +52,7 @@ const mapDispatchToProps = {
   dispatchUpdateItem: updateItem,
   dispatchRemoveItem: removeItem,
   dispatchFetchHealth: fetchHealth,
+  dispatchFetchIndexers: fetchIndexers,
   dispatchFetchQualityDefinitions: fetchQualityDefinitions,
   dispatchFetchQueue: fetchQueue,
   dispatchFetchQueueDetails: fetchQueueDetails,
@@ -211,6 +214,10 @@ class SignalRConnector extends Component {
 
   handleHealth = () => {
     this.props.dispatchFetchHealth();
+
+    if (this.props.isIndexersPopulated) {
+      this.props.dispatchFetchIndexers();
+    }
   };
 
   handleImportlist = ({ action, resource }) => {
@@ -585,6 +592,7 @@ SignalRConnector.propTypes = {
   isReconnecting: PropTypes.bool.isRequired,
   isDisconnected: PropTypes.bool.isRequired,
   isQueuePopulated: PropTypes.bool.isRequired,
+  isIndexersPopulated: PropTypes.bool.isRequired,
   dispatchFetchCommands: PropTypes.func.isRequired,
   dispatchUpdateCommand: PropTypes.func.isRequired,
   dispatchFinishCommand: PropTypes.func.isRequired,
@@ -594,6 +602,7 @@ SignalRConnector.propTypes = {
   dispatchUpdateItem: PropTypes.func.isRequired,
   dispatchRemoveItem: PropTypes.func.isRequired,
   dispatchFetchHealth: PropTypes.func.isRequired,
+  dispatchFetchIndexers: PropTypes.func.isRequired,
   dispatchFetchQualityDefinitions: PropTypes.func.isRequired,
   dispatchFetchQueue: PropTypes.func.isRequired,
   dispatchFetchQueueDetails: PropTypes.func.isRequired,

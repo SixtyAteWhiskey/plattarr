@@ -17,7 +17,7 @@ namespace NzbDrone.Integration.Test
 
             var resultGet = Movies.All();
 
-            var logFile = "radarr.trace.txt";
+            var logFile = "plattarr.trace.txt";
             var logLines = Logs.GetLogFileLines(logFile);
 
             var resultPost = Movies.InvalidPost(new Radarr.Api.V3.Movies.MovieResource());

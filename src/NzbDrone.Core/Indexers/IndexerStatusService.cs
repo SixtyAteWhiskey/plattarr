@@ -10,6 +10,7 @@ namespace NzbDrone.Core.Indexers
 {
     public interface IIndexerStatusService : IProviderStatusServiceBase<IndexerStatus>
     {
+        bool IsDisabled(int indexerId);
         ReleaseInfo GetLastRssSyncReleaseInfo(int indexerId);
         IDictionary<string, string> GetIndexerCookies(int indexerId);
         DateTime GetIndexerCookiesExpirationDate(int indexerId);
@@ -23,6 +24,11 @@ namespace NzbDrone.Core.Indexers
         public IndexerStatusService(IIndexerStatusRepository providerStatusRepository, IEventAggregator eventAggregator, IRuntimeInfo runtimeInfo, Logger logger)
             : base(providerStatusRepository, eventAggregator, runtimeInfo, logger)
         {
+        }
+
+        public bool IsDisabled(int indexerId)
+        {
+            return GetProviderStatus(indexerId).IsDisabled();
         }
 
         public ReleaseInfo GetLastRssSyncReleaseInfo(int indexerId)
