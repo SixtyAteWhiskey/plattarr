@@ -2,10 +2,14 @@
 // Please do not change this file!
 interface CssExports {
   'cloneButton': string;
+  'disabled': string;
   'enabled': string;
+  'enabledActivities': string;
   'indexer': string;
   'name': string;
   'nameContainer': string;
+  'status': string;
+  'unavailable': string;
 }
 export const cssExports: CssExports;
 export default cssExports;

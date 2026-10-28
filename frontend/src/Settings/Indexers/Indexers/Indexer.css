@@ -6,6 +6,18 @@
   width: 100%;
 }
 
+.enabled {
+  border-left: 4px solid var(--successColor);
+}
+
+.unavailable {
+  border-left: 4px solid var(--dangerColor);
+}
+
+.disabled {
+  border-left: 4px solid var(--disabledColor);
+}
+
 .nameContainer {
   display: flex;
   align-items: flex-start;
@@ -17,7 +29,7 @@
 .name {
   @add-mixin truncate;
 
-  margin-bottom: 20px;
+  margin-bottom: 8px;
   font-weight: 300;
   font-size: 24px;
 }
@@ -28,7 +40,11 @@
   height: 36px;
 }
 
-.enabled {
+.status {
+  margin-bottom: 10px;
+}
+
+.enabledActivities {
   display: flex;
   flex-wrap: wrap;
   margin-top: 5px;

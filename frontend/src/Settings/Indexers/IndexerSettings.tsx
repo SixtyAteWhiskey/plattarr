@@ -10,7 +10,7 @@ import { icons } from 'Helpers/Props';
 import SettingsPageHeader from 'Settings/SettingsPageHeader';
 import SettingsToolbar from 'Settings/SettingsToolbar';
 import { setIndexerFilter } from 'Store/Actions/indexerIndexActions';
-import { testAllIndexers } from 'Store/Actions/settingsActions';
+import { fetchIndexers, testAllIndexers } from 'Store/Actions/settingsActions';
 import {
   SaveCallback,
   SettingsStateChange,
@@ -26,6 +26,9 @@ function IndexerSettings() {
   const dispatch = useDispatch();
   const isTestingAll = useSelector(
     (state: AppState) => state.settings.indexers.isTestingAll
+  );
+  const isFetching = useSelector(
+    (state: AppState) => state.settings.indexers.isFetching
   );
 
   const { selectedFilterKey, filters, customFilters, totalItems } = useSelector(
@@ -67,6 +70,10 @@ function IndexerSettings() {
     dispatch(testAllIndexers());
   }, [dispatch]);
 
+  const handleRefreshPress = useCallback(() => {
+    dispatch(fetchIndexers());
+  }, [dispatch]);
+
   const handleFilterSelect = useCallback(
     (selectedFilterKey: string | number) => {
       dispatch(setIndexerFilter({ selectedFilterKey }));
@@ -84,6 +91,13 @@ function IndexerSettings() {
             <MediaKindSwitcher />
 
             <PageToolbarSeparator />
+
+            <PageToolbarButton
+              label={translate('Refresh')}
+              iconName={icons.REFRESH}
+              isSpinning={isFetching}
+              onPress={handleRefreshPress}
+            />
 
             <PageToolbarButton
               label={translate('TestAllIndexers')}

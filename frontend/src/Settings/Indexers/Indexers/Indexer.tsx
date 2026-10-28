@@ -1,3 +1,4 @@
+import classNames from 'classnames';
 import React, { useCallback, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Card from 'Components/Card';
@@ -5,12 +6,13 @@ import Label from 'Components/Label';
 import IconButton from 'Components/Link/IconButton';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
 import TagList from 'Components/TagList';
-import { icons, kinds } from 'Helpers/Props';
+import { icons, kinds, sizes } from 'Helpers/Props';
 import { deleteIndexer } from 'Store/Actions/settingsActions';
 import createTagsSelector from 'Store/Selectors/createTagsSelector';
 import IndexerModel from 'typings/Indexer';
 import translate from 'Utilities/String/translate';
 import EditIndexerModal from './EditIndexerModal';
+import getIndexerAvailability from './getIndexerAvailability';
 import styles from './Indexer.css';
 
 interface IndexerProps extends IndexerModel {
@@ -21,6 +23,7 @@ interface IndexerProps extends IndexerModel {
 function Indexer({
   id,
   name,
+  enable,
   enableRss,
   enableAutomaticSearch,
   enableInteractiveSearch,
@@ -38,6 +41,26 @@ function Indexer({
   const [isEditIndexerModalOpen, setIsEditIndexerModalOpen] = useState(false);
   const [isDeleteIndexerModalOpen, setIsDeleteIndexerModalOpen] =
     useState(false);
+
+  const availability = getIndexerAvailability({
+    enable,
+    enableRss,
+    enableAutomaticSearch,
+    enableInteractiveSearch,
+    isDisabled,
+  });
+  const statusLabel = {
+    enabled: translate('Enabled'),
+    unavailable: translate('Unavailable'),
+    disabled: translate('Disabled'),
+  }[availability];
+  const statusKind = {
+    enabled: kinds.SUCCESS,
+    unavailable: kinds.DANGER,
+    disabled: kinds.DISABLED,
+  } as const;
+  const activityKind =
+    availability === 'enabled' ? kinds.SUCCESS : kinds.DISABLED;
 
   const handleEditIndexerPress = useCallback(() => {
     setIsEditIndexerModalOpen(true);
@@ -66,18 +89,13 @@ function Indexer({
 
   return (
     <Card
-      className={styles.indexer}
+      aria-label={`${name}: ${statusLabel}`}
+      className={classNames(styles.indexer, styles[availability])}
       overlayContent={true}
       onPress={handleEditIndexerPress}
     >
       <div className={styles.nameContainer}>
         <div className={styles.name}>{name}</div>
-
-        {isDisabled ? (
-          <Label kind={kinds.DANGER} title={translate('Unavailable')}>
-            {translate('Unavailable')}
-          </Label>
-        ) : null}
 
         <IconButton
           className={styles.cloneButton}
@@ -87,28 +105,27 @@ function Indexer({
         />
       </div>
 
-      <div className={styles.enabled}>
-        {supportsRss && enableRss ? (
-          <Label kind={kinds.SUCCESS}>{translate('Rss')}</Label>
-        ) : null}
+      <div className={styles.status}>
+        <Label kind={statusKind[availability]} size={sizes.MEDIUM}>
+          {statusLabel}
+        </Label>
+      </div>
 
+      <div className={styles.enabledActivities}>
+        {supportsRss && enableRss ? (
+          <Label kind={activityKind}>{translate('Rss')}</Label>
+        ) : null}
         {supportsSearch && enableAutomaticSearch ? (
-          <Label kind={kinds.SUCCESS}>{translate('AutomaticSearch')}</Label>
+          <Label kind={activityKind}>{translate('AutomaticSearch')}</Label>
         ) : null}
 
         {supportsSearch && enableInteractiveSearch ? (
-          <Label kind={kinds.SUCCESS}>{translate('InteractiveSearch')}</Label>
+          <Label kind={activityKind}>{translate('InteractiveSearch')}</Label>
         ) : null}
 
         {showPriority ? (
           <Label kind={kinds.DEFAULT}>
             {translate('Priority')}: {priority}
-          </Label>
-        ) : null}
-
-        {!enableRss && !enableAutomaticSearch && !enableInteractiveSearch ? (
-          <Label kind={kinds.DISABLED} outline={true}>
-            {translate('Disabled')}
           </Label>
         ) : null}
       </div>

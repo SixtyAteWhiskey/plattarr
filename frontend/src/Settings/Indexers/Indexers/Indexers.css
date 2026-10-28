@@ -1,3 +1,20 @@
+.statusOverview {
+  margin: 0 10px 12px;
+}
+
+.statusCounts {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.statusHelp {
+  margin-top: 6px;
+  color: var(--textColor);
+  font-size: 12px;
+}
+
 .addIndexer {
   composes: indexer from '~./Indexer.css';
 
