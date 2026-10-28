@@ -191,7 +191,9 @@ function Settings() {
                                         )}
                                         detail={indexerIssues.length}
                                         tone={
-                                          hasIndexerErrors ? 'danger' : 'warning'
+                                          hasIndexerErrors
+                                            ? 'danger'
+                                            : 'warning'
                                         }
                                         aria-label={`${translate(
                                           hasIndexerErrors ? 'Error' : 'Warning'
