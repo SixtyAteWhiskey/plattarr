@@ -402,11 +402,13 @@ function HygieneRules({
       >
         <Stack gap="xSmall">
           <Heading id="hygiene-rules-heading" level={2}>
-            Monitoring rules
+            Hygiene rules
           </Heading>
           <Text tone="secondary">
-            Rules count consecutive problem observations. Monitoring never
-            removes a download.
+            Enabled rules can remove eligible tracked downloads after the strike
+            threshold when automatic cleanup is enabled. Removed client jobs
+            keep their files; the failed-download flow handles blocklisting and
+            any configured replacement search.
           </Text>
           <Text size="small" tone="secondary">
             Stalled-state detection and download speed reporting are currently
@@ -445,7 +447,7 @@ function HygieneRules({
           >
             <Stack gap="medium">
               <Heading id="hygiene-add-rule-heading" level={3}>
-                Add monitoring rule
+                Add rule
               </Heading>
 
               <form className={styles.ruleForm} onSubmit={handleCreate}>

@@ -14,8 +14,8 @@ const reasonTones: Record<string, HygieneAttentionTone> = {
   'import-blocked': 'danger',
   'client-unavailable': 'warning',
   'download-warning': 'warning',
-  'download-stalled': 'monitor',
-  'download-slow': 'monitor',
+  'download-stalled': 'warning',
+  'download-slow': 'warning',
   pending: 'info',
 };
 
