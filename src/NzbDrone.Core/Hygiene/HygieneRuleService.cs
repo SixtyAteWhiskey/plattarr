@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using NLog;
 using NzbDrone.Core.Modules;
 
 namespace NzbDrone.Core.Hygiene
@@ -26,10 +27,12 @@ namespace NzbDrone.Core.Hygiene
         };
 
         private readonly IHygieneRuleRepository _repository;
+        private readonly Logger _logger;
 
-        public HygieneRuleService(IHygieneRuleRepository repository)
+        public HygieneRuleService(IHygieneRuleRepository repository, Logger logger)
         {
             _repository = repository;
+            _logger = logger;
         }
 
         public List<HygieneRule> All()
@@ -54,13 +57,43 @@ namespace NzbDrone.Core.Hygiene
                 throw new ArgumentException("Invalid Hygiene rule scope, reason, or strike threshold.");
             }
 
+            var isNewRule = rule.Id == 0;
+            var existingRule = isNewRule ? null : _repository.Find(rule.Id);
+
             if (_repository.All().Any(x => x.Id != rule.Id && x.ReasonCode == rule.ReasonCode &&
                                            x.MediaKind == rule.MediaKind && x.DownloadClientId == rule.DownloadClientId))
             {
                 throw new ArgumentException("A Hygiene rule already exists for this reason, media kind, and client.");
             }
 
-            return rule.Id == 0 ? _repository.Insert(rule) : _repository.Update(rule);
+            var savedRule = isNewRule ? _repository.Insert(rule) : _repository.Update(rule);
+
+            if (isNewRule)
+            {
+                _logger.Info("Hygiene rule {0} (reason: {1}, media kind: {2}, download client id: {3}) was created with monitoring {4}",
+                    savedRule.Id,
+                    savedRule.ReasonCode,
+                    GetMediaKindName(savedRule.MediaKind),
+                    savedRule.DownloadClientId,
+                    savedRule.Enabled ? "enabled" : "disabled");
+            }
+            else if (existingRule != null && existingRule.Enabled != savedRule.Enabled)
+            {
+                _logger.Info("Hygiene rule {0} (reason: {1}, media kind: {2}, download client id: {3}) monitoring changed from {4} to {5}",
+                    savedRule.Id,
+                    savedRule.ReasonCode,
+                    GetMediaKindName(savedRule.MediaKind),
+                    savedRule.DownloadClientId,
+                    existingRule.Enabled ? "enabled" : "disabled",
+                    savedRule.Enabled ? "enabled" : "disabled");
+            }
+
+            return savedRule;
+        }
+
+        private static string GetMediaKindName(int mediaKind)
+        {
+            return mediaKind == 0 ? "all media" : ((MediaKind)mediaKind).ToString();
         }
 
         public void Delete(int id)
