@@ -94,20 +94,14 @@ as a diagnostic; it can change a client job or its files.
 
 Add indexers in Settings > Indexers. Test each indexer and set the categories
 appropriate to Movies, TV, and Music. Enable RSS, automatic search, or
-interactive search according to how you use it. Configure Prowlarr-compatible
-clients with the indexer's Torznab or Newznab feed URL. Plattarr serves those
-feeds at `/{indexerId}/api`; the Prowlarr management API (`/api/v1/indexer`)
-is not implemented.
+interactive search according to how you use it. Plattarr uses these indexers
+internally but does not currently expose Prowlarr-compatible per-indexer
+Torznab or Newznab feeds. The planned `/{indexerId}/api` feed route and the
+Prowlarr management API (`/api/v1/indexer`) are not implemented. Do not point
+external clients at either route yet.
 
-Check a feed's capabilities and categories without grabbing anything:
-
-```bash
-curl -fsS "$PLATTARR_URL/$INDEXER_ID/api?t=caps&apikey=$PLATTARR_API_KEY"
-curl -fsS "$PLATTARR_URL/$INDEXER_ID/api?t=search&q=Sample&apikey=$PLATTARR_API_KEY"
-```
-
-Treat the API key in a URL as a secret. Do not paste full feed URLs, search
-responses, or download URLs into public logs or issue reports. The indexer
+Treat indexer API keys and download URLs as secrets. Do not paste them, full
+search responses, or feed URLs into public logs or issue reports. The indexer
 parity check below compares only titles, indexer names, protocol, and flag
 attributes.
 
@@ -209,7 +203,8 @@ the Plattarr API key. For example, the read-only compatibility routes are:
 
 This connection uses Plattarr's Radarr and Sonarr compatibility APIs. Seerr does
 not call Prowlarr's management API (`/api/v1/...`); that is separate from the
-per-indexer Torznab/Newznab feeds at `/{indexerId}/api`.
+also-unimplemented per-indexer Torznab/Newznab feed contract planned for
+`/{indexerId}/api`.
 
 ```bash
 curl -fsS -H "X-Api-Key: $PLATTARR_API_KEY" "$PLATTARR_URL/radarr/api/v3/system/status"

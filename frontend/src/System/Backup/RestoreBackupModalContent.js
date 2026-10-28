@@ -1,5 +1,8 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
+import Alert from 'Components/Alert';
+import FormGroup from 'Components/Form/FormGroup';
+import FormLabel from 'Components/Form/FormLabel';
 import TextInput from 'Components/Form/TextInput';
 import Icon from 'Components/Icon';
 import Button from 'Components/Link/Button';
@@ -38,7 +41,7 @@ function getStepIconProps(isExecuting, hasExecuted, error) {
   if (error) {
     return {
       name: icons.FATAL,
-      kinds: kinds.DANGER,
+      kind: kinds.DANGER,
       title: getErrorMessage(error)
     };
   }
@@ -46,6 +49,22 @@ function getStepIconProps(isExecuting, hasExecuted, error) {
   return {
     name: icons.PENDING
   };
+}
+
+function getStepStatus(isExecuting, hasExecuted, error) {
+  if (error) {
+    return translate('Failed');
+  }
+
+  if (isExecuting) {
+    return translate('InProgress');
+  }
+
+  if (hasExecuted) {
+    return translate('Completed');
+  }
+
+  return translate('Pending');
 }
 
 class RestoreBackupModalContent extends Component {
@@ -139,9 +158,14 @@ class RestoreBackupModalContent extends Component {
     );
 
     return (
-      <ModalContent onModalClose={onModalClose}>
-        <ModalHeader>
-          Restore Backup
+      <ModalContent
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="restore-backup-heading"
+        onModalClose={onModalClose}
+      >
+        <ModalHeader id="restore-backup-heading">
+          {translate('RestoreBackup')}
         </ModalHeader>
 
         <ModalBody>
@@ -153,25 +177,43 @@ class RestoreBackupModalContent extends Component {
 
           {
             !id &&
-              <TextInput
-                type="file"
-                name="path"
-                value={path}
-                onChange={this.onPathChange}
-              />
+              <FormGroup>
+                <FormLabel name="restore-backup-file">
+                  {translate('BackupFile')}
+                </FormLabel>
+
+                <TextInput
+                  id="restore-backup-file"
+                  type="file"
+                  name="path"
+                  value={path}
+                  onChange={this.onPathChange}
+                />
+              </FormGroup>
           }
 
-          <div className={styles.steps}>
+          {
+            !!restoreError &&
+              <Alert role="alert" kind={kinds.DANGER}>
+                {getErrorMessage(restoreError)}
+              </Alert>
+          }
+
+          <div className={styles.steps} aria-live="polite">
             <div className={styles.step}>
               <div className={styles.stepState}>
                 <Icon
                   size={20}
+                  aria-hidden={true}
                   {...getStepIconProps(isRestoring, isRestored, restoreError)}
                 />
               </div>
 
-              <div>
-                {translate('Restore')}
+              <div className={styles.stepLabel}>
+                <span>{translate('Restore')}</span>
+                <span className={styles.stepStatus}>
+                  {getStepStatus(isRestoring, isRestored, restoreError)}
+                </span>
               </div>
             </div>
 
@@ -179,12 +221,16 @@ class RestoreBackupModalContent extends Component {
               <div className={styles.stepState}>
                 <Icon
                   size={20}
+                  aria-hidden={true}
                   {...getStepIconProps(isRestarting, isRestarted)}
                 />
               </div>
 
-              <div>
-                {translate('Restart')}
+              <div className={styles.stepLabel}>
+                <span>{translate('Restart')}</span>
+                <span className={styles.stepStatus}>
+                  {getStepStatus(isRestarting, isRestarted)}
+                </span>
               </div>
             </div>
 
@@ -192,12 +238,16 @@ class RestoreBackupModalContent extends Component {
               <div className={styles.stepState}>
                 <Icon
                   size={20}
+                  aria-hidden={true}
                   {...getStepIconProps(isReloading, false)}
                 />
               </div>
 
-              <div>
-                {translate('Reload')}
+              <div className={styles.stepLabel}>
+                <span>{translate('Reload')}</span>
+                <span className={styles.stepStatus}>
+                  {getStepStatus(isReloading, false)}
+                </span>
               </div>
             </div>
           </div>

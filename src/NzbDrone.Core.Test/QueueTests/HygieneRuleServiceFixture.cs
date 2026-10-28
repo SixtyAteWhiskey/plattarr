@@ -38,5 +38,20 @@ namespace NzbDrone.Core.Test.QueueTests
 
             save.Should().Throw<ArgumentException>();
         }
+
+        [Test]
+        public void strike_threshold_below_three_is_rejected()
+        {
+            var rule = new HygieneRule
+            {
+                ReasonCode = "import-blocked",
+                StrikeLimit = 2,
+                StrikeIntervalMinutes = 5
+            };
+
+            Action save = () => Subject.Upsert(rule);
+
+            save.Should().Throw<ArgumentException>();
+        }
     }
 }

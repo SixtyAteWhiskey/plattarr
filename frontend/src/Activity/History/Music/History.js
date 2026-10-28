@@ -16,6 +16,7 @@ import TablePager from 'Components/Table/TablePager';
 import { align, icons, kinds } from 'Helpers/Props';
 import hasDifferentItems from 'Utilities/Object/hasDifferentItems';
 import translate from 'Utilities/String/translate';
+import HistoryPageContent from '../HistoryPageContent';
 import HistoryFilterModal from './HistoryFilterModal';
 import HistoryRowConnector from './HistoryRowConnector';
 
@@ -107,58 +108,60 @@ class History extends Component {
         </PageToolbar>
 
         <PageContentBody>
-          {
-            isFetchingAny && !isAllPopulated &&
-              <LoadingIndicator />
-          }
+          <HistoryPageContent>
+            {
+              isFetchingAny && !isAllPopulated &&
+                <LoadingIndicator />
+            }
 
-          {
-            !isFetchingAny && hasError &&
-              <Alert kind={kinds.DANGER}>
-                {translate('UnableToLoadHistory')}
-              </Alert>
-          }
+            {
+              !isFetchingAny && hasError &&
+                <Alert role="alert" kind={kinds.DANGER}>
+                  {translate('HistoryLoadError')}
+                </Alert>
+            }
 
-          {
-            // If history isPopulated and it's empty show no history found and don't
-            // wait for the albums to populate because they are never coming.
+            {
+              // If history isPopulated and it's empty show no history found and don't
+              // wait for the albums to populate because they are never coming.
 
-            isPopulated && !hasError && !items.length &&
-              <Alert kind={kinds.INFO}>
-                {translate('NoHistory')}
-              </Alert>
-          }
+              isPopulated && !hasError && !items.length &&
+                <Alert kind={kinds.INFO}>
+                  {translate('NoHistoryFound')}
+                </Alert>
+            }
 
-          {
-            isAllPopulated && !hasError && !!items.length &&
-              <div>
-                <Table
-                  columns={columns}
-                  {...otherProps}
-                >
-                  <TableBody>
-                    {
-                      items.map((item) => {
-                        return (
-                          <HistoryRowConnector
-                            key={item.id}
-                            columns={columns}
-                            {...item}
-                          />
-                        );
-                      })
-                    }
-                  </TableBody>
-                </Table>
+            {
+              isAllPopulated && !hasError && !!items.length &&
+                <div>
+                  <Table
+                    columns={columns}
+                    {...otherProps}
+                  >
+                    <TableBody>
+                      {
+                        items.map((item) => {
+                          return (
+                            <HistoryRowConnector
+                              key={item.id}
+                              columns={columns}
+                              {...item}
+                            />
+                          );
+                        })
+                      }
+                    </TableBody>
+                  </Table>
 
-                <TablePager
-                  totalRecords={totalRecords}
-                  isFetching={isFetchingAny}
-                  onFirstPagePress={onFirstPagePress}
-                  {...otherProps}
-                />
-              </div>
-          }
+                  <TablePager
+                    totalRecords={totalRecords}
+                    isFetching={isFetchingAny}
+                    onFirstPagePress={onFirstPagePress}
+                    {...otherProps}
+                  />
+                </div>
+            }
+          </HistoryPageContent>
         </PageContentBody>
       </PageContent>
     );

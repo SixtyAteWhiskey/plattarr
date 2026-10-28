@@ -44,11 +44,29 @@ Prowlarr documents both its [API](https://prowlarr.com/docs/api/) and
 passing client contract, including authentication and category behavior, for
 each advertised route.
 
+The 2026-10-27 GET-only replay against a fresh loopback instance confirmed the
+current boundary: an authenticated `/api/v3/system/status` request returned
+JSON, but `/{indexerId}/api?t=caps` returned the frontend HTML shell for both a
+plausible and a nonexistent indexer ID. No feed search or grab was attempted.
+The per-indexer feed is therefore still contract work and must not be
+advertised as available.
+
 Seerr is not a Prowlarr management-API consumer: its documented service
 integrations are Radarr and Sonarr, and the existing Seerr 3.5.1 replay covers
 Plattarr's `/radarr` and `/sonarr` compatibility bases. That proof does not
 define the Prowlarr `/api/v1/...` contract. Keep management-API work unscoped
 until a client that actually calls those routes is identified.
+
+The first observed management-API consumer is now identified, but only for a
+read-only contract. `prowlarr-indexer-report` v0.6.3 sends `X-Api-Key` and calls
+`GET /api/v1/indexer`, `GET /api/v1/appprofile`,
+`GET /api/v1/indexerstats`, and paged `GET /api/v1/history`; its refresh path
+uses all four routes. Homepage's Prowlarr widget independently calls
+`GET /api/v1/indexerstats?apikey=...`. These clients justify a future bounded
+capture/replay of those GET routes and their consumed response fields. They do
+not establish POST, PUT, DELETE, or feed behavior, so mutable management routes
+remain out of scope and the unimplemented `/{indexerId}/api?t=caps` feed must
+remain unadvertised.
 
 ## 4. Build Cleanuparr-style Hygiene into Plattarr
 
@@ -181,6 +199,14 @@ flag differences. The unmatched sets were captured under different search terms
 and categories, so they were not a full result-set parity test. A source-pinned
 Ombi contract replay and a disposable Ombi runtime capture are now available.
 These changes have not been deployed.
+
+The next bounded Hygiene parity slice aligns the rule floor with Cleanuparr's
+three-consecutive-strike minimum. Migration 15 raises only stored one- or
+two-strike rules, the service rejects new values below three, and the editor
+exposes the same minimum with an explicit description that monitoring alone
+does not enable cleanup. It does not change the executor boundary: the global
+action gate remains off, files remain preserved, and stalled/slow reasons stay
+monitor-only.
 
 Ombi's latest stable release at this checkpoint is v4.53.10. The upstream
 Radarr v3 and Sonarr v3 request methods were inspected, and

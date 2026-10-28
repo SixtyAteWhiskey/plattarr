@@ -3,7 +3,9 @@
 interface CssExports {
   'additionalInfo': string;
   'step': string;
+  'stepLabel': string;
   'stepState': string;
+  'stepStatus': string;
   'steps': string;
 }
 export const cssExports: CssExports;

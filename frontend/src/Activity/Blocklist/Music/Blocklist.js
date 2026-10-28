@@ -21,6 +21,7 @@ import getSelectedIds from 'Utilities/Table/getSelectedIds';
 import removeOldSelectedState from 'Utilities/Table/removeOldSelectedState';
 import selectAll from 'Utilities/Table/selectAll';
 import toggleSelected from 'Utilities/Table/toggleSelected';
+import BlocklistPageContent from '../BlocklistPageContent';
 import BlocklistRowConnector from './BlocklistRowConnector';
 
 class Blocklist extends Component {
@@ -173,60 +174,62 @@ class Blocklist extends Component {
         </PageToolbar>
 
         <PageContentBody>
-          {
-            isAnyFetching && !isAllPopulated &&
-              <LoadingIndicator />
-          }
+          <BlocklistPageContent>
+            {
+              isAnyFetching && !isAllPopulated &&
+                <LoadingIndicator />
+            }
 
-          {
-            !isAnyFetching && !!error &&
-              <Alert kind={kinds.DANGER}>
-                {translate('UnableToLoadBlocklist')}
-              </Alert>
-          }
+            {
+              !isAnyFetching && !!error &&
+                <Alert role="alert" kind={kinds.DANGER}>
+                  {translate('UnableToLoadBlocklist')}
+                </Alert>
+            }
 
-          {
-            isAllPopulated && !error && !items.length &&
-              <Alert kind={kinds.INFO}>
-                {translate('NoHistoryBlocklist')}
-              </Alert>
-          }
+            {
+              isAllPopulated && !error && !items.length &&
+                <Alert kind={kinds.INFO}>
+                  {translate('NoBlocklistItems')}
+                </Alert>
+            }
 
-          {
-            isAllPopulated && !error && !!items.length &&
-              <div>
-                <Table
-                  selectAll={true}
-                  allSelected={allSelected}
-                  allUnselected={allUnselected}
-                  columns={columns}
-                  {...otherProps}
-                  onSelectAllChange={this.onSelectAllChange}
-                >
-                  <TableBody>
-                    {
-                      items.map((item) => {
-                        return (
-                          <BlocklistRowConnector
-                            key={item.id}
-                            isSelected={selectedState[item.id] || false}
-                            columns={columns}
-                            {...item}
-                            onSelectedChange={this.onSelectedChange}
-                          />
-                        );
-                      })
-                    }
-                  </TableBody>
-                </Table>
+            {
+              isAllPopulated && !error && !!items.length &&
+                <div>
+                  <Table
+                    selectAll={true}
+                    allSelected={allSelected}
+                    allUnselected={allUnselected}
+                    columns={columns}
+                    {...otherProps}
+                    onSelectAllChange={this.onSelectAllChange}
+                  >
+                    <TableBody>
+                      {
+                        items.map((item) => {
+                          return (
+                            <BlocklistRowConnector
+                              key={item.id}
+                              isSelected={selectedState[item.id] || false}
+                              columns={columns}
+                              {...item}
+                              onSelectedChange={this.onSelectedChange}
+                            />
+                          );
+                        })
+                      }
+                    </TableBody>
+                  </Table>
 
-                <TablePager
-                  totalRecords={totalRecords}
-                  isFetching={isFetching}
-                  {...otherProps}
-                />
-              </div>
-          }
+                  <TablePager
+                    totalRecords={totalRecords}
+                    isFetching={isFetching}
+                    {...otherProps}
+                  />
+                </div>
+            }
+          </BlocklistPageContent>
         </PageContentBody>
 
         <ConfirmModal

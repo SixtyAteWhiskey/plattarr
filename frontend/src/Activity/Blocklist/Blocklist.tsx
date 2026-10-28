@@ -44,6 +44,7 @@ import {
 import translate from 'Utilities/String/translate';
 import getSelectedIds from 'Utilities/Table/getSelectedIds';
 import BlocklistFilterModal from './BlocklistFilterModal';
+import BlocklistPageContent from './BlocklistPageContent';
 import BlocklistRow from './BlocklistRow';
 
 function Blocklist() {
@@ -248,61 +249,65 @@ function Blocklist() {
         </PageToolbar>
 
         <PageContentBody>
-          {isFetching && !isPopulated ? <LoadingIndicator /> : null}
+          <BlocklistPageContent>
+            {isFetching && !isPopulated ? <LoadingIndicator /> : null}
 
-          {!isFetching && !!error ? (
-            <Alert kind={kinds.DANGER}>{translate('BlocklistLoadError')}</Alert>
-          ) : null}
+            {!isFetching && !!error ? (
+              <Alert role="alert" kind={kinds.DANGER}>
+                {translate('BlocklistLoadError')}
+              </Alert>
+            ) : null}
 
-          {isPopulated && !error && !items.length ? (
-            <Alert kind={kinds.INFO}>
-              {selectedFilterKey === 'all'
-                ? translate('NoBlocklistItems')
-                : translate('BlocklistFilterHasNoItems')}
-            </Alert>
-          ) : null}
+            {isPopulated && !error && !items.length ? (
+              <Alert kind={kinds.INFO}>
+                {selectedFilterKey === 'all'
+                  ? translate('NoBlocklistItems')
+                  : translate('BlocklistFilterHasNoItems')}
+              </Alert>
+            ) : null}
 
-          {isPopulated && !error && !!items.length ? (
-            <div>
-              <Table
-                selectAll={true}
-                allSelected={allSelected}
-                allUnselected={allUnselected}
-                columns={columns}
-                pageSize={pageSize}
-                sortKey={sortKey}
-                sortDirection={sortDirection}
-                onTableOptionChange={handleTableOptionChange}
-                onSelectAllChange={handleSelectAllChange}
-                onSortPress={handleSortPress}
-              >
-                <TableBody>
-                  {items.map((item) => {
-                    return (
-                      <BlocklistRow
-                        key={item.id}
-                        isSelected={selectedState[item.id] || false}
-                        columns={columns}
-                        {...item}
-                        onSelectedChange={handleSelectedChange}
-                      />
-                    );
-                  })}
-                </TableBody>
-              </Table>
-              <TablePager
-                page={page}
-                totalPages={totalPages}
-                totalRecords={totalRecords}
-                isFetching={isFetching}
-                onFirstPagePress={handleFirstPagePress}
-                onPreviousPagePress={handlePreviousPagePress}
-                onNextPagePress={handleNextPagePress}
-                onLastPagePress={handleLastPagePress}
-                onPageSelect={handlePageSelect}
-              />
-            </div>
-          ) : null}
+            {isPopulated && !error && !!items.length ? (
+              <div>
+                <Table
+                  selectAll={true}
+                  allSelected={allSelected}
+                  allUnselected={allUnselected}
+                  columns={columns}
+                  pageSize={pageSize}
+                  sortKey={sortKey}
+                  sortDirection={sortDirection}
+                  onTableOptionChange={handleTableOptionChange}
+                  onSelectAllChange={handleSelectAllChange}
+                  onSortPress={handleSortPress}
+                >
+                  <TableBody>
+                    {items.map((item) => {
+                      return (
+                        <BlocklistRow
+                          key={item.id}
+                          isSelected={selectedState[item.id] || false}
+                          columns={columns}
+                          {...item}
+                          onSelectedChange={handleSelectedChange}
+                        />
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+                <TablePager
+                  page={page}
+                  totalPages={totalPages}
+                  totalRecords={totalRecords}
+                  isFetching={isFetching}
+                  onFirstPagePress={handleFirstPagePress}
+                  onPreviousPagePress={handlePreviousPagePress}
+                  onNextPagePress={handleNextPagePress}
+                  onLastPagePress={handleLastPagePress}
+                  onPageSelect={handlePageSelect}
+                />
+              </div>
+            ) : null}
+          </BlocklistPageContent>
         </PageContentBody>
 
         <ConfirmModal

@@ -10,8 +10,10 @@ interface CssExports {
   'assessmentTitle': string;
   'automationState': string;
   'checkbox': string;
+  'checkboxCopy': string;
   'checkboxField': string;
   'detailLabel': string;
+  'fieldHint': string;
   'formControl': string;
   'formField': string;
   'guidance': string;

@@ -188,12 +188,22 @@ function HygieneRuleEditor({
           <label className={styles.checkboxField}>
             <input
               id={`hygiene-rule-${draft.id}-enabled`}
+              aria-describedby={`hygiene-rule-${draft.id}-enabled-description`}
               className={styles.checkbox}
               type="checkbox"
               checked={draft.enabled}
               onChange={handleEnabledChange}
             />
-            <span>Monitor this scope</span>
+            <span className={styles.checkboxCopy}>
+              <span>Monitor this scope</span>
+              <span
+                id={`hygiene-rule-${draft.id}-enabled-description`}
+                className={styles.fieldHint}
+              >
+                Records strikes only. Automatic cleanup still requires the
+                separate global action gate.
+              </span>
+            </span>
           </label>
 
           <label className={styles.formField}>
@@ -202,7 +212,7 @@ function HygieneRuleEditor({
               id={`hygiene-rule-${draft.id}-strike-limit`}
               className={styles.formControl}
               type="number"
-              min="1"
+              min="3"
               max="100"
               value={draft.strikeLimit}
               onChange={handleLimitChange}

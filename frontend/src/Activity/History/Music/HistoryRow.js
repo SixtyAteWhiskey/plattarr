@@ -11,6 +11,7 @@ import TableRow from 'Components/Table/TableRow';
 import Tooltip from 'Components/Tooltip/Tooltip';
 import { icons, tooltipPositions } from 'Helpers/Props';
 import formatCustomFormatScore from 'Utilities/Number/formatCustomFormatScore';
+import translate from 'Utilities/String/translate';
 import HistoryDetailsModal from './Details/HistoryDetailsModal';
 import HistoryEventTypeCell from './HistoryEventTypeCell';
 import styles from './HistoryRow.css';
@@ -229,6 +230,8 @@ class HistoryRow extends Component {
                   className={styles.details}
                 >
                   <IconButton
+                    aria-label={translate('Details')}
+                    title={translate('Details')}
                     name={icons.INFO}
                     onPress={this.onDetailsPress}
                   />

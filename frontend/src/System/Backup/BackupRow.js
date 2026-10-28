@@ -89,12 +89,14 @@ class BackupRow extends Component {
     return (
       <TableRow key={id}>
         <TableRowCell className={styles.type}>
-          {
+          <span className={styles.typeLabel}>
             <Icon
               name={iconClassName}
-              title={iconTooltip}
+              aria-hidden={true}
             />
-          }
+
+            <span>{iconTooltip}</span>
+          </span>
         </TableRowCell>
 
         <TableRowCell>
@@ -117,12 +119,14 @@ class BackupRow extends Component {
         <TableRowCell className={styles.actions}>
           <IconButton
             title={translate('RestoreBackup')}
+            aria-label={translate('RestoreBackupNamed', { name })}
             name={icons.RESTORE}
             onPress={this.onRestorePress}
           />
 
           <IconButton
             title={translate('DeleteBackup')}
+            aria-label={translate('DeleteBackupNamed', { name })}
             name={icons.DELETE}
             onPress={this.onDeletePress}
           />

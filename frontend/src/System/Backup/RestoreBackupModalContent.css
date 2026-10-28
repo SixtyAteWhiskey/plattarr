@@ -17,6 +17,17 @@
   margin-right: 8px;
 }
 
+.stepLabel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spaceSmall;
+}
+
+.stepStatus {
+  color: var(--secondaryTextColor);
+  font-size: $defaultFontSize;
+}
+
 @media only screen and (max-width: $breakpointSmall) {
   composes: modalFooter from '~Components/Modal/ModalFooter.css';
 

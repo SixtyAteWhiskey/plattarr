@@ -1,8 +1,15 @@
 .type {
   composes: cell from '~Components/Table/Cells/TableRowCell.css';
 
-  width: 20px;
-  text-align: center;
+  width: 140px;
+}
+
+.typeLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: $spaceXSmall;
+
+  white-space: nowrap;
 }
 
 .actions {

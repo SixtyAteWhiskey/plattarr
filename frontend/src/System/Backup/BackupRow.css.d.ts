@@ -3,6 +3,7 @@
 interface CssExports {
   'actions': string;
   'type': string;
+  'typeLabel': string;
 }
 export const cssExports: CssExports;
 export default cssExports;

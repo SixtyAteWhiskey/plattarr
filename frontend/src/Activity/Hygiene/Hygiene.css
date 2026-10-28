@@ -40,6 +40,17 @@
   }
 }
 
+.checkboxCopy {
+  display: flex;
+  flex-direction: column;
+  gap: $spaceXSmall;
+}
+
+.fieldHint {
+  color: var(--statusText);
+  font-weight: $regularFontWeight;
+}
+
 .previewOverview {
   min-width: 0;
 }

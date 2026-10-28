@@ -149,11 +149,14 @@ class BlocklistRow extends Component {
                   className={styles.actions}
                 >
                   <IconButton
+                    aria-label={translate('Details')}
+                    title={translate('Details')}
                     name={icons.INFO}
                     onPress={this.onDetailsPress}
                   />
 
                   <IconButton
+                    aria-label={translate('RemoveFromBlocklist')}
                     title={translate('RemoveFromBlocklist')}
                     name={icons.REMOVE}
                     kind={kinds.DANGER}
