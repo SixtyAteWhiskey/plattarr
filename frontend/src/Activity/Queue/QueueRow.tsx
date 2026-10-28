@@ -22,6 +22,7 @@ import useEpisode from 'Episode/useEpisode';
 import { icons, kinds, tooltipPositions } from 'Helpers/Props';
 import InteractiveImportModal from 'InteractiveImport/InteractiveImportModal';
 import MusicInteractiveImportModal from 'InteractiveImport/Music/InteractiveImportModal';
+import TvInteractiveImportModal from 'InteractiveImport/Tv/TvInteractiveImportModal';
 import Language from 'Language/Language';
 import MovieFormats from 'Movie/MovieFormats';
 import MovieLanguages from 'Movie/MovieLanguages';
@@ -34,6 +35,7 @@ import useSeries from 'Series/useSeries';
 import { grabQueueItem, removeQueueItem } from 'Store/Actions/queueActions';
 import createUISettingsSelector from 'Store/Selectors/createUISettingsSelector';
 import CustomFormat from 'typings/CustomFormat';
+import MediaKind from 'typings/MediaKind';
 import { SelectStateInputProps } from 'typings/props';
 import {
   QueueTrackedDownloadState,
@@ -54,6 +56,7 @@ interface QueueRowProps {
   seriesId?: number;
   episodeId?: number;
   artistId?: number;
+  mediaKind?: MediaKind;
   artist?: Artist;
   album?: Album;
   downloadId?: string;
@@ -86,6 +89,26 @@ interface QueueRowProps {
   onQueueRowModalOpenOrClose: (isOpen: boolean) => void;
 }
 
+function getImportMediaKind(
+  mediaKind?: MediaKind,
+  artistId?: number,
+  seriesId?: number
+): MediaKind {
+  if (mediaKind) {
+    return mediaKind;
+  }
+
+  if (artistId) {
+    return 'music';
+  }
+
+  if (seriesId) {
+    return 'tv';
+  }
+
+  return 'movies';
+}
+
 function QueueRow(props: QueueRowProps) {
   const {
     id,
@@ -93,6 +116,7 @@ function QueueRow(props: QueueRowProps) {
     seriesId,
     episodeId,
     artistId,
+    mediaKind,
     artist,
     album,
     downloadId,
@@ -177,6 +201,37 @@ function QueueRow(props: QueueRowProps) {
     status === 'completed' && trackedDownloadStatus === 'warning';
   const isPending =
     status === 'delay' || status === 'downloadClientUnavailable';
+  const importMediaKind = getImportMediaKind(mediaKind, artistId, seriesId);
+  let interactiveImportModal: React.ReactNode = null;
+
+  if (importMediaKind === 'music') {
+    interactiveImportModal = (
+      <MusicInteractiveImportModal
+        isOpen={isInteractiveImportModalOpen}
+        downloadId={downloadId}
+        modalTitle={title}
+        onModalClose={handleInteractiveImportModalClose}
+      />
+    );
+  } else if (importMediaKind === 'tv') {
+    interactiveImportModal = (
+      <TvInteractiveImportModal
+        isOpen={isInteractiveImportModalOpen}
+        downloadId={downloadId}
+        modalTitle={title}
+        onModalClose={handleInteractiveImportModalClose}
+      />
+    );
+  } else {
+    interactiveImportModal = (
+      <InteractiveImportModal
+        isOpen={isInteractiveImportModalOpen}
+        downloadId={downloadId}
+        modalTitle={title}
+        onModalClose={handleInteractiveImportModalClose}
+      />
+    );
+  }
 
   return (
     <TableRow>
@@ -464,21 +519,7 @@ function QueueRow(props: QueueRowProps) {
         return null;
       })}
 
-      {artistId ? (
-        <MusicInteractiveImportModal
-          isOpen={isInteractiveImportModalOpen}
-          downloadId={downloadId}
-          modalTitle={title}
-          onModalClose={handleInteractiveImportModalClose}
-        />
-      ) : (
-        <InteractiveImportModal
-          isOpen={isInteractiveImportModalOpen}
-          downloadId={downloadId}
-          modalTitle={title}
-          onModalClose={handleInteractiveImportModalClose}
-        />
-      )}
+      {interactiveImportModal}
 
       <RemoveQueueItemModal
         isOpen={isRemoveQueueItemModalOpen}

@@ -9,6 +9,7 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Hygiene;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Qualities;
@@ -109,12 +110,14 @@ namespace NzbDrone.Core.Test.QueueTests
         public void should_use_unknown_quality_and_language_for_an_unmatched_download()
         {
             _trackedDownloads[0].RemoteRelease = null;
+            _trackedDownloads[0].Kind = MediaKind.Music;
 
             Subject.Handle(new TrackedDownloadRefreshedEvent(_trackedDownloads));
 
             var queue = Subject.GetQueue().Single();
 
             queue.RemoteRelease.Should().BeNull();
+            queue.Kind.Should().Be(MediaKind.Music);
             queue.Quality.Quality.Should().Be(Quality.Unknown);
             queue.Languages.Should().BeEquivalentTo(new[] { Language.Unknown });
             queue.GetMovie().Should().BeNull();
