@@ -10,6 +10,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import AppState from 'App/State/AppState';
 import * as commandNames from 'Commands/commandNames';
 import Alert from 'Components/Alert';
+import { Stack } from 'Components/Layout';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import FilterMenu from 'Components/Menu/FilterMenu';
 import PageContent from 'Components/Page/PageContent';
@@ -23,6 +24,7 @@ import TableBody from 'Components/Table/TableBody';
 import TableOptionsModalWrapper from 'Components/Table/TableOptions/TableOptionsModalWrapper';
 import TablePager from 'Components/Table/TablePager';
 import usePaging from 'Components/Table/usePaging';
+import { Heading, Text } from 'Components/Typography';
 import createEpisodesFetchingSelector from 'Episode/createEpisodesFetchingSelector';
 import useCurrentPage from 'Helpers/Hooks/useCurrentPage';
 import useSelectState from 'Helpers/Hooks/useSelectState';
@@ -58,6 +60,7 @@ import QueueOptions from './QueueOptions';
 import QueueRow from './QueueRow';
 import RemoveQueueItemModal, { RemovePressProps } from './RemoveQueueItemModal';
 import createQueueStatusSelector from './Status/createQueueStatusSelector';
+import styles from './Queue.css';
 
 function Queue() {
   const requestCurrentPage = useCurrentPage();
@@ -256,7 +259,16 @@ function Queue() {
 
   if (!shouldBlockRefresh.current) {
     currentQueue.current = (
-      <PageContentBody>
+      <Stack
+        component="section"
+        gap="medium"
+        className={styles.queueSection}
+        aria-labelledby="queue-items-heading"
+      >
+        <Heading id="queue-items-heading" level={2}>
+          {translate('QueueItems')}
+        </Heading>
+
         {isRefreshing && !isAllPopulated ? <LoadingIndicator /> : null}
 
         {!isRefreshing && hasError ? (
@@ -323,7 +335,7 @@ function Queue() {
             />
           </div>
         ) : null}
-      </PageContentBody>
+      </Stack>
     );
   }
 
@@ -382,7 +394,19 @@ function Queue() {
         </PageToolbarSection>
       </PageToolbar>
 
-      {currentQueue.current}
+      <PageContentBody>
+        <Stack gap="xxLarge">
+          <Stack component="header" gap="small" className={styles.pageHeader}>
+            <Heading level={1}>{translate('Queue')}</Heading>
+
+            <Text tone="secondary" size="lead">
+              {translate('ActivityQueueSummary')}
+            </Text>
+          </Stack>
+
+          {currentQueue.current}
+        </Stack>
+      </PageContentBody>
 
       <RemoveQueueItemModal
         isOpen={isConfirmRemoveModalOpen}

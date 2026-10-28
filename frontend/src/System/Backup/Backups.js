@@ -1,22 +1,27 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import Alert from 'Components/Alert';
+import { Stack } from 'Components/Layout';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
 import PageToolbar from 'Components/Page/Toolbar/PageToolbar';
 import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
 import PageToolbarSection from 'Components/Page/Toolbar/PageToolbarSection';
+import Surface from 'Components/Surface';
 import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
+import { Heading, Text } from 'Components/Typography';
 import { icons, kinds } from 'Helpers/Props';
 import translate from 'Utilities/String/translate';
 import BackupRow from './BackupRow';
 import RestoreBackupModalConnector from './RestoreBackupModalConnector';
+import styles from './Backups.css';
 
 const columns = [
   {
     name: 'type',
+    label: () => translate('Type'),
     isVisible: true
   },
   {
@@ -36,6 +41,7 @@ const columns = [
   },
   {
     name: 'actions',
+    label: () => translate('Actions'),
     isVisible: true
   }
 ];
@@ -101,59 +107,86 @@ class Backups extends Component {
         </PageToolbar>
 
         <PageContentBody>
-          {
-            isFetching && !isPopulated &&
-              <LoadingIndicator />
-          }
+          <Stack gap="xxLarge">
+            <Stack
+              component="header"
+              gap="small"
+              className={styles.pageHeader}
+            >
+              <Heading level={1}>{translate('Backups')}</Heading>
 
-          {
-            !isFetching && !!error &&
-              <Alert kind={kinds.DANGER}>
-                {translate('BackupsLoadError')}
-              </Alert>
-          }
+              <Text tone="secondary" size="lead">
+                {translate('SystemBackupSummary')}
+              </Text>
+            </Stack>
 
-          {
-            noBackups &&
-              <Alert kind={kinds.INFO}>
-                {translate('NoBackupsAreAvailable')}
-              </Alert>
-          }
+            <Surface
+              component="section"
+              elevation="low"
+              padding="large"
+              aria-labelledby="available-backups-heading"
+            >
+              <Stack gap="medium">
+                <Heading id="available-backups-heading" level={2}>
+                  {translate('AvailableBackups')}
+                </Heading>
 
-          {
-            hasBackups &&
-              <Table
-                columns={columns}
-              >
-                <TableBody>
-                  {
-                    items.map((item) => {
-                      const {
-                        id,
-                        type,
-                        name,
-                        path,
-                        size,
-                        time
-                      } = item;
+                {
+                  isFetching && !isPopulated &&
+                    <LoadingIndicator />
+                }
 
-                      return (
-                        <BackupRow
-                          key={id}
-                          id={id}
-                          type={type}
-                          name={name}
-                          path={path}
-                          size={size}
-                          time={time}
-                          onDeleteBackupPress={onDeleteBackupPress}
-                        />
-                      );
-                    })
-                  }
-                </TableBody>
-              </Table>
-          }
+                {
+                  !isFetching && !!error &&
+                    <Alert role="alert" kind={kinds.DANGER}>
+                      {translate('BackupsLoadError')}
+                    </Alert>
+                }
+
+                {
+                  noBackups &&
+                    <Alert kind={kinds.INFO}>
+                      {translate('NoBackupsAreAvailable')}
+                    </Alert>
+                }
+
+                {
+                  hasBackups &&
+                    <Table
+                      columns={columns}
+                    >
+                      <TableBody>
+                        {
+                          items.map((item) => {
+                            const {
+                              id,
+                              type,
+                              name,
+                              path,
+                              size,
+                              time
+                            } = item;
+
+                            return (
+                              <BackupRow
+                                key={id}
+                                id={id}
+                                type={type}
+                                name={name}
+                                path={path}
+                                size={size}
+                                time={time}
+                                onDeleteBackupPress={onDeleteBackupPress}
+                              />
+                            );
+                          })
+                        }
+                      </TableBody>
+                    </Table>
+                }
+              </Stack>
+            </Surface>
+          </Stack>
         </PageContentBody>
 
         <RestoreBackupModalConnector

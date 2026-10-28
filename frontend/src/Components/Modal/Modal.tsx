@@ -158,7 +158,7 @@ function Modal({
   }
 
   return ReactDOM.createPortal(
-    <FocusLock disabled={false}>
+    <FocusLock disabled={false} returnFocus={true}>
       <div className={styles.modalContainer}>
         <div
           ref={backgroundRef}

@@ -14,6 +14,7 @@ import { isCommandExecuting } from 'Utilities/Command';
 import formatDate from 'Utilities/Date/formatDate';
 import formatDateTime from 'Utilities/Date/formatDateTime';
 import formatTimeSpan from 'Utilities/Date/formatTimeSpan';
+import translate from 'Utilities/String/translate';
 import styles from './ScheduledTaskRow.css';
 
 interface ScheduledTaskRowProps {
@@ -157,6 +158,8 @@ function ScheduledTaskRow(props: ScheduledTaskRowProps) {
 
       <TableRowCell className={styles.actions}>
         <SpinnerIconButton
+          aria-label={translate('RunTaskNow', { taskName: name })}
+          title={translate('RunTaskNow', { taskName: name })}
           name={icons.REFRESH}
           spinningName={icons.REFRESH}
           isSpinning={isExecuting}

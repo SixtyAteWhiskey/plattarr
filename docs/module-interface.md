@@ -1213,13 +1213,20 @@ unchanged, with only the URL base changed in their settings.
 | `/radarr/api/v3` | Radarr v3 | Radarr's `Radarr.Api.V3`, which Plattarr already contains |
 | `/sonarr/api/v3` | Sonarr v3 | Sonarr's `Sonarr.Api.V3`, ported with the TV module |
 | `/lidarr/api/v1` | Lidarr v1 | Lidarr's `Lidarr.Api.V1`, ported with the Music module |
-| `/{indexerId}/api` | Prowlarr's per-indexer Newznab and Torznab feeds | Prowlarr's `NewznabController`, ported with the indexer layer |
+| `/{indexerId}/api` | Prowlarr's per-indexer Newznab and Torznab feeds | Not implemented; the Prowlarr `NewznabController` remains planned contract work |
+
+The per-indexer feed row is a target, not a currently supported compatibility
+base. A GET-only replay against an isolated build on 2026-10-27 confirmed that
+`/{indexerId}/api?t=caps` falls through to the frontend HTML shell rather than
+returning a Newznab capabilities document. Do not advertise the feed until a
+client-pinned contract replay passes.
 
 Design:
 
-- **Full fidelity, not a subset.** Each URL base serves the upstream app's
-  complete API surface, because the controllers are the upstream
-  controllers. This reverses the 2026-10-20 "captured subset only" scope.
+- **Full fidelity, not a subset.** Each implemented media compatibility base
+  serves the upstream app's complete API surface, because the controllers are
+  the upstream controllers. This reverses the 2026-10-20 "captured subset
+  only" scope; it does not make the planned per-indexer feed row implemented.
   Phase 2 still records Jellyseerr's real calls through a logging proxy, now
   as a test fixture rather than a scope limit.
 - **Shared data, upstream shapes.** Resources that are global in Plattarr

@@ -130,9 +130,15 @@ function BlocklistRow(props: BlocklistRowProps) {
         if (name === 'actions') {
           return (
             <TableRowCell key={name} className={styles.actions}>
-              <IconButton name={icons.INFO} onPress={handleDetailsPress} />
+              <IconButton
+                aria-label={translate('Details')}
+                title={translate('Details')}
+                name={icons.INFO}
+                onPress={handleDetailsPress}
+              />
 
               <IconButton
+                aria-label={translate('RemoveFromBlocklist')}
                 title={translate('RemoveFromBlocklist')}
                 name={icons.REMOVE}
                 kind={kinds.DANGER}

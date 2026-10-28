@@ -103,6 +103,24 @@ it does not stand in for a same-indexer comparison against real tracker results.
 Change the mapper only after a sanitized same-indexer comparison shows a
 divergence.
 
+## Per-indexer feed contract
+
+`indexer_feed_contract.py` replays only the Newznab `t=caps` request against an
+isolated loopback instance. It never searches or grabs, and it refuses remote
+targets or redirects. It reports only the status, content type, and parsed root
+element; it does not print the API key, response body, or full URL.
+
+```bash
+PLATTARR_FEED_URL=http://127.0.0.1:17881 \
+PLATTARR_API_KEY=... \
+python3 tools/liveproof/indexer_feed_contract.py --indexer-id 1
+```
+
+The 2026-10-27 replay returned HTTP 200 `text/html` with an `html` root, proving
+that the request fell through to the frontend shell rather than returning a
+Newznab XML `caps` document. The checker intentionally exits nonzero until the
+planned feed controller is implemented.
+
 ## Ombi contract replay
 
 `ombi_contract.py` replays the Radarr v3 and Sonarr v3 calls used by Ombi's

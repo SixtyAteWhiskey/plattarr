@@ -22,8 +22,12 @@ function ModalContent({
   return (
     <div className={className} {...otherProps}>
       {showCloseButton && (
-        <Link className={styles.closeButton} onPress={onModalClose}>
-          <Icon name={icons.CLOSE} size={18} title={translate('Close')} />
+        <Link
+          className={styles.closeButton}
+          aria-label={translate('Close')}
+          onPress={onModalClose}
+        >
+          <Icon name={icons.CLOSE} size={18} aria-hidden={true} />
         </Link>
       )}
 

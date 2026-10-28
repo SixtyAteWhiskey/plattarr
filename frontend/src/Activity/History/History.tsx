@@ -34,6 +34,7 @@ import {
 } from 'Utilities/pagePopulator';
 import translate from 'Utilities/String/translate';
 import HistoryFilterModal from './HistoryFilterModal';
+import HistoryPageContent from './HistoryPageContent';
 import HistoryRow from './HistoryRow';
 
 function History() {
@@ -164,53 +165,57 @@ function History() {
       </PageToolbar>
 
       <PageContentBody>
-        {isFetchingAny && !isAllPopulated ? <LoadingIndicator /> : null}
+        <HistoryPageContent>
+          {isFetchingAny && !isAllPopulated ? <LoadingIndicator /> : null}
 
-        {!isFetchingAny && hasError ? (
-          <Alert kind={kinds.DANGER}>{translate('HistoryLoadError')}</Alert>
-        ) : null}
+          {!isFetchingAny && hasError ? (
+            <Alert role="alert" kind={kinds.DANGER}>
+              {translate('HistoryLoadError')}
+            </Alert>
+          ) : null}
 
-        {
-          // If history isPopulated and it's empty show no history found and don't
-          // wait for the movies to populate because they are never coming.
+          {
+            // If history isPopulated and it's empty show no history found and don't
+            // wait for the movies to populate because they are never coming.
 
-          isPopulated && !hasError && !items.length ? (
-            <Alert kind={kinds.INFO}>{translate('NoHistoryFound')}</Alert>
-          ) : null
-        }
+            isPopulated && !hasError && !items.length ? (
+              <Alert kind={kinds.INFO}>{translate('NoHistoryFound')}</Alert>
+            ) : null
+          }
 
-        {isAllPopulated && !hasError && items.length ? (
-          <div>
-            <Table
-              columns={columns}
-              pageSize={pageSize}
-              sortKey={sortKey}
-              sortDirection={sortDirection}
-              onTableOptionChange={handleTableOptionChange}
-              onSortPress={handleSortPress}
-            >
-              <TableBody>
-                {items.map((item) => {
-                  return (
-                    <HistoryRow key={item.id} columns={columns} {...item} />
-                  );
-                })}
-              </TableBody>
-            </Table>
+          {isAllPopulated && !hasError && items.length ? (
+            <div>
+              <Table
+                columns={columns}
+                pageSize={pageSize}
+                sortKey={sortKey}
+                sortDirection={sortDirection}
+                onTableOptionChange={handleTableOptionChange}
+                onSortPress={handleSortPress}
+              >
+                <TableBody>
+                  {items.map((item) => {
+                    return (
+                      <HistoryRow key={item.id} columns={columns} {...item} />
+                    );
+                  })}
+                </TableBody>
+              </Table>
 
-            <TablePager
-              page={page}
-              totalPages={totalPages}
-              totalRecords={totalRecords}
-              isFetching={isFetching}
-              onFirstPagePress={handleFirstPagePress}
-              onPreviousPagePress={handlePreviousPagePress}
-              onNextPagePress={handleNextPagePress}
-              onLastPagePress={handleLastPagePress}
-              onPageSelect={handlePageSelect}
-            />
-          </div>
-        ) : null}
+              <TablePager
+                page={page}
+                totalPages={totalPages}
+                totalRecords={totalRecords}
+                isFetching={isFetching}
+                onFirstPagePress={handleFirstPagePress}
+                onPreviousPagePress={handlePreviousPagePress}
+                onNextPagePress={handleNextPagePress}
+                onLastPagePress={handleLastPagePress}
+                onPageSelect={handlePageSelect}
+              />
+            </div>
+          ) : null}
+        </HistoryPageContent>
       </PageContentBody>
     </PageContent>
   );
