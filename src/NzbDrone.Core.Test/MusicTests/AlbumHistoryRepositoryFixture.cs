@@ -195,6 +195,31 @@ namespace NzbDrone.Core.Test.MusicTests
         }
 
         [Test]
+        public void should_load_artist_and_album_when_finding_history_by_download_id()
+        {
+            Subject.Insert(NewHistory(_artist, _album1, downloadId: "music-download"));
+
+            var history = Subject.FindByDownloadId("music-download").Single();
+
+            history.Artist.Name.Should().Be("The Black Keys");
+            history.Album.Title.Should().Be("Brothers");
+        }
+
+        [Test]
+        public void should_keep_download_history_when_artist_or_album_is_missing()
+        {
+            var history = NewHistory(_artist, _album1, downloadId: "orphaned-download");
+            history.ParentId = 99999;
+            history.ItemId = 99999;
+            Subject.Insert(history);
+
+            var stored = Subject.FindByDownloadId("orphaned-download").Single();
+
+            stored.Artist.Should().BeNull();
+            stored.Album.Should().BeNull();
+        }
+
+        [Test]
         public void should_join_the_artist_and_album_for_artist_and_album_queries()
         {
             Subject.Insert(NewHistory(_artist, _album1, AlbumHistoryEventType.Grabbed));

@@ -48,7 +48,12 @@ namespace NzbDrone.Core.Music.History
 
         public List<AlbumHistory> FindByDownloadId(string downloadId)
         {
-            return Query(h => h.DownloadId == downloadId);
+            var builder = Builder()
+                .LeftJoin<AlbumHistory, Artist>((h, a) => h.ParentId == a.Id)
+                .LeftJoin<AlbumHistory, Album>((h, a) => h.ItemId == a.Id)
+                .Where<AlbumHistory>(h => h.DownloadId == downloadId);
+
+            return PagedQuery(builder).ToList();
         }
 
         public List<AlbumHistory> GetByArtist(int artistId, AlbumHistoryEventType? eventType)

@@ -91,10 +91,14 @@ namespace NzbDrone.Core.Music.Downloads
                         remoteAlbum.Albums.Empty())
                     {
                         // Try parsing the original source title and if that fails, try it with the grabbed artist and album
-                        parsedAlbumInfo = Parser.Parser.ParseAlbumTitle(firstHistoryItem.SourceTitle) ??
-                                          Parser.Parser.ParseAlbumTitleWithSearchCriteria(firstHistoryItem.SourceTitle,
-                                              firstHistoryItem.Artist,
-                                              new List<Album> { firstHistoryItem.Album });
+                        parsedAlbumInfo = Parser.Parser.ParseAlbumTitle(firstHistoryItem.SourceTitle);
+
+                        if (parsedAlbumInfo == null && firstHistoryItem.Artist != null && firstHistoryItem.Album != null)
+                        {
+                            parsedAlbumInfo = Parser.Parser.ParseAlbumTitleWithSearchCriteria(firstHistoryItem.SourceTitle,
+                                firstHistoryItem.Artist,
+                                new List<Album> { firstHistoryItem.Album });
+                        }
 
                         if (parsedAlbumInfo != null)
                         {

@@ -128,6 +128,17 @@ namespace NzbDrone.Core.Test.MusicTests.Download.TrackedDownloads
         }
 
         [Test]
+        public void should_not_warn_when_history_references_missing_artist_and_album()
+        {
+            GivenHistory(Grabbed("An unparseable download folder"));
+
+            var trackedDownload = Track("An unparseable download folder");
+
+            trackedDownload.Status.Should().Be(TrackedDownloadStatus.Ok);
+            trackedDownload.GetRemoteAlbum().Should().BeNull();
+        }
+
+        [Test]
         public void should_set_indexer_and_added_from_the_grab()
         {
             var grabbed = Grabbed();
