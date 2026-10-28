@@ -27,6 +27,9 @@ namespace NzbDrone.Core.Queue
         public List<TrackedDownloadStatusMessage> StatusMessages { get; set; }
         public string DownloadId { get; set; }
 
+        // Routing survives even when the module cannot match this download to media.
+        public MediaKind? Kind { get; set; }
+
         // The module's match for the download; null when the download could not be matched.
         public RemoteRelease RemoteRelease { get; set; }
         public DownloadProtocol Protocol { get; set; }

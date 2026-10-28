@@ -5,6 +5,7 @@ using NUnit.Framework;
 using NzbDrone.Common.Serializer;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Music;
@@ -69,6 +70,23 @@ namespace NzbDrone.Api.Test.v3.Queue
         }
 
         [Test]
+        public void should_expose_routed_media_kind_without_a_metadata_match()
+        {
+            var queue = new NzbDrone.Core.Queue.Queue
+            {
+                Kind = MediaKind.Music,
+                Quality = new QualityModel(Quality.Unknown),
+                Languages = new List<NzbDrone.Core.Languages.Language>()
+            };
+
+            var resource = queue.ToResource(false);
+
+            resource.MediaKind.Should().Be(MediaKind.Music);
+            resource.ArtistId.Should().BeNull();
+            STJson.ToJson(resource).Should().Contain("\"mediaKind\": \"music\"");
+        }
+
+        [Test]
         public void should_map_the_series_and_episode_of_a_tv_download()
         {
             var resource = GivenTvItem().ToResource(false);
@@ -78,6 +96,7 @@ namespace NzbDrone.Api.Test.v3.Queue
             resource.SeasonNumber.Should().Be(2);
             resource.EpisodeHasFile.Should().BeTrue();
             resource.MovieId.Should().BeNull();
+            resource.MediaKind.Should().Be(MediaKind.Tv);
         }
 
         [Test]
@@ -118,6 +137,7 @@ namespace NzbDrone.Api.Test.v3.Queue
             var json = STJson.ToJson(item.ToResource(false));
 
             json.Should().Contain("\"movieId\"");
+            json.Should().Contain("\"mediaKind\": \"movies\"");
             json.Should().NotContain("seriesId");
             json.Should().NotContain("episodeId");
             json.Should().NotContain("seasonNumber");

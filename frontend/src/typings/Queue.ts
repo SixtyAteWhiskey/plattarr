@@ -8,6 +8,7 @@ import Movie from 'Movie/Movie';
 import { QualityModel } from 'Quality/Quality';
 import Series from 'Series/Series';
 import CustomFormat from 'typings/CustomFormat';
+import MediaKind from 'typings/MediaKind';
 
 export type QueueTrackedDownloadStatus = 'ok' | 'warning' | 'error';
 
@@ -43,6 +44,7 @@ interface Queue extends ModelBase {
   statusMessages: StatusMessage[];
   errorMessage: string;
   downloadId: string;
+  mediaKind?: MediaKind;
   protocol: DownloadProtocol;
   downloadClient: string;
   outputPath: string;

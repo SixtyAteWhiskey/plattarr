@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Music;
 using NzbDrone.Core.Qualities;
@@ -83,6 +84,10 @@ namespace Radarr.Api.V3.Queue
         public List<TrackedDownloadStatusMessage> StatusMessages { get; set; }
         public string ErrorMessage { get; set; }
         public string DownloadId { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public MediaKind? MediaKind { get; set; }
+
         public DownloadProtocol Protocol { get; set; }
         public string DownloadClient { get; set; }
         public bool DownloadClientHasPostImportCategory { get; set; }
@@ -152,6 +157,7 @@ namespace Radarr.Api.V3.Queue
                 StatusMessages = model.StatusMessages,
                 ErrorMessage = model.ErrorMessage,
                 DownloadId = model.DownloadId,
+                MediaKind = model.Kind ?? model.RemoteRelease?.Kind,
                 Protocol = model.Protocol,
                 DownloadClient = model.DownloadClient,
                 DownloadClientHasPostImportCategory = model.DownloadClientHasPostImportCategory,
