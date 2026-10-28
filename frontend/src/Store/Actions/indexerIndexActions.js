@@ -1,5 +1,6 @@
 import { createAction } from 'redux-actions';
 import { filterBuilderTypes, filterBuilderValueTypes, filterTypePredicates, filterTypes, sortDirections } from 'Helpers/Props';
+import getIndexerAvailability from 'Settings/Indexers/Indexers/getIndexerAvailability';
 import translate from 'Utilities/String/translate';
 import createHandleActions from './Creators/createHandleActions';
 import createSetClientSideCollectionFilterReducer from './Creators/Reducers/createSetClientSideCollectionFilterReducer';
@@ -9,8 +10,8 @@ import createSetClientSideCollectionFilterReducer from './Creators/Reducers/crea
 
 export const section = 'indexerIndex';
 
-function isEnabled({ enableRss, enableAutomaticSearch, enableInteractiveSearch }) {
-  return !!(enableRss || enableAutomaticSearch || enableInteractiveSearch);
+function isEnabled(indexer) {
+  return getIndexerAvailability(indexer) !== 'disabled';
 }
 
 //
@@ -56,6 +57,17 @@ export const defaultState = {
       ]
     },
     {
+      key: 'unavailable',
+      label: () => translate('Unavailable'),
+      filters: [
+        {
+          key: 'unavailable',
+          value: true,
+          type: filterTypes.EQUAL
+        }
+      ]
+    },
+    {
       key: 'torrent',
       label: () => translate('Torrents'),
       filters: [
@@ -86,6 +98,11 @@ export const defaultState = {
       const predicate = filterTypePredicates[type];
 
       return predicate(isEnabled(item), filterValue);
+    },
+    unavailable: function(item, filterValue, type) {
+      const predicate = filterTypePredicates[type];
+
+      return predicate(getIndexerAvailability(item) === 'unavailable', filterValue);
     }
   },
 
@@ -98,6 +115,12 @@ export const defaultState = {
     {
       name: 'enable',
       label: () => translate('Enabled'),
+      type: filterBuilderTypes.EXACT,
+      valueType: filterBuilderValueTypes.BOOL
+    },
+    {
+      name: 'unavailable',
+      label: () => translate('Unavailable'),
       type: filterBuilderTypes.EXACT,
       valueType: filterBuilderValueTypes.BOOL
     },

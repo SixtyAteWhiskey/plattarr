@@ -1196,6 +1196,7 @@
   "IndexerAlphaRatioSettingsExcludeScene": "Exclude SCENE",
   "IndexerAlphaRatioSettingsExcludeSceneHelpText": "Exclude SCENE releases from results",
   "IndexerAlphaRatioSettingsFreeleechOnlyHelpText": "Search freeleech releases only",
+  "IndexerAvailabilityHelpText": "Enabled indexers are configured for use, but have not necessarily passed a live test. Unavailable indexers are temporarily blocked after failures. Use Test All Indexers to check connectivity, then Refresh to update these states.",
   "IndexerAvistazSettingsFreeleechOnlyHelpText": "Search freeleech releases only",
   "IndexerAvistazSettingsPasswordHelpText": "Site Password",
   "IndexerAvistazSettingsPidHelpText": "PID from My Account or My Profile page",

@@ -5,6 +5,7 @@ import Alert from 'Components/Alert';
 import Card from 'Components/Card';
 import FieldSet from 'Components/FieldSet';
 import Icon from 'Components/Icon';
+import Label from 'Components/Label';
 import { ResponsiveGrid } from 'Components/Layout';
 import PageSectionContent from 'Components/Page/PageSectionContent';
 import { icons, kinds } from 'Helpers/Props';
@@ -13,6 +14,7 @@ import translate from 'Utilities/String/translate';
 import AddIndexerModal from './AddIndexerModal';
 import createIndexerIndexSelector from './createIndexerIndexSelector';
 import EditIndexerModal from './EditIndexerModal';
+import getIndexerAvailability from './getIndexerAvailability';
 import Indexer from './Indexer';
 import styles from './Indexers.css';
 
@@ -31,6 +33,13 @@ function Indexers() {
   const [isEditIndexerModalOpen, setIsEditIndexerModalOpen] = useState(false);
 
   const showPriority = allItems.some((index) => index.priority !== 25);
+  const availabilityCounts = allItems.reduce(
+    (counts, item) => {
+      counts[getIndexerAvailability(item)]++;
+      return counts;
+    },
+    { enabled: 0, unavailable: 0, disabled: 0 }
+  );
 
   const handleAddIndexerPress = useCallback(() => {
     setIsAddIndexerModalOpen(true);
@@ -69,6 +78,28 @@ function Indexers() {
         isFetching={isFetching}
         isPopulated={isPopulated}
       >
+        {totalItems > 0 ? (
+          <div className={styles.statusOverview}>
+            <div className={styles.statusCounts}>
+              <span>
+                <Label kind={kinds.SUCCESS}>{translate('Enabled')}</Label>{' '}
+                {availabilityCounts.enabled}
+              </span>
+              <span>
+                <Label kind={kinds.DANGER}>{translate('Unavailable')}</Label>{' '}
+                {availabilityCounts.unavailable}
+              </span>
+              <span>
+                <Label kind={kinds.DISABLED}>{translate('Disabled')}</Label>{' '}
+                {availabilityCounts.disabled}
+              </span>
+            </div>
+            <div className={styles.statusHelp}>
+              {translate('IndexerAvailabilityHelpText')}
+            </div>
+          </div>
+        ) : null}
+
         {totalItems > 0 && !items.length ? (
           <Alert kind={kinds.INFO}>
             {translate('AllResultsAreHiddenByTheAppliedFilter')}

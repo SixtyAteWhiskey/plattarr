@@ -3,6 +3,9 @@
 interface CssExports {
   'addIndexer': string;
   'center': string;
+  'statusCounts': string;
+  'statusHelp': string;
+  'statusOverview': string;
 }
 export const cssExports: CssExports;
 export default cssExports;
