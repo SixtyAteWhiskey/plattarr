@@ -39,7 +39,7 @@ namespace NzbDrone.Core.Test.QueueTests
             });
             var config = new Mock<IConfigService>();
             config.SetupGet(x => x.HygieneActionsEnabled).Returns(false);
-            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object), config.Object);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object);
 
             var assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
 
@@ -57,7 +57,7 @@ namespace NzbDrone.Core.Test.QueueTests
             rules.Setup(x => x.All()).Returns(new List<HygieneRule>());
             var config = new Mock<IConfigService>();
             config.SetupGet(x => x.HygieneActionsEnabled).Returns(false);
-            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object), config.Object);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object);
 
             var assessment = decisions.Evaluate(new[] { new QueueItem { Status = QueueStatus.Delay } }).Should().ContainSingle().Subject;
 
@@ -93,7 +93,7 @@ namespace NzbDrone.Core.Test.QueueTests
             rules.Setup(x => x.All()).Returns(new List<HygieneRule> { rule });
             var config = new Mock<IConfigService>();
             config.SetupGet(x => x.HygieneActionsEnabled).Returns(true);
-            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object), config.Object);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object);
 
             var assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
 
@@ -154,7 +154,7 @@ namespace NzbDrone.Core.Test.QueueTests
             });
             var config = new Mock<IConfigService>();
             config.SetupGet(x => x.HygieneActionsEnabled).Returns(gateEnabled);
-            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object), config.Object);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object);
 
             var assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
 

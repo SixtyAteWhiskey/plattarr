@@ -1,5 +1,10 @@
 using System;
+using System.Collections.Generic;
 using FluentAssertions;
+using Moq;
+using NLog;
+using NLog.Config;
+using NLog.Targets;
 using NUnit.Framework;
 using NzbDrone.Core.Hygiene;
 using NzbDrone.Core.Test.Framework;
@@ -52,6 +57,66 @@ namespace NzbDrone.Core.Test.QueueTests
             Action save = () => Subject.Upsert(rule);
 
             save.Should().Throw<ArgumentException>();
+        }
+
+        [Test]
+        public void enabled_state_change_is_written_to_the_application_log()
+        {
+            const string targetName = "HygieneRuleServiceFixture";
+            var target = new MemoryTarget { Layout = "${message}" };
+            var loggingConfiguration = LogManager.Configuration;
+            var loggingRule = new LoggingRule("*", LogLevel.Info, target);
+            loggingConfiguration.AddTarget(targetName, target);
+            loggingConfiguration.LoggingRules.Add(loggingRule);
+            LogManager.ReconfigExistingLoggers();
+
+            try
+            {
+                var existingRule = new HygieneRule
+                {
+                    Id = 8,
+                    ReasonCode = "download-stalled",
+                    Enabled = true,
+                    StrikeLimit = 3,
+                    StrikeIntervalMinutes = 5
+                };
+                var savedRule = existingRule;
+                var repository = Mocker.GetMock<IHygieneRuleRepository>();
+                repository.Setup(x => x.Find(existingRule.Id)).Returns(() => savedRule);
+                repository.Setup(x => x.All()).Returns(() => new List<HygieneRule> { savedRule });
+                repository.Setup(x => x.Update(It.IsAny<HygieneRule>())).Returns<HygieneRule>(rule => rule);
+
+                var disabledRule = new HygieneRule
+                {
+                    Id = existingRule.Id,
+                    ReasonCode = existingRule.ReasonCode,
+                    Enabled = false,
+                    StrikeLimit = 3,
+                    StrikeIntervalMinutes = 5
+                };
+                Subject.Upsert(disabledRule);
+                savedRule = disabledRule;
+
+                var enabledRule = new HygieneRule
+                {
+                    Id = existingRule.Id,
+                    ReasonCode = existingRule.ReasonCode,
+                    Enabled = true,
+                    StrikeLimit = 3,
+                    StrikeIntervalMinutes = 5
+                };
+                Subject.Upsert(enabledRule);
+
+                target.Logs.Should().HaveCount(2);
+                target.Logs[0].Should().Contain("monitoring changed from enabled to disabled");
+                target.Logs[1].Should().Contain("monitoring changed from disabled to enabled");
+            }
+            finally
+            {
+                loggingConfiguration.LoggingRules.Remove(loggingRule);
+                loggingConfiguration.RemoveTarget(targetName);
+                LogManager.ReconfigExistingLoggers();
+            }
         }
     }
 }
