@@ -60,6 +60,22 @@ namespace NzbDrone.Core.Test.QueueTests
         }
 
         [Test]
+        public void monitor_only_rule_cannot_request_source_file_deletion()
+        {
+            var rule = new HygieneRule
+            {
+                ReasonCode = "download-warning",
+                DeleteFilesOnFailure = true,
+                StrikeLimit = 3,
+                StrikeIntervalMinutes = 5
+            };
+
+            Action save = () => Subject.Upsert(rule);
+
+            save.Should().Throw<ArgumentException>();
+        }
+
+        [Test]
         public void enabled_state_change_is_written_to_the_application_log()
         {
             const string targetName = "HygieneRuleServiceFixture";

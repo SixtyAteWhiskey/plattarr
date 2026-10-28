@@ -22,6 +22,14 @@ enabled for a specific kind and client takes priority over one for just the
 kind, just the client, or all. A disabled specific rule also overrides a broad
 enabled rule.
 
+Action-capable rules have a **Delete source files when this rule acts** option.
+It defaults off for new rules and all rules that existed before migration 17.
+When enabled, Hygiene asks the download client to remove the job and its source
+files. This affects future actions only; it does not remove files left behind
+by previous actions. `download-warning` is monitor-only and cannot enable this
+option. The rule, strike threshold, global action gate, and existing torrent
+safety checks must still allow an action before any removal occurs.
+
 Each saved rule card shows how many current queue assessments select that
 specific rule and, when enabled, how many have reached its strike threshold.
 This read-only preview uses the same matched rule ID and eligibility decision
@@ -44,9 +52,9 @@ eligible for stalled and other assessments, but are not classified as slow.
 Both reasons can be acted on when their matching rule is enabled, its strike
 threshold is reached, the global action gate is on, and the download is tracked
 and safe to remove. Private or unverified torrent releases remain manual-review
-items. Stalled/slow actions remove the client job without deleting its files,
-then use the existing failed-download path for blocklisting and any configured
-replacement search.
+items. Stalled/slow actions keep source files by default, or ask the client to
+delete them when the matching rule opts in, then use the existing failed-download
+path for blocklisting and any configured replacement search.
 
 `GET /api/v3/hygiene/preview` reports the current reason, count, matching
 rule threshold, eligibility, and an explanation. `GET`, `POST`, `PUT /{id}`,
@@ -64,17 +72,22 @@ the executor would process under the current settings.
 The executor handles tracked `client-failed`, `import-blocked`,
 `download-stalled`, and `download-slow` items. Generic `download-warning`
 items stay monitor-only. For an eligible item, it removes the job from the
-download client **without deleting its files**, records the failure through the
-existing per-kind failed-download handlers, and stops tracking it. Those
+download client, keeping its files by default or deleting them when the matched
+rule opts in, records the failure through the existing per-kind failed-download
+handlers, and stops tracking it. Those
 handlers record a blocklist entry and request the normal replacement search
 when the existing failed-download settings allow it. Private or unverified
 torrent releases remain manual-review items. Pending releases and unmatched
 downloads are never acted on.
 
-Each action records its media kind, reason, authorizing rule, current
+Each action records its media kind, reason, authorizing rule, source-file deletion
+choice, current
 checkpoint, status, and recovery guidance in the main database. Checkpoints
 allow later queue refreshes to continue after client removal if a later step
-failed. `GET /api/v3/hygiene/action` returns the latest entries. If the global
+failed. Enabling deletion later cannot make an existing prepared action delete
+files. Disabling deletion before client removal changes that action to keep
+files. Existing journal entries default to keeping files.
+`GET /api/v3/hygiene/action` returns the latest entries. If the global
 gate is turned off mid-action, the action pauses at its last checkpoint;
 re-enabling the gate resumes the journal, while an unstarted action also needs
 its original rule to remain eligible. Failures keep a safe error type and a
