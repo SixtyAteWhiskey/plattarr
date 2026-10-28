@@ -52,6 +52,35 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
                   .Returns(Mocker.GetMock<IQBittorrentProxy>().Object);
         }
 
+        [TestCase(false, "hashes=test-hash&deleteFiles=false")]
+        [TestCase(true, "hashes=test-hash&deleteFiles=true")]
+        public void remove_torrent_sends_explicit_data_retention_flag(bool removeData, string expectedBody)
+        {
+            HttpRequest capturedRequest = null;
+            Mocker.GetMock<IHttpClient>()
+                .Setup(x => x.Execute(It.IsAny<HttpRequest>()))
+                .Callback<HttpRequest>(request => capturedRequest = request)
+                .Returns<HttpRequest>(request => new HttpResponse(request, new HttpHeader(), string.Empty));
+
+            var proxy = new QBittorrentProxyV2(
+                Mocker.GetMock<IHttpClient>().Object,
+                Mocker.Resolve<NzbDrone.Common.Cache.CacheManager>(),
+                TestLogger);
+            var settings = new QBittorrentSettings
+            {
+                Host = "127.0.0.1",
+                Port = 8080,
+                ApiKey = "test-api-key"
+            };
+
+            proxy.RemoveTorrent("test-hash", removeData, settings);
+
+            capturedRequest.Should().NotBeNull();
+            capturedRequest.Method.Should().Be(System.Net.Http.HttpMethod.Post);
+            capturedRequest.Url.Path.Should().Be("/api/v2/torrents/delete");
+            capturedRequest.GetContent().Should().Be(expectedBody);
+        }
+
         protected void GivenRedirectToMagnet()
         {
             var httpHeader = new HttpHeader();

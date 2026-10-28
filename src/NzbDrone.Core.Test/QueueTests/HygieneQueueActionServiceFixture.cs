@@ -6,6 +6,7 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Hygiene;
 using NzbDrone.Core.Modules;
@@ -85,14 +86,76 @@ namespace NzbDrone.Core.Test.QueueTests
 
             context.Actions.Should().ContainSingle().Which.Status.Should().Be("failed");
             context.Actions[0].Checkpoint.Should().Be("prepared");
-            context.Actions[0].LastError.Should().Be(nameof(InvalidOperationException));
+            context.Actions[0].LastError.Should().Be("InvalidOperationException (client-removal)");
+            context.Actions[0].RetryCount.Should().Be(1);
+            context.Actions[0].NextAttemptAt.Should().BeAfter(DateTime.UtcNow);
             context.FailedDownloads.Verify(x => x.MarkAsFailed(It.IsAny<TrackedDownload>(), It.IsAny<bool>()), Times.Never);
 
+            context.Service.Process(new[] { context.QueueItem });
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), false), Times.Once);
+
+            context.Actions[0].NextAttemptAt = DateTime.UtcNow.AddSeconds(-1);
             context.Service.Process(new[] { context.QueueItem });
 
             context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), false), Times.Exactly(2));
             context.FailedDownloads.Verify(x => x.MarkAsFailed(context.TrackedDownload, false), Times.Once);
             context.Actions[0].Status.Should().Be("completed");
+        }
+
+        [Test]
+        public void failed_client_listing_records_safe_failure_stage_without_exception_details()
+        {
+            var context = new ActionContext(MediaKind.Tv, true);
+            context.DownloadClient
+                .Setup(x => x.GetItems())
+                .Throws(new DownloadClientException("private path /not-for-logs"));
+
+            context.Service.Process(new[] { context.QueueItem });
+            ExceptionVerification.ExpectedWarns(1);
+
+            context.Actions.Should().ContainSingle().Which.Status.Should().Be("failed");
+            context.Actions[0].Checkpoint.Should().Be("prepared");
+            context.Actions[0].LastError.Should().Be("DownloadClientException (client-list)");
+            context.Actions[0].LastError.Should().NotContain("private path");
+        }
+
+        [Test]
+        public void failed_client_removal_records_safe_failure_stage_without_exception_details()
+        {
+            var context = new ActionContext(MediaKind.Tv, true);
+            context.DownloadClient
+                .Setup(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), false))
+                .Throws(new DownloadClientException("private path /not-for-logs"));
+
+            context.Service.Process(new[] { context.QueueItem });
+            ExceptionVerification.ExpectedWarns(1);
+
+            context.Actions.Should().ContainSingle().Which.Status.Should().Be("failed");
+            context.Actions[0].Checkpoint.Should().Be("prepared");
+            context.Actions[0].LastError.Should().Be("DownloadClientException (client-removal)");
+            context.Actions[0].LastError.Should().NotContain("private path");
+        }
+
+        [Test]
+        public void repeated_failures_use_exponential_retry_backoff_capped_at_one_hour()
+        {
+            var context = new ActionContext(MediaKind.Tv, true);
+            context.DownloadClient
+                .Setup(x => x.GetItems())
+                .Throws(new DownloadClientException("client unavailable"));
+
+            for (var attempt = 0; attempt < 7; attempt++)
+            {
+                context.Service.Process(new[] { context.QueueItem });
+                context.Actions[0].NextAttemptAt = DateTime.UtcNow.AddSeconds(-1);
+            }
+
+            context.Service.Process(new[] { context.QueueItem });
+            ExceptionVerification.ExpectedWarns(8);
+
+            context.Actions[0].RetryCount.Should().Be(8);
+            context.Actions[0].NextAttemptAt.Should().BeAfter(DateTime.UtcNow.AddMinutes(59));
+            context.Actions[0].NextAttemptAt.Should().BeBefore(DateTime.UtcNow.AddMinutes(61));
         }
 
         [Test]
@@ -117,6 +180,7 @@ namespace NzbDrone.Core.Test.QueueTests
             context.Actions.Should().ContainSingle().Which.Status.Should().Be("failed");
             context.Actions[0].Checkpoint.Should().Be("client-removed");
 
+            context.Actions[0].NextAttemptAt = DateTime.UtcNow.AddSeconds(-1);
             context.Service.Process(Array.Empty<QueueItem>());
 
             context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), false), Times.Once);
@@ -145,6 +209,7 @@ namespace NzbDrone.Core.Test.QueueTests
             ExceptionVerification.ExpectedWarns(1);
             context.Actions[0].Checkpoint.Should().Be("client-removed");
 
+            context.Actions[0].NextAttemptAt = DateTime.UtcNow.AddSeconds(-1);
             context.Service.Process(Array.Empty<QueueItem>());
 
             context.Actions[0].Status.Should().Be("completed");
