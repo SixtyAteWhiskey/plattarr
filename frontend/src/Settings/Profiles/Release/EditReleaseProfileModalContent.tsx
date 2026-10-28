@@ -118,31 +118,33 @@ function EditReleaseProfileModalContent({
       <ModalBody>
         <Form {...otherProps}>
           <FormGroup>
-            <FormLabel>{translate('Name')}</FormLabel>
+            <FormLabel name="name">{translate('Name')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.TEXT}
               name="name"
               {...name}
               placeholder={translate('OptionalName')}
+              id="name"
               onChange={handleInputChange}
             />
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>{translate('EnableProfile')}</FormLabel>
+            <FormLabel name="enabled">{translate('EnableProfile')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.CHECK}
               name="enabled"
               helpText={translate('EnableProfileHelpText')}
               {...enabled}
+              id="enabled"
               onChange={handleInputChange}
             />
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>{translate('MustContain')}</FormLabel>
+            <FormLabel name="required">{translate('MustContain')}</FormLabel>
 
             <FormInputGroup
               {...required}
@@ -154,12 +156,13 @@ function EditReleaseProfileModalContent({
               placeholder={translate('AddNewRestriction')}
               delimiters={tagInputDelimiters}
               canEdit={true}
+              id="required"
               onChange={handleInputChange}
             />
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>{translate('MustNotContain')}</FormLabel>
+            <FormLabel name="ignored">{translate('MustNotContain')}</FormLabel>
 
             <FormInputGroup
               {...ignored}
@@ -171,12 +174,13 @@ function EditReleaseProfileModalContent({
               placeholder={translate('AddNewRestriction')}
               delimiters={tagInputDelimiters}
               canEdit={true}
+              id="ignored"
               onChange={handleInputChange}
             />
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>{translate('Indexer')}</FormLabel>
+            <FormLabel name="indexerId">{translate('Indexer')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.INDEXER_SELECT}
@@ -187,18 +191,20 @@ function EditReleaseProfileModalContent({
               )}
               {...indexerId}
               includeAny={true}
+              id="indexerId"
               onChange={handleInputChange}
             />
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>{translate('Tags')}</FormLabel>
+            <FormLabel name="tags">{translate('Tags')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.TAG}
               name="tags"
               helpText={translate('ReleaseProfileTagMovieHelpText')}
               {...tags}
+              id="tags"
               onChange={handleInputChange}
             />
           </FormGroup>

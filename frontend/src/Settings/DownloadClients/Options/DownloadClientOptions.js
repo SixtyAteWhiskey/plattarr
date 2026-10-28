@@ -45,7 +45,7 @@ function DownloadClientOptions(props) {
                   isAdvanced={true}
                   size={sizes.MEDIUM}
                 >
-                  <FormLabel>{translate('Enable')}</FormLabel>
+                  <FormLabel name="enableCompletedDownloadHandling">{translate('Enable')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.CHECK}
@@ -53,6 +53,7 @@ function DownloadClientOptions(props) {
                     helpText={translate('EnableCompletedDownloadHandlingHelpText')}
                     onChange={onInputChange}
                     {...settings.enableCompletedDownloadHandling}
+                    id="enableCompletedDownloadHandling"
                   />
                 </FormGroup>
 
@@ -61,7 +62,7 @@ function DownloadClientOptions(props) {
                   isAdvanced={true}
                   size={sizes.MEDIUM}
                 >
-                  <FormLabel>{translate('CheckForFinishedDownloadsInterval')}</FormLabel>
+                  <FormLabel name="checkForFinishedDownloadInterval">{translate('CheckForFinishedDownloadsInterval')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.NUMBER}
@@ -72,6 +73,7 @@ function DownloadClientOptions(props) {
                     helpText={translate('RefreshMonitoredIntervalHelpText')}
                     onChange={onInputChange}
                     {...settings.checkForFinishedDownloadInterval}
+                    id="checkForFinishedDownloadInterval"
                   />
                 </FormGroup>
               </Form>
@@ -86,7 +88,7 @@ function DownloadClientOptions(props) {
                   isAdvanced={true}
                   size={sizes.MEDIUM}
                 >
-                  <FormLabel>{translate('AutoRedownloadFailed')}</FormLabel>
+                  <FormLabel name="autoRedownloadFailed">{translate('AutoRedownloadFailed')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.CHECK}
@@ -94,6 +96,7 @@ function DownloadClientOptions(props) {
                     helpText={translate('AutoRedownloadFailedHelpText')}
                     onChange={onInputChange}
                     {...settings.autoRedownloadFailed}
+                    id="autoRedownloadFailed"
                   />
                 </FormGroup>
 
@@ -104,7 +107,7 @@ function DownloadClientOptions(props) {
                       isAdvanced={true}
                       size={sizes.MEDIUM}
                     >
-                      <FormLabel>{translate('AutoRedownloadFailedFromInteractiveSearch')}</FormLabel>
+                      <FormLabel name="autoRedownloadFailedFromInteractiveSearch">{translate('AutoRedownloadFailedFromInteractiveSearch')}</FormLabel>
 
                       <FormInputGroup
                         type={inputTypes.CHECK}
@@ -112,6 +115,7 @@ function DownloadClientOptions(props) {
                         helpText={translate('AutoRedownloadFailedFromInteractiveSearchHelpText')}
                         onChange={onInputChange}
                         {...settings.autoRedownloadFailedFromInteractiveSearch}
+                        id="autoRedownloadFailedFromInteractiveSearch"
                       />
                     </FormGroup> :
                     null

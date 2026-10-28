@@ -159,36 +159,41 @@ export default function EditAutoTaggingModalContent({
                 validationWarnings={validationWarnings}
               >
                 <FormGroup>
-                  <FormLabel>{translate('Name')}</FormLabel>
+                  <FormLabel name="name">{translate('Name')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.TEXT}
                     name="name"
                     {...name}
+                    id="name"
                     onChange={handleInputChange}
                   />
                 </FormGroup>
 
                 <FormGroup>
-                  <FormLabel>{translate('RemoveTagsAutomatically')}</FormLabel>
+                  <FormLabel name="removeTagsAutomatically">
+                    {translate('RemoveTagsAutomatically')}
+                  </FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.CHECK}
                     name="removeTagsAutomatically"
                     helpText={translate('RemoveTagsAutomaticallyHelpText')}
                     {...removeTagsAutomatically}
+                    id="removeTagsAutomatically"
                     onChange={handleInputChange}
                   />
                 </FormGroup>
 
                 <FormGroup>
-                  <FormLabel>{translate('Tags')}</FormLabel>
+                  <FormLabel name="tags">{translate('Tags')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.TAG}
                     name="tags"
                     onChange={handleInputChange}
                     {...tags}
+                    id="tags"
                   />
                 </FormGroup>
               </Form>
@@ -211,6 +216,7 @@ export default function EditAutoTaggingModalContent({
                   })}
 
                   <Card
+                    aria-label={translate('AddCondition')}
                     className={styles.addSpecification}
                     onPress={handleAddSpecificationPress}
                   >

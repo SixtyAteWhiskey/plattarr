@@ -74,7 +74,7 @@ class QualityProfileFormatItems extends Component {
 
     return (
       <FormGroup size={sizes.EXTRA_SMALL}>
-        <FormLabel size={sizes.SMALL}>
+        <FormLabel component="div" size={sizes.SMALL}>
           {translate('CustomFormats')}
         </FormLabel>
 

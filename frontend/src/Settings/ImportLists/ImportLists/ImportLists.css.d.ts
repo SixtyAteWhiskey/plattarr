@@ -3,7 +3,6 @@
 interface CssExports {
   'addList': string;
   'center': string;
-  'lists': string;
 }
 export const cssExports: CssExports;
 export default cssExports;

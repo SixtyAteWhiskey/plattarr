@@ -66,7 +66,7 @@ function EditMetadataProfileModalContent(props) {
           !isFetching && !error &&
             <Form {...otherProps}>
               <FormGroup>
-                <FormLabel>
+                <FormLabel name="name">
                   {translate('Name')}
                 </FormLabel>
 
@@ -75,6 +75,7 @@ function EditMetadataProfileModalContent(props) {
                   name="name"
                   {...name}
                   onChange={onInputChange}
+                  id="name"
                 />
               </FormGroup>
 

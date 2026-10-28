@@ -125,43 +125,50 @@ function ManageIndexersEditModalContent(
 
       <ModalBody>
         <FormGroup>
-          <FormLabel>{translate('EnableRss')}</FormLabel>
+          <FormLabel name="enableRss">{translate('EnableRss')}</FormLabel>
 
           <FormInputGroup
             type={inputTypes.SELECT}
             name="enableRss"
             value={enableRss}
             values={enableOptions}
+            id="enableRss"
             onChange={onInputChange}
           />
         </FormGroup>
 
         <FormGroup>
-          <FormLabel>{translate('EnableAutomaticSearch')}</FormLabel>
+          <FormLabel name="enableAutomaticSearch">
+            {translate('EnableAutomaticSearch')}
+          </FormLabel>
 
           <FormInputGroup
             type={inputTypes.SELECT}
             name="enableAutomaticSearch"
             value={enableAutomaticSearch}
             values={enableOptions}
+            id="enableAutomaticSearch"
             onChange={onInputChange}
           />
         </FormGroup>
 
         <FormGroup>
-          <FormLabel>{translate('EnableInteractiveSearch')}</FormLabel>
+          <FormLabel name="enableInteractiveSearch">
+            {translate('EnableInteractiveSearch')}
+          </FormLabel>
 
           <FormInputGroup
             type={inputTypes.SELECT}
             name="enableInteractiveSearch"
             value={enableInteractiveSearch}
             values={enableOptions}
+            id="enableInteractiveSearch"
             onChange={onInputChange}
           />
         </FormGroup>
 
         <FormGroup>
-          <FormLabel>{translate('Priority')}</FormLabel>
+          <FormLabel name="priority">{translate('Priority')}</FormLabel>
 
           <FormInputGroup
             type={inputTypes.NUMBER}
@@ -169,6 +176,7 @@ function ManageIndexersEditModalContent(
             value={priority}
             min={1}
             max={50}
+            id="priority"
             onChange={onInputChange}
           />
         </FormGroup>

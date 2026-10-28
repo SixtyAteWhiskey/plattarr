@@ -57,6 +57,7 @@ function createDeviceTagsSelector(value: string[]) {
 }
 
 function DeviceInput({
+  id,
   className = styles.deviceInputWrapper,
   name,
   value,
@@ -127,6 +128,7 @@ function DeviceInput({
   return (
     <div className={className}>
       <TagInput
+        id={id}
         inputContainerClassName={styles.input}
         name={name}
         tags={selectedDevices}

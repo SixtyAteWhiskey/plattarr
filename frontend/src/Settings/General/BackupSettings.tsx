@@ -32,7 +32,7 @@ function BackupSettings({
   return (
     <FieldSet legend={translate('Backups')}>
       <FormGroup advancedSettings={showAdvancedSettings} isAdvanced={true}>
-        <FormLabel>{translate('Folder')}</FormLabel>
+        <FormLabel name="backupFolder">{translate('Folder')}</FormLabel>
 
         <FormInputGroup
           type={inputTypes.PATH}
@@ -41,11 +41,12 @@ function BackupSettings({
           includeFiles={false}
           onChange={onInputChange}
           {...backupFolder}
+          id="backupFolder"
         />
       </FormGroup>
 
       <FormGroup advancedSettings={showAdvancedSettings} isAdvanced={true}>
-        <FormLabel>{translate('Interval')}</FormLabel>
+        <FormLabel name="backupInterval">{translate('Interval')}</FormLabel>
 
         <FormInputGroup
           type={inputTypes.NUMBER}
@@ -54,11 +55,12 @@ function BackupSettings({
           helpText={translate('BackupIntervalHelpText')}
           onChange={onInputChange}
           {...backupInterval}
+          id="backupInterval"
         />
       </FormGroup>
 
       <FormGroup advancedSettings={showAdvancedSettings} isAdvanced={true}>
-        <FormLabel>{translate('Retention')}</FormLabel>
+        <FormLabel name="backupRetention">{translate('Retention')}</FormLabel>
 
         <FormInputGroup
           type={inputTypes.NUMBER}
@@ -67,6 +69,7 @@ function BackupSettings({
           helpText={translate('BackupRetentionHelpText')}
           onChange={onInputChange}
           {...backupRetention}
+          id="backupRetention"
         />
       </FormGroup>
     </FieldSet>

@@ -2,7 +2,6 @@
 // Please do not change this file!
 interface CssExports {
   'addAutoTagging': string;
-  'autoTaggings': string;
   'center': string;
 }
 export const cssExports: CssExports;

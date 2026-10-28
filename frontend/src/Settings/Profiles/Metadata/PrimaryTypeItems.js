@@ -22,7 +22,7 @@ class PrimaryTypeItems extends Component {
 
     return (
       <FormGroup>
-        <FormLabel>
+        <FormLabel component="div">
           {translate('PrimaryTypes')}
         </FormLabel>
         <div>

@@ -58,7 +58,7 @@ function MetadataOptions(props) {
             {
               isMusic ?
                 <FormGroup>
-                  <FormLabel>{translate('MusicMetadataSource')}</FormLabel>
+                  <FormLabel name="musicMetadataSource">{translate('MusicMetadataSource')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.TEXT}
@@ -66,10 +66,11 @@ function MetadataOptions(props) {
                     onChange={onInputChange}
                     helpText={translate('MusicMetadataSourceHelpText')}
                     {...settings.musicMetadataSource}
+                    id="musicMetadataSource"
                   />
                 </FormGroup> :
                 <FormGroup>
-                  <FormLabel>{translate('CertificationCountry')}</FormLabel>
+                  <FormLabel name="certificationCountry">{translate('CertificationCountry')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.SELECT}
@@ -78,6 +79,7 @@ function MetadataOptions(props) {
                     onChange={onInputChange}
                     helpText={translate('CertificationCountryHelpText')}
                     {...settings.certificationCountry}
+                    id="certificationCountry"
                   />
                 </FormGroup>
             }

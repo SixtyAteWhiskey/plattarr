@@ -6,6 +6,7 @@ import PageContentBody from 'Components/Page/PageContentBody';
 import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
 import PageToolbarSeparator from 'Components/Page/Toolbar/PageToolbarSeparator';
 import { icons } from 'Helpers/Props';
+import SettingsPageHeader from 'Settings/SettingsPageHeader';
 import SettingsToolbar from 'Settings/SettingsToolbar';
 import { testAllImportLists } from 'Store/Actions/settingsActions';
 import {
@@ -86,6 +87,10 @@ function ImportListSettings() {
       />
 
       <PageContentBody>
+        <SettingsPageHeader
+          title="ImportListSettings"
+          summary="ImportListsSettingsSummary"
+        />
         <ImportLists />
 
         <ImportListOptions

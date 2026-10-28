@@ -3,7 +3,6 @@
 interface CssExports {
   'addQualityProfile': string;
   'center': string;
-  'qualityProfiles': string;
 }
 export const cssExports: CssExports;
 export default cssExports;

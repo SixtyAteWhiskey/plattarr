@@ -9,6 +9,7 @@ import FilterMenu from 'Components/Menu/FilterMenu';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
+import PageIntro from 'Components/Page/PageIntro';
 import PageToolbar from 'Components/Page/Toolbar/PageToolbar';
 import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
 import PageToolbarSection from 'Components/Page/Toolbar/PageToolbarSection';
@@ -298,10 +299,17 @@ function TvMissing() {
       </PageToolbar>
 
       <PageContentBody>
+        <PageIntro
+          title={translate('Missing')}
+          description={translate('WantedMissingSummary')}
+        />
+
         {isFetching && !isPopulated ? <LoadingIndicator /> : null}
 
         {!isFetching && error ? (
-          <Alert kind={kinds.DANGER}>{translate('MissingLoadError')}</Alert>
+          <Alert kind={kinds.DANGER} role="alert">
+            {translate('MissingLoadError')}
+          </Alert>
         ) : null}
 
         {isPopulated && !error && !items.length ? (

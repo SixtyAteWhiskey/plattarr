@@ -1,7 +1,9 @@
 .rootFolder {
   composes: card from '~Components/Card.css';
 
-  width: 290px;
+  max-width: 300px;
+
+  width: 100%;
 }
 
 .name {

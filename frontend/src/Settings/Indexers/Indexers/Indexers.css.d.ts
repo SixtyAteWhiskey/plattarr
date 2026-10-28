@@ -3,7 +3,6 @@
 interface CssExports {
   'addIndexer': string;
   'center': string;
-  'indexers': string;
 }
 export const cssExports: CssExports;
 export default cssExports;

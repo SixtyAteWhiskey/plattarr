@@ -27,6 +27,7 @@ import styles from './AutoSuggestInput.css';
 
 interface AutoSuggestInputProps<T>
   extends Omit<AutosuggestPropsBase<T>, 'renderInputComponent' | 'inputProps'> {
+  id?: string;
   forwardedRef?: MutableRefObject<Autosuggest<T> | null>;
   className?: string;
   inputContainerClassName?: string;
@@ -64,6 +65,7 @@ function AutoSuggestInput<T = any>(props: AutoSuggestInputProps<T>) {
     className = styles.input,
     inputContainerClassName = styles.inputContainer,
     name,
+    id,
     value = '',
     placeholder,
     suggestions,
@@ -204,6 +206,7 @@ function AutoSuggestInput<T = any>(props: AutoSuggestInputProps<T>) {
   );
 
   const inputProps = {
+    id,
     className: classNames(
       className,
       hasError && styles.hasError,

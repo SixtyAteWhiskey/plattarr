@@ -22,7 +22,7 @@ class SecondaryTypeItems extends Component {
 
     return (
       <FormGroup>
-        <FormLabel>
+        <FormLabel component="div">
           {translate('SecondaryTypes')}
         </FormLabel>
         <div>

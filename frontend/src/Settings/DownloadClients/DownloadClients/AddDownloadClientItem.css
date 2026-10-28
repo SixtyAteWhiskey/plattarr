@@ -2,7 +2,8 @@
   composes: card from '~Components/Card.css';
 
   position: relative;
-  width: 300px;
+  max-width: 300px;
+  width: 100%;
   height: 100px;
 }
 

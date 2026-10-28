@@ -13,6 +13,7 @@ function handleCheckPress() {
 export interface EnhancedSelectInputOptionProps {
   className?: string;
   id: string | number;
+  optionId: string;
   depth?: number;
   isSelected: boolean;
   isDisabled?: boolean;
@@ -26,6 +27,7 @@ export interface EnhancedSelectInputOptionProps {
 function EnhancedSelectInputOption({
   className = styles.option,
   id,
+  optionId,
   depth = 0,
   isSelected,
   isDisabled = false,
@@ -46,6 +48,11 @@ function EnhancedSelectInputOption({
 
   return (
     <Link
+      id={optionId}
+      role="option"
+      aria-selected={isSelected}
+      aria-disabled={isDisabled || undefined}
+      aria-hidden={isHidden || undefined}
       className={classNames(
         className,
         isSelected && !isMultiSelect && styles.isSelected,

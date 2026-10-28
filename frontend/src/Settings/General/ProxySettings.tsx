@@ -51,20 +51,21 @@ function ProxySettings({
   return (
     <FieldSet legend={translate('Proxy')}>
       <FormGroup size={sizes.MEDIUM}>
-        <FormLabel>{translate('UseProxy')}</FormLabel>
+        <FormLabel name="proxyEnabled">{translate('UseProxy')}</FormLabel>
 
         <FormInputGroup
           type={inputTypes.CHECK}
           name="proxyEnabled"
           onChange={onInputChange}
           {...proxyEnabled}
+          id="proxyEnabled"
         />
       </FormGroup>
 
       {proxyEnabled.value && (
         <div>
           <FormGroup>
-            <FormLabel>{translate('ProxyType')}</FormLabel>
+            <FormLabel name="proxyType">{translate('ProxyType')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.SELECT}
@@ -72,22 +73,24 @@ function ProxySettings({
               values={proxyTypeOptions}
               onChange={onInputChange}
               {...proxyType}
+              id="proxyType"
             />
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>{translate('Hostname')}</FormLabel>
+            <FormLabel name="proxyHostname">{translate('Hostname')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.TEXT}
               name="proxyHostname"
               onChange={onInputChange}
               {...proxyHostname}
+              id="proxyHostname"
             />
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>{translate('Port')}</FormLabel>
+            <FormLabel name="proxyPort">{translate('Port')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.NUMBER}
@@ -96,11 +99,12 @@ function ProxySettings({
               max={65535}
               onChange={onInputChange}
               {...proxyPort}
+              id="proxyPort"
             />
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>{translate('Username')}</FormLabel>
+            <FormLabel name="proxyUsername">{translate('Username')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.TEXT}
@@ -108,11 +112,12 @@ function ProxySettings({
               helpText={translate('ProxyUsernameHelpText')}
               onChange={onInputChange}
               {...proxyUsername}
+              id="proxyUsername"
             />
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>{translate('Password')}</FormLabel>
+            <FormLabel name="proxyPassword">{translate('Password')}</FormLabel>
 
             <FormInputGroup
               type={inputTypes.PASSWORD}
@@ -120,11 +125,14 @@ function ProxySettings({
               helpText={translate('ProxyPasswordHelpText')}
               onChange={onInputChange}
               {...proxyPassword}
+              id="proxyPassword"
             />
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>{translate('IgnoredAddresses')}</FormLabel>
+            <FormLabel name="proxyBypassFilter">
+              {translate('IgnoredAddresses')}
+            </FormLabel>
 
             <FormInputGroup
               type={inputTypes.TEXT}
@@ -132,17 +140,21 @@ function ProxySettings({
               helpText={translate('ProxyBypassFilterHelpText')}
               onChange={onInputChange}
               {...proxyBypassFilter}
+              id="proxyBypassFilter"
             />
           </FormGroup>
 
           <FormGroup size={sizes.MEDIUM}>
-            <FormLabel>{translate('BypassProxyForLocalAddresses')}</FormLabel>
+            <FormLabel name="proxyBypassLocalAddresses">
+              {translate('BypassProxyForLocalAddresses')}
+            </FormLabel>
 
             <FormInputGroup
               type={inputTypes.CHECK}
               name="proxyBypassLocalAddresses"
               onChange={onInputChange}
               {...proxyBypassLocalAddresses}
+              id="proxyBypassLocalAddresses"
             />
           </FormGroup>
         </div>

@@ -227,6 +227,7 @@ export type FormInputGroupProps<V, C extends InputType> = Omit<
   inputClassName?: string;
   autoFocus?: boolean;
   autocomplete?: string;
+  id?: string;
   name: string;
   buttons?: ReactNode | ReactNode[];
   helpText?: string;
@@ -334,7 +335,7 @@ function FormInputGroup<T, C extends InputType>(
         </div>
       ) : null}
 
-      {(!checkInput || helpText) && helpTextWarning ? (
+      {!checkInput && helpTextWarning ? (
         <FormInputHelpText text={helpTextWarning} isWarning={true} />
       ) : null}
 

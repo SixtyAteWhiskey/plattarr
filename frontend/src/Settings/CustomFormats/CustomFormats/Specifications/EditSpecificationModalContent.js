@@ -64,7 +64,7 @@ function EditSpecificationModalContent(props) {
           }
 
           <FormGroup>
-            <FormLabel>
+            <FormLabel name="name">
               {translate('Name')}
             </FormLabel>
 
@@ -73,6 +73,7 @@ function EditSpecificationModalContent(props) {
               name="name"
               {...name}
               onChange={onInputChange}
+              id="name"
             />
           </FormGroup>
 
@@ -92,7 +93,7 @@ function EditSpecificationModalContent(props) {
           }
 
           <FormGroup>
-            <FormLabel>
+            <FormLabel name="negate">
               {translate('Negate')}
             </FormLabel>
 
@@ -102,11 +103,12 @@ function EditSpecificationModalContent(props) {
               {...negate}
               helpText={translate('NegateHelpText', { implementationName })}
               onChange={onInputChange}
+              id="negate"
             />
           </FormGroup>
 
           <FormGroup>
-            <FormLabel>
+            <FormLabel name="required">
               {translate('Required')}
             </FormLabel>
 
@@ -116,6 +118,7 @@ function EditSpecificationModalContent(props) {
               {...required}
               helpText={translate('RequiredHelpText', { implementationName })}
               onChange={onInputChange}
+              id="required"
             />
           </FormGroup>
         </Form>

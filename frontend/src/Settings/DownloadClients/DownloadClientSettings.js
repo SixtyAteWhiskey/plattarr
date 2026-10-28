@@ -6,6 +6,7 @@ import PageContentBody from 'Components/Page/PageContentBody';
 import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
 import PageToolbarSeparator from 'Components/Page/Toolbar/PageToolbarSeparator';
 import { icons } from 'Helpers/Props';
+import SettingsPageHeader from 'Settings/SettingsPageHeader';
 import SettingsToolbar from 'Settings/SettingsToolbar';
 import translate from 'Utilities/String/translate';
 import DownloadClientsConnector from './DownloadClients/DownloadClientsConnector';
@@ -99,6 +100,7 @@ class DownloadClientSettings extends Component {
         />
 
         <PageContentBody>
+          <SettingsPageHeader title="DownloadClientSettings" summary="DownloadClientsSettingsSummary" />
           <DownloadClientsConnector />
 
           <DownloadClientOptionsConnector

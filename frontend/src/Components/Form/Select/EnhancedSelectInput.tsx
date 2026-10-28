@@ -24,6 +24,7 @@ import { EnhancedSelectInputChanged, InputChanged } from 'typings/inputs';
 import { isMobile as isMobileUtil } from 'Utilities/browser';
 import * as keyCodes from 'Utilities/Constants/keyCodes';
 import getUniqueElementId from 'Utilities/getUniqueElementId';
+import translate from 'Utilities/String/translate';
 import TextInput from '../TextInput';
 import HintedSelectInputOption from './HintedSelectInputOption';
 import HintedSelectInputSelectedValue from './HintedSelectInputSelectedValue';
@@ -47,20 +48,25 @@ function findIndex<T extends EnhancedSelectInputValue<V>, V>(
   direction: 1 | -1,
   values: T[]
 ) {
+  if (!values.length) {
+    return null;
+  }
+
   let indexToTest = startingIndex + direction;
 
-  while (indexToTest !== startingIndex) {
+  for (let attempts = 0; attempts < values.length; attempts++) {
     if (indexToTest < 0) {
       indexToTest = values.length - 1;
     } else if (indexToTest >= values.length) {
       indexToTest = 0;
     }
 
-    if (getSelectedOption(indexToTest, values).isDisabled) {
-      indexToTest = indexToTest + direction;
-    } else {
+    const option = getSelectedOption(indexToTest, values);
+    if (!option.isDisabled && !option.isHidden) {
       return indexToTest;
     }
+
+    indexToTest += direction;
   }
 
   return null;
@@ -168,14 +174,49 @@ function EnhancedSelectInput<T extends EnhancedSelectInputValue<V>, V>(
   const updater = useRef<(() => void) | null>(null);
   const buttonId = useMemo(() => getUniqueElementId(), []);
   const optionsId = useMemo(() => getUniqueElementId(), []);
+  const mobileOptionsId = useMemo(() => getUniqueElementId(), []);
   const [selectedIndex, setSelectedIndex] = useState(
     getSelectedIndex(value, values)
   );
   const [isOpen, setIsOpen] = useState(false);
   const isMobile = useMemo(() => isMobileUtil(), []);
+  const wasOpen = useRef(isOpen);
+  const focusReturnElement = useRef<HTMLElement | null>(null);
+
+  const rememberFocusReturnElement = useCallback(() => {
+    const activeElement = document.activeElement;
+
+    if (
+      activeElement instanceof HTMLElement &&
+      activeElement !== document.body
+    ) {
+      focusReturnElement.current = activeElement;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isMobile && wasOpen.current && !isOpen) {
+      const element = focusReturnElement.current;
+
+      if (element?.isConnected) {
+        window.requestAnimationFrame(() => element.focus());
+      }
+    }
+
+    wasOpen.current = isOpen;
+  }, [isMobile, isOpen]);
 
   const isMultiSelect = Array.isArray(value);
   const selectedOption = getSelectedOption(selectedIndex, values);
+  const listboxId = isMobile ? mobileOptionsId : optionsId;
+  const activeDescendantId =
+    isOpen &&
+    selectedIndex >= 0 &&
+    selectedIndex < values.length &&
+    !values[selectedIndex].isDisabled &&
+    !values[selectedIndex].isHidden
+      ? `${listboxId}-option-${selectedIndex}`
+      : undefined;
 
   const selectedValue = useMemo(() => {
     if (values.length) {
@@ -236,8 +277,12 @@ function EnhancedSelectInput<T extends EnhancedSelectInputValue<V>, V>(
       onOpen();
     }
 
+    if (!isOpen && isMobile) {
+      rememberFocusReturnElement();
+    }
+
     setIsOpen(!isOpen);
-  }, [isOpen, setIsOpen, onOpen]);
+  }, [isOpen, setIsOpen, onOpen, isMobile, rememberFocusReturnElement]);
 
   const handleSelect = useCallback(
     (newValue: ArrayElement<V>) => {
@@ -300,7 +345,7 @@ function EnhancedSelectInput<T extends EnhancedSelectInputValue<V>, V>(
   }, [isOpen, setIsOpen, removeListener]);
 
   const handleKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLButtonElement>) => {
+    (event: KeyboardEvent<HTMLElement>) => {
       const keyCode = event.keyCode;
       let nextIsOpen: boolean | null = null;
       let nextSelectedIndex: number | null = null;
@@ -309,6 +354,10 @@ function EnhancedSelectInput<T extends EnhancedSelectInputValue<V>, V>(
         if (isArrowKey(keyCode)) {
           event.preventDefault();
           nextIsOpen = true;
+
+          if (isMobile) {
+            rememberFocusReturnElement();
+          }
         }
 
         if (
@@ -346,12 +395,42 @@ function EnhancedSelectInput<T extends EnhancedSelectInputValue<V>, V>(
       if (keyCode === keyCodes.ENTER) {
         event.preventDefault();
         nextIsOpen = false;
-        handleSelect(values[selectedIndex].key);
+        if (selectedIndex >= 0 && values[selectedIndex]) {
+          handleSelect(values[selectedIndex].key);
+        }
       }
 
       if (keyCode === keyCodes.TAB) {
         nextIsOpen = false;
-        handleSelect(values[selectedIndex].key);
+        if (selectedIndex >= 0 && values[selectedIndex]) {
+          handleSelect(values[selectedIndex].key);
+        }
+
+        if (
+          isMobile &&
+          event.currentTarget.getAttribute('role') === 'listbox'
+        ) {
+          event.preventDefault();
+
+          const focusableElements = Array.from(
+            document.querySelectorAll<HTMLElement>(
+              'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            )
+          ).filter(
+            (element) =>
+              element.tabIndex >= 0 &&
+              element.getClientRects().length > 0 &&
+              !element.closest('[aria-hidden="true"]')
+          );
+          const currentFocusIndex = focusableElements.indexOf(
+            focusReturnElement.current as HTMLElement
+          );
+
+          focusReturnElement.current =
+            currentFocusIndex >= 0
+              ? focusableElements[currentFocusIndex + 1] ?? null
+              : null;
+        }
       }
 
       if (keyCode === keyCodes.ESCAPE) {
@@ -377,6 +456,8 @@ function EnhancedSelectInput<T extends EnhancedSelectInputValue<V>, V>(
       setIsOpen,
       setSelectedIndex,
       handleSelect,
+      isMobile,
+      rememberFocusReturnElement,
     ]
   );
 
@@ -417,14 +498,23 @@ function EnhancedSelectInput<T extends EnhancedSelectInputValue<V>, V>(
                 {isEditable && typeof value === 'string' ? (
                   <div className={styles.editableContainer}>
                     <TextInput
+                      id={id}
                       className={className}
                       name={name}
                       value={value}
                       readOnly={isDisabled}
                       hasError={hasError}
                       hasWarning={hasWarning}
+                      role="combobox"
+                      aria-haspopup="listbox"
+                      aria-expanded={isOpen}
+                      aria-controls={isOpen ? listboxId : undefined}
+                      aria-activedescendant={activeDescendantId}
+                      aria-labelledby={id ? `${id}-label` : undefined}
+                      aria-autocomplete="list"
                       onFocus={handleFocus}
                       onBlur={handleBlur}
+                      onKeyDown={handleKeyDown}
                       onChange={handleEditChange}
                     />
                     <Link
@@ -456,6 +546,12 @@ function EnhancedSelectInput<T extends EnhancedSelectInputValue<V>, V>(
                       isDisabled && disabledClassName
                     )}
                     isDisabled={isDisabled}
+                    role="combobox"
+                    aria-haspopup="listbox"
+                    aria-expanded={isOpen}
+                    aria-controls={isOpen ? listboxId : undefined}
+                    aria-activedescendant={activeDescendantId}
+                    aria-labelledby={id ? `${id}-label` : undefined}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
                     onPress={handlePress}
@@ -514,6 +610,9 @@ function EnhancedSelectInput<T extends EnhancedSelectInputValue<V>, V>(
                 <div
                   ref={ref}
                   id={optionsId}
+                  role="listbox"
+                  aria-hidden={!isOpen || isMobile}
+                  aria-multiselectable={isMultiSelect || undefined}
                   className={styles.optionsContainer}
                   style={{
                     ...style,
@@ -541,9 +640,10 @@ function EnhancedSelectInput<T extends EnhancedSelectInputValue<V>, V>(
                           <OptionComponent
                             key={v.key}
                             id={v.key}
+                            optionId={`${optionsId}-option-${index}`}
                             depth={depth}
                             isSelected={isSelectedItem(index, value, values)}
-                            isDisabled={parentSelected}
+                            isDisabled={!!v.isDisabled || parentSelected}
                             isMultiSelect={isMultiSelect}
                             {...valueOptions}
                             {...other}
@@ -575,16 +675,26 @@ function EnhancedSelectInput<T extends EnhancedSelectInputValue<V>, V>(
             innerClassName={styles.optionsInnerModalBody}
             scrollDirection="none"
           >
-            <Scroller className={styles.optionsModalScroller}>
-              <div className={styles.mobileCloseButtonContainer}>
-                <Link
-                  className={styles.mobileCloseButton}
-                  onPress={handleOptionsModalClose}
-                >
-                  <Icon name={icons.CLOSE} size={18} />
-                </Link>
-              </div>
+            <div className={styles.mobileCloseButtonContainer}>
+              <Link
+                aria-label={translate('Close')}
+                className={styles.mobileCloseButton}
+                onPress={handleOptionsModalClose}
+              >
+                <Icon name={icons.CLOSE} size={18} />
+              </Link>
+            </div>
 
+            <Scroller
+              id={mobileOptionsId}
+              role="listbox"
+              aria-multiselectable={isMultiSelect || undefined}
+              aria-activedescendant={activeDescendantId}
+              className={styles.optionsModalScroller}
+              autoFocus={true}
+              tabIndex={0}
+              onKeyDown={handleKeyDown}
+            >
               {values.map((v, index) => {
                 const hasParent = v.parentKey !== undefined;
                 const depth = hasParent ? 1 : 0;
@@ -599,10 +709,11 @@ function EnhancedSelectInput<T extends EnhancedSelectInputValue<V>, V>(
                   <OptionComponent
                     key={key}
                     id={key}
+                    optionId={`${mobileOptionsId}-option-${index}`}
                     depth={depth}
                     isSelected={isSelectedItem(index, value, values)}
                     isMultiSelect={isMultiSelect}
-                    isDisabled={parentSelected}
+                    isDisabled={!!v.isDisabled || parentSelected}
                     {...valueOptions}
                     {...other}
                     isMobile={true}

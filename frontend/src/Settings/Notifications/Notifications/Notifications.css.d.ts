@@ -3,7 +3,6 @@
 interface CssExports {
   'addNotification': string;
   'center': string;
-  'notifications': string;
 }
 export const cssExports: CssExports;
 export default cssExports;

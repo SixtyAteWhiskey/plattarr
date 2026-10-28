@@ -6,6 +6,7 @@ import { icons } from 'Helpers/Props';
 import styles from './FormInputHelpText.css';
 
 interface FormInputHelpTextProps {
+  id?: string;
   className?: string;
   text: string;
   link?: string;
@@ -16,6 +17,7 @@ interface FormInputHelpTextProps {
 }
 
 function FormInputHelpText({
+  id,
   className = styles.helpText,
   text,
   link,
@@ -26,6 +28,7 @@ function FormInputHelpText({
 }: FormInputHelpTextProps) {
   return (
     <div
+      id={id}
       className={classNames(
         className,
         isError && styles.isError,

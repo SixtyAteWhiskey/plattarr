@@ -115,11 +115,14 @@ class CustomFormat extends Component {
               }
 
               let kind = kinds.DEFAULT;
+              let conditionLabel = '';
               if (item.required) {
                 kind = kinds.SUCCESS;
+                conditionLabel = `${translate('MustContain')}: `;
               }
               if (item.negate) {
                 kind = kinds.DANGER;
+                conditionLabel = `${translate('MustNotContain')}: `;
               }
 
               return (
@@ -128,7 +131,7 @@ class CustomFormat extends Component {
                   key={index}
                   kind={kind}
                 >
-                  {item.name}
+                  {conditionLabel}{item.name}
                 </Label>
               );
             })

@@ -79,13 +79,14 @@ function EditNotificationModalContent(props) {
               }
 
               <FormGroup>
-                <FormLabel>{translate('Name')}</FormLabel>
+                <FormLabel name="name">{translate('Name')}</FormLabel>
 
                 <FormInputGroup
                   type={inputTypes.TEXT}
                   name="name"
                   {...name}
                   onChange={onInputChange}
+                  id="name"
                 />
               </FormGroup>
 
@@ -95,7 +96,7 @@ function EditNotificationModalContent(props) {
               />
 
               <FormGroup>
-                <FormLabel>{translate('Tags')}</FormLabel>
+                <FormLabel name="tags">{translate('Tags')}</FormLabel>
 
                 <FormInputGroup
                   type={inputTypes.TAG}
@@ -103,6 +104,7 @@ function EditNotificationModalContent(props) {
                   helpText={translate('NotificationsTagsHelpText')}
                   {...tags}
                   onChange={onInputChange}
+                  id="tags"
                 />
               </FormGroup>
 

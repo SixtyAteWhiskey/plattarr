@@ -48,7 +48,7 @@ function LoggingSettings({
   return (
     <FieldSet legend={translate('Logging')}>
       <FormGroup>
-        <FormLabel>{translate('LogLevel')}</FormLabel>
+        <FormLabel name="logLevel">{translate('LogLevel')}</FormLabel>
 
         <FormInputGroup
           type={inputTypes.SELECT}
@@ -61,11 +61,12 @@ function LoggingSettings({
           }
           onChange={onInputChange}
           {...logLevel}
+          id="logLevel"
         />
       </FormGroup>
 
       <FormGroup advancedSettings={showAdvancedSettings} isAdvanced={true}>
-        <FormLabel>{translate('LogSizeLimit')}</FormLabel>
+        <FormLabel name="logSizeLimit">{translate('LogSizeLimit')}</FormLabel>
 
         <FormInputGroup
           type={inputTypes.NUMBER}
@@ -76,6 +77,7 @@ function LoggingSettings({
           helpText={translate('LogSizeLimitHelpText')}
           onChange={onInputChange}
           {...logSizeLimit}
+          id="logSizeLimit"
         />
       </FormGroup>
     </FieldSet>

@@ -1,5 +1,11 @@
 import classNames from 'classnames';
-import React, { SyntheticEvent, useCallback, useEffect, useRef } from 'react';
+import React, {
+  SyntheticEvent,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+} from 'react';
 import Icon from 'Components/Icon';
 import { icons } from 'Helpers/Props';
 import { Kind } from 'Helpers/Props/kinds';
@@ -41,6 +47,13 @@ function CheckInput(props: CheckInputProps) {
     kind = 'primary',
     onChange,
   } = props;
+
+  const generatedId = useId();
+  const helpTextId = `${id ?? generatedId}-help-text`;
+  const warningTextId = `${id ?? generatedId}-help-text-warning`;
+  const describedBy = [helpText && helpTextId, helpTextWarning && warningTextId]
+    .filter(Boolean)
+    .join(' ');
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -103,6 +116,7 @@ function CheckInput(props: CheckInputProps) {
         <input
           ref={inputRef}
           id={id}
+          aria-describedby={describedBy || undefined}
           className={styles.checkbox}
           type="checkbox"
           name={name}
@@ -123,19 +137,24 @@ function CheckInput(props: CheckInputProps) {
 
           {isIndeterminate ? <Icon name={icons.CHECK_INDETERMINATE} /> : null}
         </div>
-
-        {helpText ? (
-          <FormInputHelpText className={styles.helpText} text={helpText} />
-        ) : null}
-
-        {!helpText && helpTextWarning ? (
-          <FormInputHelpText
-            className={styles.helpText}
-            text={helpTextWarning}
-            isWarning={true}
-          />
-        ) : null}
       </label>
+
+      {helpText ? (
+        <FormInputHelpText
+          id={helpTextId}
+          className={styles.helpText}
+          text={helpText}
+        />
+      ) : null}
+
+      {helpTextWarning ? (
+        <FormInputHelpText
+          id={warningTextId}
+          className={styles.helpText}
+          text={helpTextWarning}
+          isWarning={true}
+        />
+      ) : null}
     </div>
   );
 }

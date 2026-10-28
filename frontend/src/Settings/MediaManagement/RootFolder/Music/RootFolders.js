@@ -3,6 +3,7 @@ import React, { Component } from 'react';
 import Card from 'Components/Card';
 import FieldSet from 'Components/FieldSet';
 import Icon from 'Components/Icon';
+import { ResponsiveGrid } from 'Components/Layout';
 import PageSectionContent from 'Components/Page/PageSectionContent';
 import { icons } from 'Helpers/Props';
 import translate from 'Utilities/String/translate';
@@ -52,7 +53,7 @@ class RootFolders extends Component {
           errorMessage={translate('UnableToLoadRootFolders')}
           {...otherProps}
         >
-          <div className={styles.rootFolders}>
+          <ResponsiveGrid minimum="wide" gap="medium">
             {
               items.map((item) => {
                 const qualityProfile = qualityProfiles.find((profile) => profile.id === item.defaultQualityProfileId);
@@ -70,6 +71,7 @@ class RootFolders extends Component {
             }
 
             <Card
+              aria-label={translate('AddRootFolder')}
               className={styles.addRootFolder}
               onPress={this.onAddRootFolderPress}
             >
@@ -80,7 +82,7 @@ class RootFolders extends Component {
                 />
               </div>
             </Card>
-          </div>
+          </ResponsiveGrid>
 
           <EditRootFolderModalConnector
             isOpen={this.state.isAddRootFolderModalOpen}

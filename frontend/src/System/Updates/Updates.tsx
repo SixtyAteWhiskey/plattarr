@@ -12,6 +12,7 @@ import InlineMarkdown from 'Components/Markdown/InlineMarkdown';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
+import PageIntro from 'Components/Page/PageIntro';
 import { icons, kinds } from 'Helpers/Props';
 import { executeCommand } from 'Store/Actions/commandActions';
 import { fetchGeneralSettings } from 'Store/Actions/settingsActions';
@@ -135,6 +136,10 @@ function Updates() {
   return (
     <PageContent title={translate('Updates')}>
       <PageContentBody>
+        <PageIntro
+          title={translate('Updates')}
+          description={translate('SystemUpdatesSummary')}
+        />
         {isPopulated || hasError ? null : <LoadingIndicator />}
 
         {noUpdates ? (
@@ -270,13 +275,13 @@ function Updates() {
         )}
 
         {updatesError ? (
-          <Alert kind={kinds.WARNING}>
+          <Alert kind={kinds.WARNING} role="alert">
             {translate('FailedToFetchUpdates')}
           </Alert>
         ) : null}
 
         {generalSettingsError ? (
-          <Alert kind={kinds.DANGER}>
+          <Alert kind={kinds.DANGER} role="alert">
             {translate('FailedToUpdateSettings')}
           </Alert>
         ) : null}

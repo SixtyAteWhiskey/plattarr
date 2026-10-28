@@ -26,7 +26,7 @@ function FormsAuthenticationSettings({
   return (
     <>
       <FormGroup>
-        <FormLabel>{translate('Username')}</FormLabel>
+        <FormLabel name="username">{translate('Username')}</FormLabel>
 
         <FormInputGroup
           type={inputTypes.TEXT}
@@ -38,11 +38,12 @@ function FormsAuthenticationSettings({
           }
           onChange={onInputChange}
           {...username}
+          id="username"
         />
       </FormGroup>
 
       <FormGroup>
-        <FormLabel>{translate('Password')}</FormLabel>
+        <FormLabel name="password">{translate('Password')}</FormLabel>
 
         <FormInputGroup
           type={inputTypes.PASSWORD}
@@ -54,11 +55,14 @@ function FormsAuthenticationSettings({
           }
           onChange={onInputChange}
           {...password}
+          id="password"
         />
       </FormGroup>
 
       <FormGroup>
-        <FormLabel>{translate('PasswordConfirmation')}</FormLabel>
+        <FormLabel name="passwordConfirmation">
+          {translate('PasswordConfirmation')}
+        </FormLabel>
 
         <FormInputGroup
           type={inputTypes.PASSWORD}
@@ -72,6 +76,7 @@ function FormsAuthenticationSettings({
           }
           onChange={onInputChange}
           {...passwordConfirmation}
+          id="passwordConfirmation"
         />
       </FormGroup>
     </>

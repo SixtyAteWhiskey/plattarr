@@ -5,6 +5,7 @@ import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
 import { useMediaKind } from 'Helpers/mediaKindStore';
 import { kinds } from 'Helpers/Props';
+import SettingsPageHeader from 'Settings/SettingsPageHeader';
 import SettingsToolbar from 'Settings/SettingsToolbar';
 import translate from 'Utilities/String/translate';
 import Metadatas from './Metadata/Metadatas';
@@ -47,6 +48,7 @@ function MetadataSettings() {
       />
 
       <PageContentBody>
+        <SettingsPageHeader title="MetadataSettings" summary="MetadataSettingsSummary" />
         {isTv ? null : (
           <MetadataOptionsConnector
             isMusic={isMusic}

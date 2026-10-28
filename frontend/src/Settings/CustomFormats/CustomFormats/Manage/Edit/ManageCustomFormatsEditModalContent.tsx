@@ -93,13 +93,16 @@ function ManageCustomFormatsEditModalContent(
 
       <ModalBody>
         <FormGroup>
-          <FormLabel>{translate('IncludeCustomFormatWhenRenaming')}</FormLabel>
+          <FormLabel name="includeCustomFormatWhenRenaming">
+            {translate('IncludeCustomFormatWhenRenaming')}
+          </FormLabel>
 
           <FormInputGroup
             type={inputTypes.SELECT}
             name="includeCustomFormatWhenRenaming"
             value={includeCustomFormatWhenRenaming}
             values={enableOptions}
+            id="includeCustomFormatWhenRenaming"
             onChange={onInputChange}
           />
         </FormGroup>

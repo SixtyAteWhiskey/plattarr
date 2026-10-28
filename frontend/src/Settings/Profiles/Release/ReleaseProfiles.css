@@ -1,8 +1,3 @@
-.releaseProfiles {
-  display: flex;
-  flex-wrap: wrap;
-}
-
 .addReleaseProfile {
   composes: releaseProfile from '~./ReleaseProfileItem.css';
 

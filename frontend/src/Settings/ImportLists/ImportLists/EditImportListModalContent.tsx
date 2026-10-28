@@ -138,66 +138,75 @@ function EditImportListModalContent({
             </Alert>
 
             <FormGroup>
-              <FormLabel>{translate('Name')}</FormLabel>
+              <FormLabel name="name">{translate('Name')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.TEXT}
                 name="name"
                 {...name}
+                id="name"
                 onChange={handleInputChange}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>{translate('Enable')}</FormLabel>
+              <FormLabel name="enabled">{translate('Enable')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.CHECK}
                 name="enabled"
                 helpText={translate('ListEnabledHelpText')}
                 {...enabled}
+                id="enabled"
                 onChange={handleInputChange}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>{translate('EnableAutomaticAdd')}</FormLabel>
+              <FormLabel name="enableAuto">
+                {translate('EnableAutomaticAdd')}
+              </FormLabel>
 
               <FormInputGroup
                 type={inputTypes.CHECK}
                 name="enableAuto"
                 helpText={translate('EnableAutomaticAddMovieHelpText')}
                 {...enableAuto}
+                id="enableAuto"
                 onChange={handleInputChange}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>{translate('Monitor')}</FormLabel>
+              <FormLabel name="monitor">{translate('Monitor')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.MONITOR_MOVIES_SELECT}
                 name="monitor"
                 helpText={translate('ListMonitorMovieHelpText')}
                 {...monitor}
+                id="monitor"
                 onChange={handleInputChange}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>{translate('SearchOnAdd')}</FormLabel>
+              <FormLabel name="searchOnAdd">
+                {translate('SearchOnAdd')}
+              </FormLabel>
 
               <FormInputGroup
                 type={inputTypes.CHECK}
                 name="searchOnAdd"
                 helpText={translate('ListSearchOnAddMovieHelpText')}
                 {...searchOnAdd}
+                id="searchOnAdd"
                 onChange={handleInputChange}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>
+              <FormLabel name="minimumAvailability">
                 {translate('MinimumAvailability')}
 
                 <Popover
@@ -215,24 +224,30 @@ function EditImportListModalContent({
                 name="minimumAvailability"
                 {...minimumAvailability}
                 helpLink="https://github.com/SixtyAteWhiskey/plattarr/blob/develop/docs/first-run.md"
+                id="minimumAvailability"
                 onChange={handleInputChange}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>{translate('QualityProfile')}</FormLabel>
+              <FormLabel name="qualityProfileId">
+                {translate('QualityProfile')}
+              </FormLabel>
 
               <FormInputGroup
                 type={inputTypes.QUALITY_PROFILE_SELECT}
                 name="qualityProfileId"
                 helpText={translate('ListQualityProfileHelpText')}
                 {...qualityProfileId}
+                id="qualityProfileId"
                 onChange={handleInputChange}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>{translate('RootFolder')}</FormLabel>
+              <FormLabel name="rootFolderPath">
+                {translate('RootFolder')}
+              </FormLabel>
 
               <FormInputGroup
                 type={inputTypes.ROOT_FOLDER_SELECT}
@@ -240,18 +255,20 @@ function EditImportListModalContent({
                 helpText={translate('ListRootFolderHelpText')}
                 {...rootFolderPath}
                 includeMissingValue={true}
+                id="rootFolderPath"
                 onChange={handleInputChange}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>{translate('RadarrTags')}</FormLabel>
+              <FormLabel name="tags">{translate('RadarrTags')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.TAG}
                 name="tags"
                 helpText={translate('ListTagsHelpText')}
                 {...tags}
+                id="tags"
                 onChange={handleInputChange}
               />
             </FormGroup>

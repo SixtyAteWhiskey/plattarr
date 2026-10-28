@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import AppState from 'App/State/AppState';
 import Alert from 'Components/Alert';
 import FieldSet from 'Components/FieldSet';
+import { ResponsiveGrid } from 'Components/Layout';
 import Button from 'Components/Link/Button';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import ModalBody from 'Components/Modal/ModalBody';
@@ -15,7 +16,6 @@ import ImportList from 'typings/ImportList';
 import titleCase from 'Utilities/String/titleCase';
 import translate from 'Utilities/String/translate';
 import AddImportListItem from './AddImportListItem';
-import styles from './AddImportListModalContent.css';
 
 export interface AddImportListModalContentProps {
   onImportListSelect: () => void;
@@ -80,7 +80,7 @@ function AddImportListModalContent({
                     typeOfList: titleCase(key),
                   })}
                 >
-                  <div className={styles.lists}>
+                  <ResponsiveGrid minimum="wide" gap="medium">
                     {listGroups[key].map((list) => {
                       return (
                         <AddImportListItem
@@ -91,7 +91,7 @@ function AddImportListModalContent({
                         />
                       );
                     })}
-                  </div>
+                  </ResponsiveGrid>
                 </FieldSet>
               );
             })}

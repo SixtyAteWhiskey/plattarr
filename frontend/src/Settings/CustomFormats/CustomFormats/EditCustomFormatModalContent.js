@@ -8,6 +8,7 @@ import FormGroup from 'Components/Form/FormGroup';
 import FormInputGroup from 'Components/Form/FormInputGroup';
 import FormLabel from 'Components/Form/FormLabel';
 import Icon from 'Components/Icon';
+import { ResponsiveGrid } from 'Components/Layout';
 import Button from 'Components/Link/Button';
 import SpinnerErrorButton from 'Components/Link/SpinnerErrorButton';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
@@ -125,7 +126,7 @@ class EditCustomFormatModalContent extends Component {
                     {...otherProps}
                   >
                     <FormGroup>
-                      <FormLabel>
+                      <FormLabel name="name">
                         {translate('Name')}
                       </FormLabel>
 
@@ -134,11 +135,12 @@ class EditCustomFormatModalContent extends Component {
                         name="name"
                         {...name}
                         onChange={onInputChange}
+                        id="name"
                       />
                     </FormGroup>
 
                     <FormGroup>
-                      <FormLabel>{translate('IncludeCustomFormatWhenRenaming')}</FormLabel>
+                      <FormLabel name="includeCustomFormatWhenRenaming">{translate('IncludeCustomFormatWhenRenaming')}</FormLabel>
 
                       <FormInputGroup
                         type={inputTypes.CHECK}
@@ -146,6 +148,7 @@ class EditCustomFormatModalContent extends Component {
                         helpText={translate('IncludeCustomFormatWhenRenamingHelpText')}
                         {...includeCustomFormatWhenRenaming}
                         onChange={onInputChange}
+                        id="includeCustomFormatWhenRenaming"
                       />
                     </FormGroup>
                   </Form>
@@ -156,7 +159,7 @@ class EditCustomFormatModalContent extends Component {
                         {translate('CustomFormatsSettingsTriggerInfo')}
                       </div>
                     </Alert>
-                    <div className={styles.customFormats}>
+                    <ResponsiveGrid minimum="wide" gap="medium">
                       {
                         specifications.map((tag) => {
                           return (
@@ -171,6 +174,7 @@ class EditCustomFormatModalContent extends Component {
                       }
 
                       <Card
+                        aria-label={translate('AddSpecification')}
                         className={styles.addSpecification}
                         onPress={this.onAddSpecificationPress}
                       >
@@ -181,7 +185,7 @@ class EditCustomFormatModalContent extends Component {
                           />
                         </div>
                       </Card>
-                    </div>
+                    </ResponsiveGrid>
                   </FieldSet>
 
                   <AddSpecificationModal

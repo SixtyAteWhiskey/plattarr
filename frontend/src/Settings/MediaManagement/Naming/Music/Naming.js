@@ -143,7 +143,7 @@ class Naming extends Component {
           hasSettings && !isFetching && !error &&
             <Form>
               <FormGroup size={sizes.MEDIUM}>
-                <FormLabel>
+                <FormLabel name="renameTracks">
                   {translate('RenameTracks')}
                 </FormLabel>
 
@@ -153,11 +153,12 @@ class Naming extends Component {
                   helpText={translate('RenameTracksHelpText')}
                   onChange={onInputChange}
                   {...settings.renameTracks}
+                  id="renameTracks"
                 />
               </FormGroup>
 
               <FormGroup size={sizes.MEDIUM}>
-                <FormLabel>
+                <FormLabel name="replaceIllegalCharacters">
                   {translate('ReplaceIllegalCharacters')}
                 </FormLabel>
 
@@ -167,13 +168,14 @@ class Naming extends Component {
                   helpText={translate('ReplaceIllegalCharactersHelpText')}
                   onChange={onInputChange}
                   {...settings.replaceIllegalCharacters}
+                  id="replaceIllegalCharacters"
                 />
               </FormGroup>
 
               {
                 replaceIllegalCharacters ?
                   <FormGroup>
-                    <FormLabel>
+                    <FormLabel name="colonReplacementFormat">
                       {translate('ColonReplacement')}
                     </FormLabel>
 
@@ -183,6 +185,7 @@ class Naming extends Component {
                       values={colonReplacementOptions}
                       onChange={onInputChange}
                       {...settings.colonReplacementFormat}
+                      id="colonReplacementFormat"
                     />
                   </FormGroup> :
                   null
@@ -192,7 +195,7 @@ class Naming extends Component {
                 renameTracks &&
                   <div>
                     <FormGroup size={sizes.LARGE}>
-                      <FormLabel>
+                      <FormLabel name="standardTrackFormat">
                         {translate('StandardTrackFormat')}
                       </FormLabel>
 
@@ -205,11 +208,12 @@ class Naming extends Component {
                         {...settings.standardTrackFormat}
                         helpTexts={standardTrackFormatHelpTexts}
                         errors={[...standardTrackFormatErrors, ...settings.standardTrackFormat.errors]}
+                        id="standardTrackFormat"
                       />
                     </FormGroup>
 
                     <FormGroup size={sizes.LARGE}>
-                      <FormLabel>
+                      <FormLabel name="multiDiscTrackFormat">
                         {translate('MultiDiscTrackFormat')}
                       </FormLabel>
 
@@ -222,6 +226,7 @@ class Naming extends Component {
                         {...settings.multiDiscTrackFormat}
                         helpTexts={multiDiscTrackFormatHelpTexts}
                         errors={[...multiDiscTrackFormatErrors, ...settings.multiDiscTrackFormat.errors]}
+                        id="multiDiscTrackFormat"
                       />
                     </FormGroup>
 
@@ -232,7 +237,7 @@ class Naming extends Component {
                 advancedSettings={advancedSettings}
                 isAdvanced={true}
               >
-                <FormLabel>
+                <FormLabel name="artistFolderFormat">
                   {translate('ArtistFolderFormat')}
                 </FormLabel>
 
@@ -245,6 +250,7 @@ class Naming extends Component {
                   {...settings.artistFolderFormat}
                   helpTexts={['Used when adding a new artist or moving an artist via the artist editor', ...artistFolderFormatHelpTexts]}
                   errors={[...artistFolderFormatErrors, ...settings.artistFolderFormat.errors]}
+                  id="artistFolderFormat"
                 />
               </FormGroup>
 

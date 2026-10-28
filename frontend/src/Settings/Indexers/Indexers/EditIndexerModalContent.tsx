@@ -125,18 +125,19 @@ function EditIndexerModalContent({
             validationWarnings={validationWarnings}
           >
             <FormGroup>
-              <FormLabel>{translate('Name')}</FormLabel>
+              <FormLabel name="name">{translate('Name')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.TEXT}
                 name="name"
                 {...name}
+                id="name"
                 onChange={handleInputChange}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>{translate('EnableRss')}</FormLabel>
+              <FormLabel name="enableRss">{translate('EnableRss')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.CHECK}
@@ -151,12 +152,15 @@ function EditIndexerModalContent({
                 }
                 isDisabled={!supportsRss.value}
                 {...enableRss}
+                id="enableRss"
                 onChange={handleInputChange}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>{translate('EnableAutomaticSearch')}</FormLabel>
+              <FormLabel name="enableAutomaticSearch">
+                {translate('EnableAutomaticSearch')}
+              </FormLabel>
 
               <FormInputGroup
                 type={inputTypes.CHECK}
@@ -173,12 +177,15 @@ function EditIndexerModalContent({
                 }
                 isDisabled={!supportsSearch.value}
                 {...enableAutomaticSearch}
+                id="enableAutomaticSearch"
                 onChange={handleInputChange}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>{translate('EnableInteractiveSearch')}</FormLabel>
+              <FormLabel name="enableInteractiveSearch">
+                {translate('EnableInteractiveSearch')}
+              </FormLabel>
 
               <FormInputGroup
                 type={inputTypes.CHECK}
@@ -195,6 +202,7 @@ function EditIndexerModalContent({
                 }
                 isDisabled={!supportsSearch.value}
                 {...enableInteractiveSearch}
+                id="enableInteractiveSearch"
                 onChange={handleInputChange}
               />
             </FormGroup>
@@ -216,7 +224,9 @@ function EditIndexerModalContent({
               advancedSettings={showAdvancedSettings}
               isAdvanced={true}
             >
-              <FormLabel>{translate('IndexerPriority')}</FormLabel>
+              <FormLabel name="priority">
+                {translate('IndexerPriority')}
+              </FormLabel>
 
               <FormInputGroup
                 type={inputTypes.NUMBER}
@@ -225,6 +235,7 @@ function EditIndexerModalContent({
                 min={1}
                 max={50}
                 {...priority}
+                id="priority"
                 onChange={handleInputChange}
               />
             </FormGroup>
@@ -233,7 +244,9 @@ function EditIndexerModalContent({
               advancedSettings={showAdvancedSettings}
               isAdvanced={true}
             >
-              <FormLabel>{translate('DownloadClient')}</FormLabel>
+              <FormLabel name="downloadClientId">
+                {translate('DownloadClient')}
+              </FormLabel>
 
               <FormInputGroup
                 type={inputTypes.DOWNLOAD_CLIENT_SELECT}
@@ -242,18 +255,20 @@ function EditIndexerModalContent({
                 {...downloadClientId}
                 includeAny={true}
                 protocol={protocol.value}
+                id="downloadClientId"
                 onChange={handleInputChange}
               />
             </FormGroup>
 
             <FormGroup>
-              <FormLabel>{translate('Tags')}</FormLabel>
+              <FormLabel name="tags">{translate('Tags')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.TAG}
                 name="tags"
                 helpText={translate('IndexerTagsHelpText')}
                 {...tags}
+                id="tags"
                 onChange={handleInputChange}
               />
             </FormGroup>

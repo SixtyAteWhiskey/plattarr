@@ -16,6 +16,7 @@ import useShowAdvancedSettings from 'Helpers/Hooks/useShowAdvancedSettings';
 import { useMediaKind } from 'Helpers/mediaKindStore';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
 import RootFolders from 'RootFolder/RootFolders';
+import SettingsPageHeader from 'Settings/SettingsPageHeader';
 import SettingsToolbar from 'Settings/SettingsToolbar';
 import { clearPendingChanges } from 'Store/Actions/baseActions';
 import {
@@ -293,6 +294,10 @@ function MediaManagement() {
       />
 
       <PageContentBody>
+        <SettingsPageHeader
+          title="MediaManagementSettings"
+          summary="MediaManagementSettingsSummary"
+        />
         {isMusic ? <MusicNaming /> : null}
         {!isMusic && isTv ? <TvNaming /> : null}
         {!isMusic && !isTv ? <Naming /> : null}
@@ -324,7 +329,7 @@ function MediaManagement() {
                   isAdvanced={true}
                   size={sizes.MEDIUM}
                 >
-                  <FormLabel>
+                  <FormLabel name={createEmptyFoldersName}>
                     {translate(
                       byKind({
                         movies: 'CreateEmptyMovieFolders',
@@ -350,6 +355,7 @@ function MediaManagement() {
                     )}
                     onChange={handleInputChange}
                     {...createEmptyFolders}
+                    id={createEmptyFoldersName}
                   />
                 </FormGroup>
 
@@ -358,7 +364,9 @@ function MediaManagement() {
                   isAdvanced={true}
                   size={sizes.MEDIUM}
                 >
-                  <FormLabel>{translate('DeleteEmptyFolders')}</FormLabel>
+                  <FormLabel name="deleteEmptyFolders">
+                    {translate('DeleteEmptyFolders')}
+                  </FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.CHECK}
@@ -376,6 +384,7 @@ function MediaManagement() {
                     )}
                     onChange={handleInputChange}
                     {...settings.deleteEmptyFolders}
+                    id="deleteEmptyFolders"
                   />
                 </FormGroup>
               </FieldSet>
@@ -389,7 +398,9 @@ function MediaManagement() {
                     isAdvanced={true}
                     size={sizes.MEDIUM}
                   >
-                    <FormLabel>{translate('EpisodeTitleRequired')}</FormLabel>
+                    <FormLabel name="episodeTitleRequired">
+                      {translate('EpisodeTitleRequired')}
+                    </FormLabel>
 
                     <FormInputGroup
                       type={inputTypes.SELECT}
@@ -398,6 +409,7 @@ function MediaManagement() {
                       helpText={translate('EpisodeTitleRequiredHelpText')}
                       onChange={handleInputChange}
                       {...settings.episodeTitleRequired}
+                      id="episodeTitleRequired"
                     />
                   </FormGroup>
                 ) : null}
@@ -407,7 +419,9 @@ function MediaManagement() {
                   isAdvanced={true}
                   size={sizes.MEDIUM}
                 >
-                  <FormLabel>{translate('SkipFreeSpaceCheck')}</FormLabel>
+                  <FormLabel name="skipFreeSpaceCheckWhenImporting">
+                    {translate('SkipFreeSpaceCheck')}
+                  </FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.CHECK}
@@ -415,6 +429,7 @@ function MediaManagement() {
                     helpText={translate('SkipFreeSpaceCheckHelpText')}
                     onChange={handleInputChange}
                     {...settings.skipFreeSpaceCheckWhenImporting}
+                    id="skipFreeSpaceCheckWhenImporting"
                   />
                 </FormGroup>
 
@@ -423,7 +438,9 @@ function MediaManagement() {
                   isAdvanced={true}
                   size={sizes.MEDIUM}
                 >
-                  <FormLabel>{translate('MinimumFreeSpace')}</FormLabel>
+                  <FormLabel name="minimumFreeSpaceWhenImporting">
+                    {translate('MinimumFreeSpace')}
+                  </FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.NUMBER}
@@ -432,6 +449,7 @@ function MediaManagement() {
                     helpText={translate('MinimumFreeSpaceHelpText')}
                     onChange={handleInputChange}
                     {...settings.minimumFreeSpaceWhenImporting}
+                    id="minimumFreeSpaceWhenImporting"
                   />
                 </FormGroup>
 
@@ -440,7 +458,7 @@ function MediaManagement() {
                   isAdvanced={true}
                   size={sizes.MEDIUM}
                 >
-                  <FormLabel>
+                  <FormLabel name="copyUsingHardlinks">
                     {translate('UseHardlinksInsteadOfCopy')}
                   </FormLabel>
 
@@ -459,6 +477,7 @@ function MediaManagement() {
                     )}
                     onChange={handleInputChange}
                     {...settings.copyUsingHardlinks}
+                    id="copyUsingHardlinks"
                   />
                 </FormGroup>
 
@@ -467,7 +486,9 @@ function MediaManagement() {
                   isAdvanced={true}
                   size={sizes.MEDIUM}
                 >
-                  <FormLabel>{translate('ImportUsingScript')}</FormLabel>
+                  <FormLabel name="useScriptImport">
+                    {translate('ImportUsingScript')}
+                  </FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.CHECK}
@@ -475,6 +496,7 @@ function MediaManagement() {
                     helpText={translate('ImportUsingScriptHelpText')}
                     onChange={handleInputChange}
                     {...settings.useScriptImport}
+                    id="useScriptImport"
                   />
                 </FormGroup>
 
@@ -483,7 +505,9 @@ function MediaManagement() {
                     advancedSettings={showAdvancedSettings}
                     isAdvanced={true}
                   >
-                    <FormLabel>{translate('ImportScriptPath')}</FormLabel>
+                    <FormLabel name="scriptImportPath">
+                      {translate('ImportScriptPath')}
+                    </FormLabel>
 
                     <FormInputGroup
                       type={inputTypes.PATH}
@@ -492,12 +516,15 @@ function MediaManagement() {
                       helpText={translate('ImportScriptPathHelpText')}
                       onChange={handleInputChange}
                       {...settings.scriptImportPath}
+                      id="scriptImportPath"
                     />
                   </FormGroup>
                 ) : null}
 
                 <FormGroup size={sizes.MEDIUM}>
-                  <FormLabel>{translate('ImportExtraFiles')}</FormLabel>
+                  <FormLabel name="importExtraFiles">
+                    {translate('ImportExtraFiles')}
+                  </FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.CHECK}
@@ -511,6 +538,7 @@ function MediaManagement() {
                     )}
                     onChange={handleInputChange}
                     {...settings.importExtraFiles}
+                    id="importExtraFiles"
                   />
                 </FormGroup>
 
@@ -519,7 +547,9 @@ function MediaManagement() {
                     advancedSettings={showAdvancedSettings}
                     isAdvanced={true}
                   >
-                    <FormLabel>{translate('ImportExtraFiles')}</FormLabel>
+                    <FormLabel name="extraFileExtensions">
+                      {translate('ImportExtraFiles')}
+                    </FormLabel>
 
                     <FormInputGroup
                       type={inputTypes.TEXT}
@@ -530,6 +560,7 @@ function MediaManagement() {
                       ]}
                       onChange={handleInputChange}
                       {...settings.extraFileExtensions}
+                      id="extraFileExtensions"
                     />
                   </FormGroup>
                 ) : null}
@@ -540,7 +571,13 @@ function MediaManagement() {
               <FieldSet legend={translate('FileManagement')}>
                 {isMusic ? null : (
                   <FormGroup size={sizes.MEDIUM}>
-                    <FormLabel>
+                    <FormLabel
+                      name={
+                        isTv
+                          ? 'autoUnmonitorPreviouslyDownloadedEpisodes'
+                          : 'autoUnmonitorPreviouslyDownloadedMovies'
+                      }
+                    >
                       {translate(
                         isTv
                           ? 'UnmonitorDeletedEpisodes'
@@ -564,6 +601,11 @@ function MediaManagement() {
                       {...(isTv
                         ? settings.autoUnmonitorPreviouslyDownloadedEpisodes
                         : settings.autoUnmonitorPreviouslyDownloadedMovies)}
+                      id={
+                        isTv
+                          ? 'autoUnmonitorPreviouslyDownloadedEpisodes'
+                          : 'autoUnmonitorPreviouslyDownloadedMovies'
+                      }
                     />
                   </FormGroup>
                 )}
@@ -573,7 +615,7 @@ function MediaManagement() {
                   isAdvanced={true}
                   size={sizes.MEDIUM}
                 >
-                  <FormLabel>
+                  <FormLabel name="downloadPropersAndRepacks">
                     {translate('DownloadPropersAndRepacks')}
                   </FormLabel>
 
@@ -594,6 +636,7 @@ function MediaManagement() {
                     values={downloadPropersAndRepacksOptions}
                     onChange={handleInputChange}
                     {...settings.downloadPropersAndRepacks}
+                    id="downloadPropersAndRepacks"
                   />
                 </FormGroup>
 
@@ -603,7 +646,9 @@ function MediaManagement() {
                     isAdvanced={true}
                     size={sizes.MEDIUM}
                   >
-                    <FormLabel>{translate('AnalyseVideoFiles')}</FormLabel>
+                    <FormLabel name="enableMediaInfo">
+                      {translate('AnalyseVideoFiles')}
+                    </FormLabel>
 
                     <FormInputGroup
                       type={inputTypes.CHECK}
@@ -611,6 +656,7 @@ function MediaManagement() {
                       helpText={translate('AnalyseVideoFilesHelpText')}
                       onChange={handleInputChange}
                       {...settings.enableMediaInfo}
+                      id="enableMediaInfo"
                     />
                   </FormGroup>
                 )}
@@ -619,7 +665,7 @@ function MediaManagement() {
                   advancedSettings={showAdvancedSettings}
                   isAdvanced={true}
                 >
-                  <FormLabel>
+                  <FormLabel name="rescanAfterRefresh">
                     {translate(
                       byKind({
                         movies: 'RescanMovieFolderAfterRefresh',
@@ -645,6 +691,7 @@ function MediaManagement() {
                     values={rescanAfterRefreshOptions}
                     onChange={handleInputChange}
                     {...settings.rescanAfterRefresh}
+                    id="rescanAfterRefresh"
                   />
                 </FormGroup>
 
@@ -652,7 +699,9 @@ function MediaManagement() {
                   advancedSettings={showAdvancedSettings}
                   isAdvanced={true}
                 >
-                  <FormLabel>{translate('ChangeFileDate')}</FormLabel>
+                  <FormLabel name={fileDateName}>
+                    {translate('ChangeFileDate')}
+                  </FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.SELECT}
@@ -667,6 +716,7 @@ function MediaManagement() {
                     })}
                     onChange={handleInputChange}
                     {...settings[fileDateName]}
+                    id={fileDateName}
                   />
                 </FormGroup>
 
@@ -675,7 +725,9 @@ function MediaManagement() {
                     advancedSettings={showAdvancedSettings}
                     isAdvanced={true}
                   >
-                    <FormLabel>{translate('AllowFingerprinting')}</FormLabel>
+                    <FormLabel name="allowFingerprinting">
+                      {translate('AllowFingerprinting')}
+                    </FormLabel>
 
                     <FormInputGroup
                       type={inputTypes.SELECT}
@@ -687,6 +739,7 @@ function MediaManagement() {
                       values={allowFingerprintingOptions}
                       onChange={handleInputChange}
                       {...settings.allowFingerprinting}
+                      id="allowFingerprinting"
                     />
                   </FormGroup>
                 ) : null}
@@ -695,7 +748,9 @@ function MediaManagement() {
                   advancedSettings={showAdvancedSettings}
                   isAdvanced={true}
                 >
-                  <FormLabel>{translate('RecyclingBin')}</FormLabel>
+                  <FormLabel name="recycleBin">
+                    {translate('RecyclingBin')}
+                  </FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.PATH}
@@ -706,6 +761,7 @@ function MediaManagement() {
                     includeFiles={false}
                     onChange={handleInputChange}
                     {...settings.recycleBin}
+                    id="recycleBin"
                   />
                 </FormGroup>
 
@@ -713,7 +769,9 @@ function MediaManagement() {
                   advancedSettings={showAdvancedSettings}
                   isAdvanced={true}
                 >
-                  <FormLabel>{translate('RecyclingBinCleanup')}</FormLabel>
+                  <FormLabel name="recycleBinCleanupDays">
+                    {translate('RecyclingBinCleanup')}
+                  </FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.NUMBER}
@@ -725,6 +783,7 @@ function MediaManagement() {
                     min={0}
                     onChange={handleInputChange}
                     {...settings.recycleBinCleanupDays}
+                    id="recycleBinCleanupDays"
                   />
                 </FormGroup>
               </FieldSet>
@@ -733,7 +792,7 @@ function MediaManagement() {
             {isMusic ? (
               <FieldSet legend={translate('WriteMetadataToAudioFiles')}>
                 <FormGroup>
-                  <FormLabel>
+                  <FormLabel name="writeAudioTags">
                     {translate('TagAudioFilesWithMetadata')}
                   </FormLabel>
 
@@ -744,11 +803,14 @@ function MediaManagement() {
                     values={writeAudioTagsOptions}
                     onChange={handleInputChange}
                     {...settings.writeAudioTags}
+                    id="writeAudioTags"
                   />
                 </FormGroup>
 
                 <FormGroup>
-                  <FormLabel>{translate('ScrubExistingTags')}</FormLabel>
+                  <FormLabel name="scrubAudioTags">
+                    {translate('ScrubExistingTags')}
+                  </FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.CHECK}
@@ -756,6 +818,7 @@ function MediaManagement() {
                     helpText={translate('ScrubAudioTagsHelpText')}
                     onChange={handleInputChange}
                     {...settings.scrubAudioTags}
+                    id="scrubAudioTags"
                   />
                 </FormGroup>
               </FieldSet>
@@ -768,7 +831,9 @@ function MediaManagement() {
                   isAdvanced={true}
                   size={sizes.MEDIUM}
                 >
-                  <FormLabel>{translate('SetPermissions')}</FormLabel>
+                  <FormLabel name="setPermissionsLinux">
+                    {translate('SetPermissions')}
+                  </FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.CHECK}
@@ -779,6 +844,7 @@ function MediaManagement() {
                     )}
                     onChange={handleInputChange}
                     {...settings.setPermissionsLinux}
+                    id="setPermissionsLinux"
                   />
                 </FormGroup>
 
@@ -786,7 +852,9 @@ function MediaManagement() {
                   advancedSettings={showAdvancedSettings}
                   isAdvanced={true}
                 >
-                  <FormLabel>{translate('ChmodFolder')}</FormLabel>
+                  <FormLabel name="chmodFolder">
+                    {translate('ChmodFolder')}
+                  </FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.UMASK}
@@ -795,6 +863,7 @@ function MediaManagement() {
                     helpTextWarning={translate('ChmodFolderHelpTextWarning')}
                     onChange={handleInputChange}
                     {...settings.chmodFolder}
+                    id="chmodFolder"
                   />
                 </FormGroup>
 
@@ -802,7 +871,9 @@ function MediaManagement() {
                   advancedSettings={showAdvancedSettings}
                   isAdvanced={true}
                 >
-                  <FormLabel>{translate('ChownGroup')}</FormLabel>
+                  <FormLabel name="chownGroup">
+                    {translate('ChownGroup')}
+                  </FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.TEXT}
@@ -811,6 +882,7 @@ function MediaManagement() {
                     helpTextWarning={translate('ChownGroupHelpTextWarning')}
                     onChange={handleInputChange}
                     {...settings.chownGroup}
+                    id="chownGroup"
                   />
                 </FormGroup>
               </FieldSet>

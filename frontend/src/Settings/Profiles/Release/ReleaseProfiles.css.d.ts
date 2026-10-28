@@ -3,7 +3,6 @@
 interface CssExports {
   'addReleaseProfile': string;
   'center': string;
-  'releaseProfiles': string;
 }
 export const cssExports: CssExports;
 export default cssExports;
