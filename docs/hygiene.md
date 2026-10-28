@@ -41,7 +41,12 @@ Pending releases have no client download ID and do not accumulate strikes.
 the minimum KiB/s configured on a matching slow-download rule. The current
 rate is available from qBittorrent; clients that do not report a rate remain
 eligible for stalled and other assessments, but are not classified as slow.
-Both reasons are monitor only and require manual review.
+Both reasons can be acted on when their matching rule is enabled, its strike
+threshold is reached, the global action gate is on, and the download is tracked
+and safe to remove. Private or unverified torrent releases remain manual-review
+items. Stalled/slow actions remove the client job without deleting its files,
+then use the existing failed-download path for blocklisting and any configured
+replacement search.
 
 `GET /api/v3/hygiene/preview` reports the current reason, count, matching
 rule threshold, eligibility, and an explanation. `GET`, `POST`, `PUT /{id}`,
@@ -56,15 +61,15 @@ and reach its strike threshold. The preview and executor share the same
 `IHygieneQueueDecisionService` assessments, so `wouldAct` identifies the items
 the executor would process under the current settings.
 
-The first executor slice handles tracked `client-failed` and `import-blocked`
-items. Generic `download-warning`, `download-stalled`, and `download-slow`
-items stay monitor-only. For an eligible
-item, it removes the job from the download client **without deleting its
-files**, records the failure through the existing per-kind failed-download
-handlers, and stops tracking it. Those handlers record a blocklist entry and
-request the normal replacement search when the existing failed-download
-settings allow it. Private or unverified torrent releases remain manual-review
-items. Pending releases and unmatched downloads are never acted on.
+The executor handles tracked `client-failed`, `import-blocked`,
+`download-stalled`, and `download-slow` items. Generic `download-warning`
+items stay monitor-only. For an eligible item, it removes the job from the
+download client **without deleting its files**, records the failure through the
+existing per-kind failed-download handlers, and stops tracking it. Those
+handlers record a blocklist entry and request the normal replacement search
+when the existing failed-download settings allow it. Private or unverified
+torrent releases remain manual-review items. Pending releases and unmatched
+downloads are never acted on.
 
 Each action records its media kind, reason, authorizing rule, current
 checkpoint, status, and recovery guidance in the main database. Checkpoints

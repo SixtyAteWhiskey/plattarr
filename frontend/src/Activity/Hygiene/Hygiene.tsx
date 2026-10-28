@@ -88,14 +88,14 @@ const reasonPresentations: Record<string, HygienePresentation> = {
     tone: 'warning',
   },
   'download-stalled': {
-    cue: 'Monitor only',
-    icon: icons.VIEW,
-    tone: 'monitor',
+    cue: 'Stalled',
+    icon: icons.WARNING,
+    tone: 'warning',
   },
   'download-slow': {
-    cue: 'Monitor only',
-    icon: icons.VIEW,
-    tone: 'monitor',
+    cue: 'Slow',
+    icon: icons.WARNING,
+    tone: 'warning',
   },
   pending: {
     cue: 'Waiting',
@@ -345,11 +345,12 @@ function Hygiene() {
                   className={styles.sectionIntro}
                   tone="secondary"
                 >
-                  Only client failures and blocked imports can run
-                  automatically. Stalled downloads, slow downloads, private or
-                  unverified torrent releases, and other warnings remain monitor
-                  only. Source files are kept. Replacement searches follow the
-                  existing failed-download settings.
+                  Enabled rules for client failures, blocked imports, stalled
+                  downloads, and slow downloads can remove eligible tracked jobs
+                  after their strike threshold. Private or unverified torrent
+                  releases and other warnings remain monitor only. Source files
+                  are kept. Replacement searches follow the existing
+                  failed-download settings.
                 </Text>
 
                 {saveError ? (
