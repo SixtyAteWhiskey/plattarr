@@ -241,8 +241,13 @@ namespace NzbDrone.Core.Hygiene
                 return;
             }
 
+            var isStalledOrSlowReason = action.ReasonCode == "download-stalled" || action.ReasonCode == "download-slow";
+            var isStalledOrSlowTorrent = isStalledOrSlowReason &&
+                                         tracked?.Protocol == NzbDrone.Core.Indexers.DownloadProtocol.Torrent;
+
             if (tracked == null || tracked.Kind != kind || tracked.State == TrackedDownloadState.Ignored ||
-                tracked.DownloadItem == null || !tracked.DownloadItem.CanBeRemoved)
+                tracked.DownloadItem == null || (isStalledOrSlowReason && !isStalledOrSlowTorrent) ||
+                (!tracked.DownloadItem.CanBeRemoved && !isStalledOrSlowTorrent))
             {
                 throw new InvalidOperationException("The tracked download is no longer eligible for removal.");
             }

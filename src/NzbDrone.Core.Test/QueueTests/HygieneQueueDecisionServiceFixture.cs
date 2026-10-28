@@ -102,10 +102,27 @@ namespace NzbDrone.Core.Test.QueueTests
             assessment.ActionExplanation.Should().Contain("private");
         }
 
-        [TestCase("download-stalled", true)]
-        [TestCase("download-slow", false)]
-        public void stalled_and_slow_downloads_remain_monitor_only_at_the_strike_limit(string reasonCode, bool stalled)
+        [TestCase("download-stalled", true, true, true)]
+        [TestCase("download-slow", false, true, true)]
+        [TestCase("download-stalled", true, false, true)]
+        [TestCase("download-slow", false, false, true)]
+        [TestCase("download-stalled", true, true, false)]
+        [TestCase("download-slow", false, true, false)]
+        public void stalled_and_slow_downloads_act_only_with_an_eligible_rule_and_open_gate(string reasonCode, bool stalled, bool gateEnabled, bool torrent)
         {
+            NzbDrone.Core.Modules.RemoteRelease remoteRelease = null;
+
+            if (torrent)
+            {
+                remoteRelease = new NzbDrone.Core.Movies.Parser.Model.RemoteMovie
+                {
+                    Release = new NzbDrone.Core.Parser.Model.ReleaseInfo
+                    {
+                        IndexerPrivacy = NzbDrone.Core.Indexers.IndexerPrivacy.Public
+                    }
+                };
+            }
+
             var item = new QueueItem
             {
                 DownloadClientId = 7,
@@ -114,13 +131,8 @@ namespace NzbDrone.Core.Test.QueueTests
                 SizeLeft = 1000,
                 DownloadClientStalled = stalled,
                 DownloadRateBytesPerSecond = 1024,
-                RemoteRelease = new NzbDrone.Core.Movies.Parser.Model.RemoteMovie
-                {
-                    Release = new NzbDrone.Core.Parser.Model.ReleaseInfo
-                    {
-                        IndexerPrivacy = NzbDrone.Core.Indexers.IndexerPrivacy.Public
-                    }
-                }
+                Protocol = torrent ? NzbDrone.Core.Indexers.DownloadProtocol.Torrent : NzbDrone.Core.Indexers.DownloadProtocol.Usenet,
+                RemoteRelease = remoteRelease
             };
             var states = new Mock<IHygieneQueueStateRepository>();
             states.Setup(x => x.All()).Returns(new[]
@@ -141,7 +153,7 @@ namespace NzbDrone.Core.Test.QueueTests
                 }
             });
             var config = new Mock<IConfigService>();
-            config.SetupGet(x => x.HygieneActionsEnabled).Returns(true);
+            config.SetupGet(x => x.HygieneActionsEnabled).Returns(gateEnabled);
             var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object), config.Object);
 
             var assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
@@ -149,8 +161,10 @@ namespace NzbDrone.Core.Test.QueueTests
             assessment.ReasonCode.Should().Be(reasonCode);
             assessment.RuleId.Should().Be(9);
             assessment.Eligible.Should().BeTrue();
-            assessment.WouldAct.Should().BeFalse();
-            assessment.ActionExplanation.Should().Contain("monitor-only");
+            assessment.WouldAct.Should().Be(gateEnabled && torrent);
+            assessment.ActionExplanation.Should().Contain(
+                !torrent ? "only for torrent downloads" :
+                gateEnabled ? "remove the client job without deleting its files" : "global Hygiene gate");
         }
     }
 }

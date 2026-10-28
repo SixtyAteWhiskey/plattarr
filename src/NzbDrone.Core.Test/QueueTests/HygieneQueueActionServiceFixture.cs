@@ -36,6 +36,22 @@ namespace NzbDrone.Core.Test.QueueTests
             context.Actions[0].RuleId.Should().Be(9);
         }
 
+        [TestCase("download-stalled")]
+        [TestCase("download-slow")]
+        public void eligible_stalled_or_slow_torrent_is_removed_without_deleting_files(string reasonCode)
+        {
+            var context = new ActionContext(MediaKind.Movies, true, reasonCode);
+
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), false), Times.Once);
+            context.FailedDownloads.Verify(x => x.MarkAsFailed(context.TrackedDownload, false), Times.Once);
+            context.TrackedDownloads.Verify(x => x.StopTracking("test-download"), Times.Once);
+            context.Actions.Should().ContainSingle().Which.Status.Should().Be("completed");
+            context.Actions[0].ReasonCode.Should().Be(reasonCode);
+            context.Actions[0].Checkpoint.Should().Be("replacement-requested");
+        }
+
         [Test]
         public void global_gate_prevents_all_executor_work()
         {
@@ -276,24 +292,37 @@ namespace NzbDrone.Core.Test.QueueTests
             public Mock<IHygieneQueueDecisionService> Decisions { get; } = new();
             public IHygieneQueueActionService Service { get; }
 
-            public ActionContext(MediaKind kind, bool gateEnabled)
+            public ActionContext(MediaKind kind, bool gateEnabled, string reasonCode = "client-failed")
             {
                 GateEnabled = gateEnabled;
-                var clientItem = new DownloadClientItem { DownloadId = "test-download", CanBeRemoved = true };
+                var isStalledOrSlow = reasonCode is "download-stalled" or "download-slow";
+                var clientItem = new DownloadClientItem { DownloadId = "test-download", CanBeRemoved = !isStalledOrSlow };
                 QueueItem = new QueueItem
                 {
                     Id = 12,
                     DownloadClientId = 4,
                     DownloadId = clientItem.DownloadId,
                     Title = "Synthetic recovery proof",
-                    Status = QueueStatus.Failed
+                    Status = reasonCode is "download-stalled" or "download-slow" ? QueueStatus.Downloading : QueueStatus.Failed,
+                    Protocol = reasonCode is "download-stalled" or "download-slow" ? NzbDrone.Core.Indexers.DownloadProtocol.Torrent : NzbDrone.Core.Indexers.DownloadProtocol.Usenet,
+                    RemoteRelease = reasonCode is "download-stalled" or "download-slow"
+                        ? new NzbDrone.Core.Movies.Parser.Model.RemoteMovie
+                        {
+                            Release = new NzbDrone.Core.Parser.Model.ReleaseInfo
+                            {
+                                IndexerPrivacy = NzbDrone.Core.Indexers.IndexerPrivacy.Public
+                            }
+                        }
+                        : null
                 };
                 TrackedDownload = new TrackedDownload
                 {
                     DownloadClient = 4,
                     DownloadItem = clientItem,
                     Kind = kind,
-                    State = TrackedDownloadState.Downloading
+                    State = TrackedDownloadState.Downloading,
+                    Protocol = reasonCode is "download-stalled" or "download-slow" ? NzbDrone.Core.Indexers.DownloadProtocol.Torrent : NzbDrone.Core.Indexers.DownloadProtocol.Usenet,
+                    RemoteRelease = QueueItem.RemoteRelease
                 };
 
                 var clientItems = new List<DownloadClientItem> { clientItem };
@@ -307,7 +336,7 @@ namespace NzbDrone.Core.Test.QueueTests
                     DownloadClientId = QueueItem.DownloadClientId,
                     DownloadClient = "synthetic",
                     Kind = kind,
-                    ReasonCode = "client-failed",
+                    ReasonCode = reasonCode,
                     RuleId = 9,
                     Title = QueueItem.Title,
                     Eligible = true,
