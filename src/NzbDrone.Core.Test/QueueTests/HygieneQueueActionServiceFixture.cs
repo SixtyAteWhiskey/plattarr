@@ -9,9 +9,16 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Hygiene;
+using NzbDrone.Core.Messaging.Commands;
+using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Queue;
 using NzbDrone.Core.Test.Framework;
+using NzbDrone.Core.Tv;
+using NzbDrone.Core.Tv.Blocklisting;
+using NzbDrone.Core.Tv.Downloads;
+using NzbDrone.Core.Tv.History;
+using NzbDrone.Core.Tv.Search;
 using NzbDrone.Test.Common;
 using QueueItem = NzbDrone.Core.Queue.Queue;
 
@@ -50,6 +57,107 @@ namespace NzbDrone.Core.Test.QueueTests
             context.TrackedDownloads.Verify(x => x.StopTracking("test-download"), Times.Once);
             context.Actions.Should().ContainSingle().Which.Status.Should().Be("completed");
             context.Actions[0].ReasonCode.Should().Be(reasonCode);
+            context.Actions[0].Checkpoint.Should().Be("replacement-requested");
+        }
+
+        [Test]
+        public void stalled_tv_torrent_is_marked_failed_without_suppressing_redownload()
+        {
+            var context = new ActionContext(MediaKind.Tv, true, "download-stalled");
+            TrackedDownload failedDownload = null;
+            bool? skipRedownload = null;
+            context.FailedDownloads
+                .Setup(x => x.MarkAsFailed(It.IsAny<TrackedDownload>(), It.IsAny<bool>()))
+                .Callback<TrackedDownload, bool>((download, skip) =>
+                {
+                    failedDownload = download;
+                    skipRedownload = skip;
+                });
+
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), false), Times.Once);
+            failedDownload.Should().BeSameAs(context.TrackedDownload);
+            failedDownload.Kind.Should().Be(MediaKind.Tv);
+            skipRedownload.Should().BeFalse();
+            context.Actions.Should().ContainSingle().Which.Status.Should().Be("completed");
+            context.Actions[0].Checkpoint.Should().Be("replacement-requested");
+        }
+
+        [Test]
+        public void stalled_tv_torrent_recovery_records_history_blocklists_release_and_requests_replacement_search()
+        {
+            var grabbedHistory = new EpisodeHistory
+            {
+                Id = 3,
+                MediaKind = MediaKind.Tv,
+                EventType = EpisodeHistoryEventType.Grabbed,
+                ParentId = 42,
+                ItemId = 314,
+                DownloadId = "test-download",
+                SourceTitle = "Synthetic.Show.S01E01.720p-GROUP",
+                Quality = new NzbDrone.Core.Qualities.QualityModel(NzbDrone.Core.Qualities.Quality.HDTV720p),
+                Languages = new List<NzbDrone.Core.Languages.Language>(),
+                Date = DateTime.UtcNow
+            };
+            grabbedHistory.Data[EpisodeHistory.RELEASE_SOURCE] = NzbDrone.Core.Parser.Model.ReleaseSourceType.Rss.ToString();
+            grabbedHistory.Data["publishedDate"] = "2026-10-01T12:00:00Z";
+            grabbedHistory.Data["protocol"] = ((int)NzbDrone.Core.Indexers.DownloadProtocol.Torrent).ToString();
+            grabbedHistory.Data["size"] = "1073741824";
+            grabbedHistory.Data[EpisodeHistory.INDEXER] = "synthetic-indexer";
+
+            var history = new List<EpisodeHistory>();
+            var historyRepository = new Mock<IHistoryRepository>();
+            historyRepository.Setup(x => x.Insert(It.IsAny<EpisodeHistory>()))
+                .Callback<EpisodeHistory>(history.Add)
+                .Returns<EpisodeHistory>(item => item);
+            var historyService = new NzbDrone.Core.Tv.History.HistoryService(historyRepository.Object, TestLogger);
+
+            var blocklist = new List<NzbDrone.Core.Tv.Blocklisting.Blocklist>();
+            var blocklistRepository = new Mock<IBlocklistRepository>();
+            blocklistRepository.Setup(x => x.Insert(It.IsAny<NzbDrone.Core.Tv.Blocklisting.Blocklist>()))
+                .Callback<NzbDrone.Core.Tv.Blocklisting.Blocklist>(blocklist.Add)
+                .Returns<NzbDrone.Core.Tv.Blocklisting.Blocklist>(item => item);
+            var blocklistService = new NzbDrone.Core.Tv.Blocklisting.BlocklistService(blocklistRepository.Object);
+
+            EpisodeSearchCommand replacementSearch = null;
+            var commandQueue = new Mock<IManageCommandQueue>();
+            commandQueue.Setup(x => x.Push(It.IsAny<EpisodeSearchCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()))
+                .Callback<EpisodeSearchCommand, CommandPriority, CommandTrigger>((command, _, _) => replacementSearch = command)
+                .Returns((CommandModel)null);
+            var searcher = new TvRedownloadSearcher(new Mock<IEpisodeService>().Object, commandQueue.Object, TestLogger);
+            var config = new Mock<IConfigService>();
+            config.SetupGet(x => x.AutoRedownloadFailed).Returns(true);
+            config.SetupGet(x => x.AutoRedownloadFailedFromInteractiveSearch).Returns(true);
+            var redownload = new RedownloadFailedDownloadService(config.Object, new[] { (IRedownloadSearcher)searcher }, TestLogger);
+
+            var historyReader = new Mock<IHistoryService>();
+            historyReader.Setup(x => x.Find("test-download", EpisodeHistoryEventType.Grabbed))
+                .Returns(new List<EpisodeHistory> { grabbedHistory });
+            var tvSource = new TvFailedDownloadSource(historyReader.Object);
+            var eventAggregator = new Mock<IEventAggregator>();
+            eventAggregator.Setup(x => x.PublishEvent(It.IsAny<DownloadFailedEvent>()))
+                .Callback<DownloadFailedEvent>(failure =>
+                {
+                    historyService.Handle(failure);
+                    blocklistService.Handle(failure);
+                    redownload.Handle(failure);
+                });
+            var failedDownloadService = new FailedDownloadService(new[] { (IFailedDownloadSource)tvSource }, eventAggregator.Object);
+
+            var context = new ActionContext(MediaKind.Tv, true, "download-stalled", failedDownloadService);
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), false), Times.Once);
+            history.Should().ContainSingle().Which.EventType.Should().Be(EpisodeHistoryEventType.DownloadFailed);
+            history[0].ParentId.Should().Be(42);
+            history[0].ItemId.Should().Be(314);
+            history[0].DownloadId.Should().Be("test-download");
+            blocklist.Should().ContainSingle().Which.TorrentInfoHash.Should().Be("test-download");
+            blocklist[0].ParentId.Should().Be(42);
+            replacementSearch.Should().NotBeNull();
+            replacementSearch.EpisodeIds.Should().Equal(314);
+            context.Actions.Should().ContainSingle().Which.Status.Should().Be("completed");
             context.Actions[0].Checkpoint.Should().Be("replacement-requested");
         }
 
@@ -357,11 +465,22 @@ namespace NzbDrone.Core.Test.QueueTests
             public Mock<IHygieneQueueDecisionService> Decisions { get; } = new();
             public IHygieneQueueActionService Service { get; }
 
-            public ActionContext(MediaKind kind, bool gateEnabled, string reasonCode = "client-failed")
+            public ActionContext(MediaKind kind, bool gateEnabled, string reasonCode = "client-failed", IFailedDownloadService failedDownloadService = null)
             {
                 GateEnabled = gateEnabled;
                 var isStalledOrSlow = reasonCode is "download-stalled" or "download-slow";
-                var clientItem = new DownloadClientItem { DownloadId = "test-download", CanBeRemoved = !isStalledOrSlow };
+                var clientItem = new DownloadClientItem
+                {
+                    DownloadId = "test-download",
+                    CanBeRemoved = !isStalledOrSlow,
+                    DownloadClientInfo = new DownloadClientItemClientInfo
+                    {
+                        Id = 4,
+                        Name = "synthetic",
+                        Type = "qBittorrent",
+                        Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Torrent
+                    }
+                };
                 QueueItem = new QueueItem
                 {
                     Id = 12,
@@ -429,7 +548,7 @@ namespace NzbDrone.Core.Test.QueueTests
                     config.Object,
                     TrackedDownloads.Object,
                     downloadProvider.Object,
-                    FailedDownloads.Object,
+                    failedDownloadService ?? FailedDownloads.Object,
                     TestLogger);
             }
         }
