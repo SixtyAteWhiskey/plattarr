@@ -22,6 +22,8 @@ namespace NzbDrone.Core.Hygiene
         public string Checkpoint { get; set; }
         public string RecoveryPath { get; set; }
         public string LastError { get; set; }
+        public int RetryCount { get; set; }
+        public DateTime? NextAttemptAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }
@@ -34,6 +36,17 @@ namespace NzbDrone.Core.Hygiene
 
     public class HygieneQueueActionService : IHygieneQueueActionService
     {
+        private sealed class ActionStageException : Exception
+        {
+            public string Stage { get; }
+
+            public ActionStageException(string stage, Exception innerException)
+                : base(stage, innerException)
+            {
+                Stage = stage;
+            }
+        }
+
         private const string Processing = "processing";
         private const string Failed = "failed";
         private const string Paused = "paused";
@@ -127,6 +140,11 @@ namespace NzbDrone.Core.Hygiene
                 return;
             }
 
+            if (IsRetryDelayed(existing))
+            {
+                return;
+            }
+
             if (!CanStart(queueItem, assessment.ReasonCode, assessment.RuleId, assessment.Kind))
             {
                 return;
@@ -174,6 +192,17 @@ namespace NzbDrone.Core.Hygiene
 
             foreach (var action in _actions.All().Where(x => x.Status != Completed).ToList())
             {
+                if (!_config.HygieneActionsEnabled)
+                {
+                    Pause(action);
+                    continue;
+                }
+
+                if (IsRetryDelayed(action))
+                {
+                    continue;
+                }
+
                 QueueItem queueItem = null;
                 if (action.Checkpoint == Prepared)
                 {
@@ -267,11 +296,29 @@ namespace NzbDrone.Core.Hygiene
                     return;
                 }
 
-                var clientItem = downloadClient.GetItems().FirstOrDefault(x => x.DownloadId == tracked.DownloadItem.DownloadId);
+                IEnumerable<DownloadClientItem> clientItems;
+                try
+                {
+                    clientItems = downloadClient.GetItems();
+                }
+                catch (Exception ex)
+                {
+                    throw new ActionStageException("client-list", ex);
+                }
+
+                var clientItem = clientItems.FirstOrDefault(x => x.DownloadId == tracked.DownloadItem.DownloadId);
                 if (clientItem != null)
                 {
                     // Keep source files for manual recovery; the Hygiene executor never deletes data.
-                    downloadClient.RemoveItem(clientItem, false);
+                    try
+                    {
+                        downloadClient.RemoveItem(clientItem, false);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new ActionStageException("client-removal", ex);
+                    }
+
                     tracked.DownloadItem.Removed = true;
                 }
 
@@ -317,10 +364,14 @@ namespace NzbDrone.Core.Hygiene
         private void RecordFailure(HygieneAction action, Exception ex)
         {
             action.Status = Failed;
+            action.RetryCount++;
+            action.NextAttemptAt = DateTime.UtcNow.AddMinutes(Math.Min(60, Math.Pow(2, action.RetryCount - 1)));
 
             // Download client errors may contain private paths or credentials.
             // Keep exception text out of logs and the journal.
-            action.LastError = ex.GetType().Name;
+            action.LastError = ex is ActionStageException stageException
+                ? $"{stageException.InnerException?.GetType().Name ?? nameof(Exception)} ({stageException.Stage})"
+                : ex.GetType().Name;
             action.UpdatedAt = DateTime.UtcNow;
             _actions.Update(action);
             _logger.Warn(
@@ -336,8 +387,15 @@ namespace NzbDrone.Core.Hygiene
         private void SetCheckpoint(HygieneAction action, string checkpoint)
         {
             action.Checkpoint = checkpoint;
+            action.RetryCount = 0;
+            action.NextAttemptAt = null;
             action.UpdatedAt = DateTime.UtcNow;
             _actions.Update(action);
+        }
+
+        private static bool IsRetryDelayed(HygieneAction action)
+        {
+            return action?.Status == Failed && action.NextAttemptAt > DateTime.UtcNow;
         }
 
         private bool GateIsOpen(HygieneAction action)
