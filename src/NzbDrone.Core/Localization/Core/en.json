@@ -848,6 +848,8 @@
   "EnableCompletedDownloadHandlingHelpText": "Automatically import completed downloads from download client",
   "EnableInteractiveSearch": "Enable Interactive Search",
   "EnableInteractiveSearchHelpText": "Will be used when interactive search is used",
+  "EnableIndexer": "Enable Indexer",
+  "EnableIndexerHelpText": "Turn this indexer on or off. At least one of RSS, Automatic Search, or Interactive Search must also be enabled for it to be used.",
   "EnableMetadataHelpText": "Enable metadata file creation for this metadata type",
   "EnableProfile": "Enable Profile",
   "EnableProfileHelpText": "Check to enable release profile",

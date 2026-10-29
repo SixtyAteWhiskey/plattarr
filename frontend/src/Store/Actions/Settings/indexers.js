@@ -136,6 +136,7 @@ export default {
       return selectProviderSchema(state, section, payload, (selectedSchema) => {
         selectedSchema.name = payload.presetName ?? selectedSchema.name ?? payload.implementationName;
         selectedSchema.implementationName = payload.implementationName;
+        selectedSchema.enable = true;
         selectedSchema.enableRss = selectedSchema.supportsRss;
         selectedSchema.enableAutomaticSearch = selectedSchema.supportsSearch;
         selectedSchema.enableInteractiveSearch = selectedSchema.supportsSearch;
