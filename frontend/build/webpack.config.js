@@ -15,6 +15,12 @@ module.exports = (env) => {
   const isProduction = !!env.production;
   const isProfiling = isProduction && !!env.profile;
 
+  // Keep Moment's bundled locales aligned with the UI languages returned by
+  // IsoLanguages.Get in the API. English is built in; de-DE, fr-FR, and pt-PT
+  // fall back to their base locales. Codes without a Moment locale already
+  // fall back to English.
+  const uiMomentLocales = /^\.\/(af|ar|az|bg|bn|bs|ca|cs|da|de|el|es|es-mx|et|fa|fi|fr|ga|he|hi|hr|hu|id|is|it|ja|ka|kn|ko|lt|lv|mk|ml|mn|mr|ms|nb|nl|pl|pt|pt-br|ro|ru|sk|sl|sq|sr|sv|ta|te|th|tr|uk|ur|uz|vi|zh-cn)(\.js)?$/;
+
   const distFolder = path.resolve(frontendFolder, '..', '_output', uiFolder);
 
   console.log('Source Folder:', srcFolder);
@@ -87,6 +93,8 @@ module.exports = (env) => {
     },
 
     plugins: [
+      new webpack.ContextReplacementPlugin(/moment[\\/]locale$/, uiMomentLocales),
+
       new webpack.DefinePlugin({
         __DEV__: !isProduction,
         'process.env.NODE_ENV': isProduction ? JSON.stringify('production') : JSON.stringify('development')
