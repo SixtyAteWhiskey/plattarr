@@ -419,6 +419,45 @@ test proving non-completed status selection. The full broad Core gate was not
 rerun because it previously stalled on this checkout. No production rollout
 occurred.
 
+## 2026-10-29 Hygiene decision state lookup
+
+Hygiene preview and action execution both use `HygieneQueueDecisionService`.
+Previously each evaluation loaded every queue-state row, including states
+for downloads outside the current queue. It now requests only the distinct
+download-client and download-ID pairs in that queue. The repository combines
+parameterized pair predicates into one query for up to 200 identities, then
+uses additional batches for larger queues. It reuses the unique
+`IX_HygieneQueueStates_Client_Download` index. No migration was added.
+
+`python3 tools/benchmark_hygiene_state_lookup.py` compares the old read with
+the identity query on the same in-memory SQLite fixture. Each size has 20
+matching queue identities, ten repetitions, and the same indexed schema.
+Times are median Python plus SQLite elapsed milliseconds for this read only.
+
+| State rows | Full read | Queue identities |
+| --- | ---: | ---: |
+| 100 | 0.061 ms; 100 rows | 0.020 ms; 20 rows |
+| 10,000 | 6.676 ms; 10,000 rows | 0.030 ms; 20 rows |
+| 100,000 | 87.033 ms; 100,000 rows | 0.024 ms; 20 rows |
+
+`EXPLAIN QUERY PLAN` changed from `SCAN HygieneQueueStates` to
+`MULTI-INDEX OR`, with an index search on both identity columns for each
+pair. The query count is one for 20 identities; queues over 200 identities
+use more queries. The repository tests cover duplicate pairs, same download
+ID under another client, no identities, and a 201-identity batch. Existing
+decision tests cover strike thresholds, cumulative slow/stalled precedence,
+the global gate, private-torrent safety, and replacement-search settings.
+
+The non-incremental Release solution build passed with zero warnings and
+errors. `FILTER='FullyQualifiedName~Hygiene|FullyQualifiedName~ModuleBoundaryFixture'
+tools/verify.sh` passed 216 API, 78 Host (five skipped), and 83 focused Core
+tests. The full broad Core gate was not rerun because it previously stalled
+on this checkout. These synthetic query timings do not establish whole queue
+refresh latency or memory use, and PostgreSQL was not profiled. Strike
+observation still reads all states to update active entries and retire
+expired ones; that path remains a separate section 2 slice. No production
+rollout occurred.
+
 ## Progress log
 
 | Date | Slice | Commit or PR | Result and evidence |
@@ -429,3 +468,4 @@ occurred.
 | 2026-10-29 | Browser benchmark and dependency cleanup | `1a07793a7`, `03fe9f082`, `e90623499` | [Browser and build evidence](#2026-10-29-browser-comparison-and-dependency-audit); no production rollout. |
 | 2026-10-29 | Hygiene action identity lookup | `520d809f4` | [Synthetic query comparison and focused verification](#2026-10-29-first-hygiene-action-lookup-slice); broad Core gate stalled; no production rollout. |
 | 2026-10-29 | Interrupted Hygiene action read | `320ab6d1a` | [Synthetic read comparison and focused verification](#2026-10-29-interrupted-hygiene-action-read); broad Core gate remains open; no production rollout. |
+| 2026-10-29 | Hygiene decision state lookup | `bfe1396e8` | [Indexed query comparison and focused verification](#2026-10-29-hygiene-decision-state-lookup); broad Core gate remains open; no production rollout. |
