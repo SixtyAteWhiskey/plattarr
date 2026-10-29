@@ -71,13 +71,14 @@ namespace NzbDrone.Core.Hygiene
 
             if (isNewRule)
             {
-                _logger.Info("Hygiene rule {0} (reason: {1}, media kind: {2}, download client id: {3}) was created with monitoring {4} and source file deletion {5}",
+                _logger.Info("Hygiene rule {0} (reason: {1}, media kind: {2}, download client id: {3}) was created with monitoring {4}, source file deletion {5}, and replacement search {6}",
                     savedRule.Id,
                     savedRule.ReasonCode,
                     GetMediaKindName(savedRule.MediaKind),
                     savedRule.DownloadClientId,
                     savedRule.Enabled ? "enabled" : "disabled",
-                    savedRule.DeleteFilesOnFailure ? "enabled" : "disabled");
+                    savedRule.DeleteFilesOnFailure ? "enabled" : "disabled",
+                    savedRule.SearchForReplacement ? "enabled" : "disabled");
             }
             else if (existingRule != null && existingRule.Enabled != savedRule.Enabled)
             {
@@ -99,6 +100,17 @@ namespace NzbDrone.Core.Hygiene
                     savedRule.DownloadClientId,
                     existingRule.DeleteFilesOnFailure ? "enabled" : "disabled",
                     savedRule.DeleteFilesOnFailure ? "enabled" : "disabled");
+            }
+
+            if (existingRule != null && existingRule.SearchForReplacement != savedRule.SearchForReplacement)
+            {
+                _logger.Info("Hygiene rule {0} (reason: {1}, media kind: {2}, download client id: {3}) replacement search changed from {4} to {5}",
+                    savedRule.Id,
+                    savedRule.ReasonCode,
+                    GetMediaKindName(savedRule.MediaKind),
+                    savedRule.DownloadClientId,
+                    existingRule.SearchForReplacement ? "enabled" : "disabled",
+                    savedRule.SearchForReplacement ? "enabled" : "disabled");
             }
 
             return savedRule;

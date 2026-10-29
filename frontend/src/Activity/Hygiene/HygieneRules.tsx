@@ -16,6 +16,7 @@ interface HygieneRule {
   downloadClientId: number;
   enabled: boolean;
   deleteFilesOnFailure: boolean;
+  searchForReplacement: boolean;
   strikeLimit: number;
   strikeIntervalMinutes: number;
   minimumDownloadRateKiBps: number;
@@ -93,6 +94,16 @@ function HygieneRuleEditor({
       setDraft((current) => ({
         ...current,
         deleteFilesOnFailure: event.target.checked,
+      }));
+    },
+    []
+  );
+
+  const handleSearchChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        searchForReplacement: event.target.checked,
       }));
     },
     []
@@ -218,27 +229,52 @@ function HygieneRuleEditor({
           </label>
 
           {draft.reasonCode === 'download-warning' ? null : (
-            <label className={styles.checkboxField}>
-              <input
-                id={`hygiene-rule-${draft.id}-delete-files`}
-                aria-describedby={`hygiene-rule-${draft.id}-delete-files-description`}
-                className={styles.checkbox}
-                type="checkbox"
-                checked={draft.deleteFilesOnFailure}
-                onChange={handleDeleteFilesChange}
-              />
-              <span className={styles.checkboxCopy}>
-                <span>Delete source files when this rule acts</span>
-                <span
-                  id={`hygiene-rule-${draft.id}-delete-files-description`}
-                  className={styles.fieldHint}
-                >
-                  Permanently removes the download client job and its files.
-                  Existing leftover files are unaffected. Requires this rule and
-                  automatic cleanup to be enabled.
+            <>
+              <label className={styles.checkboxField}>
+                <input
+                  id={`hygiene-rule-${draft.id}-delete-files`}
+                  aria-describedby={`hygiene-rule-${draft.id}-delete-files-description`}
+                  className={styles.checkbox}
+                  type="checkbox"
+                  checked={draft.deleteFilesOnFailure}
+                  onChange={handleDeleteFilesChange}
+                />
+                <span className={styles.checkboxCopy}>
+                  <span>Delete source files when this rule acts</span>
+                  <span
+                    id={`hygiene-rule-${draft.id}-delete-files-description`}
+                    className={styles.fieldHint}
+                  >
+                    Permanently removes the download client job and its files.
+                    Existing leftover files are unaffected. Requires this rule
+                    and automatic cleanup to be enabled.
+                  </span>
                 </span>
-              </span>
-            </label>
+              </label>
+              <label className={styles.checkboxField}>
+                <input
+                  id={`hygiene-rule-${draft.id}-search`}
+                  aria-describedby={`hygiene-rule-${draft.id}-search-description`}
+                  className={styles.checkbox}
+                  type="checkbox"
+                  checked={draft.searchForReplacement}
+                  onChange={handleSearchChange}
+                />
+                <span className={styles.checkboxCopy}>
+                  <span>
+                    Automatically search for a replacement after cleanup
+                  </span>
+                  <span
+                    id={`hygiene-rule-${draft.id}-search-description`}
+                    className={styles.fieldHint}
+                  >
+                    When off, the failed release is still recorded and
+                    blocklisted. When on, existing failed-download settings also
+                    need to allow the search.
+                  </span>
+                </span>
+              </label>
+            </>
           )}
 
           <label className={styles.formField}>
@@ -352,6 +388,7 @@ function HygieneRules({
   });
   const [reasonCode, setReasonCode] = useState('import-blocked');
   const [deleteFilesOnFailure, setDeleteFilesOnFailure] = useState(false);
+  const [searchForReplacement, setSearchForReplacement] = useState(true);
   const [minimumDownloadRateKiBps, setMinimumDownloadRateKiBps] = useState(100);
   const [mediaKind, setMediaKind] = useState(0);
   const [downloadClientId, setDownloadClientId] = useState(0);
@@ -398,6 +435,13 @@ function HygieneRules({
     []
   );
 
+  const handleSearchChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setSearchForReplacement(event.target.checked);
+    },
+    []
+  );
+
   const handleKindChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
       setMediaKind(Number(event.target.value));
@@ -427,6 +471,7 @@ function HygieneRules({
           downloadClientId,
           enabled: false,
           deleteFilesOnFailure,
+          searchForReplacement,
           strikeLimit: 3,
           strikeIntervalMinutes: 5,
           minimumDownloadRateKiBps:
@@ -447,6 +492,7 @@ function HygieneRules({
     [
       reasonCode,
       deleteFilesOnFailure,
+      searchForReplacement,
       mediaKind,
       downloadClientId,
       minimumDownloadRateKiBps,
@@ -481,11 +527,12 @@ function HygieneRules({
           <Text tone="secondary">
             Rules monitor downloads by problem, media, and client. Enabled rules
             can remove matching jobs when automatic cleanup is on. Each rule
-            chooses whether source files are kept or deleted.
+            chooses whether source files are kept or deleted and whether to
+            search for a replacement.
           </Text>
           <Text size="small" tone="secondary">
-            Failed downloads may be blocklisted and searched again. Stalled and
-            slow detection are available only from qBittorrent.
+            Failed downloads are blocklisted when automatic cleanup acts.
+            Stalled and slow detection are available only from qBittorrent.
           </Text>
         </Stack>
 
@@ -579,27 +626,51 @@ function HygieneRules({
                   </label>
 
                   {reasonCode === 'download-warning' ? null : (
-                    <label className={styles.checkboxField}>
-                      <input
-                        id="hygiene-new-rule-delete-files"
-                        aria-describedby="hygiene-new-rule-delete-files-description"
-                        className={styles.checkbox}
-                        type="checkbox"
-                        checked={deleteFilesOnFailure}
-                        onChange={handleDeleteFilesChange}
-                      />
-                      <span className={styles.checkboxCopy}>
-                        <span>Delete source files when this rule acts</span>
-                        <span
-                          id="hygiene-new-rule-delete-files-description"
-                          className={styles.fieldHint}
-                        >
-                          Permanently removes the download client job and its
-                          files. New rules remain disabled until you turn on
-                          monitoring; automatic cleanup has a separate gate.
+                    <>
+                      <label className={styles.checkboxField}>
+                        <input
+                          id="hygiene-new-rule-delete-files"
+                          aria-describedby="hygiene-new-rule-delete-files-description"
+                          className={styles.checkbox}
+                          type="checkbox"
+                          checked={deleteFilesOnFailure}
+                          onChange={handleDeleteFilesChange}
+                        />
+                        <span className={styles.checkboxCopy}>
+                          <span>Delete source files when this rule acts</span>
+                          <span
+                            id="hygiene-new-rule-delete-files-description"
+                            className={styles.fieldHint}
+                          >
+                            Permanently removes the download client job and its
+                            files. New rules remain disabled until you turn on
+                            monitoring; automatic cleanup has a separate gate.
+                          </span>
                         </span>
-                      </span>
-                    </label>
+                      </label>
+                      <label className={styles.checkboxField}>
+                        <input
+                          id="hygiene-new-rule-search"
+                          aria-describedby="hygiene-new-rule-search-description"
+                          className={styles.checkbox}
+                          type="checkbox"
+                          checked={searchForReplacement}
+                          onChange={handleSearchChange}
+                        />
+                        <span className={styles.checkboxCopy}>
+                          <span>
+                            Automatically search for a replacement after cleanup
+                          </span>
+                          <span
+                            id="hygiene-new-rule-search-description"
+                            className={styles.fieldHint}
+                          >
+                            On by default for existing behavior. The
+                            failed-download settings must also allow the search.
+                          </span>
+                        </span>
+                      </label>
+                    </>
                   )}
 
                   <Cluster

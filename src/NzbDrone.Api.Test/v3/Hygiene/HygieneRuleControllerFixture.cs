@@ -33,7 +33,7 @@ namespace NzbDrone.Api.Test.v3.Hygiene
         }
 
         [Test]
-        public void newly_created_rule_is_disabled_unless_the_request_explicitly_enables_it()
+        public void newly_created_rule_is_disabled_with_replacement_search_on_by_default()
         {
             HygieneRule saved = null;
             Mocker.GetMock<IHygieneRuleService>()
@@ -45,6 +45,7 @@ namespace NzbDrone.Api.Test.v3.Hygiene
 
             saved.Should().NotBeNull();
             saved.Enabled.Should().BeFalse();
+            saved.SearchForReplacement.Should().BeTrue();
         }
     }
 }

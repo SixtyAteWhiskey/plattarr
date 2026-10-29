@@ -11,6 +11,7 @@ namespace NzbDrone.Core.Hygiene
         public int DownloadClientId { get; set; }
         public bool Enabled { get; set; }
         public bool DeleteFilesOnFailure { get; set; }
+        public bool SearchForReplacement { get; set; } = true;
         public int StrikeLimit { get; set; }
         public int StrikeIntervalMinutes { get; set; }
         public int MinimumDownloadRateKiBps { get; set; }

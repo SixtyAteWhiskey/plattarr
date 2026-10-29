@@ -208,6 +208,8 @@ const failureStageDescriptions: Record<string, string> = {
     'The failure was recorded; the replacement recovery handoff is still pending.',
   'replacement-requested':
     'The recovery handoff was recorded; final tracking cleanup is still pending.',
+  'replacement-skipped':
+    'The rule skipped replacement search; final tracking cleanup is still pending.',
 };
 
 const unknownFailureStageDescription =
@@ -222,6 +224,8 @@ function getSearchSummary(outcome: HygieneReplacementOutcome) {
   switch (outcome.searchState) {
     case 'not-requested':
       return 'A replacement search has not been handed off.';
+    case 'skipped':
+      return 'Replacement search was skipped by this Hygiene rule.';
     case 'requested':
       return 'Recovery handoff recorded. Search completion and grabs are not verified.';
     case 'completed-no-grab':
@@ -239,7 +243,9 @@ function getSearchSummary(outcome: HygieneReplacementOutcome) {
 
 function getOutcomeEvidence(outcome: HygieneReplacementOutcome) {
   if (outcome.evidence === 'recorded') {
-    return 'Search result saved in the journal.';
+    return outcome.searchState === 'skipped'
+      ? 'Search choice saved in the journal.'
+      : 'Search result saved in the journal.';
   }
   if (outcome.evidence === 'linked-command') {
     return 'Linked search command found; its result was not saved in the journal.';
@@ -329,7 +335,7 @@ function Hygiene() {
           {configQuery.data ? (
             <Alert>
               {configQuery.data.actionsEnabled
-                ? 'Automatic Hygiene actions are enabled. Eligible tracked downloads can be removed from the client. Each rule controls whether source files are kept or deleted; failed-download handling records the failure and may start a replacement search.'
+                ? 'Automatic Hygiene actions are enabled. Eligible tracked downloads can be removed from the client. Each rule controls whether source files are kept or deleted and whether to request a replacement search.'
                 : 'The global Hygiene action gate is off. Queue preview and monitoring remain read only.'}{' '}
               Review items in the <Link to="/activity/queue">queue</Link> before
               enabling automatic actions.
@@ -397,8 +403,8 @@ function Hygiene() {
                   after their strike threshold. Private or unverified torrent
                   releases and other warnings remain monitor only. Source files
                   are kept unless the matching rule explicitly enables file
-                  deletion. Replacement searches follow the existing
-                  failed-download settings.
+                  deletion. Each rule can skip replacement search; otherwise,
+                  the existing failed-download settings still apply.
                 </Text>
 
                 {saveError ? (

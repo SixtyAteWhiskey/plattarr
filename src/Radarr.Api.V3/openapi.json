@@ -17384,6 +17384,10 @@
             "type": "boolean",
             "readOnly": true
           },
+          "searchForReplacement": {
+            "type": "boolean",
+            "readOnly": true
+          },
           "status": {
             "type": "string",
             "nullable": true,
@@ -17529,6 +17533,9 @@
           "deleteFilesOnFailure": {
             "type": "boolean"
           },
+          "searchForReplacement": {
+            "type": "boolean"
+          },
           "eligible": {
             "type": "boolean"
           },
@@ -17622,6 +17629,9 @@
             "type": "boolean"
           },
           "deleteFilesOnFailure": {
+            "type": "boolean"
+          },
+          "searchForReplacement": {
             "type": "boolean"
           },
           "strikeLimit": {
