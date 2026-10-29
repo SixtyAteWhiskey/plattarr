@@ -224,7 +224,7 @@ namespace NzbDrone.Core.Hygiene
         {
             var resumed = new HashSet<int>();
 
-            foreach (var action in _actions.All().Where(x => x.Status != Completed).ToList())
+            foreach (var action in _actions.FindIncomplete())
             {
                 if (!_config.HygieneActionsEnabled)
                 {

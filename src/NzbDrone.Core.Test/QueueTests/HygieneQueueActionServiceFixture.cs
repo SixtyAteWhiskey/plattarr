@@ -772,6 +772,8 @@ namespace NzbDrone.Core.Test.QueueTests
                 config.SetupGet(x => x.HygieneActionsEnabled).Returns(() => GateEnabled);
                 var actionRepository = new Mock<IHygieneActionRepository>();
                 actionRepository.Setup(x => x.All()).Returns(() => Actions);
+                actionRepository.Setup(x => x.FindIncomplete())
+                    .Returns(() => Actions.Where(action => action.Status != "completed").ToList());
                 actionRepository.Setup(x => x.FindLatest(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>()))
                     .Returns((int clientId, string downloadId, string reasonCode) => Actions
                         .Where(action => action.DownloadClientId == clientId && action.DownloadId == downloadId && action.ReasonCode == reasonCode)
