@@ -38,6 +38,7 @@ namespace NzbDrone.Core.Hygiene
     public interface IHygieneActionRepository : IBasicRepository<HygieneAction>
     {
         List<HygieneAction> FindByReplacementSearchCommandId(int commandId);
+        HygieneAction FindLatest(int downloadClientId, string downloadId, string reasonCode);
     }
 
     public class HygieneActionRepository : BasicRepository<HygieneAction>, IHygieneActionRepository
@@ -50,6 +51,13 @@ namespace NzbDrone.Core.Hygiene
         public List<HygieneAction> FindByReplacementSearchCommandId(int commandId)
         {
             return Query(x => x.ReplacementSearchCommandId == commandId).ToList();
+        }
+
+        public HygieneAction FindLatest(int downloadClientId, string downloadId, string reasonCode)
+        {
+            return Query(x => x.DownloadClientId == downloadClientId && x.DownloadId == downloadId && x.ReasonCode == reasonCode)
+                .OrderByDescending(x => x.Id)
+                .FirstOrDefault();
         }
     }
 }

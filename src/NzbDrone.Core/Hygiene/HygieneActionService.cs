@@ -159,11 +159,7 @@ namespace NzbDrone.Core.Hygiene
                 return;
             }
 
-            var existing = _actions.All()
-                .Where(x => x.DownloadClientId == queueItem.DownloadClientId && x.DownloadId == queueItem.DownloadId &&
-                            x.ReasonCode == assessment.ReasonCode)
-                .OrderByDescending(x => x.Id)
-                .FirstOrDefault();
+            var existing = _actions.FindLatest(queueItem.DownloadClientId, queueItem.DownloadId, assessment.ReasonCode);
 
             if (existing?.Status == Completed)
             {
