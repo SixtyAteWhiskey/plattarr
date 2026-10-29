@@ -47,6 +47,9 @@ commands. Project-specific implementation notes are in
 API behavior against a local or scratch instance; do not point them at a
 production service.
 
+The current performance and code-cleanup work is tracked in the
+[`refactoring plan`](docs/refactoring-plan.md).
+
 ## Upstream and license
 
 Plattarr is not affiliated with or supported by the Radarr, Prowlarr, Sonarr,
