@@ -82,6 +82,7 @@ namespace NzbDrone.Core.Hygiene
         List<HygieneAction> FindByReplacementSearchCommandId(int commandId);
         HygieneAction FindLatest(int downloadClientId, string downloadId, string reasonCode);
         List<HygieneAction> FindIncomplete();
+        List<HygieneAction> FindRecent(int limit);
     }
 
     public class HygieneActionRepository : BasicRepository<HygieneAction>, IHygieneActionRepository
@@ -106,6 +107,11 @@ namespace NzbDrone.Core.Hygiene
         public List<HygieneAction> FindIncomplete()
         {
             return Query(x => x.Status != "completed");
+        }
+
+        public List<HygieneAction> FindRecent(int limit)
+        {
+            return Query(Builder().OrderBy("\"Id\" DESC LIMIT @limit", new { limit }));
         }
     }
 }
