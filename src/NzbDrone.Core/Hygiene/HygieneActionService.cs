@@ -308,7 +308,7 @@ namespace NzbDrone.Core.Hygiene
                 return;
             }
 
-            var isStalledOrSlowReason = action.ReasonCode == "download-stalled" || action.ReasonCode == "download-slow";
+            var isStalledOrSlowReason = action.ReasonCode is "download-stalled" or "download-slow" or "download-unstable";
             var isStalledOrSlowTorrent = isStalledOrSlowReason &&
                                          tracked?.Protocol == NzbDrone.Core.Indexers.DownloadProtocol.Torrent;
 

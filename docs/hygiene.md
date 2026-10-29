@@ -15,7 +15,7 @@ remain different or unimplemented.
 
 Create rules on the Hygiene page or through `/api/v3/hygiene/rule`. A rule names
 one of `client-failed`, `import-blocked`, `download-warning`,
-`download-stalled`, or `download-slow`; a media kind
+`download-stalled`, `download-slow`, or `download-unstable`; a media kind
 (Movies, TV, Music, or all); a download client (or all); a strike limit; and a
 minimum number of minutes between strikes. New rules are disabled. A rule
 enabled for a specific kind and client takes priority over one for just the
@@ -44,6 +44,17 @@ count. Disabling the matching rule also resets it. Strike state is stored by
 download-client ID and download ID; records not seen for 30 days are removed.
 Pending releases have no client download ID and do not accumulate strikes.
 
+`download-unstable` is a separate rule for repeated slow or stalled signals on
+one download. It defaults to 12 strikes at least 5 minutes apart, starts
+disabled, and has its own source-file deletion and replacement-search choices.
+The cumulative count survives changes between slow and stalled and healthy
+intervals; disabling the rule or switching to a different scoped cumulative
+rule clears it. A matching slow-download rule supplies
+the speed threshold for slow signals. The queue preview shows the cumulative
+count while this rule is enabled. When a current slow or stalled signal reaches
+both the consecutive and cumulative limits, the consecutive rule takes priority.
+The cumulative rule can act only while a slow or stalled signal is current.
+
 `download-stalled` is reported when qBittorrent explicitly reports its
 `stalledDL` state. `download-slow` is reported when the active rate is below
 the minimum KiB/s configured on a matching slow-download rule. The current
@@ -70,7 +81,7 @@ and reach its strike threshold. The preview and executor share the same
 the executor would process under the current settings.
 
 The executor handles tracked `client-failed`, `import-blocked`,
-`download-stalled`, and `download-slow` items. Generic `download-warning`
+`download-stalled`, `download-slow`, and `download-unstable` items. Generic `download-warning`
 items stay monitor-only. For an eligible item, it removes the job from the
 download client, keeping its files by default or deleting them when the matched
 rule opts in, records the failure through the existing per-kind failed-download

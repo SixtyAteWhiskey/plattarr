@@ -31,6 +31,8 @@ interface HygieneRuleAssessment {
   ruleId: number | null;
   strikes: number;
   eligible: boolean;
+  unstableRuleId?: number;
+  unstableStrikes?: number;
 }
 
 export const reasonOptions = [
@@ -39,6 +41,7 @@ export const reasonOptions = [
   { value: 'download-warning', label: 'Download warning' },
   { value: 'download-stalled', label: 'Download stalled' },
   { value: 'download-slow', label: 'Slow download' },
+  { value: 'download-unstable', label: 'Repeated slow or stalled' },
 ];
 
 const kindOptions = [
@@ -183,10 +186,13 @@ function HygieneRuleEditor({
     (item) => item.id === draft.downloadClientId
   )?.name;
   const matchingAssessments = assessments?.filter(
-    (assessment) => assessment.ruleId === draft.id
+    (assessment) =>
+      assessment.ruleId === draft.id || assessment.unstableRuleId === draft.id
   );
-  const atThresholdCount = matchingAssessments?.filter(
-    (assessment) => assessment.eligible
+  const atThresholdCount = matchingAssessments?.filter((assessment) =>
+    draft.reasonCode === 'download-unstable'
+      ? (assessment.unstableStrikes ?? 0) >= rule.strikeLimit
+      : assessment.ruleId === draft.id && assessment.eligible
   ).length;
 
   return (
@@ -204,6 +210,14 @@ function HygieneRuleEditor({
           <Text size="small" tone="secondary">
             {kind || 'Unknown media'} · {client || 'All clients'}
           </Text>
+          {draft.reasonCode === 'download-unstable' ? (
+            <Text size="small" tone="secondary">
+              Counts slow and stalled observations for the same download across
+              reason changes and healthy periods. Each strike needs the
+              configured interval; slow detection uses a matching Slow download
+              rule’s speed threshold.
+            </Text>
+          ) : null}
         </Stack>
 
         <form className={styles.ruleForm} onSubmit={handleSave}>
@@ -472,7 +486,7 @@ function HygieneRules({
           enabled: false,
           deleteFilesOnFailure,
           searchForReplacement,
-          strikeLimit: 3,
+          strikeLimit: reasonCode === 'download-unstable' ? 12 : 3,
           strikeIntervalMinutes: 5,
           minimumDownloadRateKiBps:
             reasonCode === 'download-slow' ? minimumDownloadRateKiBps : 0,
@@ -575,6 +589,16 @@ function HygieneRules({
                       ))}
                     </select>
                   </label>
+
+                  {reasonCode === 'download-unstable' ? (
+                    <Text size="small" tone="secondary">
+                      Counts slow and stalled observations for each download,
+                      even when the reason changes or the speed briefly
+                      recovers. The default is 12 strikes, at least 5 minutes
+                      apart. Slow detection uses a matching Slow download rule’s
+                      speed threshold.
+                    </Text>
+                  ) : null}
 
                   {reasonCode === 'download-slow' ? (
                     <label className={styles.formField}>

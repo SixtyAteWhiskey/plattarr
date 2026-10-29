@@ -19,6 +19,9 @@ namespace NzbDrone.Core.Hygiene
         public bool NeedsAttention { get; set; }
         public int Strikes { get; set; }
         public int? StrikeLimit { get; set; }
+        public int? UnstableStrikes { get; set; }
+        public int? UnstableStrikeLimit { get; set; }
+        public int? UnstableRuleId { get; set; }
         public int? RuleId { get; set; }
         public bool RuleEnabled { get; set; }
         public bool DeleteFilesOnFailure { get; set; }

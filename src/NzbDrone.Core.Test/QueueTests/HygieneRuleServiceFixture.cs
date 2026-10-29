@@ -15,6 +15,22 @@ namespace NzbDrone.Core.Test.QueueTests
     public class HygieneRuleServiceFixture : CoreTest<HygieneRuleService>
     {
         [Test]
+        public void cumulative_rule_accepts_a_twelve_strike_threshold()
+        {
+            var rule = new HygieneRule
+            {
+                ReasonCode = "download-unstable",
+                StrikeLimit = 12,
+                StrikeIntervalMinutes = 5
+            };
+            var repository = Mocker.GetMock<IHygieneRuleRepository>();
+            repository.Setup(x => x.All()).Returns(new List<HygieneRule>());
+            repository.Setup(x => x.Insert(rule)).Returns(rule);
+
+            Subject.Upsert(rule).Should().BeSameAs(rule);
+        }
+
+        [Test]
         public void more_specific_disabled_rule_overrides_a_global_rule()
         {
             var rules = new[]

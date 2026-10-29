@@ -23,7 +23,8 @@ namespace NzbDrone.Core.Hygiene
             "import-blocked",
             "download-warning",
             "download-stalled",
-            "download-slow"
+            "download-slow",
+            "download-unstable"
         };
 
         private readonly IHygieneRuleRepository _repository;

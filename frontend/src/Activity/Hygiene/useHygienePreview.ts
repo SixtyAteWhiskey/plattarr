@@ -12,6 +12,9 @@ export interface HygieneAssessment {
   needsAttention: boolean;
   strikes: number;
   strikeLimit?: number;
+  unstableStrikes?: number;
+  unstableStrikeLimit?: number;
+  unstableRuleId?: number;
   ruleEnabled: boolean;
   eligible: boolean;
   ruleExplanation: string;

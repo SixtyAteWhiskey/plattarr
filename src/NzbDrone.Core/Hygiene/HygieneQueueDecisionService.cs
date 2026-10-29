@@ -44,8 +44,38 @@ namespace NzbDrone.Core.Hygiene
                 HygieneQueueSignalClassifier.Apply(item, assessment, rules, _rules);
                 var rule = _rules.Match(rules, assessment.ReasonCode, (int?)assessment.Kind ?? 0, item.DownloadClientId);
                 states.TryGetValue((item.DownloadClientId, item.DownloadId), out var state);
+                var isSlowOrStalled = assessment.ReasonCode is "download-stalled" or "download-slow";
+                var unstableRule = item.DownloadClientId > 0 && !string.IsNullOrWhiteSpace(item.DownloadId) &&
+                                   (isSlowOrStalled || state?.UnstableStrikes > 0)
+                    ? _rules.Match(rules, "download-unstable", (int?)assessment.Kind ?? 0, item.DownloadClientId)
+                    : null;
+                var unstableStrikes = unstableRule != null && state?.UnstableRuleId == unstableRule.Id
+                    ? state.UnstableStrikes
+                    : 0;
 
-                assessment.Strikes = state?.ReasonCode == assessment.ReasonCode ? state.Strikes : 0;
+                if (unstableRule?.Enabled == true)
+                {
+                    assessment.UnstableStrikes = unstableStrikes;
+                    assessment.UnstableStrikeLimit = unstableRule.StrikeLimit;
+                    assessment.UnstableRuleId = unstableRule.Id;
+                }
+
+                // A specific stalled/slow rule wins when it reaches its own limit.
+                // Otherwise the cumulative rule can authorize the same download.
+                if (isSlowOrStalled &&
+                    !(rule?.Enabled == true && state?.ReasonCode == assessment.ReasonCode && state.Strikes >= rule.StrikeLimit))
+                {
+                    if (unstableRule?.Enabled == true && unstableStrikes >= unstableRule.StrikeLimit)
+                    {
+                        assessment.ReasonCode = "download-unstable";
+                        assessment.Explanation += $" Slow or stalled signals have accumulated {unstableStrikes} strikes for this download.";
+                        assessment.RecommendedAction = "Review this repeatedly slow or stalled download and its replacement options.";
+                        rule = unstableRule;
+                    }
+                }
+
+                assessment.Strikes = assessment.ReasonCode == "download-unstable" ? unstableStrikes
+                    : state?.ReasonCode == assessment.ReasonCode ? state.Strikes : 0;
                 assessment.StrikeLimit = rule?.StrikeLimit;
                 assessment.RuleId = rule?.Id;
                 assessment.RuleEnabled = rule?.Enabled == true;
@@ -60,9 +90,9 @@ namespace NzbDrone.Core.Hygiene
                 assessment.WouldAct = false;
                 assessment.ActionExplanation = !assessment.Eligible ? "The rule threshold has not been reached."
                     : !_config.HygieneActionsEnabled ? "Automatic actions are disabled by the global Hygiene gate."
-                    : assessment.ReasonCode is not ("client-failed" or "import-blocked" or "download-stalled" or "download-slow")
+                    : assessment.ReasonCode is not ("client-failed" or "import-blocked" or "download-stalled" or "download-slow" or "download-unstable")
                         ? "This reason is monitor-only and requires manual review."
-                    : (assessment.ReasonCode == "download-stalled" || assessment.ReasonCode == "download-slow") && item.Protocol != DownloadProtocol.Torrent
+                    : (assessment.ReasonCode is "download-stalled" or "download-slow" or "download-unstable") && item.Protocol != DownloadProtocol.Torrent
                         ? "Automatic stalled and slow cleanup is available only for torrent downloads."
                     : item.DownloadClientId <= 0 || string.IsNullOrWhiteSpace(item.DownloadId)
                         ? "This item is not a tracked download-client item."
