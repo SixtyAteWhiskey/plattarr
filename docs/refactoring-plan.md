@@ -38,9 +38,13 @@ build; do not compare it with production output.
   during the browser comparison.
 - [x] On a disposable Release instance, record warm startup time, steady RSS,
   and RSS after representative requests. Repeat enough times to see variation.
-- [ ] Time `/ping`, status, queue, Hygiene preview, and a representative library
-  route at p50 and p95. Profile one queue refresh with small and larger
-  synthetic action/state histories; count database queries and rows read.
+- [x] Time `/ping`, status, queue, Hygiene preview, and a representative library
+  route at p50 and p95; results are in the baseline section below.
+- [x] Compare the queue-refresh SQL read sequence with small and larger
+  synthetic action/state histories, counting queries and materialized rows;
+  see the dated read-path profile below.
+- [ ] Profile an actual `QueueService.Handle` refresh with the same fixture
+  sizes, including writes, recovery, .NET memory, and total elapsed time.
 - [x] Record the baseline in a dated section of this document and choose the
   first bounded implementation slice from the measured results.
 
@@ -68,14 +72,15 @@ measured before changing them.
 ## 2. Bound Hygiene work during queue refresh
 
 `QueueService.Handle` observes strikes and processes Hygiene actions on each
-tracked-download refresh. `HygieneQueueStrikeService` and
-`HygieneQueueDecisionService` load all states. `HygieneQueueActionService`
-loads all actions for recent entries, interrupted work, and existing-action
-checks. The action journal is currently small, so this is a scalability
-candidate rather than a proven production bottleneck.
+tracked-download refresh. Earlier slices bounded the queue-state and action
+reads; the journal's recent-entry read serves a separate API. The action
+journal is currently small, so this is a scalability candidate rather than a
+proven production bottleneck.
 
-- [ ] Profile the refresh path and inspect existing database indexes and query
-  plans before changing repository methods.
+- [x] Profile the SQL read sequence and inspect the existing database indexes
+  and query plans; see the dated read-path profile below.
+- [ ] Measure an actual queue refresh with synthetic histories before making
+  another repository change based on whole-refresh performance.
 - [x] Replace one full-table read at a time with a bounded query where the
   profile shows useful savings. Consider recent actions, unfinished actions,
   identity lookups, and state retention separately. The four prior slices and
@@ -534,6 +539,44 @@ also reads command history to build replacement outcomes, so these query-only
 figures do not establish end-to-end journal latency or memory savings.
 PostgreSQL was not profiled. No production rollout occurred.
 
+## 2026-10-29 queue-refresh SQL read-path profile
+
+`python3 tools/benchmark_hygiene_refresh_reads.py` compares the repository
+read sequence before the four bounded Hygiene queue slices with the current
+sequence. The disposable SQLite fixture uses the migration 12 and 13 state
+and action indexes, 20 current queue identities, one rule, one expired state
+per 100 non-current states, and one unfinished action per 1,000 actions. All
+20 items are modeled as eligible for the existing-action lookup, making this
+an intentionally read-heavy scenario. Each fixture size has the same number
+of state and action rows. Five repetitions run in a fresh process for each
+mode and size. The harness verifies that both modes select identical current
+states, expired states, unfinished actions, and latest matching action IDs.
+It leaves no fixture or listener behind.
+
+| State and action rows each | Full-table reads: median ms / queries / rows materialized / RSS growth KiB | Bounded reads: same metrics |
+| ---: | ---: | ---: |
+| 100 | 1.480 / 25 / 2,302 / 92 | 0.396 / 26 / 62 / 32 |
+| 10,000 | 139.986 / 25 / 230,002 / 9,400 | 1.119 / 26 / 251 / 1,044 |
+| 100,000 | 1,451.520 / 25 / 2,300,002 / 86,972 | 10.810 / 26 / 2,141 / 9,092 |
+
+Times are median Python plus SQLite time for the modeled reads, including
+Python filtering in the prior path. RSS growth is the worker process's
+resident-memory increase during five repetitions; it is not .NET heap or
+application RSS. “Rows materialized” counts rows returned to Python, not all
+rows SQLite scans. Query count rises by one because expiry now has its own
+query. At 100,000 rows, the current path materializes 999 expired states,
+100 unfinished actions, and 1,000 matching action-history rows. The identity
+state and action queries use the existing client/download indexes. SQLite
+still reports a scan for the expiry and non-completed-status predicates;
+their benefit here is avoiding materialization of recent or completed rows.
+
+This establishes the combined SQL read cost under a synthetic workload, not
+actual `QueueService.Handle` time. The model omits state writes, retention
+deletes, interrupted-action recovery, download-client calls, .NET allocation,
+and queue/event overhead. PostgreSQL was not profiled. The actual refresh
+comparison and recovery/preview proof remain open in section 2. No runtime
+code or production state changed.
+
 ## Progress log
 
 | Date | Slice | Commit or PR | Result and evidence |
@@ -547,3 +590,4 @@ PostgreSQL was not profiled. No production rollout occurred.
 | 2026-10-29 | Hygiene decision state lookup | `bfe1396e8` | [Indexed query comparison and focused verification](#2026-10-29-hygiene-decision-state-lookup); broad Core gate remains open; no production rollout. |
 | 2026-10-29 | Hygiene strike observation state reads | `740367330` | [Synthetic query comparison and focused verification](#2026-10-29-hygiene-strike-observation-state-reads); broad Core gate remains open; no production rollout. |
 | 2026-10-29 | Bounded Hygiene journal read | `19cdbfa10` | [Synthetic read comparison and focused verification](#2026-10-29-bounded-hygiene-journal-read); broad Core gate remains open; no production rollout. |
+| 2026-10-29 | Queue-refresh SQL read-path profile | PENDING | [Synthetic combined read comparison](#2026-10-29-queue-refresh-sql-read-path-profile); actual refresh profile remains open. |
