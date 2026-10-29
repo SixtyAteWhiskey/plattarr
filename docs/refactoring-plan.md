@@ -590,4 +590,4 @@ code or production state changed.
 | 2026-10-29 | Hygiene decision state lookup | `bfe1396e8` | [Indexed query comparison and focused verification](#2026-10-29-hygiene-decision-state-lookup); broad Core gate remains open; no production rollout. |
 | 2026-10-29 | Hygiene strike observation state reads | `740367330` | [Synthetic query comparison and focused verification](#2026-10-29-hygiene-strike-observation-state-reads); broad Core gate remains open; no production rollout. |
 | 2026-10-29 | Bounded Hygiene journal read | `19cdbfa10` | [Synthetic read comparison and focused verification](#2026-10-29-bounded-hygiene-journal-read); broad Core gate remains open; no production rollout. |
-| 2026-10-29 | Queue-refresh SQL read-path profile | PENDING | [Synthetic combined read comparison](#2026-10-29-queue-refresh-sql-read-path-profile); actual refresh profile remains open. |
+| 2026-10-29 | Queue-refresh SQL read-path profile | `8c21ed4b6` | [Synthetic combined read comparison](#2026-10-29-queue-refresh-sql-read-path-profile); actual refresh profile remains open. |
