@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Hygiene;
@@ -24,7 +25,20 @@ namespace NzbDrone.Core.Test.QueueTests
             first.Id.Should().BeLessThan(latest.Id);
         }
 
-        private HygieneAction Insert(int clientId, string downloadId, string reasonCode)
+        [Test]
+        public void incomplete_actions_include_every_non_completed_status()
+        {
+            Insert(7, "completed", "client-failed");
+            var processing = Insert(7, "processing", "client-failed", "processing");
+            var failed = Insert(7, "failed", "client-failed", "failed");
+            var paused = Insert(7, "paused", "client-failed", "paused");
+            var unknown = Insert(7, "future-status", "client-failed", "future-status");
+
+            Subject.FindIncomplete().Select(action => action.Id)
+                .Should().Equal(processing.Id, failed.Id, paused.Id, unknown.Id);
+        }
+
+        private HygieneAction Insert(int clientId, string downloadId, string reasonCode, string status = "completed")
         {
             return Subject.Insert(new HygieneAction
             {
@@ -33,7 +47,7 @@ namespace NzbDrone.Core.Test.QueueTests
                 MediaKind = 1,
                 ReasonCode = reasonCode,
                 RuleId = 1,
-                Status = "completed",
+                Status = status,
                 Checkpoint = "replacement-requested",
                 RecoveryPath = "synthetic fixture",
                 CreatedAt = DateTime.UtcNow,
