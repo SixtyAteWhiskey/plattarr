@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Messaging.Events;
@@ -36,6 +37,7 @@ namespace NzbDrone.Core.Hygiene
 
     public interface IHygieneActionRepository : IBasicRepository<HygieneAction>
     {
+        List<HygieneAction> FindByReplacementSearchCommandId(int commandId);
     }
 
     public class HygieneActionRepository : BasicRepository<HygieneAction>, IHygieneActionRepository
@@ -43,6 +45,11 @@ namespace NzbDrone.Core.Hygiene
         public HygieneActionRepository(IMainDatabase database, IEventAggregator eventAggregator)
             : base(database, eventAggregator)
         {
+        }
+
+        public List<HygieneAction> FindByReplacementSearchCommandId(int commandId)
+        {
+            return Query(x => x.ReplacementSearchCommandId == commandId).ToList();
         }
     }
 }

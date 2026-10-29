@@ -11,7 +11,7 @@ namespace NzbDrone.Core.Download
     public interface IFailedDownloadService
     {
         void MarkAsFailed(MediaKind kind, int historyId, bool skipRedownload = false);
-        void MarkAsFailed(TrackedDownload trackedDownload, bool skipRedownload = false);
+        DownloadFailedEvent MarkAsFailed(TrackedDownload trackedDownload, bool skipRedownload = false);
         void Check(TrackedDownload trackedDownload);
         void ProcessFailed(TrackedDownload trackedDownload);
     }
@@ -41,7 +41,7 @@ namespace NzbDrone.Core.Download
             _eventAggregator.PublishEvent(source.Describe(historyId, "Manually marked as failed", skipRedownload));
         }
 
-        public void MarkAsFailed(TrackedDownload trackedDownload, bool skipRedownload = false)
+        public DownloadFailedEvent MarkAsFailed(TrackedDownload trackedDownload, bool skipRedownload = false)
         {
             var failure = FindSource(trackedDownload)?.Describe(trackedDownload.DownloadItem.DownloadId, "Manually marked as failed", trackedDownload, skipRedownload);
 
@@ -49,6 +49,8 @@ namespace NzbDrone.Core.Download
             {
                 _eventAggregator.PublishEvent(failure);
             }
+
+            return failure;
         }
 
         public void Check(TrackedDownload trackedDownload)

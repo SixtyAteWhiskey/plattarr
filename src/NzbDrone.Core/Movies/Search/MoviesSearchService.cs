@@ -44,7 +44,7 @@ namespace NzbDrone.Core.Movies.Search
                 .Where(m => (m.Monitored && m.IsAvailable()) || userInvokedSearch)
                 .ToList();
 
-            SearchForBulkMovies(movies, userInvokedSearch).GetAwaiter().GetResult();
+            message.GrabbedCount = SearchForBulkMovies(movies, userInvokedSearch).GetAwaiter().GetResult();
         }
 
         public void Execute(MissingMoviesSearchCommand message)
@@ -87,7 +87,7 @@ namespace NzbDrone.Core.Movies.Search
             SearchForBulkMovies(missing, message.Trigger == CommandTrigger.Manual).GetAwaiter().GetResult();
         }
 
-        private async Task SearchForBulkMovies(List<Movie> movies, bool userInvokedSearch)
+        private async Task<int> SearchForBulkMovies(List<Movie> movies, bool userInvokedSearch)
         {
             _logger.ProgressInfo("Performing search for {0} movies", movies.Count);
             var downloadedCount = 0;
@@ -112,6 +112,7 @@ namespace NzbDrone.Core.Movies.Search
             }
 
             _logger.ProgressInfo("Completed search for {0} movies. {1} reports downloaded.", movies.Count, downloadedCount);
+            return downloadedCount;
         }
     }
 }

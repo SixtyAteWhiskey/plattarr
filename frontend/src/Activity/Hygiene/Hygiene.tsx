@@ -35,6 +35,20 @@ interface HygieneAction {
   recoveryPath: string;
   lastError?: string;
   updatedAt: string;
+  replacementOutcome: HygieneReplacementOutcome;
+}
+
+interface HygieneReplacementOutcome {
+  searchState: string;
+  evidence: string;
+  targetCount?: number;
+  reportsGrabbed?: number;
+  grabs: {
+    downloadId: string;
+    coveredTargetCount: number;
+    importedTargetCount: number;
+    failedTargetCount: number;
+  }[];
 }
 
 interface HygienePresentation {
@@ -123,22 +137,22 @@ const unknownReasonPresentation: HygienePresentation = {
 
 const actionStatusPresentations: Record<string, HygienePresentation> = {
   failed: {
-    cue: 'Failed',
+    cue: 'Cleanup failed',
     icon: icons.DANGER,
     tone: 'danger',
   },
   processing: {
-    cue: 'In progress',
+    cue: 'Cleanup in progress',
     icon: icons.PENDING,
     tone: 'warning',
   },
   paused: {
-    cue: 'Paused',
+    cue: 'Action paused',
     icon: icons.PAUSED,
     tone: 'warning',
   },
   completed: {
-    cue: 'Completed',
+    cue: 'Cleanup completed',
     icon: icons.CHECK_CIRCLE,
     tone: 'success',
   },
@@ -202,6 +216,38 @@ const unknownFailureStageDescription =
 
 function getFailureStageDescription(checkpoint: string) {
   return failureStageDescriptions[checkpoint] || unknownFailureStageDescription;
+}
+
+function getSearchSummary(outcome: HygieneReplacementOutcome) {
+  switch (outcome.searchState) {
+    case 'not-requested':
+      return 'A replacement search has not been handed off.';
+    case 'requested':
+      return 'Recovery handoff recorded. Search completion and grabs are not verified.';
+    case 'completed-no-grab':
+      return 'Search completed with no reports grabbed.';
+    case 'completed-no-matching-grab':
+      return 'Search completed; no matching grab appears in the retained history.';
+    case 'completed':
+      return 'Search completed. Check the matching grabs and imports below.';
+    case 'search-failed':
+      return 'The replacement search did not complete successfully.';
+    default:
+      return 'Replacement search outcome is not verified.';
+  }
+}
+
+function getOutcomeEvidence(outcome: HygieneReplacementOutcome) {
+  if (outcome.evidence === 'recorded') {
+    return 'Search result saved in the journal.';
+  }
+  if (outcome.evidence === 'linked-command') {
+    return 'Linked search command found; its result was not saved in the journal.';
+  }
+  if (outcome.evidence === 'inferred-command') {
+    return 'Search command matched by episode set and time; the link is inferred.';
+  }
+  return 'No search command could be linked to this action.';
 }
 
 function Hygiene() {
@@ -642,6 +688,61 @@ function Hygiene() {
                               ? 'delete source files'
                               : 'keep source files'}
                           </Text>
+                          {action.replacementOutcome ? (
+                            <div className={styles.replacementOutcome}>
+                              <Text weight="semibold">Replacement outcome</Text>
+                              <Text>
+                                {getSearchSummary(action.replacementOutcome)}
+                              </Text>
+                              <Text size="small" tone="secondary">
+                                {getOutcomeEvidence(action.replacementOutcome)}{' '}
+                                {action.replacementOutcome.targetCount == null
+                                  ? 'Target count unavailable.'
+                                  : `${action.replacementOutcome.targetCount} targeted episodes.`}
+                                {action.replacementOutcome.reportsGrabbed ==
+                                null
+                                  ? ''
+                                  : ` ${
+                                      action.replacementOutcome.reportsGrabbed
+                                    } ${
+                                      action.replacementOutcome
+                                        .reportsGrabbed === 1
+                                        ? 'report'
+                                        : 'reports'
+                                    } grabbed by the search.`}
+                              </Text>
+                              {action.replacementOutcome.grabs.length > 0 ? (
+                                <ul className={styles.replacementGrabs}>
+                                  {action.replacementOutcome.grabs.map(
+                                    (grab) => (
+                                      <li key={grab.downloadId}>
+                                        Download ID {grab.downloadId}:{' '}
+                                        {grab.coveredTargetCount} of{' '}
+                                        {action.replacementOutcome
+                                          .targetCount ?? '?'}{' '}
+                                        targeted episodes covered by a later
+                                        matching grab;{' '}
+                                        {grab.importedTargetCount} imported,{' '}
+                                        {grab.failedTargetCount} failed.
+                                      </li>
+                                    )
+                                  )}
+                                </ul>
+                              ) : null}
+                              {action.replacementOutcome.searchState ===
+                                'completed' &&
+                              action.replacementOutcome.reportsGrabbed !=
+                                null &&
+                              action.replacementOutcome.reportsGrabbed > 0 &&
+                              action.replacementOutcome.grabs.length === 0 ? (
+                                <Text size="small" tone="secondary">
+                                  The search reported a grab, but its download
+                                  identity could not be matched to these
+                                  targets.
+                                </Text>
+                              ) : null}
+                            </div>
+                          ) : null}
                           {action.status === 'failed' ? (
                             <details>
                               <summary>Failure details</summary>

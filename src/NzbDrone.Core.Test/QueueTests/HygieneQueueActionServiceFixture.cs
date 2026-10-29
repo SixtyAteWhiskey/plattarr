@@ -101,6 +101,71 @@ namespace NzbDrone.Core.Test.QueueTests
         }
 
         [Test]
+        public void linked_search_completion_records_zero_grabs_separately_from_action_completion()
+        {
+            var context = new ActionContext(MediaKind.Tv, true);
+            context.FailedDownloads
+                .Setup(x => x.MarkAsFailed(context.TrackedDownload, false))
+                .Returns(new DownloadFailedEvent
+                {
+                    Kind = MediaKind.Tv,
+                    ItemIds = new List<int> { 7, 1, 2 },
+                    ReplacementSearchCommandId = 83
+                });
+            var command = new CommandModel
+            {
+                Id = 83,
+                Status = CommandStatus.Completed,
+                EndedAt = DateTime.UtcNow,
+                Body = new EpisodeSearchCommand(new List<int> { 1, 2, 7 }) { GrabbedCount = 0 }
+            };
+            context.CommandQueue.Setup(x => x.Get(83)).Returns(command);
+
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.Actions.Should().ContainSingle();
+            context.Actions[0].Status.Should().Be("completed");
+            context.Actions[0].ReplacementTargetIds.Should().Be("1,2,7");
+            context.Actions[0].ReplacementSearchCommandId.Should().Be(83);
+            context.Actions[0].ReplacementSearchStatus.Should().Be("completed");
+            context.Actions[0].ReplacementGrabCount.Should().Be(0);
+        }
+
+        [Test]
+        public void later_search_completion_records_grab_count_without_changing_cleanup_status()
+        {
+            var context = new ActionContext(MediaKind.Tv, true);
+            context.FailedDownloads
+                .Setup(x => x.MarkAsFailed(context.TrackedDownload, false))
+                .Returns(new DownloadFailedEvent
+                {
+                    Kind = MediaKind.Tv,
+                    ItemIds = new List<int> { 1, 2, 3, 4, 5, 6, 7 },
+                    ReplacementSearchCommandId = 83
+                });
+            context.CommandQueue.Setup(x => x.Get(83)).Returns(new CommandModel
+            {
+                Id = 83,
+                Status = CommandStatus.Queued,
+                Body = new EpisodeSearchCommand(new List<int> { 1, 2, 3, 4, 5, 6, 7 })
+            });
+            context.Service.Process(new[] { context.QueueItem });
+
+            var completed = new CommandModel
+            {
+                Id = 83,
+                Status = CommandStatus.Completed,
+                EndedAt = DateTime.UtcNow,
+                Body = new EpisodeSearchCommand(new List<int> { 1, 2, 3, 4, 5, 6, 7 }) { GrabbedCount = 1 }
+            };
+            ((HygieneQueueActionService)context.Service).Handle(new CommandExecutedEvent(completed));
+
+            context.Actions[0].Status.Should().Be("completed");
+            context.Actions[0].ReplacementSearchStatus.Should().Be("completed");
+            context.Actions[0].ReplacementGrabCount.Should().Be(1);
+        }
+
+        [Test]
         public void stalled_tv_torrent_recovery_records_history_blocklists_release_and_requests_replacement_search()
         {
             var grabbedHistory = new EpisodeHistory
@@ -540,6 +605,7 @@ namespace NzbDrone.Core.Test.QueueTests
             public Mock<IDownloadClient> DownloadClient { get; } = new();
             public Mock<ITrackedDownloadService> TrackedDownloads { get; } = new();
             public Mock<IFailedDownloadService> FailedDownloads { get; } = new();
+            public Mock<IManageCommandQueue> CommandQueue { get; } = new();
             public Mock<IHygieneQueueDecisionService> Decisions { get; } = new();
             public HygieneQueueAssessment Assessment { get; }
             public IHygieneQueueActionService Service { get; }
@@ -614,6 +680,8 @@ namespace NzbDrone.Core.Test.QueueTests
                 config.SetupGet(x => x.HygieneActionsEnabled).Returns(() => GateEnabled);
                 var actionRepository = new Mock<IHygieneActionRepository>();
                 actionRepository.Setup(x => x.All()).Returns(() => Actions);
+                actionRepository.Setup(x => x.FindByReplacementSearchCommandId(It.IsAny<int>()))
+                    .Returns((int commandId) => Actions.Where(action => action.ReplacementSearchCommandId == commandId).ToList());
                 actionRepository.Setup(x => x.Insert(It.IsAny<HygieneAction>())).Returns((HygieneAction action) =>
                 {
                     action.Id = Actions.Count + 1;
@@ -629,6 +697,7 @@ namespace NzbDrone.Core.Test.QueueTests
                     TrackedDownloads.Object,
                     downloadProvider.Object,
                     failedDownloadService ?? FailedDownloads.Object,
+                    CommandQueue.Object,
                     TestLogger);
             }
         }

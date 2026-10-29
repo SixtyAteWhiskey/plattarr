@@ -96,6 +96,27 @@ System log records the action ID, media kind, reason, client ID, checkpoint,
 and error type. Failed journal entries expose a concise stage explanation and
 manual recovery steps in the expandable **Failure details** section.
 
+Migration 18 records the replacement command ID, target item IDs, terminal
+search status, grab count, and completion time for new actions. The action's
+`completed` status and `replacement-requested` checkpoint describe cleanup and
+the failed-download handoff; neither proves that a search completed, a release
+was grabbed, or a file was imported. The journal shows these as separate
+observations. A completed search with zero grabs is explicit, whether an
+indexer returned no rows or every row was rejected. Search failures remain
+distinct from cleanup failures.
+
+For TV, the read-only action response groups later grab history by download ID
+and counts only overlap with that action's targeted episode IDs. It then shows
+import and failure history for each matching download. A one-episode regrab of
+a seven-episode pack is therefore one of seven covered, not seven recovered.
+An import entry confirms an import event; it does not assert that the file is
+still present. Older journal entries lack a stored command link. When an
+unambiguous command remains in the short-lived command table, the API labels
+the match as inferred; otherwise search completion stays unverified. Later
+matching grabs can still be shown without attributing them to that search.
+The per-rule file-deletion choice records what was requested from the client,
+not independent proof that former source paths were removed.
+
 `tools/liveproof/run.py hygiene` is a read-only rollout check. It confirms the
 global gate is off and no action remains failed or incomplete. Disposable
 Movie, TV, and Music recovery tests cover successful removal while retaining

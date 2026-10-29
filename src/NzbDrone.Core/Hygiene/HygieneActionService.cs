@@ -6,6 +6,8 @@ using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Modules;
+using NzbDrone.Core.Messaging.Commands;
+using NzbDrone.Core.Messaging.Events;
 using QueueItem = NzbDrone.Core.Queue.Queue;
 
 namespace NzbDrone.Core.Hygiene
@@ -27,6 +29,11 @@ namespace NzbDrone.Core.Hygiene
         public DateTime? NextAttemptAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+        public int? ReplacementSearchCommandId { get; set; }
+        public string ReplacementTargetIds { get; set; }
+        public string ReplacementSearchStatus { get; set; }
+        public int? ReplacementGrabCount { get; set; }
+        public DateTime? ReplacementSearchEndedAt { get; set; }
     }
 
     public interface IHygieneQueueActionService
@@ -35,7 +42,7 @@ namespace NzbDrone.Core.Hygiene
         List<HygieneAction> Recent(int limit = 100);
     }
 
-    public class HygieneQueueActionService : IHygieneQueueActionService
+    public class HygieneQueueActionService : IHygieneQueueActionService, IHandle<CommandExecutedEvent>
     {
         private sealed class ActionStageException : Exception
         {
@@ -65,6 +72,7 @@ namespace NzbDrone.Core.Hygiene
         private readonly ITrackedDownloadService _trackedDownloads;
         private readonly IProvideDownloadClient _downloadClients;
         private readonly IFailedDownloadService _failedDownloads;
+        private readonly IManageCommandQueue _commandQueue;
         private readonly Logger _logger;
 
         public HygieneQueueActionService(
@@ -74,6 +82,7 @@ namespace NzbDrone.Core.Hygiene
             ITrackedDownloadService trackedDownloads,
             IProvideDownloadClient downloadClients,
             IFailedDownloadService failedDownloads,
+            IManageCommandQueue commandQueue,
             Logger logger)
         {
             _decisions = decisions;
@@ -82,6 +91,7 @@ namespace NzbDrone.Core.Hygiene
             _trackedDownloads = trackedDownloads;
             _downloadClients = downloadClients;
             _failedDownloads = failedDownloads;
+            _commandQueue = commandQueue;
             _logger = logger;
         }
 
@@ -110,6 +120,28 @@ namespace NzbDrone.Core.Hygiene
         public List<HygieneAction> Recent(int limit = 100)
         {
             return _actions.All().OrderByDescending(x => x.Id).Take(Math.Clamp(limit, 1, 500)).ToList();
+        }
+
+        public void Handle(CommandExecutedEvent message)
+        {
+            var command = message.Command;
+            foreach (var action in _actions.FindByReplacementSearchCommandId(command.Id))
+            {
+                RecordSearchResult(action, command);
+            }
+        }
+
+        private void RecordSearchResult(HygieneAction action, CommandModel command)
+        {
+            if (command == null || command.Status is not (CommandStatus.Completed or CommandStatus.Failed or CommandStatus.Aborted or CommandStatus.Cancelled or CommandStatus.Orphaned))
+            {
+                return;
+            }
+
+            action.ReplacementSearchStatus = command.Status.ToString().ToLowerInvariant();
+            action.ReplacementGrabCount = command.Status == CommandStatus.Completed ? command.Body?.GrabbedCount : null;
+            action.ReplacementSearchEndedAt = command.EndedAt;
+            _actions.SetFields(action, x => x.ReplacementSearchStatus, x => x.ReplacementGrabCount, x => x.ReplacementSearchEndedAt);
         }
 
         private void Execute(HygieneQueueAssessment assessment, IReadOnlyCollection<QueueItem> queue, ISet<int> alreadyResumed)
@@ -171,7 +203,7 @@ namespace NzbDrone.Core.Hygiene
             action.Status = Processing;
             action.LastError = null;
             action.UpdatedAt = DateTime.UtcNow;
-            _actions.Update(action);
+            _actions.SetFields(action, x => x.Status, x => x.LastError, x => x.UpdatedAt);
 
             try
             {
@@ -225,7 +257,7 @@ namespace NzbDrone.Core.Hygiene
                         action.Status = Completed;
                         action.LastError = null;
                         action.UpdatedAt = DateTime.UtcNow;
-                        _actions.Update(action);
+                        _actions.SetFields(action, x => x.Status, x => x.LastError, x => x.UpdatedAt);
                     }
                     else
                     {
@@ -242,7 +274,7 @@ namespace NzbDrone.Core.Hygiene
                         action.Status = Completed;
                         action.LastError = null;
                         action.UpdatedAt = DateTime.UtcNow;
-                        _actions.Update(action);
+                        _actions.SetFields(action, x => x.Status, x => x.LastError, x => x.UpdatedAt);
                     }
 
                     continue;
@@ -254,7 +286,7 @@ namespace NzbDrone.Core.Hygiene
                     action.Status = Processing;
                     action.LastError = null;
                     action.UpdatedAt = DateTime.UtcNow;
-                    _actions.Update(action);
+                    _actions.SetFields(action, x => x.Status, x => x.LastError, x => x.UpdatedAt);
                     Continue(action, tracked, (MediaKind)action.MediaKind, queueItem);
                 }
                 catch (Exception ex)
@@ -310,7 +342,7 @@ namespace NzbDrone.Core.Hygiene
                 if (action.DeleteFilesOnFailure && !currentAssessment.DeleteFilesOnFailure)
                 {
                     action.DeleteFilesOnFailure = false;
-                    _actions.Update(action);
+                    _actions.SetFields(action, x => x.DeleteFilesOnFailure);
                 }
 
                 IEnumerable<DownloadClientItem> clientItems;
@@ -348,7 +380,19 @@ namespace NzbDrone.Core.Hygiene
                     return;
                 }
 
-                _failedDownloads.MarkAsFailed(tracked, false);
+                var failure = _failedDownloads.MarkAsFailed(tracked, false);
+                if (failure != null)
+                {
+                    action.ReplacementTargetIds = string.Join(",", failure.ItemIds.Distinct().OrderBy(id => id));
+                    action.ReplacementSearchCommandId = failure.ReplacementSearchCommandId;
+                    _actions.SetFields(action, x => x.ReplacementTargetIds, x => x.ReplacementSearchCommandId);
+
+                    if (failure.ReplacementSearchCommandId.HasValue)
+                    {
+                        // A fast command may finish before the action stores the link.
+                        RecordSearchResult(action, _commandQueue.Get(failure.ReplacementSearchCommandId.Value));
+                    }
+                }
                 SetCheckpoint(action, FailureRecorded);
             }
 
@@ -372,7 +416,7 @@ namespace NzbDrone.Core.Hygiene
                 _trackedDownloads.StopTracking(tracked.DownloadItem.DownloadId);
                 action.Status = Completed;
                 action.UpdatedAt = DateTime.UtcNow;
-                _actions.Update(action);
+                _actions.SetFields(action, x => x.Status, x => x.UpdatedAt);
                 _logger.Info("Hygiene recovered journal action {0} in {1} (reason: {2})", action.Id, kind, action.ReasonCode);
             }
         }
@@ -389,7 +433,7 @@ namespace NzbDrone.Core.Hygiene
                 ? $"{stageException.InnerException?.GetType().Name ?? nameof(Exception)} ({stageException.Stage})"
                 : ex.GetType().Name;
             action.UpdatedAt = DateTime.UtcNow;
-            _actions.Update(action);
+            _actions.SetFields(action, x => x.Status, x => x.RetryCount, x => x.NextAttemptAt, x => x.LastError, x => x.UpdatedAt);
             _logger.Warn(
                 "Hygiene action {0} failed for {1} ({2}, download client {3}) at checkpoint {4}; error type {5}. See the Hygiene action journal for recovery guidance.",
                 action.Id,
@@ -406,7 +450,7 @@ namespace NzbDrone.Core.Hygiene
             action.RetryCount = 0;
             action.NextAttemptAt = null;
             action.UpdatedAt = DateTime.UtcNow;
-            _actions.Update(action);
+            _actions.SetFields(action, x => x.Checkpoint, x => x.RetryCount, x => x.NextAttemptAt, x => x.UpdatedAt);
         }
 
         private static bool IsRetryDelayed(HygieneAction action)
@@ -448,7 +492,7 @@ namespace NzbDrone.Core.Hygiene
             action.Status = Paused;
             action.LastError = null;
             action.UpdatedAt = DateTime.UtcNow;
-            _actions.Update(action);
+            _actions.SetFields(action, x => x.Status, x => x.LastError, x => x.UpdatedAt);
         }
 
         private static bool MatchesTrackedIdentity(TrackedDownload tracked, int downloadClientId, string downloadId)

@@ -25,6 +25,8 @@ namespace NzbDrone.Core.Tv.Search
             var decisions = _releaseSearchService.SeasonSearch(message.SeriesId, message.SeasonNumber, false, true, message.Trigger == CommandTrigger.Manual, false).GetAwaiter().GetResult();
             var processed = _processDownloadDecisions.ProcessDecisions(decisions).GetAwaiter().GetResult();
 
+            message.GrabbedCount = processed.Grabbed.Count;
+
             _logger.ProgressInfo("Season search completed. {0} reports downloaded.", processed.Grabbed.Count);
         }
     }

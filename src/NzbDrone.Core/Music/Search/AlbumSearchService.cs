@@ -67,13 +67,18 @@ namespace NzbDrone.Core.Music.Search
 
         public void Execute(AlbumSearchCommand message)
         {
+            var grabbedCount = 0;
             foreach (var albumId in message.AlbumIds)
             {
                 var decisions = _releaseSearchService.AlbumSearch(albumId, false, message.Trigger == CommandTrigger.Manual, false).GetAwaiter().GetResult();
                 var processed = _processDownloadDecisions.ProcessDecisions(decisions).GetAwaiter().GetResult();
 
+                grabbedCount += processed.Grabbed.Count;
+
                 _logger.ProgressInfo("Album search completed. {0} reports downloaded.", processed.Grabbed.Count);
             }
+
+            message.GrabbedCount = grabbedCount;
         }
 
         public void Execute(MissingAlbumSearchCommand message)

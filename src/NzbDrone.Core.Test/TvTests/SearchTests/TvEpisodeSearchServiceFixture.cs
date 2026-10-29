@@ -90,6 +90,28 @@ namespace NzbDrone.Core.Test.TvTests.SearchTests
             Mocker.GetMock<IProcessDownloadDecisions>().Verify(v => v.ProcessDecisions(_decisions), Times.Exactly(2));
         }
 
+        [TestCase(0)]
+        [TestCase(3)]
+        public void completed_episode_search_reports_zero_grabs_for_empty_or_rejected_results(int resultCount)
+        {
+            var decisions = Enumerable.Range(0, resultCount)
+                .Select(_ => new DownloadDecision(new RemoteEpisode(),
+                    new DownloadRejection(DownloadRejectionReason.Blocklisted, "Synthetic blocklist")))
+                .ToList();
+            Mocker.GetMock<ISearchForReleases>()
+                .Setup(s => s.EpisodeSearch(3, false, false))
+                .ReturnsAsync(decisions);
+            Mocker.GetMock<IProcessDownloadDecisions>()
+                .Setup(s => s.ProcessDecisions(decisions))
+                .ReturnsAsync(new ProcessedDecisions(new List<DownloadDecision>(), new List<DownloadDecision>(), decisions));
+
+            var command = new EpisodeSearchCommand(new List<int> { 3 });
+            Subject.Execute(command);
+
+            command.GrabbedCount.Should().Be(0);
+            Mocker.GetMock<IProcessDownloadDecisions>().Verify(s => s.ProcessDecisions(decisions), Times.Once());
+        }
+
         [Test]
         public void episode_search_should_not_be_user_invoked_when_not_manual()
         {

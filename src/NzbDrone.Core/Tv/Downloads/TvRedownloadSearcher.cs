@@ -26,21 +26,19 @@ namespace NzbDrone.Core.Tv.Downloads
 
         public MediaKind Kind => MediaKind.Tv;
 
-        public void Search(DownloadFailedEvent failure)
+        public CommandModel Search(DownloadFailedEvent failure)
         {
             if (failure.ItemIds.Count == 0)
             {
                 _logger.Debug("Failed download has no episodes, not searching again");
-                return;
+                return null;
             }
 
             if (failure.ItemIds.Count == 1)
             {
                 _logger.Debug("Failed download only contains one episode, searching again");
 
-                _commandQueueManager.Push(new EpisodeSearchCommand(failure.ItemIds));
-
-                return;
+                return _commandQueueManager.Push(new EpisodeSearchCommand(failure.ItemIds));
             }
 
             var seasonNumber = _episodeService.GetEpisode(failure.ItemIds[0]).SeasonNumber;
@@ -50,18 +48,16 @@ namespace NzbDrone.Core.Tv.Downloads
             {
                 _logger.Debug("Failed download was entire season, searching again");
 
-                _commandQueueManager.Push(new SeasonSearchCommand
+                return _commandQueueManager.Push(new SeasonSearchCommand
                 {
                     SeriesId = failure.ParentId,
                     SeasonNumber = seasonNumber
                 });
-
-                return;
             }
 
             _logger.Debug("Failed download contains multiple episodes, probably a double episode, searching again");
 
-            _commandQueueManager.Push(new EpisodeSearchCommand(failure.ItemIds));
+            return _commandQueueManager.Push(new EpisodeSearchCommand(failure.ItemIds));
         }
     }
 }

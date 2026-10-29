@@ -4412,7 +4412,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/HygieneAction"
+                    "$ref": "#/components/schemas/HygieneActionResource"
                   }
                 }
               }
@@ -15814,6 +15814,11 @@
           "clientUserAgent": {
             "type": "string",
             "nullable": true
+          },
+          "grabbedCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -17337,60 +17342,119 @@
         },
         "additionalProperties": false
       },
-      "HygieneAction": {
+      "HygieneActionResource": {
         "type": "object",
         "properties": {
           "id": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "readOnly": true
           },
           "downloadClientId": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "readOnly": true
           },
           "downloadId": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "readOnly": true
           },
           "mediaKind": {
             "type": "integer",
-            "format": "int32"
-          },
-          "reasonCode": {
-            "type": "string",
-            "nullable": true
-          },
-          "ruleId": {
-            "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "readOnly": true
           },
           "title": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "readOnly": true
+          },
+          "reasonCode": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "ruleId": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "deleteFilesOnFailure": {
+            "type": "boolean",
+            "readOnly": true
           },
           "status": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "readOnly": true
           },
           "checkpoint": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "readOnly": true
           },
           "recoveryPath": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "readOnly": true
           },
           "lastError": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "readOnly": true
+          },
+          "retryCount": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "nextAttemptAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true
           },
           "createdAt": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "readOnly": true
           },
           "updatedAt": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "readOnly": true
+          },
+          "replacementSearchCommandId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true,
+            "readOnly": true
+          },
+          "replacementTargetIds": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "replacementSearchStatus": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "replacementGrabCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true,
+            "readOnly": true
+          },
+          "replacementSearchEndedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true
+          },
+          "replacementOutcome": {
+            "$ref": "#/components/schemas/HygieneReplacementOutcome"
           }
         },
         "additionalProperties": false
@@ -17462,6 +17526,9 @@
           "ruleEnabled": {
             "type": "boolean"
           },
+          "deleteFilesOnFailure": {
+            "type": "boolean"
+          },
           "eligible": {
             "type": "boolean"
           },
@@ -17474,6 +17541,59 @@
           },
           "actionExplanation": {
             "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "HygieneReplacementGrab": {
+        "type": "object",
+        "properties": {
+          "downloadId": {
+            "type": "string",
+            "nullable": true
+          },
+          "coveredTargetCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "importedTargetCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedTargetCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "HygieneReplacementOutcome": {
+        "type": "object",
+        "properties": {
+          "searchState": {
+            "type": "string",
+            "nullable": true
+          },
+          "evidence": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "reportsGrabbed": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "grabs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HygieneReplacementGrab"
+            },
             "nullable": true
           }
         },
@@ -17499,6 +17619,9 @@
             "format": "int32"
           },
           "enabled": {
+            "type": "boolean"
+          },
+          "deleteFilesOnFailure": {
             "type": "boolean"
           },
           "strikeLimit": {
@@ -21505,6 +21628,9 @@
           "downloadId": {
             "type": "string",
             "nullable": true
+          },
+          "mediaKind": {
+            "$ref": "#/components/schemas/MediaKind"
           },
           "protocol": {
             "$ref": "#/components/schemas/DownloadProtocol"
