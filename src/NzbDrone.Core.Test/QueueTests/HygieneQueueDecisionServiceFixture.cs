@@ -34,7 +34,7 @@ namespace NzbDrone.Core.Test.QueueTests
                 }
             };
             var states = new Mock<IHygieneQueueStateRepository>();
-            states.Setup(x => x.All()).Returns(new[]
+            states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>())).Returns(new[]
             {
                 new HygieneQueueState
                 {
@@ -80,7 +80,7 @@ namespace NzbDrone.Core.Test.QueueTests
                 Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Torrent
             };
             var states = new Mock<IHygieneQueueStateRepository>();
-            states.Setup(x => x.All()).Returns(new[]
+            states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>())).Returns(new[]
             {
                 new HygieneQueueState { DownloadClientId = 7, DownloadId = item.DownloadId, UnstableRuleId = 8, UnstableStrikes = 12 }
             });
@@ -113,7 +113,7 @@ namespace NzbDrone.Core.Test.QueueTests
                 Status = QueueStatus.Failed
             };
             var states = new Mock<IHygieneQueueStateRepository>();
-            states.Setup(x => x.All()).Returns(new[]
+            states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>())).Returns(new[]
             {
                 new HygieneQueueState
                 {
@@ -143,7 +143,7 @@ namespace NzbDrone.Core.Test.QueueTests
         public void pending_item_without_a_download_id_has_no_strikes()
         {
             var states = new Mock<IHygieneQueueStateRepository>();
-            states.Setup(x => x.All()).Returns(new List<HygieneQueueState>());
+            states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>())).Returns(new List<HygieneQueueState>());
             var rules = new Mock<IHygieneRuleRepository>();
             rules.Setup(x => x.All()).Returns(new List<HygieneRule>());
             var config = new Mock<IConfigService>();
@@ -175,7 +175,7 @@ namespace NzbDrone.Core.Test.QueueTests
                 }
             };
             var states = new Mock<IHygieneQueueStateRepository>();
-            states.Setup(x => x.All()).Returns(new[]
+            states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>())).Returns(new[]
             {
                 new HygieneQueueState { DownloadClientId = 7, DownloadId = "private-test-hash", ReasonCode = "client-failed", Strikes = 3 }
             });
@@ -228,7 +228,7 @@ namespace NzbDrone.Core.Test.QueueTests
                 RemoteRelease = remoteRelease
             };
             var states = new Mock<IHygieneQueueStateRepository>();
-            states.Setup(x => x.All()).Returns(new[]
+            states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>())).Returns(new[]
             {
                 new HygieneQueueState { DownloadClientId = 7, DownloadId = item.DownloadId, ReasonCode = reasonCode, Strikes = 3 }
             });
