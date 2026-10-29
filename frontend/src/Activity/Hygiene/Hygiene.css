@@ -2,8 +2,59 @@
   max-width: 760px;
 }
 
+.tabs {
+  min-width: 0;
+}
+
+.tabList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spaceSmall;
+
+  margin: 0 0 $spaceLarge;
+  padding: 0 0 $spaceSmall;
+  border-bottom: 1px solid var(--surfaceBorderColor);
+  list-style: none;
+}
+
+.tab {
+  padding: $spaceSmall $spaceMedium;
+  color: var(--statusText);
+  font-weight: $semiboldFontWeight;
+  cursor: pointer;
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--primaryColor);
+  outline-offset: 2px;
+}
+
+.selectedTab {
+  border-bottom: 2px solid var(--primaryColor);
+  color: var(--primaryColor);
+}
+
+.tabPanel {
+  display: none;
+}
+
+.selectedPanel {
+  display: block;
+}
+
 .sections {
   max-width: 1100px;
+}
+
+.ruleSummaryList {
+  display: grid;
+  gap: $spaceSmall;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  list-style: none;
 }
 
 .sectionHeader {
@@ -191,6 +242,10 @@ select.formControl {
   }
 
   .ruleForm {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ruleSummaryList {
     grid-template-columns: minmax(0, 1fr);
   }
 }

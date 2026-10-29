@@ -9,7 +9,7 @@ import useApiQuery from 'Helpers/Hooks/useApiQuery';
 import fetchJson, { apiRoot } from 'Utilities/Fetch/fetchJson';
 import styles from './Hygiene.css';
 
-interface HygieneRule {
+export interface HygieneRule {
   id: number;
   reasonCode: string;
   mediaKind: number;
@@ -22,7 +22,7 @@ interface HygieneRule {
   minimumDownloadRateKiBps: number;
 }
 
-interface DownloadClient {
+export interface DownloadClient {
   id: number;
   name: string;
 }

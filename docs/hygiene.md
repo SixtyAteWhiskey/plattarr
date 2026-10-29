@@ -7,6 +7,11 @@ shows aggregate counts by reason before the per-download explanation and
 recommendation. These counts are informational. With the global gate off, the
 queue preview and monitoring are read only and `wouldAct` remains false.
 
+The **Queue preview** tab shows a compact read-only list of configured rules,
+the current queue assessment, and the action journal. **Manage automation**
+opens the **Automation settings** tab, which contains the global action gate
+and the full rule editors. The tabs do not change monitoring or cleanup state.
+
 The [Cleanuparr parity verification](hygiene-parity-2026-10-26.md) records
 which behaviors are proven on the current checkout and which feature areas
 remain different or unimplemented.
