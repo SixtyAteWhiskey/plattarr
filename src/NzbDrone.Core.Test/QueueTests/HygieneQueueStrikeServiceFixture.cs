@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
@@ -17,7 +19,11 @@ namespace NzbDrone.Core.Test.QueueTests
             var savedStates = new List<HygieneQueueState>();
             var savedRules = new List<HygieneRule>();
             var states = new Mock<IHygieneQueueStateRepository>();
-            states.Setup(x => x.All()).Returns(() => savedStates);
+            states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>()))
+                .Returns((IEnumerable<(int, string)> identities) =>
+                    savedStates.Where(state => identities.Contains((state.DownloadClientId, state.DownloadId))).ToList());
+            states.Setup(x => x.FindExpired(It.IsAny<DateTime>()))
+                .Returns((DateTime cutoff) => savedStates.Where(state => state.LastSeenAt < cutoff).ToList());
             states.Setup(x => x.Insert(It.IsAny<HygieneQueueState>()))
                 .Returns((HygieneQueueState state) =>
                 {
@@ -50,6 +56,34 @@ namespace NzbDrone.Core.Test.QueueTests
             service.Observe(new[] { item });
 
             savedStates.Should().ContainSingle().Which.Strikes.Should().Be(1);
+        }
+
+        [Test]
+        public void should_refresh_queued_state_and_retire_only_expired_absent_states()
+        {
+            var savedStates = new List<HygieneQueueState>
+            {
+                new() { Id = 1, DownloadClientId = 4, DownloadId = "queued", LastSeenAt = DateTime.UtcNow.AddDays(-31) },
+                new() { Id = 2, DownloadClientId = 4, DownloadId = "expired", LastSeenAt = DateTime.UtcNow.AddDays(-31) },
+                new() { Id = 3, DownloadClientId = 4, DownloadId = "recent", LastSeenAt = DateTime.UtcNow.AddDays(-1) }
+            };
+            var states = new Mock<IHygieneQueueStateRepository>();
+            states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>()))
+                .Returns((IEnumerable<(int, string)> identities) =>
+                    savedStates.Where(state => identities.Contains((state.DownloadClientId, state.DownloadId))).ToList());
+            states.Setup(x => x.FindExpired(It.IsAny<DateTime>()))
+                .Returns((DateTime cutoff) => savedStates.Where(state => state.LastSeenAt < cutoff).ToList());
+            states.Setup(x => x.Delete(It.IsAny<HygieneQueueState>()))
+                .Callback((HygieneQueueState state) => savedStates.Remove(state));
+            var rules = new Mock<IHygieneRuleRepository>();
+            rules.Setup(x => x.All()).Returns(new List<HygieneRule>());
+            var service = new HygieneQueueStrikeService(states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), new HygieneQueueEvaluator());
+
+            service.Observe(new[] { new QueueItem { DownloadClientId = 4, DownloadId = "queued", Status = QueueStatus.Failed, SizeLeft = 100 } });
+
+            savedStates.Select(state => state.DownloadId).Should().BeEquivalentTo(new[] { "queued", "recent" });
+            savedStates.Single(state => state.DownloadId == "queued").LastSeenAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+            states.Verify(x => x.All(), Times.Never);
         }
     }
 }

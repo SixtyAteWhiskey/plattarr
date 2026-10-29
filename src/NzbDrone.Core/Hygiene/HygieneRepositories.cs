@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Dapper;
@@ -10,6 +11,7 @@ namespace NzbDrone.Core.Hygiene
     {
         HygieneQueueState Find(int downloadClientId, string downloadId);
         IEnumerable<HygieneQueueState> FindByIdentities(IEnumerable<(int DownloadClientId, string DownloadId)> identities);
+        List<HygieneQueueState> FindExpired(DateTime cutoff);
     }
 
     public class HygieneQueueStateRepository : BasicRepository<HygieneQueueState>, IHygieneQueueStateRepository
@@ -55,6 +57,11 @@ namespace NzbDrone.Core.Hygiene
             }
 
             return states;
+        }
+
+        public List<HygieneQueueState> FindExpired(DateTime cutoff)
+        {
+            return Query(x => x.LastSeenAt < cutoff);
         }
     }
 

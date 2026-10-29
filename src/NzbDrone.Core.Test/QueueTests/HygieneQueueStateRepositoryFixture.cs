@@ -62,6 +62,21 @@ namespace NzbDrone.Core.Test.QueueTests
             Subject.FindByIdentities(identities).Should().ContainSingle().Which.Id.Should().Be(last.Id);
         }
 
+        [Test]
+        public void expired_query_excludes_states_at_or_after_the_cutoff()
+        {
+            var cutoff = new DateTime(2026, 10, 1, 12, 0, 0, DateTimeKind.Utc);
+            var expired = Insert(7, "expired");
+            expired.LastSeenAt = cutoff.AddSeconds(-1);
+            Subject.Update(expired);
+            var boundary = Insert(7, "boundary");
+            boundary.LastSeenAt = cutoff;
+            Subject.Update(boundary);
+            Insert(7, "recent");
+
+            Subject.FindExpired(cutoff).Select(state => state.Id).Should().Equal(expired.Id);
+        }
+
         private HygieneQueueState Insert(int clientId, string downloadId)
         {
             return Subject.Insert(new HygieneQueueState

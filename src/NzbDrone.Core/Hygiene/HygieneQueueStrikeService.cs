@@ -26,7 +26,8 @@ namespace NzbDrone.Core.Hygiene
         {
             var items = queue.Where(x => x.DownloadClientId > 0 && !string.IsNullOrWhiteSpace(x.DownloadId)).ToList();
             var assessments = _evaluator.Evaluate(items);
-            var states = _states.All().ToDictionary(x => (x.DownloadClientId, x.DownloadId));
+            var states = _states.FindByIdentities(items.Select(x => (x.DownloadClientId, x.DownloadId)))
+                .ToDictionary(x => (x.DownloadClientId, x.DownloadId));
             var rules = _rules.All();
             var now = DateTime.UtcNow;
 
@@ -70,7 +71,7 @@ namespace NzbDrone.Core.Hygiene
                 }
             }
 
-            foreach (var state in states.Values.Where(x => x.LastSeenAt < now.AddDays(-30)))
+            foreach (var state in _states.FindExpired(now.AddDays(-30)))
             {
                 _states.Delete(state);
             }
