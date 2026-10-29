@@ -62,6 +62,7 @@ function EditIndexerModalContent({
   const {
     implementationName = '',
     name,
+    enable,
     enableRss,
     enableAutomaticSearch,
     enableInteractiveSearch,
@@ -132,6 +133,20 @@ function EditIndexerModalContent({
                 name="name"
                 {...name}
                 id="name"
+                onChange={handleInputChange}
+              />
+            </FormGroup>
+
+            <FormGroup>
+              <FormLabel name="enable">{translate('EnableIndexer')}</FormLabel>
+
+              <FormInputGroup
+                type={inputTypes.CHECK}
+                name="enable"
+                helpText={translate('EnableIndexerHelpText')}
+                {...enable}
+                value={enable?.value ?? true}
+                id="enable"
                 onChange={handleInputChange}
               />
             </FormGroup>

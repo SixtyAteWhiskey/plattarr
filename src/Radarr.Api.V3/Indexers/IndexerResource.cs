@@ -25,8 +25,8 @@ namespace Radarr.Api.V3.Indexers
         public int Priority { get; set; }
         public int DownloadClientId { get; set; }
 
-        // Prowlarr's master switch. Radarr's UI doesn't send it; when it's missing, the
-        // indexer is enabled if any of the three flags is on (Radarr's meaning).
+        // Prowlarr's master switch. Legacy clients may omit it; when missing,
+        // infer it from the three activity flags.
         public bool? Enable { get; set; }
         public bool Redirect { get; set; }
         public bool SupportsRedirect { get; set; }

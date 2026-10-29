@@ -13,6 +13,7 @@ import translate from 'Utilities/String/translate';
 import styles from './ManageIndexersEditModalContent.css';
 
 interface SavePayload {
+  enable?: boolean;
   enableRss?: boolean;
   enableAutomaticSearch?: boolean;
   enableInteractiveSearch?: boolean;
@@ -54,6 +55,7 @@ function ManageIndexersEditModalContent(
 ) {
   const { indexerIds, onSavePress, onModalClose } = props;
 
+  const [enable, setEnable] = useState(NO_CHANGE);
   const [enableRss, setEnableRss] = useState(NO_CHANGE);
   const [enableAutomaticSearch, setEnableAutomaticSearch] = useState(NO_CHANGE);
   const [enableInteractiveSearch, setEnableInteractiveSearch] =
@@ -63,6 +65,11 @@ function ManageIndexersEditModalContent(
   const save = useCallback(() => {
     let hasChanges = false;
     const payload: SavePayload = {};
+
+    if (enable !== NO_CHANGE) {
+      hasChanges = true;
+      payload.enable = enable === 'enabled';
+    }
 
     if (enableRss !== NO_CHANGE) {
       hasChanges = true;
@@ -90,6 +97,7 @@ function ManageIndexersEditModalContent(
 
     onModalClose();
   }, [
+    enable,
     enableRss,
     enableAutomaticSearch,
     enableInteractiveSearch,
@@ -100,6 +108,9 @@ function ManageIndexersEditModalContent(
 
   const onInputChange = useCallback(({ name, value }: InputChanged) => {
     switch (name) {
+      case 'enable':
+        setEnable(value as string);
+        break;
       case 'enableRss':
         setEnableRss(value as string);
         break;
@@ -124,6 +135,20 @@ function ManageIndexersEditModalContent(
       <ModalHeader>{translate('EditSelectedIndexers')}</ModalHeader>
 
       <ModalBody>
+        <FormGroup>
+          <FormLabel name="enable">{translate('EnableIndexer')}</FormLabel>
+
+          <FormInputGroup
+            type={inputTypes.SELECT}
+            name="enable"
+            value={enable}
+            values={enableOptions}
+            helpText={translate('EnableIndexerHelpText')}
+            id="enable"
+            onChange={onInputChange}
+          />
+        </FormGroup>
+
         <FormGroup>
           <FormLabel name="enableRss">{translate('EnableRss')}</FormLabel>
 

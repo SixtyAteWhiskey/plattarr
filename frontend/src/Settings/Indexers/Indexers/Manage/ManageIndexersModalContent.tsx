@@ -49,6 +49,12 @@ const COLUMNS: Column[] = [
     isVisible: true,
   },
   {
+    name: 'enable',
+    label: () => translate('EnableIndexer'),
+    isSortable: true,
+    isVisible: true,
+  },
+  {
     name: 'enableRss',
     label: () => translate('EnableRss'),
     isSortable: true,
