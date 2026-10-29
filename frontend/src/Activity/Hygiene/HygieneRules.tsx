@@ -357,11 +357,24 @@ function HygieneRules({
   const [downloadClientId, setDownloadClientId] = useState(0);
   const [error, setError] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
+  const [createdRuleId, setCreatedRuleId] = useState<number>();
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const handleSaved = useCallback(() => {
     rulesQuery.refetch();
     onChanged();
   }, [rulesQuery, onChanged]);
+
+  const handleOpenCreate = useCallback(() => {
+    setError(undefined);
+    setCreatedRuleId(undefined);
+    setIsCreateOpen(true);
+  }, []);
+
+  const handleCancelCreate = useCallback(() => {
+    setError(undefined);
+    setIsCreateOpen(false);
+  }, []);
 
   const handleReasonChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -404,9 +417,10 @@ function HygieneRules({
       event.preventDefault();
       setIsSaving(true);
       setError(undefined);
+      setCreatedRuleId(undefined);
 
       try {
-        await writeRule('POST', '/hygiene/rule', {
+        const createdRule = await writeRule('POST', '/hygiene/rule', {
           id: 0,
           reasonCode,
           mediaKind,
@@ -419,6 +433,8 @@ function HygieneRules({
             reasonCode === 'download-slow' ? minimumDownloadRateKiBps : 0,
         });
         rulesQuery.refetch();
+        setCreatedRuleId(createdRule.id);
+        setIsCreateOpen(false);
         onChanged();
       } catch {
         setError(
@@ -447,19 +463,29 @@ function HygieneRules({
         aria-labelledby="hygiene-rules-heading"
       >
         <Stack gap="xSmall">
-          <Heading id="hygiene-rules-heading" level={2}>
-            Hygiene rules
-          </Heading>
+          <Cluster
+            align="center"
+            collapseOnSmall={true}
+            gap="medium"
+            justify="between"
+          >
+            <Heading id="hygiene-rules-heading" level={2}>
+              Hygiene rules
+            </Heading>
+            {isCreateOpen ? null : (
+              <Button kind="primary" onPress={handleOpenCreate}>
+                Add rule
+              </Button>
+            )}
+          </Cluster>
           <Text tone="secondary">
-            Enabled rules can remove eligible tracked downloads after the strike
-            threshold when automatic cleanup is enabled. Removed client jobs
-            keep their files by default. Each rule can instead delete source
-            files; the failed-download flow handles blocklisting and any
-            configured replacement search.
+            Rules monitor downloads by problem, media, and client. Enabled rules
+            can remove matching jobs when automatic cleanup is on. Each rule
+            chooses whether source files are kept or deleted.
           </Text>
           <Text size="small" tone="secondary">
-            Stalled-state detection and download speed reporting are currently
-            available only from qBittorrent.
+            Failed downloads may be blocklisted and searched again. Stalled and
+            slow detection are available only from qBittorrent.
           </Text>
         </Stack>
 
@@ -474,137 +500,160 @@ function HygieneRules({
         ) : null}
 
         <Stack gap="medium">
-          {rulesQuery.data?.map((rule) => (
-            <HygieneRuleEditor
-              key={rule.id}
-              rule={rule}
-              clients={clientsQuery.data || []}
-              assessments={assessments}
-              previewError={previewError}
-              previewLoading={previewLoading}
-              onSaved={handleSaved}
-            />
-          ))}
+          {isCreateOpen ? (
+            <Surface
+              component="article"
+              padding="medium"
+              variant="subtle"
+              aria-labelledby="hygiene-add-rule-heading"
+            >
+              <Stack gap="medium">
+                <Heading id="hygiene-add-rule-heading" level={3}>
+                  Add rule
+                </Heading>
 
-          <Surface
-            component="article"
-            padding="medium"
-            variant="subtle"
-            aria-labelledby="hygiene-add-rule-heading"
-          >
-            <Stack gap="medium">
-              <Heading id="hygiene-add-rule-heading" level={3}>
-                Add rule
-              </Heading>
-
-              <form className={styles.ruleForm} onSubmit={handleCreate}>
-                <label className={styles.formField}>
-                  <span>Problem</span>
-                  <select
-                    id="hygiene-new-rule-reason"
-                    className={styles.formControl}
-                    value={reasonCode}
-                    onChange={handleReasonChange}
-                  >
-                    {reasonOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                {reasonCode === 'download-slow' ? (
+                <form className={styles.ruleForm} onSubmit={handleCreate}>
                   <label className={styles.formField}>
-                    <span>Treat speeds below (KiB/s) as slow</span>
-                    <input
-                      id="hygiene-new-rule-minimum-rate"
+                    <span>Problem</span>
+                    <select
+                      id="hygiene-new-rule-reason"
                       className={styles.formControl}
-                      type="number"
-                      min="1"
-                      max="1048576"
-                      required={true}
-                      value={minimumDownloadRateKiBps}
-                      onChange={handleMinimumRateChange}
-                    />
+                      value={reasonCode}
+                      onChange={handleReasonChange}
+                    >
+                      {reasonOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                   </label>
-                ) : null}
 
-                <label className={styles.formField}>
-                  <span>Media</span>
-                  <select
-                    id="hygiene-new-rule-media"
-                    className={styles.formControl}
-                    value={mediaKind}
-                    onChange={handleKindChange}
-                  >
-                    {kindOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                  {reasonCode === 'download-slow' ? (
+                    <label className={styles.formField}>
+                      <span>Treat speeds below (KiB/s) as slow</span>
+                      <input
+                        id="hygiene-new-rule-minimum-rate"
+                        className={styles.formControl}
+                        type="number"
+                        min="1"
+                        max="1048576"
+                        required={true}
+                        value={minimumDownloadRateKiBps}
+                        onChange={handleMinimumRateChange}
+                      />
+                    </label>
+                  ) : null}
 
-                <label className={styles.formField}>
-                  <span>Download client</span>
-                  <select
-                    id="hygiene-new-rule-client"
-                    className={styles.formControl}
-                    value={downloadClientId}
-                    onChange={handleClientChange}
-                  >
-                    <option value={0}>All clients</option>
-                    {clientsQuery.data?.map((client) => (
-                      <option key={client.id} value={client.id}>
-                        {client.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                  <label className={styles.formField}>
+                    <span>Media</span>
+                    <select
+                      id="hygiene-new-rule-media"
+                      className={styles.formControl}
+                      value={mediaKind}
+                      onChange={handleKindChange}
+                    >
+                      {kindOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-                {reasonCode === 'download-warning' ? null : (
-                  <label className={styles.checkboxField}>
-                    <input
-                      id="hygiene-new-rule-delete-files"
-                      aria-describedby="hygiene-new-rule-delete-files-description"
-                      className={styles.checkbox}
-                      type="checkbox"
-                      checked={deleteFilesOnFailure}
-                      onChange={handleDeleteFilesChange}
-                    />
-                    <span className={styles.checkboxCopy}>
-                      <span>Delete source files when this rule acts</span>
-                      <span
-                        id="hygiene-new-rule-delete-files-description"
-                        className={styles.fieldHint}
-                      >
-                        Permanently removes the download client job and its
-                        files. New rules remain disabled until you turn on
-                        monitoring; automatic cleanup has a separate gate.
+                  <label className={styles.formField}>
+                    <span>Download client</span>
+                    <select
+                      id="hygiene-new-rule-client"
+                      className={styles.formControl}
+                      value={downloadClientId}
+                      onChange={handleClientChange}
+                    >
+                      <option value={0}>All clients</option>
+                      {clientsQuery.data?.map((client) => (
+                        <option key={client.id} value={client.id}>
+                          {client.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  {reasonCode === 'download-warning' ? null : (
+                    <label className={styles.checkboxField}>
+                      <input
+                        id="hygiene-new-rule-delete-files"
+                        aria-describedby="hygiene-new-rule-delete-files-description"
+                        className={styles.checkbox}
+                        type="checkbox"
+                        checked={deleteFilesOnFailure}
+                        onChange={handleDeleteFilesChange}
+                      />
+                      <span className={styles.checkboxCopy}>
+                        <span>Delete source files when this rule acts</span>
+                        <span
+                          id="hygiene-new-rule-delete-files-description"
+                          className={styles.fieldHint}
+                        >
+                          Permanently removes the download client job and its
+                          files. New rules remain disabled until you turn on
+                          monitoring; automatic cleanup has a separate gate.
+                        </span>
                       </span>
-                    </span>
-                  </label>
-                )}
+                    </label>
+                  )}
 
-                <Cluster
-                  className={styles.ruleActions}
-                  collapseOnSmall={true}
-                  gap="small"
-                >
-                  <Button type="submit" kind="primary" isDisabled={isSaving}>
-                    Add rule
-                  </Button>
-                </Cluster>
-              </form>
+                  <Cluster
+                    className={styles.ruleActions}
+                    collapseOnSmall={true}
+                    gap="small"
+                  >
+                    <Button type="submit" kind="primary" isDisabled={isSaving}>
+                      Add rule
+                    </Button>
+                    <Button
+                      type="button"
+                      isDisabled={isSaving}
+                      onPress={handleCancelCreate}
+                    >
+                      Cancel
+                    </Button>
+                  </Cluster>
+                </form>
 
-              {error ? (
-                <Alert kind="danger" role="alert">
-                  {error}
-                </Alert>
-              ) : null}
-            </Stack>
-          </Surface>
+                {error ? (
+                  <Alert kind="danger" role="alert">
+                    {error}
+                  </Alert>
+                ) : null}
+              </Stack>
+            </Surface>
+          ) : null}
+
+          {createdRuleId ? (
+            <Alert role="status">
+              Rule added at the top of the list. It starts disabled; review its
+              settings before enabling it.
+            </Alert>
+          ) : null}
+
+          {rulesQuery.data?.length === 0 ? (
+            <Alert>No rules yet. Use Add rule above to start monitoring.</Alert>
+          ) : null}
+
+          {rulesQuery.data
+            ?.slice()
+            .sort((left, right) => right.id - left.id)
+            .map((rule) => (
+              <HygieneRuleEditor
+                key={rule.id}
+                rule={rule}
+                clients={clientsQuery.data || []}
+                assessments={assessments}
+                previewError={previewError}
+                previewLoading={previewLoading}
+                onSaved={handleSaved}
+              />
+            ))}
         </Stack>
       </Stack>
     </Surface>

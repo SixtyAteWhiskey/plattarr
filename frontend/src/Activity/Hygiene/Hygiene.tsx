@@ -265,8 +265,8 @@ function Hygiene() {
           <Stack component="header" gap="small" className={styles.pageHeader}>
             <Heading level={1}>Hygiene</Heading>
             <Text tone="secondary" size="lead">
-              Monitor queue problems, review safety state, and configure
-              optional rules without deleting source files.
+              Monitor queue problems, review automatic cleanup, and configure
+              rules for each download condition.
             </Text>
           </Stack>
 
@@ -283,7 +283,7 @@ function Hygiene() {
           {configQuery.data ? (
             <Alert>
               {configQuery.data.actionsEnabled
-                ? 'Automatic Hygiene actions are enabled. Eligible tracked downloads are removed from the client without deleting their files, blocklisted, and sent through the configured failed-download replacement flow.'
+                ? 'Automatic Hygiene actions are enabled. Eligible tracked downloads can be removed from the client. Each rule controls whether source files are kept or deleted; failed-download handling records the failure and may start a replacement search.'
                 : 'The global Hygiene action gate is off. Queue preview and monitoring remain read only.'}{' '}
               Review items in the <Link to="/activity/queue">queue</Link> before
               enabling automatic actions.
@@ -350,7 +350,8 @@ function Hygiene() {
                   downloads, and slow downloads can remove eligible tracked jobs
                   after their strike threshold. Private or unverified torrent
                   releases and other warnings remain monitor only. Source files
-                  are kept. Replacement searches follow the existing
+                  are kept unless the matching rule explicitly enables file
+                  deletion. Replacement searches follow the existing
                   failed-download settings.
                 </Text>
 
@@ -361,6 +362,13 @@ function Hygiene() {
                 ) : null}
               </Stack>
             </Surface>
+
+            <HygieneRules
+              assessments={data}
+              previewError={isError}
+              previewLoading={isLoading}
+              onChanged={handleRefresh}
+            />
 
             <Surface elevation="low" padding="large">
               <Stack
@@ -656,13 +664,6 @@ function Hygiene() {
                 ) : null}
               </Stack>
             </Surface>
-
-            <HygieneRules
-              assessments={data}
-              previewError={isError}
-              previewLoading={isLoading}
-              onChanged={handleRefresh}
-            />
           </Stack>
         </Stack>
       </PageContentBody>
