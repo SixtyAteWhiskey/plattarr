@@ -76,15 +76,20 @@ candidate rather than a proven production bottleneck.
 
 - [ ] Profile the refresh path and inspect existing database indexes and query
   plans before changing repository methods.
-- [ ] Replace one full-table read at a time with a bounded query where the
+- [x] Replace one full-table read at a time with a bounded query where the
   profile shows useful savings. Consider recent actions, unfinished actions,
-  identity lookups, and state retention separately.
+  identity lookups, and state retention separately. The four prior slices and
+  the bounded journal read below cover these materialized reads; whole-refresh
+  profiling remains open.
 - [ ] Preserve action identity, retry/backoff, checkpoint recovery, rule
   precedence, private-torrent safety, file-deletion choices, and replacement
   search behavior. Preview and execution must select the same candidates.
 - [ ] Compare database rows read, query count, refresh time, and memory at the
   same fixture sizes. Run focused Core/API tests and isolated recovery and
   preview/execution proofs before the full backend gate.
+- [x] Bound the adjacent Hygiene journal API's recent-action read and verify
+  descending ID order and the existing response limit. This is separate from
+  queue-refresh profiling; see the dated journal slice below.
 
 ## 3. Remove proven duplication
 
@@ -497,6 +502,38 @@ refreshing an old queued state before cleanup, and retaining recent absent
 states. The broad Core gate was not rerun because it previously stalled on
 this checkout. No production rollout occurred.
 
+## 2026-10-29 bounded Hygiene journal read
+
+The Hygiene journal API returned at most 1–500 recent actions, but its service
+loaded and sorted the entire action table before applying that limit. The
+repository now orders by descending primary-key ID and applies the limit in
+SQL. The service retains its existing 1–500 clamp, response shape, and order.
+The query count remains one, and no schema migration or index was added. This
+read serves the journal API, not queue refresh.
+
+`python3 tools/benchmark_hygiene_recent_actions.py` compares the two reads on
+the same in-memory SQLite action history, requesting 100 actions with ten
+repetitions at each size. Times are median Python plus SQLite elapsed
+milliseconds, including the old in-memory sort. The fixture has the existing
+client/download/status index and an integer primary-key ID; it is synthetic
+and contains completed actions only.
+
+| Journal rows | Full journal then sort | SQL order and limit |
+| --- | ---: | ---: |
+| 100 | 0.064 ms; 100 rows | 0.060 ms; 100 rows |
+| 10,000 | 9.330 ms; 10,000 rows | 0.103 ms; 100 rows |
+| 100,000 | 84.471 ms; 100,000 rows | 0.062 ms; 100 rows |
+
+SQLite reports a table scan for both queries, but the bounded query has no
+temporary sort and returns only 100 rows. The repository test proves newest-ID
+order and a limit above the available count. A non-incremental Release solution
+build passed with zero warnings and errors. The focused `tools/verify.sh` run
+passed 216 API, 78 Host (five skipped), and 86 Hygiene/module-boundary Core
+tests. The broad Core gate remains open from the prior checkout stall. The API
+also reads command history to build replacement outcomes, so these query-only
+figures do not establish end-to-end journal latency or memory savings.
+PostgreSQL was not profiled. No production rollout occurred.
+
 ## Progress log
 
 | Date | Slice | Commit or PR | Result and evidence |
@@ -509,3 +546,4 @@ this checkout. No production rollout occurred.
 | 2026-10-29 | Interrupted Hygiene action read | `320ab6d1a` | [Synthetic read comparison and focused verification](#2026-10-29-interrupted-hygiene-action-read); broad Core gate remains open; no production rollout. |
 | 2026-10-29 | Hygiene decision state lookup | `bfe1396e8` | [Indexed query comparison and focused verification](#2026-10-29-hygiene-decision-state-lookup); broad Core gate remains open; no production rollout. |
 | 2026-10-29 | Hygiene strike observation state reads | `740367330` | [Synthetic query comparison and focused verification](#2026-10-29-hygiene-strike-observation-state-reads); broad Core gate remains open; no production rollout. |
+| 2026-10-29 | Bounded Hygiene journal read | `19cdbfa10` | [Synthetic read comparison and focused verification](#2026-10-29-bounded-hygiene-journal-read); broad Core gate remains open; no production rollout. |
