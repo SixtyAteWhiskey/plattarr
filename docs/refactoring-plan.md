@@ -454,9 +454,48 @@ tools/verify.sh` passed 216 API, 78 Host (five skipped), and 83 focused Core
 tests. The full broad Core gate was not rerun because it previously stalled
 on this checkout. These synthetic query timings do not establish whole queue
 refresh latency or memory use, and PostgreSQL was not profiled. Strike
-observation still reads all states to update active entries and retire
-expired ones; that path remains a separate section 2 slice. No production
-rollout occurred.
+observation and retention are covered by the following section 2 slice. No
+production rollout occurred.
+
+## 2026-10-29 Hygiene strike observation state reads
+
+Strike observation previously materialized every queue-state row once per
+refresh to update current queue identities and retire states last seen more
+than 30 days ago. It now reuses the indexed client/download identity lookup
+for current items, then queries only expired states after updating them. A
+state that reappears after 30 days is refreshed before the expiry query, so it
+is retained. The retention cutoff remains strict (`LastSeenAt < now - 30
+days`). No schema migration was added.
+
+`python3 tools/benchmark_hygiene_strike_states.py` compares the old full read
+with the two new reads in an in-memory SQLite fixture. Each size has 20 queue
+identities, 1% expired states, and ten repetitions. Times are median Python
+plus SQLite elapsed milliseconds for the reads only; they exclude strike
+updates and deletion writes.
+
+| State rows | Full read | Identity + expired reads |
+| --- | ---: | ---: |
+| 100 | 0.063 ms; 100 rows | 0.028 ms; 21 rows |
+| 10,000 | 6.968 ms; 10,000 rows | 0.418 ms; 120 rows |
+| 100,000 | 84.547 ms; 100,000 rows | 3.802 ms; 1,020 rows |
+
+The identity query uses `MULTI-INDEX OR` searches on the existing unique
+client/download index. The expiry query still scans the state table because
+`LastSeenAt` is not indexed, but avoids materializing the recent rows. The
+query count rises from one to two for queues of at most 200 identities; larger
+queues already use multiple identity batches. An expiry index was deferred
+because this slice shows a substantial materialization saving without adding
+a write cost or migration; scan cost at larger real retention histories still
+needs observation. Synthetic read timings do not establish whole-refresh
+latency, memory use, or PostgreSQL performance.
+
+The non-incremental Release solution build passed with zero warnings and
+errors. `FILTER='FullyQualifiedName~Hygiene|FullyQualifiedName~ModuleBoundaryFixture'
+tools/verify.sh` passed 216 API, 78 Host (five skipped), and 85 focused Core
+tests. Repository and strike-service tests cover the strict expiry boundary,
+refreshing an old queued state before cleanup, and retaining recent absent
+states. The broad Core gate was not rerun because it previously stalled on
+this checkout. No production rollout occurred.
 
 ## Progress log
 
@@ -469,3 +508,4 @@ rollout occurred.
 | 2026-10-29 | Hygiene action identity lookup | `520d809f4` | [Synthetic query comparison and focused verification](#2026-10-29-first-hygiene-action-lookup-slice); broad Core gate stalled; no production rollout. |
 | 2026-10-29 | Interrupted Hygiene action read | `320ab6d1a` | [Synthetic read comparison and focused verification](#2026-10-29-interrupted-hygiene-action-read); broad Core gate remains open; no production rollout. |
 | 2026-10-29 | Hygiene decision state lookup | `bfe1396e8` | [Indexed query comparison and focused verification](#2026-10-29-hygiene-decision-state-lookup); broad Core gate remains open; no production rollout. |
+| 2026-10-29 | Hygiene strike observation state reads | `740367330` | [Synthetic query comparison and focused verification](#2026-10-29-hygiene-strike-observation-state-reads); broad Core gate remains open; no production rollout. |
