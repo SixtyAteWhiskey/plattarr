@@ -50,6 +50,7 @@ namespace NzbDrone.Core.Hygiene
                 assessment.RuleId = rule?.Id;
                 assessment.RuleEnabled = rule?.Enabled == true;
                 assessment.DeleteFilesOnFailure = rule?.DeleteFilesOnFailure == true;
+                assessment.SearchForReplacement = rule?.SearchForReplacement == true;
                 assessment.Eligible = assessment.RuleEnabled && assessment.Strikes >= rule.StrikeLimit;
                 assessment.RuleExplanation = rule == null ? "No monitoring rule is configured for this reason and scope."
                     : !rule.Enabled ? "The matching monitoring rule is disabled."
@@ -84,9 +85,13 @@ namespace NzbDrone.Core.Hygiene
         private static string SetWouldAct(HygieneQueueAssessment assessment)
         {
             assessment.WouldAct = true;
-            assessment.ActionExplanation = assessment.DeleteFilesOnFailure
-                ? "The scoped rule is eligible; the executor will remove the client job and delete its source files, blocklist the release, and request the configured replacement search."
-                : "The scoped rule is eligible; the executor will remove the client job without deleting its files, blocklist the release, and request the configured replacement search.";
+            var fileAction = assessment.DeleteFilesOnFailure
+                ? "delete its source files"
+                : "keep its source files";
+            var searchAction = assessment.SearchForReplacement
+                ? "request a replacement search if failed-download settings allow it"
+                : "skip the replacement search";
+            assessment.ActionExplanation = $"The scoped rule is eligible; the executor will remove the client job, {fileAction}, blocklist the release, and {searchAction}.";
             return assessment.ActionExplanation;
         }
     }

@@ -74,15 +74,20 @@ The executor handles tracked `client-failed`, `import-blocked`,
 items stay monitor-only. For an eligible item, it removes the job from the
 download client, keeping its files by default or deleting them when the matched
 rule opts in, records the failure through the existing per-kind failed-download
-handlers, and stops tracking it. Those
-handlers record a blocklist entry and request the normal replacement search
-when the existing failed-download settings allow it. Private or unverified
+handlers, and stops tracking it. Those handlers record a blocklist entry.
+Each rule can turn off the automatic replacement search. When the rule leaves
+search on, the existing failed-download settings still determine whether a
+search runs. Migration 19 keeps search on for existing rules, and new rules
+default to the same behavior while starting disabled for monitoring. The rule's
+search choice is recorded on each action. Turning search off before a prepared
+action retries can suppress it; turning search on cannot escalate an action
+prepared with search off. Private or unverified
 torrent releases remain manual-review items. Pending releases and unmatched
 downloads are never acted on.
 
 Each action records its media kind, reason, authorizing rule, source-file deletion
-choice, current
-checkpoint, status, and recovery guidance in the main database. Checkpoints
+and replacement-search choices, current checkpoint, status, and recovery
+guidance in the main database. Checkpoints
 allow later queue refreshes to continue after client removal if a later step
 failed. Enabling deletion later cannot make an existing prepared action delete
 files. Disabling deletion before client removal changes that action to keep
@@ -104,6 +109,10 @@ was grabbed, or a file was imported. The journal shows these as separate
 observations. A completed search with zero grabs is explicit, whether an
 indexer returned no rows or every row was rejected. Search failures remain
 distinct from cleanup failures.
+
+When a rule skips search, the failure and blocklist are still recorded. New
+actions then use the `replacement-skipped` checkpoint and expose a recorded
+`skipped` search state instead of implying that a search was requested.
 
 For TV, the read-only action response groups later grab history by download ID
 and counts only overlap with that action's targeted episode IDs. It then shows

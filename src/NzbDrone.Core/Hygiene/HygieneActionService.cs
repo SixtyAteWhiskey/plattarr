@@ -20,6 +20,7 @@ namespace NzbDrone.Core.Hygiene
         public string ReasonCode { get; set; }
         public int RuleId { get; set; }
         public bool DeleteFilesOnFailure { get; set; }
+        public bool SearchForReplacement { get; set; } = true;
         public string Title { get; set; }
         public string Status { get; set; }
         public string Checkpoint { get; set; }
@@ -63,6 +64,7 @@ namespace NzbDrone.Core.Hygiene
         private const string ClientRemoved = "client-removed";
         private const string FailureRecorded = "failure-recorded";
         private const string ReplacementRequested = "replacement-requested";
+        private const string ReplacementSkipped = "replacement-skipped";
         private const string Recovery = "Review the Hygiene journal. Confirm the client job and the matching media blocklist entry, then use the normal queue or search controls to finish recovery.";
 
         private readonly object _processLock = new();
@@ -192,6 +194,7 @@ namespace NzbDrone.Core.Hygiene
                 ReasonCode = assessment.ReasonCode,
                 RuleId = assessment.RuleId ?? 0,
                 DeleteFilesOnFailure = currentAssessment.DeleteFilesOnFailure,
+                SearchForReplacement = currentAssessment.SearchForReplacement,
                 Title = assessment.Title,
                 Status = Processing,
                 Checkpoint = Prepared,
@@ -252,7 +255,7 @@ namespace NzbDrone.Core.Hygiene
                 var tracked = _trackedDownloads.Find(action.DownloadId);
                 if (tracked != null && !MatchesTrackedIdentity(tracked, action.DownloadClientId, action.DownloadId))
                 {
-                    if (action.Checkpoint == ReplacementRequested)
+                    if (action.Checkpoint is ReplacementRequested or ReplacementSkipped)
                     {
                         action.Status = Completed;
                         action.LastError = null;
@@ -269,7 +272,7 @@ namespace NzbDrone.Core.Hygiene
 
                 if (tracked == null)
                 {
-                    if (action.Checkpoint == ReplacementRequested)
+                    if (action.Checkpoint is ReplacementRequested or ReplacementSkipped)
                     {
                         action.Status = Completed;
                         action.LastError = null;
@@ -345,6 +348,12 @@ namespace NzbDrone.Core.Hygiene
                     _actions.SetFields(action, x => x.DeleteFilesOnFailure);
                 }
 
+                if (action.SearchForReplacement && !currentAssessment.SearchForReplacement)
+                {
+                    action.SearchForReplacement = false;
+                    _actions.SetFields(action, x => x.SearchForReplacement);
+                }
+
                 IEnumerable<DownloadClientItem> clientItems;
                 try
                 {
@@ -380,7 +389,7 @@ namespace NzbDrone.Core.Hygiene
                     return;
                 }
 
-                var failure = _failedDownloads.MarkAsFailed(tracked, false);
+                var failure = _failedDownloads.MarkAsFailed(tracked, !action.SearchForReplacement);
                 if (failure != null)
                 {
                     action.ReplacementTargetIds = string.Join(",", failure.ItemIds.Distinct().OrderBy(id => id));
@@ -394,6 +403,12 @@ namespace NzbDrone.Core.Hygiene
                     }
                 }
 
+                if (!action.SearchForReplacement)
+                {
+                    action.ReplacementSearchStatus = "skipped";
+                    _actions.SetFields(action, x => x.ReplacementSearchStatus);
+                }
+
                 SetCheckpoint(action, FailureRecorded);
             }
 
@@ -404,10 +419,10 @@ namespace NzbDrone.Core.Hygiene
                     return;
                 }
 
-                SetCheckpoint(action, ReplacementRequested);
+                SetCheckpoint(action, action.SearchForReplacement ? ReplacementRequested : ReplacementSkipped);
             }
 
-            if (action.Checkpoint == ReplacementRequested)
+            if (action.Checkpoint is ReplacementRequested or ReplacementSkipped)
             {
                 if (!GateIsOpen(action))
                 {

@@ -100,6 +100,26 @@ namespace NzbDrone.Core.Test.QueueTests
             context.Actions[0].Checkpoint.Should().Be("replacement-requested");
         }
 
+        [TestCase(MediaKind.Movies)]
+        [TestCase(MediaKind.Tv)]
+        [TestCase(MediaKind.Music)]
+        public void rule_can_block_replacement_search_without_skipping_failure_recording(MediaKind kind)
+        {
+            var context = new ActionContext(kind, true, "download-stalled", searchForReplacement: false);
+
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), false), Times.Once);
+            context.FailedDownloads.Verify(x => x.MarkAsFailed(context.TrackedDownload, true), Times.Once);
+            context.TrackedDownloads.Verify(x => x.StopTracking("test-download"), Times.Once);
+            context.Actions.Should().ContainSingle();
+            context.Actions[0].Status.Should().Be("completed");
+            context.Actions[0].Checkpoint.Should().Be("replacement-skipped");
+            context.Actions[0].SearchForReplacement.Should().BeFalse();
+            context.Actions[0].ReplacementSearchStatus.Should().Be("skipped");
+            context.Actions[0].ReplacementSearchCommandId.Should().BeNull();
+        }
+
         [Test]
         public void linked_search_completion_records_zero_grabs_separately_from_action_completion()
         {
@@ -165,8 +185,9 @@ namespace NzbDrone.Core.Test.QueueTests
             context.Actions[0].ReplacementGrabCount.Should().Be(1);
         }
 
-        [Test]
-        public void stalled_tv_torrent_recovery_records_history_blocklists_release_and_requests_replacement_search()
+        [TestCase(true)]
+        [TestCase(false)]
+        public void stalled_tv_torrent_records_failure_and_applies_rule_search_choice(bool searchForReplacement)
         {
             var grabbedHistory = new EpisodeHistory
             {
@@ -226,7 +247,7 @@ namespace NzbDrone.Core.Test.QueueTests
                 });
             var failedDownloadService = new FailedDownloadService(new[] { (IFailedDownloadSource)tvSource }, eventAggregator.Object);
 
-            var context = new ActionContext(MediaKind.Tv, true, "download-stalled", failedDownloadService);
+            var context = new ActionContext(MediaKind.Tv, true, "download-stalled", failedDownloadService, searchForReplacement: searchForReplacement);
             context.Service.Process(new[] { context.QueueItem });
 
             context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), false), Times.Once);
@@ -236,10 +257,18 @@ namespace NzbDrone.Core.Test.QueueTests
             history[0].DownloadId.Should().Be("test-download");
             blocklist.Should().ContainSingle().Which.TorrentInfoHash.Should().Be("test-download");
             blocklist[0].ParentId.Should().Be(42);
-            replacementSearch.Should().NotBeNull();
-            replacementSearch.EpisodeIds.Should().Equal(314);
+            if (searchForReplacement)
+            {
+                replacementSearch.Should().NotBeNull();
+                replacementSearch.EpisodeIds.Should().Equal(314);
+            }
+            else
+            {
+                replacementSearch.Should().BeNull();
+            }
+
             context.Actions.Should().ContainSingle().Which.Status.Should().Be("completed");
-            context.Actions[0].Checkpoint.Should().Be("replacement-requested");
+            context.Actions[0].Checkpoint.Should().Be(searchForReplacement ? "replacement-requested" : "replacement-skipped");
         }
 
         [Test]
@@ -320,6 +349,67 @@ namespace NzbDrone.Core.Test.QueueTests
             context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), false), Times.Once);
             context.Actions[0].DeleteFilesOnFailure.Should().BeFalse();
             context.Actions[0].Status.Should().Be("completed");
+        }
+
+        [Test]
+        public void disabling_search_before_a_prepared_retry_suppresses_replacement()
+        {
+            var context = new ActionContext(MediaKind.Tv, true, "download-stalled");
+            var failFirstAttempt = true;
+            context.DownloadClient
+                .Setup(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), false))
+                .Callback(() =>
+                {
+                    if (failFirstAttempt)
+                    {
+                        failFirstAttempt = false;
+                        throw new InvalidOperationException("simulated client outage");
+                    }
+                });
+
+            context.Service.Process(new[] { context.QueueItem });
+            ExceptionVerification.ExpectedWarns(1);
+            context.Actions[0].Checkpoint.Should().Be("prepared");
+            context.Actions[0].SearchForReplacement.Should().BeTrue();
+
+            context.Assessment.SearchForReplacement = false;
+            context.Actions[0].NextAttemptAt = DateTime.UtcNow.AddSeconds(-1);
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.FailedDownloads.Verify(x => x.MarkAsFailed(context.TrackedDownload, true), Times.Once);
+            context.Actions[0].SearchForReplacement.Should().BeFalse();
+            context.Actions[0].Checkpoint.Should().Be("replacement-skipped");
+            context.Actions[0].Status.Should().Be("completed");
+        }
+
+        [Test]
+        public void enabling_search_does_not_escalate_an_existing_prepared_action()
+        {
+            var context = new ActionContext(MediaKind.Tv, true, "download-stalled", searchForReplacement: false);
+            var failFirstAttempt = true;
+            context.DownloadClient
+                .Setup(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), false))
+                .Callback(() =>
+                {
+                    if (failFirstAttempt)
+                    {
+                        failFirstAttempt = false;
+                        throw new InvalidOperationException("simulated client outage");
+                    }
+                });
+
+            context.Service.Process(new[] { context.QueueItem });
+            ExceptionVerification.ExpectedWarns(1);
+            context.Actions[0].Checkpoint.Should().Be("prepared");
+            context.Actions[0].SearchForReplacement.Should().BeFalse();
+
+            context.Assessment.SearchForReplacement = true;
+            context.Actions[0].NextAttemptAt = DateTime.UtcNow.AddSeconds(-1);
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.FailedDownloads.Verify(x => x.MarkAsFailed(context.TrackedDownload, true), Times.Once);
+            context.Actions[0].SearchForReplacement.Should().BeFalse();
+            context.Actions[0].Checkpoint.Should().Be("replacement-skipped");
         }
 
         [Test]
@@ -610,7 +700,7 @@ namespace NzbDrone.Core.Test.QueueTests
             public HygieneQueueAssessment Assessment { get; }
             public IHygieneQueueActionService Service { get; }
 
-            public ActionContext(MediaKind kind, bool gateEnabled, string reasonCode = "client-failed", IFailedDownloadService failedDownloadService = null, bool deleteFilesOnFailure = false)
+            public ActionContext(MediaKind kind, bool gateEnabled, string reasonCode = "client-failed", IFailedDownloadService failedDownloadService = null, bool deleteFilesOnFailure = false, bool searchForReplacement = true)
             {
                 GateEnabled = gateEnabled;
                 var isStalledOrSlow = reasonCode is "download-stalled" or "download-slow";
@@ -670,6 +760,7 @@ namespace NzbDrone.Core.Test.QueueTests
                     Title = QueueItem.Title,
                     Eligible = true,
                     DeleteFilesOnFailure = deleteFilesOnFailure,
+                    SearchForReplacement = searchForReplacement,
                     WouldAct = true
                 };
                 Decisions.Setup(x => x.Evaluate(It.IsAny<IEnumerable<QueueItem>>()))

@@ -44,7 +44,8 @@ namespace Radarr.Api.V3.Hygiene
         {
             var outcome = new HygieneReplacementOutcome
             {
-                SearchState = action.Checkpoint == "replacement-requested" ? "requested" : "not-requested",
+                SearchState = action.Checkpoint == "replacement-skipped" ? "skipped" :
+                    action.Checkpoint == "replacement-requested" ? "requested" : "not-requested",
                 Evidence = "unverified"
             };
 
@@ -60,6 +61,13 @@ namespace Radarr.Api.V3.Hygiene
             if (targets.Count > 0)
             {
                 outcome.TargetCount = targets.Count;
+            }
+
+            if (action.ReplacementSearchStatus == "skipped" || action.Checkpoint == "replacement-skipped")
+            {
+                outcome.SearchState = "skipped";
+                outcome.Evidence = "recorded";
+                return outcome;
             }
 
             var command = FindCommand(action, targets);

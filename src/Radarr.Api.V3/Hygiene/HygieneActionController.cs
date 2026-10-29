@@ -44,6 +44,7 @@ namespace Radarr.Api.V3.Hygiene
         public string ReasonCode { get; }
         public int RuleId { get; }
         public bool DeleteFilesOnFailure { get; }
+        public bool SearchForReplacement { get; }
         public string Status { get; }
         public string Checkpoint { get; }
         public string RecoveryPath { get; }
@@ -69,6 +70,7 @@ namespace Radarr.Api.V3.Hygiene
             ReasonCode = action.ReasonCode;
             RuleId = action.RuleId;
             DeleteFilesOnFailure = action.DeleteFilesOnFailure;
+            SearchForReplacement = action.SearchForReplacement;
             Status = action.Status;
             Checkpoint = action.Checkpoint;
             RecoveryPath = action.RecoveryPath;

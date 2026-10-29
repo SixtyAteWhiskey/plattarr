@@ -102,14 +102,15 @@ namespace NzbDrone.Core.Test.QueueTests
             assessment.ActionExplanation.Should().Contain("private");
         }
 
-        [TestCase("download-stalled", true, true, true, false)]
-        [TestCase("download-slow", false, true, true, false)]
-        [TestCase("download-stalled", true, true, true, true)]
-        [TestCase("download-stalled", true, false, true, false)]
-        [TestCase("download-slow", false, false, true, false)]
-        [TestCase("download-stalled", true, true, false, false)]
-        [TestCase("download-slow", false, true, false, false)]
-        public void stalled_and_slow_downloads_act_only_with_an_eligible_rule_and_open_gate(string reasonCode, bool stalled, bool gateEnabled, bool torrent, bool deleteFilesOnFailure)
+        [TestCase("download-stalled", true, true, true, false, true)]
+        [TestCase("download-slow", false, true, true, false, true)]
+        [TestCase("download-stalled", true, true, true, true, true)]
+        [TestCase("download-stalled", true, true, true, false, false)]
+        [TestCase("download-stalled", true, false, true, false, true)]
+        [TestCase("download-slow", false, false, true, false, true)]
+        [TestCase("download-stalled", true, true, false, false, true)]
+        [TestCase("download-slow", false, true, false, false, true)]
+        public void stalled_and_slow_downloads_act_only_with_an_eligible_rule_and_open_gate(string reasonCode, bool stalled, bool gateEnabled, bool torrent, bool deleteFilesOnFailure, bool searchForReplacement)
         {
             NzbDrone.Core.Modules.RemoteRelease remoteRelease = null;
 
@@ -149,6 +150,7 @@ namespace NzbDrone.Core.Test.QueueTests
                     ReasonCode = reasonCode,
                     Enabled = true,
                     DeleteFilesOnFailure = deleteFilesOnFailure,
+                    SearchForReplacement = searchForReplacement,
                     StrikeLimit = 3,
                     StrikeIntervalMinutes = 5,
                     MinimumDownloadRateKiBps = stalled ? 0 : 100
@@ -164,10 +166,15 @@ namespace NzbDrone.Core.Test.QueueTests
             assessment.RuleId.Should().Be(9);
             assessment.Eligible.Should().BeTrue();
             assessment.DeleteFilesOnFailure.Should().Be(deleteFilesOnFailure);
+            assessment.SearchForReplacement.Should().Be(searchForReplacement);
             assessment.WouldAct.Should().Be(gateEnabled && torrent);
             assessment.ActionExplanation.Should().Contain(
                 !torrent ? "only for torrent downloads" :
-                gateEnabled ? deleteFilesOnFailure ? "delete its source files" : "without deleting its files" : "global Hygiene gate");
+                gateEnabled ? deleteFilesOnFailure ? "delete its source files" : "keep its source files" : "global Hygiene gate");
+            if (gateEnabled && torrent)
+            {
+                assessment.ActionExplanation.Should().Contain(searchForReplacement ? "request a replacement search" : "skip the replacement search");
+            }
         }
     }
 }

@@ -110,6 +110,25 @@ namespace NzbDrone.Api.Test.v3.Hygiene
             result.TargetCount.Should().Be(7);
         }
 
+        [Test]
+        public void skipped_search_is_recorded_without_inferred_grabs()
+        {
+            var action = Action();
+            action.Checkpoint = "replacement-skipped";
+            action.ReplacementSearchStatus = "skipped";
+            action.ReplacementTargetIds = "1,2,3";
+            var history = new Mock<IHistoryService>();
+
+            var result = new HygieneReplacementOutcomeBuilder(history.Object, new[] { Command(8) }).Build(action);
+
+            result.SearchState.Should().Be("skipped");
+            result.Evidence.Should().Be("recorded");
+            result.TargetCount.Should().Be(3);
+            result.ReportsGrabbed.Should().BeNull();
+            result.Grabs.Should().BeEmpty();
+            history.Verify(x => x.FindByEpisodeId(It.IsAny<int>()), Times.Never);
+        }
+
         private static HygieneAction Action() => new()
         {
             Id = 11,
