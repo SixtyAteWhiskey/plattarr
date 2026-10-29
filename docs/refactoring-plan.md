@@ -30,12 +30,12 @@ build; do not compare it with production output.
 
 - [x] Record the exact Git revision, build mode, machine/container limits,
   fixture size, and commands used for all measurements.
-- [ ] Build the current frontend in production mode and record initial route
+- [x] Build the current frontend in production mode and record initial route
   transfer size, total and per-chunk JS/CSS sizes, gzip sizes, and source-map
   sizes separately. Capture a webpack module breakdown for the largest chunks.
-  HTML/JS/CSS and the module breakdown are recorded below. Font and image
-  output and browser transfer for the Settings slice are recorded in the next
-  section; the original `633377d0a` build was not captured in Chrome.
+  HTML/JS/CSS, fonts, images, module breakdown, and browser transfer are
+  recorded below. The original `633377d0a` build was captured in Chrome
+  during the browser comparison.
 - [x] On a disposable Release instance, record warm startup time, steady RSS,
   and RSS after representative requests. Repeat enough times to see variation.
 - [ ] Time `/ping`, status, queue, Hygiene preview, and a representative library
@@ -57,7 +57,7 @@ measured before changing them.
   chunks, including locale data, polyfills, and third-party packages.
 - [x] Load less-used routes on demand in a small first slice; preserve the
   media-kind switcher's behavior, navigation, loading state, and error handling.
-- [ ] Audit production-only build inputs and direct dependencies. Remove or
+- [x] Audit production-only build inputs and direct dependencies. Remove or
   replace a package only after checking all imports and generated output.
 - [ ] Compare initial transfer, parse/execute time, route navigation time, and
   total output against the baseline. Confirm no unacceptable regression for
@@ -276,9 +276,70 @@ after each load event.
 
 One cold navigation per route showed Chrome script duration between 86 and
 123 ms and varied in both directions; it does not establish a parse/execute
-or route-navigation improvement. Slow-connection and repeat-navigation timing,
-the full multi-kind browser gate, and the original build's browser transfer
-remain open. No production rollout occurred.
+or route-navigation improvement. A later repeatable comparison measured
+slow-connection and repeat-navigation behavior against the original build.
+No production rollout occurred.
+
+## 2026-10-29 browser comparison and dependency audit
+
+`tools/benchmark_frontend_routes.py` starts a Release app with a disposable
+empty SQLite fixture, a loopback-only listener, and headless Chrome. It
+disables browser cache for a cold Movies route load, then enables cache and
+clicks Settings, Movies, and Settings again through the app's own links. It
+records Chrome DevTools Protocol `Network.loadingFinished` bytes for non-API
+resources, the time until the Movies page is visible, Chrome
+`Performance.ScriptDuration`, and first/repeat Settings navigation. The
+`Network.loadingFinished` total is taken after ordinary static requests
+settle; worker requests use another DevTools target and are excluded from
+the page-level idle condition. The
+`fast` profile is unthrottled; `slow` sets 150 ms network latency and
+200,000 bytes/s download and upload throughput (about 1.6 Mbit/s).
+
+The original production UI from Git `633377d0a` and the current production
+UI were measured on the same machine and Release backend. For each run, the
+desired UI output was placed at `_output/UI`, then
+`python3 tools/benchmark_frontend_routes.py --profile fast --samples 5` or
+`--profile slow --samples 3` ran; the current UI was restored afterward.
+Each sample used a fresh Chrome tab with cache disabled for its cold load.
+The first run of each profile can include additional browser warmup. The
+table reports medians, with observed ranges in parentheses.
+
+| Profile and metric | Original build | Current build |
+| --- | ---: | ---: |
+| Fast: first Movies render, ms | 454.5 (443.4–694.5) | 447.6 (426.8–694.5) |
+| Fast: initial browser transfer, bytes | 1,710,989 (1,710,989–1,716,041) | 1,606,781 (1,606,776–1,611,843) |
+| Fast: script duration, ms | 77.8 (73.7–82.6) | 75.7 (74.2–90.5) |
+| Fast: first / repeat Settings navigation, ms | 22.3 / 21.6 | 25.0 / 21.4 |
+| Slow: first Movies render, ms | 8,899.0 (8,834.0–8,934.3) | 8,345.5 (8,319.8–8,395.9) |
+| Slow: initial browser transfer, bytes | 1,710,992 (1,710,990–1,716,047) | 1,606,781 (1,606,780–1,611,846) |
+| Slow: script duration, ms | 79.2 (73.4–82.2) | 80.8 (78.4–84.6) |
+| Slow: first / repeat Settings navigation, ms | 22.6 / 21.7 | 184.5 / 21.9 |
+
+The current build transfers about 104 KB less on the initial Movies route.
+At the simulated slower connection, first Movies render was about 554 ms
+earlier at the median; opening Settings for the first time took about 162 ms
+longer because its deferred chunk had to load. Repeat Settings navigation
+remained around 21–22 ms. All 16 sampled flows had zero browser runtime
+exceptions. Script-duration ranges overlap in the fast profile, and
+`ScriptDuration` does not isolate JavaScript parsing. The first-render
+marker is visible Movies content, not a paint-timing API. These results
+support retaining route loading while leaving precise parse/execute timing
+and the full narrow-layout gate open.
+
+The production module inventory was cross-checked against every direct
+frontend dependency. Two packages had no source/build references, no
+webpack production modules, and no transitive consumer according to
+`corepack yarn why`: `@fortawesome/fontawesome-free` and
+`react-addons-shallow-compare`. They were removed from `package.json`
+and `yarn.lock`. TypeScript and the React/Node type packages remain because
+the build and typecheck use them; the SVG Font Awesome packages remain
+because application modules import them. The removed first package occupied
+41.56 MB in `node_modules` during the
+frontend build stage; the second occupied 28 KB. These are build-stage
+installation savings, not runtime image savings. A frozen offline install
+passed, and the production rebuild was byte-for-byte identical across all
+98 UI files, with zero webpack errors or warnings. Typecheck, lint, and
+stylelint passed. The runtime image was not rebuilt or measured.
 
 ## Progress log
 
@@ -287,3 +348,4 @@ remain open. No production rollout occurred.
 | 2026-10-29 | Plan created | — | No implementation or production change. |
 | 2026-10-29 | Baseline and Settings route loading | `b5bdb529d` | [Measurements and verification](#2026-10-29-baseline-and-first-frontend-slice); no production rollout. |
 | 2026-10-29 | Supported Moment locales | `3c677d58b` | [Build and browser comparison](#2026-10-29-supported-moment-locale-slice); no production rollout. |
+| 2026-10-29 | Browser benchmark and dependency cleanup | `1a07793a7`, `03fe9f082` | [Browser and build evidence](#2026-10-29-browser-comparison-and-dependency-audit); no production rollout. |

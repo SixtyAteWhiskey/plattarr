@@ -105,6 +105,43 @@ async def click_and_time(devtools, href, condition):
     return round(await devtools.evaluate(expression, await_promise=True), 1)
 
 
+async def wait_for_static_network_idle(devtools, base_url):
+    active = {}
+
+    def collect(event):
+        method = event.get("method")
+        params = event.get("params", {})
+        request_id = params.get("requestId")
+        if method == "Network.requestWillBeSent":
+            url = params["request"]["url"]
+            # A worker has an empty loaderId and its loadingFinished event is
+            # reported in a different DevTools target, not this page target.
+            if url.startswith(base_url) and "/api/" not in url and params.get("loaderId"):
+                active[request_id] = url
+                return True
+        elif method in ("Network.loadingFinished", "Network.loadingFailed"):
+            if request_id in active:
+                del active[request_id]
+                return True
+        return False
+
+    for event in devtools.events:
+        collect(event)
+    deadline = time.monotonic() + 20
+    idle_since = time.monotonic()
+    while time.monotonic() < deadline:
+        if not active and time.monotonic() - idle_since >= 0.5:
+            return
+        try:
+            event = json.loads(await asyncio.wait_for(devtools.connection.recv(), 0.1))
+        except asyncio.TimeoutError:
+            continue
+        devtools.events.append(event)
+        if collect(event):
+            idle_since = time.monotonic()
+    raise TimeoutError(f"Static resources did not settle: {list(active.values())}")
+
+
 def transfer_bytes(events, base_url):
     responses = {}
     sizes = {}
@@ -146,6 +183,7 @@ async def sample(chrome_url, app_url, profile):
                 item["value"] * 1000 for item in metrics["metrics"]
                 if item["name"] == "ScriptDuration"
             ), 1)
+            await wait_for_static_network_idle(devtools, app_url)
             cold_bytes, cold_exceptions = transfer_bytes(devtools.events, app_url)
 
             await devtools.command("Network.setCacheDisabled", {"cacheDisabled": False})
