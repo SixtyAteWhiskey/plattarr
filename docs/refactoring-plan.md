@@ -379,6 +379,46 @@ Hygiene and `ModuleBoundaryFixture` passed 80 Core tests with zero failures.
 The separately repeated action repository/service fixture run passed 34 tests.
 The broad Core gate and an end-to-end queue refresh comparison remain open.
 
+## 2026-10-29 interrupted Hygiene action read
+
+The queue refresh resumes every unfinished Hygiene action before evaluating
+new candidates. Previously this step fetched the entire action journal and
+filtered completed rows in memory. The repository now applies the same
+`Status != "completed"` condition in SQL. It still includes paused, failed,
+processing, and any other non-completed status, so the recovery candidate set
+is unchanged. The query count remains one; no schema
+migration was added.
+
+`python3 tools/benchmark_hygiene_interrupted_actions.py` compares the old and
+new queries on the same in-memory SQLite journal, using the existing
+client/download/status index and ten repetitions at each size. One in every
+1,000 synthetic actions is unfinished. Times are median Python plus SQLite
+elapsed milliseconds for the read and filter; they exclude the rest of queue
+refresh. Rows are those materialized by the query.
+
+| Journal rows | Full journal | Incomplete only |
+| --- | ---: | ---: |
+| 100 | 0.066 ms; 100 rows | 0.005 ms; 1 row |
+| 10,000 | 7.486 ms; 10,000 rows | 0.379 ms; 10 rows |
+| 100,000 | 96.373 ms; 100,000 rows | 5.994 ms; 100 rows |
+
+Both `EXPLAIN QUERY PLAN` results still report `SCAN HygieneActions`. The
+existing index starts with download client and ID, so it cannot seek by
+status alone. An ordinary status index was not added because this inequality
+would still scan it; the measured gain comes from avoiding completed-row
+materialization. Database rows scanned, whole-refresh latency, and memory
+remain open, as do the full-table state reads in strike observation and
+decision preview. These synthetic histories do not model a production journal.
+
+The non-incremental Release solution build passed with zero warnings and
+errors. `FILTER='FullyQualifiedName~Hygiene|FullyQualifiedName~ModuleBoundaryFixture'
+tools/verify.sh` passed 216 API, 78 Host (five skipped), and 81 focused Core
+tests. A serial action repository/service run passed 35 tests, including all
+the existing retry, checkpoint, and gate recovery cases and a new repository
+test proving non-completed status selection. The full broad Core gate was not
+rerun because it previously stalled on this checkout. No production rollout
+occurred.
+
 ## Progress log
 
 | Date | Slice | Commit or PR | Result and evidence |
@@ -388,3 +428,4 @@ The broad Core gate and an end-to-end queue refresh comparison remain open.
 | 2026-10-29 | Supported Moment locales | `3c677d58b` | [Build and browser comparison](#2026-10-29-supported-moment-locale-slice); no production rollout. |
 | 2026-10-29 | Browser benchmark and dependency cleanup | `1a07793a7`, `03fe9f082`, `e90623499` | [Browser and build evidence](#2026-10-29-browser-comparison-and-dependency-audit); no production rollout. |
 | 2026-10-29 | Hygiene action identity lookup | `520d809f4` | [Synthetic query comparison and focused verification](#2026-10-29-first-hygiene-action-lookup-slice); broad Core gate stalled; no production rollout. |
+| 2026-10-29 | Interrupted Hygiene action read | `320ab6d1a` | [Synthetic read comparison and focused verification](#2026-10-29-interrupted-hygiene-action-read); broad Core gate remains open; no production rollout. |
