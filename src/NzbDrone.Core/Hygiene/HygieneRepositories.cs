@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Dapper;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Messaging.Events;
 
@@ -8,6 +9,7 @@ namespace NzbDrone.Core.Hygiene
     public interface IHygieneQueueStateRepository : IBasicRepository<HygieneQueueState>
     {
         HygieneQueueState Find(int downloadClientId, string downloadId);
+        IEnumerable<HygieneQueueState> FindByIdentities(IEnumerable<(int DownloadClientId, string DownloadId)> identities);
     }
 
     public class HygieneQueueStateRepository : BasicRepository<HygieneQueueState>, IHygieneQueueStateRepository
@@ -20,6 +22,39 @@ namespace NzbDrone.Core.Hygiene
         public HygieneQueueState Find(int downloadClientId, string downloadId)
         {
             return Query(x => x.DownloadClientId == downloadClientId && x.DownloadId == downloadId).SingleOrDefault();
+        }
+
+        public IEnumerable<HygieneQueueState> FindByIdentities(IEnumerable<(int DownloadClientId, string DownloadId)> identities)
+        {
+            var states = new List<HygieneQueueState>();
+            var distinct = identities.Distinct().ToList();
+
+            // Keep the parameter count below older SQLite limits as queue size grows.
+            foreach (var batch in distinct.Chunk(200))
+            {
+                var parameters = new DynamicParameters();
+                var clauses = new List<string>();
+
+                for (var i = 0; i < batch.Length; i++)
+                {
+                    var (downloadClientId, downloadId) = batch[i];
+                    parameters.Add($"client{i}", downloadClientId);
+
+                    if (downloadId == null)
+                    {
+                        clauses.Add($"(\"DownloadClientId\" = @client{i} AND \"DownloadId\" IS NULL)");
+                    }
+                    else
+                    {
+                        parameters.Add($"download{i}", downloadId);
+                        clauses.Add($"(\"DownloadClientId\" = @client{i} AND \"DownloadId\" = @download{i})");
+                    }
+                }
+
+                states.AddRange(Query(Builder().Where("(" + string.Join(" OR ", clauses) + ")", parameters)));
+            }
+
+            return states;
         }
     }
 

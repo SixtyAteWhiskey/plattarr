@@ -34,7 +34,8 @@ namespace NzbDrone.Core.Hygiene
         {
             var items = queue.ToList();
             var assessments = _evaluator.Evaluate(items);
-            var states = _states.All().ToDictionary(x => (x.DownloadClientId, x.DownloadId));
+            var states = _states.FindByIdentities(items.Select(x => (x.DownloadClientId, x.DownloadId)))
+                .ToDictionary(x => (x.DownloadClientId, x.DownloadId));
             var rules = _rules.All();
 
             for (var i = 0; i < items.Count; i++)

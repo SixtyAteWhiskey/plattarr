@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Hygiene;
@@ -37,6 +38,38 @@ namespace NzbDrone.Core.Test.QueueTests
             state.MediaKind.Should().Be(2);
             state.LastStrikeAt.Should().NotBeNull();
             state.LastUnstableStrikeAt.Should().NotBeNull();
+        }
+
+        [Test]
+        public void identity_query_returns_only_requested_client_and_download_pairs()
+        {
+            var first = Insert(7, "shared");
+            Insert(8, "shared");
+            var second = Insert(8, "other");
+
+            Subject.FindByIdentities(new[] { (7, "shared"), (7, "shared"), (8, "other") })
+                .Select(state => state.Id)
+                .Should().BeEquivalentTo(new[] { first.Id, second.Id });
+            Subject.FindByIdentities(Array.Empty<(int, string)>()).Should().BeEmpty();
+        }
+
+        [Test]
+        public void identity_query_batches_large_queues()
+        {
+            var last = Insert(7, "download-200");
+            var identities = Enumerable.Range(0, 201).Select(index => (7, $"download-{index}"));
+
+            Subject.FindByIdentities(identities).Should().ContainSingle().Which.Id.Should().Be(last.Id);
+        }
+
+        private HygieneQueueState Insert(int clientId, string downloadId)
+        {
+            return Subject.Insert(new HygieneQueueState
+            {
+                DownloadClientId = clientId,
+                DownloadId = downloadId,
+                LastSeenAt = DateTime.UtcNow
+            });
         }
     }
 }
