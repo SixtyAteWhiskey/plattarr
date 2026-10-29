@@ -1,5 +1,5 @@
-import React from 'react';
-import { Redirect, Route } from 'react-router-dom';
+import React, { Suspense } from 'react';
+import { Redirect, Route, useLocation } from 'react-router-dom';
 import Blocklist from 'Activity/Blocklist/Blocklist';
 import MusicBlocklist from 'Activity/Blocklist/Music/BlocklistConnector';
 import TvBlocklist from 'Activity/Blocklist/Tv/TvBlocklist';
@@ -21,26 +21,18 @@ import MusicCalendarPage from 'Calendar/Music/CalendarPageConnector';
 import TvCalendarPage from 'Calendar/Tv/CalendarPage';
 import CollectionConnector from 'Collection/CollectionConnector';
 import createMediaKindPage from 'Components/createMediaKindPage';
+import ErrorBoundary from 'Components/Error/ErrorBoundary';
+import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import NotFound from 'Components/NotFound';
+import PageContent from 'Components/Page/PageContent';
+import PageContentBody from 'Components/Page/PageContentBody';
+import PageContentError from 'Components/Page/PageContentError';
 import Switch from 'Components/Router/Switch';
 import DiscoverMovieConnector from 'DiscoverMovie/DiscoverMovieConnector';
 import MovieDetailsPage from 'Movie/Details/MovieDetailsPage';
 import MovieIndex from 'Movie/Index/MovieIndex';
 import SeriesDetailsPage from 'Series/Details/SeriesDetailsPage';
 import SeriesIndex from 'Series/Index/SeriesIndex';
-import CustomFormatSettingsPage from 'Settings/CustomFormats/CustomFormatSettingsPage';
-import DownloadClientSettingsConnector from 'Settings/DownloadClients/DownloadClientSettingsConnector';
-import GeneralSettings from 'Settings/General/GeneralSettings';
-import ImportListSettings from 'Settings/ImportLists/ImportListSettings';
-import IndexerSettings from 'Settings/Indexers/IndexerSettings';
-import MediaManagement from 'Settings/MediaManagement/MediaManagement';
-import MetadataSettings from 'Settings/Metadata/MetadataSettings';
-import NotificationSettings from 'Settings/Notifications/NotificationSettings';
-import Profiles from 'Settings/Profiles/Profiles';
-import QualityConnector from 'Settings/Quality/QualityConnector';
-import Settings from 'Settings/Settings';
-import TagSettings from 'Settings/Tags/TagSettings';
-import UISettingsConnector from 'Settings/UI/UISettingsConnector';
 import BackupsConnector from 'System/Backup/BackupsConnector';
 import LogsTableConnector from 'System/Events/LogsTableConnector';
 import Logs from 'System/Logs/Logs';
@@ -50,6 +42,7 @@ import Tasks from 'System/Tasks/Tasks';
 import Updates from 'System/Updates/Updates';
 import UnmappedFilesTableConnector from 'UnmappedFiles/UnmappedFilesTableConnector';
 import getPathWithUrlBase from 'Utilities/getPathWithUrlBase';
+import translate from 'Utilities/String/translate';
 import CutoffUnmet from 'Wanted/CutoffUnmet/CutoffUnmet';
 import TvCutoffUnmet from 'Wanted/CutoffUnmet/Tv/TvCutoffUnmet';
 import Missing from 'Wanted/Missing/Missing';
@@ -59,6 +52,51 @@ import MusicMissing from 'Wanted/Music/Missing/MissingConnector';
 
 function RedirectWithUrlBase() {
   return <Redirect to={getPathWithUrlBase('/')} />;
+}
+
+const Settings = React.lazy(() => import('Settings/Settings'));
+const MediaManagement = React.lazy(
+  () => import('Settings/MediaManagement/MediaManagement')
+);
+const Profiles = React.lazy(() => import('Settings/Profiles/Profiles'));
+const QualityConnector = React.lazy(
+  () => import('Settings/Quality/QualityConnector')
+);
+const CustomFormatSettingsPage = React.lazy(
+  () => import('Settings/CustomFormats/CustomFormatSettingsPage')
+);
+const IndexerSettings = React.lazy(
+  () => import('Settings/Indexers/IndexerSettings')
+);
+const DownloadClientSettingsConnector = React.lazy(
+  () => import('Settings/DownloadClients/DownloadClientSettingsConnector')
+);
+const ImportListSettings = React.lazy(
+  () => import('Settings/ImportLists/ImportListSettings')
+);
+const NotificationSettings = React.lazy(
+  () => import('Settings/Notifications/NotificationSettings')
+);
+const MetadataSettings = React.lazy(
+  () => import('Settings/Metadata/MetadataSettings')
+);
+const TagSettings = React.lazy(() => import('Settings/Tags/TagSettings'));
+const GeneralSettings = React.lazy(
+  () => import('Settings/General/GeneralSettings')
+);
+const UISettingsConnector = React.lazy(
+  () => import('Settings/UI/UISettingsConnector')
+);
+
+function RouteLoading() {
+  return (
+    <PageContent title={translate('Loading')}>
+      <PageContentBody>
+        <LoadingIndicator />
+        <div role="status">{translate('Loading')}</div>
+      </PageContentBody>
+    </PageContent>
+  );
 }
 
 const CalendarRoutePage = createMediaKindPage(
@@ -80,7 +118,8 @@ const CutoffUnmetPage = createMediaKindPage(
 );
 
 function AppRoutes() {
-  return (
+  const location = useLocation();
+  const routes = (
     <Switch>
       {/*
         Movies
@@ -227,6 +266,12 @@ function AppRoutes() {
 
       <Route path="*" component={NotFound} />
     </Switch>
+  );
+
+  return (
+    <ErrorBoundary key={location.pathname} errorComponent={PageContentError}>
+      <Suspense fallback={<RouteLoading />}>{routes}</Suspense>
+    </ErrorBoundary>
   );
 }
 
