@@ -62,6 +62,7 @@ namespace NzbDrone.Core.Test.QueueTests
 
         [TestCase("download-stalled")]
         [TestCase("download-slow")]
+        [TestCase("download-unstable")]
         public void eligible_stalled_or_slow_torrent_is_removed_without_deleting_files(string reasonCode)
         {
             var context = new ActionContext(MediaKind.Movies, true, reasonCode);
@@ -703,7 +704,7 @@ namespace NzbDrone.Core.Test.QueueTests
             public ActionContext(MediaKind kind, bool gateEnabled, string reasonCode = "client-failed", IFailedDownloadService failedDownloadService = null, bool deleteFilesOnFailure = false, bool searchForReplacement = true)
             {
                 GateEnabled = gateEnabled;
-                var isStalledOrSlow = reasonCode is "download-stalled" or "download-slow";
+                var isStalledOrSlow = reasonCode is "download-stalled" or "download-slow" or "download-unstable";
                 var clientItem = new DownloadClientItem
                 {
                     DownloadId = "test-download",
@@ -722,9 +723,9 @@ namespace NzbDrone.Core.Test.QueueTests
                     DownloadClientId = 4,
                     DownloadId = clientItem.DownloadId,
                     Title = "Synthetic recovery proof",
-                    Status = reasonCode is "download-stalled" or "download-slow" ? QueueStatus.Downloading : QueueStatus.Failed,
-                    Protocol = reasonCode is "download-stalled" or "download-slow" ? NzbDrone.Core.Indexers.DownloadProtocol.Torrent : NzbDrone.Core.Indexers.DownloadProtocol.Usenet,
-                    RemoteRelease = reasonCode is "download-stalled" or "download-slow"
+                    Status = isStalledOrSlow ? QueueStatus.Downloading : QueueStatus.Failed,
+                    Protocol = isStalledOrSlow ? NzbDrone.Core.Indexers.DownloadProtocol.Torrent : NzbDrone.Core.Indexers.DownloadProtocol.Usenet,
+                    RemoteRelease = isStalledOrSlow
                         ? new NzbDrone.Core.Movies.Parser.Model.RemoteMovie
                         {
                             Release = new NzbDrone.Core.Parser.Model.ReleaseInfo
@@ -740,7 +741,7 @@ namespace NzbDrone.Core.Test.QueueTests
                     DownloadItem = clientItem,
                     Kind = kind,
                     State = TrackedDownloadState.Downloading,
-                    Protocol = reasonCode is "download-stalled" or "download-slow" ? NzbDrone.Core.Indexers.DownloadProtocol.Torrent : NzbDrone.Core.Indexers.DownloadProtocol.Usenet,
+                    Protocol = isStalledOrSlow ? NzbDrone.Core.Indexers.DownloadProtocol.Torrent : NzbDrone.Core.Indexers.DownloadProtocol.Usenet,
                     RemoteRelease = QueueItem.RemoteRelease
                 };
 

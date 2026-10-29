@@ -17522,6 +17522,21 @@
             "format": "int32",
             "nullable": true
           },
+          "unstableStrikes": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "unstableStrikeLimit": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "unstableRuleId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
           "ruleId": {
             "type": "integer",
             "format": "int32",

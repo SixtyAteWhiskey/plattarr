@@ -20,17 +20,23 @@ namespace NzbDrone.Core.Test.QueueTests
                 MediaKind = 2,
                 ReasonCode = "import-blocked",
                 Strikes = 2,
+                UnstableStrikes = 11,
+                UnstableRuleId = 8,
                 RemainingSize = 0,
                 LastSeenAt = lastStrike,
-                LastStrikeAt = lastStrike
+                LastStrikeAt = lastStrike,
+                LastUnstableStrikeAt = lastStrike
             });
 
             var state = Subject.Find(7, "isolated-hash");
 
             state.ReasonCode.Should().Be("import-blocked");
             state.Strikes.Should().Be(2);
+            state.UnstableStrikes.Should().Be(11);
+            state.UnstableRuleId.Should().Be(8);
             state.MediaKind.Should().Be(2);
             state.LastStrikeAt.Should().NotBeNull();
+            state.LastUnstableStrikeAt.Should().NotBeNull();
         }
     }
 }

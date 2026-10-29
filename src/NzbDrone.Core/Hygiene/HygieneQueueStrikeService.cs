@@ -38,6 +38,7 @@ namespace NzbDrone.Core.Hygiene
                 var key = (item.DownloadClientId, item.DownloadId);
                 states.TryGetValue(key, out var state);
                 var rule = _rules.Match(rules, assessment.ReasonCode, (int?)assessment.Kind ?? 0, item.DownloadClientId);
+                var unstableRule = _rules.Match(rules, "download-unstable", (int?)assessment.Kind ?? 0, item.DownloadClientId);
                 var interval = rule?.StrikeIntervalMinutes ?? 5;
                 var isNew = state == null;
                 var previousStrikes = state?.Strikes;
@@ -45,7 +46,11 @@ namespace NzbDrone.Core.Hygiene
                 var previousSize = state?.RemainingSize;
                 var previousKind = state?.MediaKind;
                 var previousSeenAt = state?.LastSeenAt;
+                var previousUnstableStrikes = state?.UnstableStrikes;
+                var previousUnstableRuleId = state?.UnstableRuleId;
+                var previousUnstableStrikeAt = state?.LastUnstableStrikeAt;
                 state = HygieneStrikeCalculator.Advance(state, assessment.ReasonCode, assessment.NeedsAttention && rule?.Enabled == true, (long)item.SizeLeft, now, interval);
+                HygieneUnstableStrikeCalculator.Advance(state, assessment.ReasonCode, unstableRule?.Enabled == true ? unstableRule.Id : 0, now, unstableRule?.StrikeIntervalMinutes ?? 5);
                 state.DownloadClientId = item.DownloadClientId;
                 state.DownloadId = item.DownloadId;
                 state.MediaKind = (int?)assessment.Kind ?? 0;
@@ -55,7 +60,9 @@ namespace NzbDrone.Core.Hygiene
                     _states.Insert(state);
                     states[key] = state;
                 }
-                else if (state.Strikes != previousStrikes || state.ReasonCode != previousReason ||
+                else if (state.Strikes != previousStrikes || state.UnstableStrikes != previousUnstableStrikes ||
+                         state.UnstableRuleId != previousUnstableRuleId ||
+                         state.LastUnstableStrikeAt != previousUnstableStrikeAt || state.ReasonCode != previousReason ||
                          state.RemainingSize != previousSize || state.MediaKind != previousKind ||
                          now - previousSeenAt >= TimeSpan.FromMinutes(1))
                 {

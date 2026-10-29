@@ -112,6 +112,11 @@ const reasonPresentations: Record<string, HygienePresentation> = {
     icon: icons.WARNING,
     tone: 'warning',
   },
+  'download-unstable': {
+    cue: 'Repeated',
+    icon: icons.WARNING,
+    tone: 'warning',
+  },
   pending: {
     cue: 'Waiting',
     icon: icons.PENDING,
@@ -589,6 +594,13 @@ function Hygiene() {
                                 {item.eligible && ' · Threshold reached'}
                               </p>
                             ) : null}
+                            {item.unstableStrikeLimit != null && (
+                              <p>
+                                Cumulative slow or stalled strikes:{' '}
+                                {item.unstableStrikes} /{' '}
+                                {item.unstableStrikeLimit}
+                              </p>
+                            )}
                             <p className={styles.automationState}>
                               <Icon
                                 name={item.wouldAct ? icons.ACTIONS : icons.BAN}

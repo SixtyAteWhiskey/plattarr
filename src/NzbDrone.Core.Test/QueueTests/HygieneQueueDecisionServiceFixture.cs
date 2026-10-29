@@ -12,6 +12,97 @@ namespace NzbDrone.Core.Test.QueueTests
     [TestFixture]
     public class HygieneQueueDecisionServiceFixture
     {
+        [TestCase(true)]
+        [TestCase(false)]
+        public void cumulative_rule_acts_after_twelve_alternating_slow_or_stalled_strikes(bool stalled)
+        {
+            var item = new QueueItem
+            {
+                DownloadClientId = 7,
+                DownloadId = "alternating-test-hash",
+                Status = QueueStatus.Downloading,
+                SizeLeft = 1000,
+                DownloadClientStalled = stalled,
+                DownloadRateBytesPerSecond = 1024,
+                Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Torrent,
+                RemoteRelease = new NzbDrone.Core.Movies.Parser.Model.RemoteMovie
+                {
+                    Release = new NzbDrone.Core.Parser.Model.ReleaseInfo
+                    {
+                        IndexerPrivacy = NzbDrone.Core.Indexers.IndexerPrivacy.Public
+                    }
+                }
+            };
+            var states = new Mock<IHygieneQueueStateRepository>();
+            states.Setup(x => x.All()).Returns(new[]
+            {
+                new HygieneQueueState
+                {
+                    DownloadClientId = 7,
+                    DownloadId = item.DownloadId,
+                    ReasonCode = stalled ? "download-slow" : "download-stalled",
+                    Strikes = 1,
+                    UnstableRuleId = 8,
+                    UnstableStrikes = 12
+                }
+            });
+            var rules = new Mock<IHygieneRuleRepository>();
+            rules.Setup(x => x.All()).Returns(new List<HygieneRule>
+            {
+                new() { Id = 8, ReasonCode = "download-unstable", Enabled = true, StrikeLimit = 12, StrikeIntervalMinutes = 5, SearchForReplacement = false },
+                new() { Id = 9, ReasonCode = stalled ? "download-stalled" : "download-slow", Enabled = true, StrikeLimit = 3, StrikeIntervalMinutes = 5, MinimumDownloadRateKiBps = stalled ? 0 : 100 }
+            });
+            var config = new Mock<IConfigService>();
+            config.SetupGet(x => x.HygieneActionsEnabled).Returns(true);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object);
+
+            var assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+
+            assessment.ReasonCode.Should().Be("download-unstable");
+            assessment.RuleId.Should().Be(8);
+            assessment.Strikes.Should().Be(12);
+            assessment.UnstableStrikeLimit.Should().Be(12);
+            assessment.Eligible.Should().BeTrue();
+            assessment.WouldAct.Should().BeTrue();
+            assessment.SearchForReplacement.Should().BeFalse();
+        }
+
+        [Test]
+        public void cumulative_limit_does_not_act_after_the_download_recovers()
+        {
+            var item = new QueueItem
+            {
+                DownloadClientId = 7,
+                DownloadId = "recovered-test-hash",
+                Status = QueueStatus.Downloading,
+                SizeLeft = 1000,
+                DownloadRateBytesPerSecond = 200 * 1024,
+                Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Torrent
+            };
+            var states = new Mock<IHygieneQueueStateRepository>();
+            states.Setup(x => x.All()).Returns(new[]
+            {
+                new HygieneQueueState { DownloadClientId = 7, DownloadId = item.DownloadId, UnstableRuleId = 8, UnstableStrikes = 12 }
+            });
+            var rules = new Mock<IHygieneRuleRepository>();
+            rules.Setup(x => x.All()).Returns(new List<HygieneRule>
+            {
+                new() { Id = 8, ReasonCode = "download-unstable", Enabled = true, StrikeLimit = 12, StrikeIntervalMinutes = 5 },
+                new() { Id = 9, ReasonCode = "download-slow", Enabled = true, StrikeLimit = 3, StrikeIntervalMinutes = 5, MinimumDownloadRateKiBps = 100 }
+            });
+            var config = new Mock<IConfigService>();
+            config.SetupGet(x => x.HygieneActionsEnabled).Returns(true);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object);
+
+            var assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+
+            assessment.ReasonCode.Should().Be("healthy");
+            assessment.UnstableStrikes.Should().Be(12);
+            assessment.UnstableStrikeLimit.Should().Be(12);
+            assessment.Eligible.Should().BeFalse();
+            assessment.WouldAct.Should().BeFalse();
+        }
+
         [Test]
         public void reached_threshold_is_eligible_but_cannot_execute_cleanup()
         {

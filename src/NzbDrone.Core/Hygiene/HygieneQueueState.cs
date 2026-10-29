@@ -13,5 +13,8 @@ namespace NzbDrone.Core.Hygiene
         public long RemainingSize { get; set; }
         public DateTime LastSeenAt { get; set; }
         public DateTime? LastStrikeAt { get; set; }
+        public int UnstableStrikes { get; set; }
+        public int UnstableRuleId { get; set; }
+        public DateTime? LastUnstableStrikeAt { get; set; }
     }
 }
