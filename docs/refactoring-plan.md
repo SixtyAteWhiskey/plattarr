@@ -33,8 +33,9 @@ build; do not compare it with production output.
 - [ ] Build the current frontend in production mode and record initial route
   transfer size, total and per-chunk JS/CSS sizes, gzip sizes, and source-map
   sizes separately. Capture a webpack module breakdown for the largest chunks.
-  HTML/JS/CSS and the module breakdown are recorded below; fonts, images, and
-  actual browser transfer remain to be captured.
+  HTML/JS/CSS and the module breakdown are recorded below. Font and image
+  output and browser transfer for the Settings slice are recorded in the next
+  section; the original `633377d0a` build was not captured in Chrome.
 - [x] On a disposable Release instance, record warm startup time, steady RSS,
   and RSS after representative requests. Repeat enough times to see variation.
 - [ ] Time `/ping`, status, queue, Hygiene preview, and a representative library
@@ -224,9 +225,65 @@ further route loading. The complete build grew because shared code and styles
 are repeated across deferred chunks; this is the measured cost of the initial
 transfer reduction.
 
+## 2026-10-29 supported Moment locale slice
+
+The production module breakdown showed 139 Moment locale files and their
+context module in the initial vendor chunk (542,292 unminified module bytes).
+The API's `IsoLanguages` mapping can return 61 UI language identifiers. Of
+those, 54 have exact Moment locale files; `de-DE`, `fr-FR`, and `pt-PT` use
+their base locale, English is built into Moment, and `no`, `rm`, and `tl`
+already have no matching Moment locale. The production build now includes
+the 57 matching Moment locale files. An explicit comparison of the API codes,
+the installed Moment locale files, and webpack's context expression found no
+missing or extra locale files. No dependency was removed.
+
+The build-input audit also checked `LiveReloadPlugin`. It starts its server
+only in webpack watch mode and did not inject a script or runtime code in the
+production output, so removing it from production builds offered no measured
+transfer saving. Direct-dependency review remains open.
+
+The comparison used the same machine, Release backend, empty disposable
+fixture, webpack production mode, and gzip level 6 as the first slice. The
+before build was the committed Settings slice at `a0723899d`; the after build
+adds only the locale context filter. Commands were `corepack yarn webpack
+--config ./frontend/build/webpack.config.js --env production --json
+<stats-file>`, `corepack yarn typecheck`, `corepack yarn lint`, and `corepack
+yarn stylelint-linux`. The two webpack builds had zero errors and warnings;
+all three frontend checks passed.
+
+| Metric | Settings slice | Supported locales | Change |
+| --- | ---: | ---: | ---: |
+| Initial JS bytes / gzip | 3,622,285 / 945,294 | 3,486,181 / 916,512 | −136,104 / −28,782 |
+| Initial CSS bytes / gzip | 322,685 / 51,287 | 322,685 / 51,287 | unchanged |
+| Initial HTML + JS + CSS gzip | 997,360 | 968,578 | −28,782 (−2.9%) |
+| Total output bytes | 23,479,418 | 22,955,736 | −523,682 (−2.2%) |
+| Source-map bytes | 17,047,042 | 16,659,464 | −387,578 |
+| Font / image output bytes | 887,403 / 1,069,583 | 887,403 / 1,069,583 | unchanged |
+
+Headless Chrome fetched the two builds from separate disposable loopback
+instances with cache disabled and the same empty fixture. Summed
+`Network.loadingFinished` bytes for non-API resources on the Movies landing
+route were 1,649,285 before and 1,611,842 after (−37,443). Settings landing
+was 1,646,646 before and 1,609,203 after; Media Management was 1,659,977
+before and 1,622,538 after. The browser loaded two Roboto WOFF2 files; the
+other copied font variants were not requested on these routes. The Movies,
+TV, Music, Hygiene, System Status, Settings, and Media Management routes
+rendered without runtime exceptions. A scratch French UI setting rendered
+the calendar's month and weekday names in French and loaded UI Settings
+without runtime exceptions. These browser checks used a one-off Chrome
+DevTools Protocol script with cache disabled and three seconds of settle time
+after each load event.
+
+One cold navigation per route showed Chrome script duration between 86 and
+123 ms and varied in both directions; it does not establish a parse/execute
+or route-navigation improvement. Slow-connection and repeat-navigation timing,
+the full multi-kind browser gate, and the original build's browser transfer
+remain open. No production rollout occurred.
+
 ## Progress log
 
 | Date | Slice | Commit or PR | Result and evidence |
 | --- | --- | --- | --- |
 | 2026-10-29 | Plan created | — | No implementation or production change. |
 | 2026-10-29 | Baseline and Settings route loading | `b5bdb529d` | [Measurements and verification](#2026-10-29-baseline-and-first-frontend-slice); no production rollout. |
+| 2026-10-29 | Supported Moment locales | `3c677d58b` | [Build and browser comparison](#2026-10-29-supported-moment-locale-slice); no production rollout. |
