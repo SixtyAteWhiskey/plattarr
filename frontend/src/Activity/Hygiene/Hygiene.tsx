@@ -229,7 +229,7 @@ function getSearchSummary(outcome: HygieneReplacementOutcome) {
     case 'completed-no-matching-grab':
       return 'Search completed; no matching grab appears in the retained history.';
     case 'completed':
-      return 'Search completed. Check the matching grabs and imports below.';
+      return 'Search completed.';
     case 'search-failed':
       return 'The replacement search did not complete successfully.';
     default:
@@ -698,7 +698,7 @@ function Hygiene() {
                                 {getOutcomeEvidence(action.replacementOutcome)}{' '}
                                 {action.replacementOutcome.targetCount == null
                                   ? 'Target count unavailable.'
-                                  : `${action.replacementOutcome.targetCount} targeted episodes.`}
+                                  : `${action.replacementOutcome.targetCount} targeted items.`}
                                 {action.replacementOutcome.reportsGrabbed ==
                                 null
                                   ? ''
