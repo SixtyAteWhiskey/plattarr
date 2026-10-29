@@ -5,9 +5,9 @@ using NLog;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
-using NzbDrone.Core.Modules;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Modules;
 using QueueItem = NzbDrone.Core.Queue.Queue;
 
 namespace NzbDrone.Core.Hygiene
@@ -393,6 +393,7 @@ namespace NzbDrone.Core.Hygiene
                         RecordSearchResult(action, _commandQueue.Get(failure.ReplacementSearchCommandId.Value));
                     }
                 }
+
                 SetCheckpoint(action, FailureRecorded);
             }
 
