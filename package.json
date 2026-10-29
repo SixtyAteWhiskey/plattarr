@@ -23,7 +23,6 @@
     "defaults"
   ],
   "dependencies": {
-    "@fortawesome/fontawesome-free": "7.3.1",
     "@fortawesome/fontawesome-svg-core": "7.3.1",
     "@fortawesome/free-brands-svg-icons": "7.3.1",
     "@fortawesome/free-regular-svg-icons": "7.3.1",
@@ -54,7 +53,6 @@
     "prop-types": "15.8.1",
     "qs": "6.16.1",
     "react": "18.3.1",
-    "react-addons-shallow-compare": "15.6.3",
     "react-async-script": "1.2.0",
     "react-autosuggest": "10.1.0",
     "react-custom-scrollbars-2": "4.5.0",
