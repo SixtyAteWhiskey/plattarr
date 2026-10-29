@@ -348,4 +348,4 @@ stylelint passed. The runtime image was not rebuilt or measured.
 | 2026-10-29 | Plan created | — | No implementation or production change. |
 | 2026-10-29 | Baseline and Settings route loading | `b5bdb529d` | [Measurements and verification](#2026-10-29-baseline-and-first-frontend-slice); no production rollout. |
 | 2026-10-29 | Supported Moment locales | `3c677d58b` | [Build and browser comparison](#2026-10-29-supported-moment-locale-slice); no production rollout. |
-| 2026-10-29 | Browser benchmark and dependency cleanup | `1a07793a7`, `03fe9f082` | [Browser and build evidence](#2026-10-29-browser-comparison-and-dependency-audit); no production rollout. |
+| 2026-10-29 | Browser benchmark and dependency cleanup | `1a07793a7`, `03fe9f082`, `e90623499` | [Browser and build evidence](#2026-10-29-browser-comparison-and-dependency-audit); no production rollout. |
