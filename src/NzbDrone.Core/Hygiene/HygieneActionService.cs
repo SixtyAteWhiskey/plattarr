@@ -121,7 +121,7 @@ namespace NzbDrone.Core.Hygiene
 
         public List<HygieneAction> Recent(int limit = 100)
         {
-            return _actions.All().OrderByDescending(x => x.Id).Take(Math.Clamp(limit, 1, 500)).ToList();
+            return _actions.FindRecent(Math.Clamp(limit, 1, 500));
         }
 
         public void Handle(CommandExecutedEvent message)
