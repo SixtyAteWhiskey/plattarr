@@ -341,6 +341,44 @@ passed, and the production rebuild was byte-for-byte identical across all
 98 UI files, with zero webpack errors or warnings. Typecheck, lint, and
 stylelint passed. The runtime image was not rebuilt or measured.
 
+## 2026-10-29 first Hygiene action lookup slice
+
+The queue refresh checks for the latest action with the same download client,
+download ID, and reason before executing an eligible action. Previously it
+materialized every journal row for each eligible item. The new repository
+lookup filters those three fields in SQL, using the existing
+`IX_HygieneActions_Client_Download_Status` index on its first two columns.
+It retains the newest matching action by ID and therefore keeps completion,
+retry, and checkpoint behavior unchanged. No migration or index was added.
+
+`python3 tools/benchmark_hygiene_action_lookup.py` creates an in-memory SQLite
+journal with 100 or 10,000 completed actions and measures 20 candidate lookups
+for ten repetitions. These are synthetic rows with up to five matching actions
+per client/download identity, not a production fixture. Times are median
+Python plus SQLite elapsed milliseconds for all 20 lookups; rows are those
+materialized by the queries during one repetition.
+
+| Journal rows | Full-journal lookup | Identity lookup |
+| --- | ---: | ---: |
+| 100 | 1.156 ms; 2,000 rows | 0.057 ms; 5 rows |
+| 10,000 | 117.937 ms; 200,000 rows | 0.066 ms; 25 rows |
+
+SQLite's query plan changed from `SCAN HygieneActions` to an indexed search
+on `DownloadClientId` and `DownloadId`. The index does not cover `ReasonCode`,
+so SQLite filters it after finding the client/download pair. This removes the
+full-table materialization for this one lookup. The numbers do not establish
+whole-refresh time or memory savings; interrupted-action recovery, strike
+observation, and decision preview still load full tables. Those paths and
+their larger-fixture proof remain open in section 2.
+
+The non-incremental Release solution build passed with zero warnings and
+errors. `tools/verify.sh` passed 216 API tests and 78 Host tests (five skipped).
+Its broad Core run made no new progress for five minutes and was stopped; the
+same stall was previously observed on this checkout. A serial focused run of
+Hygiene and `ModuleBoundaryFixture` passed 80 Core tests with zero failures.
+The separately repeated action repository/service fixture run passed 34 tests.
+The broad Core gate and an end-to-end queue refresh comparison remain open.
+
 ## Progress log
 
 | Date | Slice | Commit or PR | Result and evidence |
@@ -349,3 +387,4 @@ stylelint passed. The runtime image was not rebuilt or measured.
 | 2026-10-29 | Baseline and Settings route loading | `b5bdb529d` | [Measurements and verification](#2026-10-29-baseline-and-first-frontend-slice); no production rollout. |
 | 2026-10-29 | Supported Moment locales | `3c677d58b` | [Build and browser comparison](#2026-10-29-supported-moment-locale-slice); no production rollout. |
 | 2026-10-29 | Browser benchmark and dependency cleanup | `1a07793a7`, `03fe9f082`, `e90623499` | [Browser and build evidence](#2026-10-29-browser-comparison-and-dependency-audit); no production rollout. |
+| 2026-10-29 | Hygiene action identity lookup | `520d809f4` | [Synthetic query comparison and focused verification](#2026-10-29-first-hygiene-action-lookup-slice); broad Core gate stalled; no production rollout. |
