@@ -1,4 +1,5 @@
 using NzbDrone.Core.Download;
+using NzbDrone.Core.Messaging.Commands;
 
 namespace NzbDrone.Core.Modules
 {
@@ -11,6 +12,6 @@ namespace NzbDrone.Core.Modules
         MediaKind Kind { get; }
 
         // Queues a new search for what the failed download was for.
-        void Search(DownloadFailedEvent failure);
+        CommandModel Search(DownloadFailedEvent failure);
     }
 }

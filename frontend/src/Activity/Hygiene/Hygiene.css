@@ -139,6 +139,18 @@
   margin-bottom: $spaceSmall;
 }
 
+.replacementOutcome {
+  margin-top: $spaceMedium;
+  padding: $spaceSmall 0;
+  border-top: 1px solid var(--surfaceBorderColor);
+  overflow-wrap: anywhere;
+}
+
+.replacementGrabs {
+  margin: $spaceSmall 0;
+  padding-left: $spaceLarge;
+}
+
 .ruleForm {
   display: grid;
   align-items: end;

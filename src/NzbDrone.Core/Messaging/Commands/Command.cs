@@ -37,6 +37,10 @@ namespace NzbDrone.Core.Messaging.Commands
 
         public string ClientUserAgent { get; set; }
 
+        // Set by search executors for outcome reporting. Null means the executor did not
+        // report a count; command completion alone must never imply a grab.
+        public int? GrabbedCount { get; set; }
+
         public Command()
         {
             Name = GetType().Name.Replace("Command", "");

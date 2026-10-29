@@ -20,13 +20,15 @@ namespace NzbDrone.Core.Movies.Downloads
 
         public MediaKind Kind => MediaKind.Movies;
 
-        public void Search(DownloadFailedEvent failure)
+        public CommandModel Search(DownloadFailedEvent failure)
         {
             if (failure.ParentId != 0)
             {
                 _logger.Debug("Failed download contains a movie, searching again.");
-                _commandQueueManager.Push(new MoviesSearchCommand { MovieIds = new List<int> { failure.ParentId } });
+                return _commandQueueManager.Push(new MoviesSearchCommand { MovieIds = new List<int> { failure.ParentId } });
             }
+
+            return null;
         }
     }
 }

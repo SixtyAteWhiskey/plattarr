@@ -108,13 +108,18 @@ namespace NzbDrone.Core.Tv.Search
 
         public void Execute(EpisodeSearchCommand message)
         {
+            var grabbedCount = 0;
             foreach (var episodeId in message.EpisodeIds)
             {
                 var decisions = _releaseSearchService.EpisodeSearch(episodeId, message.Trigger == CommandTrigger.Manual, false).GetAwaiter().GetResult();
                 var processed = _processDownloadDecisions.ProcessDecisions(decisions).GetAwaiter().GetResult();
 
+                grabbedCount += processed.Grabbed.Count;
+
                 _logger.ProgressInfo("Episode search completed. {0} reports downloaded.", processed.Grabbed.Count);
             }
+
+            message.GrabbedCount = grabbedCount;
         }
 
         public void Execute(MissingEpisodeSearchCommand message)

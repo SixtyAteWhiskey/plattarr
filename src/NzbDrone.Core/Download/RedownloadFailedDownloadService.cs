@@ -53,7 +53,7 @@ namespace NzbDrone.Core.Download
                 return;
             }
 
-            searcher.Search(message);
+            message.ReplacementSearchCommandId = searcher.Search(message)?.Id;
         }
     }
 }

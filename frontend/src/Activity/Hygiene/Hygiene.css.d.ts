@@ -26,6 +26,8 @@ interface CssExports {
   'reasonCount': string;
   'reasonSummary': string;
   'reasonSummaryItem': string;
+  'replacementGrabs': string;
+  'replacementOutcome': string;
   'ruleActions': string;
   'ruleForm': string;
   'sectionHeader': string;

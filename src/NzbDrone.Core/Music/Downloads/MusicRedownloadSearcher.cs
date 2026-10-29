@@ -26,21 +26,19 @@ namespace NzbDrone.Core.Music.Downloads
 
         public MediaKind Kind => MediaKind.Music;
 
-        public void Search(DownloadFailedEvent failure)
+        public CommandModel Search(DownloadFailedEvent failure)
         {
             if (failure.ItemIds.Count == 0)
             {
                 _logger.Debug("Failed download has no albums, not searching again");
-                return;
+                return null;
             }
 
             if (failure.ItemIds.Count == 1)
             {
                 _logger.Debug("Failed download only contains one album, searching again");
 
-                _commandQueueManager.Push(new AlbumSearchCommand(failure.ItemIds));
-
-                return;
+                return _commandQueueManager.Push(new AlbumSearchCommand(failure.ItemIds));
             }
 
             var albumsInArtist = _albumService.GetAlbumsByArtist(failure.ParentId);
@@ -49,17 +47,15 @@ namespace NzbDrone.Core.Music.Downloads
             {
                 _logger.Debug("Failed download was entire artist, searching again");
 
-                _commandQueueManager.Push(new ArtistSearchCommand
+                return _commandQueueManager.Push(new ArtistSearchCommand
                 {
                     ArtistId = failure.ParentId
                 });
-
-                return;
             }
 
             _logger.Debug("Failed download contains multiple albums, searching again");
 
-            _commandQueueManager.Push(new AlbumSearchCommand(failure.ItemIds));
+            return _commandQueueManager.Push(new AlbumSearchCommand(failure.ItemIds));
         }
     }
 }

@@ -35,5 +35,8 @@ namespace NzbDrone.Core.Download
         public List<Language> Languages { get; set; }
         public bool SkipRedownload { get; set; }
         public ReleaseSourceType ReleaseSource { get; set; }
+        // Set by the failed-download search handler after it queues (or joins) a command.
+        // A Hygiene action may persist this ID without treating the handoff as a grab.
+        public int? ReplacementSearchCommandId { get; set; }
     }
 }
