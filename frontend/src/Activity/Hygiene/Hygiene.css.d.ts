@@ -30,9 +30,16 @@ interface CssExports {
   'replacementOutcome': string;
   'ruleActions': string;
   'ruleForm': string;
+  'ruleSummaryList': string;
   'sectionHeader': string;
   'sectionIntro': string;
   'sections': string;
+  'selectedPanel': string;
+  'selectedTab': string;
+  'tab': string;
+  'tabList': string;
+  'tabPanel': string;
+  'tabs': string;
   'toggleLabel': string;
 }
 export const cssExports: CssExports;

@@ -1,5 +1,6 @@
 import React, { FormEvent, useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
 import Alert from 'Components/Alert';
 import Icon, { IconName } from 'Components/Icon';
 import { Cluster, ResponsiveGrid, Stack } from 'Components/Layout';
@@ -17,6 +18,7 @@ import HygieneAttentionBadge, {
   getHygieneAttention,
 } from './HygieneAttentionBadge';
 import HygieneRules, { reasonOptions } from './HygieneRules';
+import HygieneRuleSummary from './HygieneRuleSummary';
 import useHygienePreview, { type HygieneAssessment } from './useHygienePreview';
 import styles from './Hygiene.css';
 
@@ -262,6 +264,7 @@ function getOutcomeEvidence(outcome: HygieneReplacementOutcome) {
 }
 
 function Hygiene() {
+  const [selectedTab, setSelectedTab] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>();
   const { data, isLoading, isError, refetch } = useHygienePreview({
@@ -290,6 +293,10 @@ function Hygiene() {
   const handleRefresh = useCallback(() => {
     refetch();
   }, [refetch]);
+
+  const handleManageRules = useCallback(() => {
+    setSelectedTab(1);
+  }, []);
 
   const handleGateChange = useCallback(
     async (event: FormEvent<HTMLInputElement>) => {
@@ -327,463 +334,521 @@ function Hygiene() {
             </Text>
           </Stack>
 
-          {configQuery.isLoading ? (
-            <Alert>Loading Hygiene action settings.</Alert>
-          ) : null}
-
-          {configQuery.isError ? (
-            <Alert kind="danger" role="alert">
-              Unable to load the Hygiene action settings.
-            </Alert>
-          ) : null}
-
-          {configQuery.data ? (
-            <Alert>
-              {configQuery.data.actionsEnabled
-                ? 'Automatic Hygiene actions are enabled. Eligible tracked downloads can be removed from the client. Each rule controls whether source files are kept or deleted and whether to request a replacement search.'
-                : 'The global Hygiene action gate is off. Queue preview and monitoring remain read only.'}{' '}
-              Review items in the <Link to="/activity/queue">queue</Link> before
-              enabling automatic actions.
-            </Alert>
-          ) : null}
-
-          <Stack className={styles.sections} gap="large">
-            <Surface elevation="low" padding="large">
-              <Stack
-                component="section"
-                gap="medium"
-                aria-labelledby="hygiene-actions-heading"
+          <Tabs
+            className={styles.tabs}
+            selectedIndex={selectedTab}
+            onSelect={setSelectedTab}
+          >
+            <TabList className={styles.tabList} aria-label="Hygiene sections">
+              <Tab
+                className={styles.tab}
+                selectedClassName={styles.selectedTab}
               >
-                <Cluster
-                  align="start"
-                  collapseOnSmall={true}
-                  gap="small"
-                  justify="between"
-                >
-                  <Heading id="hygiene-actions-heading" level={2}>
-                    Automatic actions
-                  </Heading>
-
-                  {configQuery.data ? (
-                    <StatusBadge
-                      icon={
-                        configQuery.data.actionsEnabled
-                          ? icons.WARNING
-                          : icons.BAN
-                      }
-                      label={
-                        configQuery.data.actionsEnabled
-                          ? 'Actions enabled'
-                          : 'Actions off'
-                      }
-                      tone={
-                        configQuery.data.actionsEnabled ? 'warning' : 'neutral'
-                      }
-                    />
-                  ) : null}
-                </Cluster>
-
-                <label className={styles.toggleLabel}>
-                  <input
-                    id="hygiene-actions-enabled"
-                    className={styles.checkbox}
-                    type="checkbox"
-                    checked={configQuery.data?.actionsEnabled ?? false}
-                    disabled={!configQuery.data || isSaving}
-                    aria-describedby="hygiene-actions-description"
-                    onChange={handleGateChange}
-                  />
-                  <span>
-                    Enable automatic cleanup for eligible Hygiene rules
-                  </span>
-                </label>
-
-                <Text
-                  id="hygiene-actions-description"
-                  className={styles.sectionIntro}
-                  tone="secondary"
-                >
-                  Enabled rules for client failures, blocked imports, stalled
-                  downloads, and slow downloads can remove eligible tracked jobs
-                  after their strike threshold. Private or unverified torrent
-                  releases and other warnings remain monitor only. Source files
-                  are kept unless the matching rule explicitly enables file
-                  deletion. Each rule can skip replacement search; otherwise,
-                  the existing failed-download settings still apply.
-                </Text>
-
-                {saveError ? (
-                  <Alert kind="danger" role="alert">
-                    {saveError}
-                  </Alert>
-                ) : null}
-              </Stack>
-            </Surface>
-
-            <HygieneRules
-              assessments={data}
-              previewError={isError}
-              previewLoading={isLoading}
-              onChanged={handleRefresh}
-            />
-
-            <Surface elevation="low" padding="large">
-              <Stack
-                component="section"
-                gap="large"
-                aria-labelledby="hygiene-preview-heading"
+                Queue preview
+              </Tab>
+              <Tab
+                className={styles.tab}
+                selectedClassName={styles.selectedTab}
               >
-                <Cluster
-                  className={styles.sectionHeader}
-                  align="start"
-                  collapseOnSmall={true}
-                  gap="medium"
-                  justify="between"
-                >
-                  <Stack gap="xSmall">
-                    <Cluster align="center" gap="small">
-                      <Heading id="hygiene-preview-heading" level={2}>
-                        Queue preview
-                      </Heading>
-                      <HygieneAttentionBadge assessments={data} />
-                    </Cluster>
-                    <Text className={styles.sectionIntro} tone="secondary">
-                      Review current queue conditions before changing any
-                      monitoring or automatic-action setting.
-                    </Text>
-                  </Stack>
+                Automation settings
+              </Tab>
+            </TabList>
 
-                  <Button onPress={handleRefresh}>Refresh preview</Button>
-                </Cluster>
-
-                {isLoading ? <LoadingIndicator /> : null}
-
-                {isError ? (
-                  <Alert kind="danger" role="alert">
-                    Unable to load the queue preview.
-                  </Alert>
-                ) : null}
-
-                {data && data.length === 0 ? (
-                  <Alert>The queue is empty.</Alert>
-                ) : null}
-
-                {data && data.length > 0 ? (
-                  <Stack className={styles.previewOverview} gap="small">
-                    <Text size="lead" weight="semibold">
-                      {attentionCount} of {data.length} downloads need
-                      attention.
-                    </Text>
-                    <Text tone="secondary">
-                      Severity describes the queue condition. Monitoring and
-                      automatic action state are shown separately.
-                    </Text>
-                    <ResponsiveGrid
-                      component="ul"
-                      className={styles.reasonSummary}
-                      gap="small"
-                      minimum="standard"
-                      aria-label="Queue preview counts by reason"
+            <TabPanel
+              className={styles.tabPanel}
+              selectedClassName={styles.selectedPanel}
+            >
+              <Stack className={styles.sections} gap="large">
+                <HygieneRuleSummary
+                  actionsEnabled={configQuery.data?.actionsEnabled}
+                  onManageRules={handleManageRules}
+                />
+                <Surface elevation="low" padding="large">
+                  <Stack
+                    component="section"
+                    gap="large"
+                    aria-labelledby="hygiene-preview-heading"
+                  >
+                    <Cluster
+                      className={styles.sectionHeader}
+                      align="start"
+                      collapseOnSmall={true}
+                      gap="medium"
+                      justify="between"
                     >
-                      {reasonCountEntries.map(([reasonCode, count]) => {
-                        const presentation = getReasonPresentation(reasonCode);
+                      <Stack gap="xSmall">
+                        <Cluster align="center" gap="small">
+                          <Heading id="hygiene-preview-heading" level={2}>
+                            Queue preview
+                          </Heading>
+                          <HygieneAttentionBadge assessments={data} />
+                        </Cluster>
+                        <Text className={styles.sectionIntro} tone="secondary">
+                          Review current queue conditions before changing any
+                          monitoring or automatic-action setting.
+                        </Text>
+                      </Stack>
 
-                        return (
-                          <Surface
-                            key={reasonCode}
-                            className={styles.reasonSummaryItem}
-                            component="li"
-                            padding="small"
-                            variant="subtle"
-                          >
-                            <HygieneBadge
-                              label={getReasonLabel(reasonCode)}
-                              presentation={presentation}
-                            />
-                            <span
-                              className={styles.reasonCount}
-                              aria-label={`${count} ${
-                                count === 1 ? 'download' : 'downloads'
-                              }`}
-                            >
-                              {count}
-                            </span>
-                          </Surface>
-                        );
-                      })}
-                    </ResponsiveGrid>
-                  </Stack>
-                ) : null}
+                      <Button onPress={handleRefresh}>Refresh preview</Button>
+                    </Cluster>
 
-                {data && data.length > 0 ? (
-                  <Stack className={styles.assessmentList} gap="large">
-                    {data.map((item) => {
-                      const presentation = getReasonPresentation(
-                        item.reasonCode
-                      );
-                      const titleId = `hygiene-assessment-${item.queueId}`;
+                    {isLoading ? <LoadingIndicator /> : null}
 
-                      return (
-                        <Surface
-                          key={item.queueId}
-                          className={styles.assessmentCard}
-                          component="article"
-                          padding="medium"
-                          tone={presentation.tone}
-                          aria-labelledby={titleId}
+                    {isError ? (
+                      <Alert kind="danger" role="alert">
+                        Unable to load the queue preview.
+                      </Alert>
+                    ) : null}
+
+                    {data && data.length === 0 ? (
+                      <Alert>The queue is empty.</Alert>
+                    ) : null}
+
+                    {data && data.length > 0 ? (
+                      <Stack className={styles.previewOverview} gap="small">
+                        <Text size="lead" weight="semibold">
+                          {attentionCount} of {data.length} downloads need
+                          attention.
+                        </Text>
+                        <Text tone="secondary">
+                          Severity describes the queue condition. Monitoring and
+                          automatic action state are shown separately.
+                        </Text>
+                        <ResponsiveGrid
+                          component="ul"
+                          className={styles.reasonSummary}
+                          gap="small"
+                          minimum="standard"
+                          aria-label="Queue preview counts by reason"
                         >
-                          <Cluster
-                            className={styles.assessmentHeader}
-                            align="start"
-                            collapseOnSmall={true}
-                            gap="medium"
-                            justify="between"
-                            component="header"
-                          >
-                            <div className={styles.assessmentIdentity}>
-                              <Heading
-                                id={titleId}
-                                className={styles.assessmentTitle}
-                                level={3}
+                          {reasonCountEntries.map(([reasonCode, count]) => {
+                            const presentation =
+                              getReasonPresentation(reasonCode);
+
+                            return (
+                              <Surface
+                                key={reasonCode}
+                                className={styles.reasonSummaryItem}
+                                component="li"
+                                padding="small"
+                                variant="subtle"
                               >
-                                {item.title || 'Untitled download'}
-                              </Heading>
+                                <HygieneBadge
+                                  label={getReasonLabel(reasonCode)}
+                                  presentation={presentation}
+                                />
+                                <span
+                                  className={styles.reasonCount}
+                                  aria-label={`${count} ${
+                                    count === 1 ? 'download' : 'downloads'
+                                  }`}
+                                >
+                                  {count}
+                                </span>
+                              </Surface>
+                            );
+                          })}
+                        </ResponsiveGrid>
+                      </Stack>
+                    ) : null}
+
+                    {data && data.length > 0 ? (
+                      <Stack className={styles.assessmentList} gap="large">
+                        {data.map((item) => {
+                          const presentation = getReasonPresentation(
+                            item.reasonCode
+                          );
+                          const titleId = `hygiene-assessment-${item.queueId}`;
+
+                          return (
+                            <Surface
+                              key={item.queueId}
+                              className={styles.assessmentCard}
+                              component="article"
+                              padding="medium"
+                              tone={presentation.tone}
+                              aria-labelledby={titleId}
+                            >
+                              <Cluster
+                                className={styles.assessmentHeader}
+                                align="start"
+                                collapseOnSmall={true}
+                                gap="medium"
+                                justify="between"
+                                component="header"
+                              >
+                                <div className={styles.assessmentIdentity}>
+                                  <Heading
+                                    id={titleId}
+                                    className={styles.assessmentTitle}
+                                    level={3}
+                                  >
+                                    {item.title || 'Untitled download'}
+                                  </Heading>
+                                  <Text
+                                    component="span"
+                                    size="small"
+                                    tone="secondary"
+                                  >
+                                    {item.kind || 'Unmatched'} ·{' '}
+                                    {item.downloadClient || 'Unknown client'}
+                                  </Text>
+                                </div>
+                                <HygieneBadge
+                                  label={getReasonLabel(item.reasonCode)}
+                                  presentation={presentation}
+                                />
+                              </Cluster>
+                              <Text className={styles.assessmentExplanation}>
+                                <strong>
+                                  {item.needsAttention
+                                    ? 'Needs attention.'
+                                    : 'No issue detected.'}
+                                </strong>{' '}
+                                {item.explanation}
+                              </Text>
+                              <Surface
+                                className={styles.guidance}
+                                padding="small"
+                                tone={presentation.tone}
+                                variant="tinted"
+                              >
+                                <Text
+                                  className={styles.detailLabel}
+                                  component="span"
+                                  size="eyebrow"
+                                  weight="semibold"
+                                >
+                                  Recommended next step
+                                </Text>
+                                <Text>{item.recommendedAction}</Text>
+                              </Surface>
+                              <div className={styles.assessmentDetails}>
+                                <p>{item.ruleExplanation}</p>
+                                {item.ruleEnabled ? (
+                                  <p>
+                                    Strikes: {item.strikes} / {item.strikeLimit}
+                                    {item.eligible && ' · Threshold reached'}
+                                  </p>
+                                ) : null}
+                                {item.unstableStrikeLimit != null && (
+                                  <p>
+                                    Cumulative slow or stalled strikes:{' '}
+                                    {item.unstableStrikes} /{' '}
+                                    {item.unstableStrikeLimit}
+                                  </p>
+                                )}
+                                <p className={styles.automationState}>
+                                  <Icon
+                                    name={
+                                      item.wouldAct ? icons.ACTIONS : icons.BAN
+                                    }
+                                    size={12}
+                                    aria-hidden={true}
+                                  />{' '}
+                                  <strong>
+                                    {item.wouldAct
+                                      ? 'Automatic action proposed.'
+                                      : 'No automatic action.'}
+                                  </strong>{' '}
+                                  {item.actionExplanation}
+                                </p>
+                              </div>
+                            </Surface>
+                          );
+                        })}
+                      </Stack>
+                    ) : null}
+                  </Stack>
+                </Surface>
+
+                <Surface elevation="low" padding="large">
+                  <Stack
+                    component="section"
+                    gap="large"
+                    aria-labelledby="hygiene-journal-heading"
+                  >
+                    <Stack gap="xSmall">
+                      <Heading id="hygiene-journal-heading" level={2}>
+                        Action journal
+                      </Heading>
+                      <Text className={styles.sectionIntro} tone="secondary">
+                        Review the recorded outcome and recovery state of
+                        automatic actions.
+                      </Text>
+                    </Stack>
+
+                    {actionsQuery.isLoading ? <LoadingIndicator /> : null}
+
+                    {actionsQuery.isError ? (
+                      <Alert kind="danger" role="alert">
+                        Unable to load the Hygiene action journal.
+                      </Alert>
+                    ) : null}
+
+                    {actionsQuery.data?.length === 0 ? (
+                      <Alert>No automatic actions recorded.</Alert>
+                    ) : null}
+
+                    {actionsQuery.data && actionsQuery.data.length > 0 ? (
+                      <Stack gap="small">
+                        {actionsQuery.data.map((action) => {
+                          const statusPresentation =
+                            getActionStatusPresentation(action.status);
+                          const reasonPresentation = getReasonPresentation(
+                            action.reasonCode
+                          );
+                          const titleId = `hygiene-action-${action.id}`;
+
+                          return (
+                            <Surface
+                              key={action.id}
+                              className={styles.journalEntry}
+                              component="article"
+                              padding="medium"
+                              variant="subtle"
+                              aria-labelledby={titleId}
+                            >
+                              <Cluster
+                                className={styles.journalHeader}
+                                align="start"
+                                collapseOnSmall={true}
+                                gap="medium"
+                                justify="between"
+                              >
+                                <Heading id={titleId} level={3}>
+                                  {action.title || 'Untitled download'}
+                                </Heading>
+                                <Cluster
+                                  className={styles.journalBadges}
+                                  gap="small"
+                                  justify="start"
+                                >
+                                  <HygieneBadge
+                                    presentation={statusPresentation}
+                                  />
+                                  <HygieneBadge
+                                    label={getReasonLabel(action.reasonCode)}
+                                    presentation={reasonPresentation}
+                                  />
+                                </Cluster>
+                              </Cluster>
                               <Text
-                                component="span"
+                                className={styles.journalCheckpoint}
                                 size="small"
                                 tone="secondary"
                               >
-                                {item.kind || 'Unmatched'} ·{' '}
-                                {item.downloadClient || 'Unknown client'}
+                                Checkpoint: {action.checkpoint}
                               </Text>
-                            </div>
-                            <HygieneBadge
-                              label={getReasonLabel(item.reasonCode)}
-                              presentation={presentation}
-                            />
-                          </Cluster>
-                          <Text className={styles.assessmentExplanation}>
-                            <strong>
-                              {item.needsAttention
-                                ? 'Needs attention.'
-                                : 'No issue detected.'}
-                            </strong>{' '}
-                            {item.explanation}
-                          </Text>
-                          <Surface
-                            className={styles.guidance}
-                            padding="small"
-                            tone={presentation.tone}
-                            variant="tinted"
-                          >
-                            <Text
-                              className={styles.detailLabel}
-                              component="span"
-                              size="eyebrow"
-                              weight="semibold"
-                            >
-                              Recommended next step
-                            </Text>
-                            <Text>{item.recommendedAction}</Text>
-                          </Surface>
-                          <div className={styles.assessmentDetails}>
-                            <p>{item.ruleExplanation}</p>
-                            {item.ruleEnabled ? (
-                              <p>
-                                Strikes: {item.strikes} / {item.strikeLimit}
-                                {item.eligible && ' · Threshold reached'}
-                              </p>
-                            ) : null}
-                            {item.unstableStrikeLimit != null && (
-                              <p>
-                                Cumulative slow or stalled strikes:{' '}
-                                {item.unstableStrikes} /{' '}
-                                {item.unstableStrikeLimit}
-                              </p>
-                            )}
-                            <p className={styles.automationState}>
-                              <Icon
-                                name={item.wouldAct ? icons.ACTIONS : icons.BAN}
-                                size={12}
-                                aria-hidden={true}
-                              />{' '}
-                              <strong>
-                                {item.wouldAct
-                                  ? 'Automatic action proposed.'
-                                  : 'No automatic action.'}
-                              </strong>{' '}
-                              {item.actionExplanation}
-                            </p>
-                          </div>
-                        </Surface>
-                      );
-                    })}
+                              <Text size="small" tone="secondary">
+                                Client removal policy:{' '}
+                                {action.deleteFilesOnFailure
+                                  ? 'delete source files'
+                                  : 'keep source files'}
+                              </Text>
+                              {action.replacementOutcome ? (
+                                <div className={styles.replacementOutcome}>
+                                  <Text weight="semibold">
+                                    Replacement outcome
+                                  </Text>
+                                  <Text>
+                                    {getSearchSummary(
+                                      action.replacementOutcome
+                                    )}
+                                  </Text>
+                                  <Text size="small" tone="secondary">
+                                    {getOutcomeEvidence(
+                                      action.replacementOutcome
+                                    )}{' '}
+                                    {action.replacementOutcome.targetCount ==
+                                    null
+                                      ? 'Target count unavailable.'
+                                      : `${action.replacementOutcome.targetCount} targeted items.`}
+                                    {action.replacementOutcome.reportsGrabbed ==
+                                    null
+                                      ? ''
+                                      : ` ${
+                                          action.replacementOutcome
+                                            .reportsGrabbed
+                                        } ${
+                                          action.replacementOutcome
+                                            .reportsGrabbed === 1
+                                            ? 'report'
+                                            : 'reports'
+                                        } grabbed by the search.`}
+                                  </Text>
+                                  {action.replacementOutcome.grabs.length >
+                                  0 ? (
+                                    <ul className={styles.replacementGrabs}>
+                                      {action.replacementOutcome.grabs.map(
+                                        (grab) => (
+                                          <li key={grab.downloadId}>
+                                            Download ID {grab.downloadId}:{' '}
+                                            {grab.coveredTargetCount} of{' '}
+                                            {action.replacementOutcome
+                                              .targetCount ?? '?'}{' '}
+                                            targeted episodes covered by a later
+                                            matching grab;{' '}
+                                            {grab.importedTargetCount} imported,{' '}
+                                            {grab.failedTargetCount} failed.
+                                          </li>
+                                        )
+                                      )}
+                                    </ul>
+                                  ) : null}
+                                  {action.replacementOutcome.searchState ===
+                                    'completed' &&
+                                  action.replacementOutcome.reportsGrabbed !=
+                                    null &&
+                                  action.replacementOutcome.reportsGrabbed >
+                                    0 &&
+                                  action.replacementOutcome.grabs.length ===
+                                    0 ? (
+                                    <Text size="small" tone="secondary">
+                                      The search reported a grab, but its
+                                      download identity could not be matched to
+                                      these targets.
+                                    </Text>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                              {action.status === 'failed' ? (
+                                <details>
+                                  <summary>Failure details</summary>
+                                  <p>
+                                    {getFailureStageDescription(
+                                      action.checkpoint
+                                    )}
+                                  </p>
+                                  <p>
+                                    Error type:{' '}
+                                    {action.lastError || 'Unknown error'}
+                                  </p>
+                                  <p>{action.recoveryPath}</p>
+                                </details>
+                              ) : (
+                                <p>{action.recoveryPath}</p>
+                              )}
+                            </Surface>
+                          );
+                        })}
+                      </Stack>
+                    ) : null}
                   </Stack>
-                ) : null}
+                </Surface>
               </Stack>
-            </Surface>
+            </TabPanel>
 
-            <Surface elevation="low" padding="large">
-              <Stack
-                component="section"
-                gap="large"
-                aria-labelledby="hygiene-journal-heading"
-              >
-                <Stack gap="xSmall">
-                  <Heading id="hygiene-journal-heading" level={2}>
-                    Action journal
-                  </Heading>
-                  <Text className={styles.sectionIntro} tone="secondary">
-                    Review the recorded outcome and recovery state of automatic
-                    actions.
-                  </Text>
-                </Stack>
+            <TabPanel
+              className={styles.tabPanel}
+              selectedClassName={styles.selectedPanel}
+              forceRender={true}
+            >
+              <Stack className={styles.sections} gap="large">
+                {configQuery.isLoading ? (
+                  <Alert>Loading Hygiene action settings.</Alert>
+                ) : null}
 
-                {actionsQuery.isLoading ? <LoadingIndicator /> : null}
-
-                {actionsQuery.isError ? (
+                {configQuery.isError ? (
                   <Alert kind="danger" role="alert">
-                    Unable to load the Hygiene action journal.
+                    Unable to load the Hygiene action settings.
                   </Alert>
                 ) : null}
 
-                {actionsQuery.data?.length === 0 ? (
-                  <Alert>No automatic actions recorded.</Alert>
+                {configQuery.data ? (
+                  <Alert>
+                    {configQuery.data.actionsEnabled
+                      ? 'Automatic Hygiene actions are enabled. Eligible tracked downloads can be removed from the client. Each rule controls whether source files are kept or deleted and whether to request a replacement search.'
+                      : 'The global Hygiene action gate is off. Queue preview and monitoring remain read only.'}{' '}
+                    Review items in the <Link to="/activity/queue">queue</Link>{' '}
+                    before enabling automatic actions.
+                  </Alert>
                 ) : null}
 
-                {actionsQuery.data && actionsQuery.data.length > 0 ? (
-                  <Stack gap="small">
-                    {actionsQuery.data.map((action) => {
-                      const statusPresentation = getActionStatusPresentation(
-                        action.status
-                      );
-                      const reasonPresentation = getReasonPresentation(
-                        action.reasonCode
-                      );
-                      const titleId = `hygiene-action-${action.id}`;
+                <Surface elevation="low" padding="large">
+                  <Stack
+                    component="section"
+                    gap="medium"
+                    aria-labelledby="hygiene-actions-heading"
+                  >
+                    <Cluster
+                      align="start"
+                      collapseOnSmall={true}
+                      gap="small"
+                      justify="between"
+                    >
+                      <Heading id="hygiene-actions-heading" level={2}>
+                        Automatic actions
+                      </Heading>
 
-                      return (
-                        <Surface
-                          key={action.id}
-                          className={styles.journalEntry}
-                          component="article"
-                          padding="medium"
-                          variant="subtle"
-                          aria-labelledby={titleId}
-                        >
-                          <Cluster
-                            className={styles.journalHeader}
-                            align="start"
-                            collapseOnSmall={true}
-                            gap="medium"
-                            justify="between"
-                          >
-                            <Heading id={titleId} level={3}>
-                              {action.title || 'Untitled download'}
-                            </Heading>
-                            <Cluster
-                              className={styles.journalBadges}
-                              gap="small"
-                              justify="start"
-                            >
-                              <HygieneBadge presentation={statusPresentation} />
-                              <HygieneBadge
-                                label={getReasonLabel(action.reasonCode)}
-                                presentation={reasonPresentation}
-                              />
-                            </Cluster>
-                          </Cluster>
-                          <Text
-                            className={styles.journalCheckpoint}
-                            size="small"
-                            tone="secondary"
-                          >
-                            Checkpoint: {action.checkpoint}
-                          </Text>
-                          <Text size="small" tone="secondary">
-                            Client removal policy:{' '}
-                            {action.deleteFilesOnFailure
-                              ? 'delete source files'
-                              : 'keep source files'}
-                          </Text>
-                          {action.replacementOutcome ? (
-                            <div className={styles.replacementOutcome}>
-                              <Text weight="semibold">Replacement outcome</Text>
-                              <Text>
-                                {getSearchSummary(action.replacementOutcome)}
-                              </Text>
-                              <Text size="small" tone="secondary">
-                                {getOutcomeEvidence(action.replacementOutcome)}{' '}
-                                {action.replacementOutcome.targetCount == null
-                                  ? 'Target count unavailable.'
-                                  : `${action.replacementOutcome.targetCount} targeted items.`}
-                                {action.replacementOutcome.reportsGrabbed ==
-                                null
-                                  ? ''
-                                  : ` ${
-                                      action.replacementOutcome.reportsGrabbed
-                                    } ${
-                                      action.replacementOutcome
-                                        .reportsGrabbed === 1
-                                        ? 'report'
-                                        : 'reports'
-                                    } grabbed by the search.`}
-                              </Text>
-                              {action.replacementOutcome.grabs.length > 0 ? (
-                                <ul className={styles.replacementGrabs}>
-                                  {action.replacementOutcome.grabs.map(
-                                    (grab) => (
-                                      <li key={grab.downloadId}>
-                                        Download ID {grab.downloadId}:{' '}
-                                        {grab.coveredTargetCount} of{' '}
-                                        {action.replacementOutcome
-                                          .targetCount ?? '?'}{' '}
-                                        targeted episodes covered by a later
-                                        matching grab;{' '}
-                                        {grab.importedTargetCount} imported,{' '}
-                                        {grab.failedTargetCount} failed.
-                                      </li>
-                                    )
-                                  )}
-                                </ul>
-                              ) : null}
-                              {action.replacementOutcome.searchState ===
-                                'completed' &&
-                              action.replacementOutcome.reportsGrabbed !=
-                                null &&
-                              action.replacementOutcome.reportsGrabbed > 0 &&
-                              action.replacementOutcome.grabs.length === 0 ? (
-                                <Text size="small" tone="secondary">
-                                  The search reported a grab, but its download
-                                  identity could not be matched to these
-                                  targets.
-                                </Text>
-                              ) : null}
-                            </div>
-                          ) : null}
-                          {action.status === 'failed' ? (
-                            <details>
-                              <summary>Failure details</summary>
-                              <p>
-                                {getFailureStageDescription(action.checkpoint)}
-                              </p>
-                              <p>
-                                Error type:{' '}
-                                {action.lastError || 'Unknown error'}
-                              </p>
-                              <p>{action.recoveryPath}</p>
-                            </details>
-                          ) : (
-                            <p>{action.recoveryPath}</p>
-                          )}
-                        </Surface>
-                      );
-                    })}
+                      {configQuery.data ? (
+                        <StatusBadge
+                          icon={
+                            configQuery.data.actionsEnabled
+                              ? icons.WARNING
+                              : icons.BAN
+                          }
+                          label={
+                            configQuery.data.actionsEnabled
+                              ? 'Actions enabled'
+                              : 'Actions off'
+                          }
+                          tone={
+                            configQuery.data.actionsEnabled
+                              ? 'warning'
+                              : 'neutral'
+                          }
+                        />
+                      ) : null}
+                    </Cluster>
+
+                    <label className={styles.toggleLabel}>
+                      <input
+                        id="hygiene-actions-enabled"
+                        className={styles.checkbox}
+                        type="checkbox"
+                        checked={configQuery.data?.actionsEnabled ?? false}
+                        disabled={!configQuery.data || isSaving}
+                        aria-describedby="hygiene-actions-description"
+                        onChange={handleGateChange}
+                      />
+                      <span>
+                        Enable automatic cleanup for eligible Hygiene rules
+                      </span>
+                    </label>
+
+                    <Text
+                      id="hygiene-actions-description"
+                      className={styles.sectionIntro}
+                      tone="secondary"
+                    >
+                      Enabled rules for client failures, blocked imports,
+                      stalled downloads, slow downloads, and repeated problems
+                      can remove eligible tracked jobs after their strike
+                      threshold. Private or unverified torrent releases and
+                      other warnings remain monitor only. Source files are kept
+                      unless the matching rule explicitly enables file deletion.
+                      Each rule can skip replacement search; otherwise, the
+                      existing failed-download settings still apply.
+                    </Text>
+
+                    {saveError ? (
+                      <Alert kind="danger" role="alert">
+                        {saveError}
+                      </Alert>
+                    ) : null}
                   </Stack>
-                ) : null}
+                </Surface>
+
+                <HygieneRules
+                  assessments={data}
+                  previewError={isError}
+                  previewLoading={isLoading}
+                  onChanged={handleRefresh}
+                />
               </Stack>
-            </Surface>
-          </Stack>
+            </TabPanel>
+          </Tabs>
         </Stack>
       </PageContentBody>
     </PageContent>
