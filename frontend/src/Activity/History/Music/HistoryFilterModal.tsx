@@ -1,54 +1,11 @@
-import React, { useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { createSelector } from 'reselect';
-import AppState from 'App/State/AppState';
-import FilterModal from 'Components/Filter/FilterModal';
+import createConnectedFilterModal from 'Components/Filter/createConnectedFilterModal';
 import { setHistoryFilter } from 'Store/Actions/musicHistoryActions';
 
-function createHistorySelector() {
-  return createSelector(
-    (state: AppState) => state.musicHistory.items,
-    (queueItems) => {
-      return queueItems;
-    }
-  );
-}
+const HistoryFilterModal = createConnectedFilterModal({
+  customFilterType: 'musicHistory',
+  selectItems: (state) => state.musicHistory.items,
+  selectFilterBuilderProps: (state) => state.musicHistory.filterBuilderProps,
+  setFilter: setHistoryFilter,
+});
 
-function createFilterBuilderPropsSelector() {
-  return createSelector(
-    (state: AppState) => state.musicHistory.filterBuilderProps,
-    (filterBuilderProps) => {
-      return filterBuilderProps;
-    }
-  );
-}
-
-interface HistoryFilterModalProps {
-  isOpen: boolean;
-}
-
-export default function HistoryFilterModal(props: HistoryFilterModalProps) {
-  const sectionItems = useSelector(createHistorySelector());
-  const filterBuilderProps = useSelector(createFilterBuilderPropsSelector());
-  const customFilterType = 'musicHistory';
-
-  const dispatch = useDispatch();
-
-  const dispatchSetFilter = useCallback(
-    (payload: unknown) => {
-      dispatch(setHistoryFilter(payload));
-    },
-    [dispatch]
-  );
-
-  return (
-    <FilterModal
-      // TODO: Don't spread all the props
-      {...props}
-      sectionItems={sectionItems}
-      filterBuilderProps={filterBuilderProps}
-      customFilterType={customFilterType}
-      dispatchSetFilter={dispatchSetFilter}
-    />
-  );
-}
+export default HistoryFilterModal;
