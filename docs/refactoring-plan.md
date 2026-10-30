@@ -94,9 +94,10 @@ following slice addresses them.
   search behavior. Preview and execution must select the same candidates.
   The same-snapshot parity and rule-change proof is recorded below
   (`dfec5dca4`); the existing focused recovery and action fixtures passed.
-- [ ] Compare database rows read, query count, refresh time, and memory at the
-  same fixture sizes. Run focused Core/API tests and isolated recovery and
-  preview/execution proofs before the full backend gate.
+- [x] Compare database result rows, query count, refresh time, and memory at
+  the same fixture sizes. Run focused Core/API tests and isolated recovery and
+  preview/execution proofs before the full backend gate. The direct
+  before/after whole-refresh trace and verification are recorded below.
 - [x] Bound the adjacent Hygiene journal API's recent-action read and verify
   descending ID order and the existing response limit. This is separate from
   queue-refresh profiling; see the dated journal slice below.
@@ -748,8 +749,49 @@ tests. Those focused fixtures also cover identity, retry/backoff, checkpoint
 recovery, rule precedence, private torrent safety, deletion choices, and
 replacement search. `git diff --check` passed. This proof changes tests and
 documentation only; it does not add runtime work or alter production state.
-The whole-refresh database query and row comparison in section 2 remains
-open.
+The whole-refresh database query and row comparison is recorded below.
+
+## 2026-10-29 whole-refresh SQL count and row comparison
+
+The explicit `HygieneQueueRefreshBenchmark` now attaches SQLite `Trace2` to
+each database connection during the first real `QueueService.Handle` refresh.
+It counts executed SQL statements and result rows returned by SQLite, in
+addition to elapsed time, .NET allocation, and working-set delta. The trace
+starts after seeding, so fixture inserts are excluded. The same instrumented
+test ran on the pre-retention revision `62f2336aa` in a disposable worktree
+and the current code, with Release, the same 20 healthy tracked Movies, and
+100, 10,000, and 100,000 rows in each history. The timed first refresh also
+completes one recoverable action and expires zero, 99, or 999 absent states.
+Each of the six cases passed state-count, action-count, recovery, and queue
+assertions. Both runs used `dotnet test` with
+`FullyQualifiedName~HygieneQueueRefreshBenchmark`,
+`RunAnalyzers=false`, and `TreatWarningsAsErrors=false` in the same local
+environment.
+
+| Rows in each history | SQL statements before / after | SQLite result rows before / after | First refresh ms before / after | First .NET allocated bytes before / after | First RSS delta bytes before / after |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 100 | 27 / 27 | 41 / 41 | 92.066 / 114.719 | 1,147,632 / 1,189,928 | 6,078,464 / 6,066,176 |
+| 10,000 | 126 / 27 | 149 / 50 | 335.305 / 65.981 | 2,637,008 / 1,057,104 | 5,492,736 / 1,101,824 |
+| 100,000 | 1,026 / 27 | 1,139 / 140 | 2,719.000 / 106.585 | 17,213,224 / 1,179,464 | 10,022,912 / 917,504 |
+
+At 100,000 rows the first refresh used 999 fewer statements and returned
+999 fewer rows, matching the replacement of one expired-state SELECT plus
+999 per-row DELETEs with one cutoff DELETE. First-refresh elapsed time fell
+by about 96.1% in this traced comparison. The 100-row result is cold-run
+variation, not an established regression; the earlier untraced comparison
+also varied at that size. The steady refresh still scales with the number of
+unfinished actions; the earlier read-path profile gives its separate SQL
+sequence comparison. Trace row events count returned result rows, not rows
+scanned inside SQLite. The callback adds overhead to timing and allocation,
+but both revisions used the same harness. RSS deltas depend on process GC
+history. This is a synthetic SQLite fixture, not PostgreSQL or production
+data. The focused Core/API and same-snapshot preview/executor proofs above
+passed. A nonincremental Release solution build had zero warnings and errors;
+the API suite passed 216 tests, the Host suite passed 78 tests with five
+skipped, and the focused Hygiene/module-boundary Core suite passed 88 tests.
+The broad Core suite stopped making progress and was canceled after about
+five minutes, consistent with the earlier local stall. No production rollout
+occurred.
 
 ## Progress log
 
@@ -769,3 +811,4 @@ open.
 | 2026-10-29 | Hygiene retention deletion | `e541e1639` | [Same-fixture whole-refresh comparison and verification](#2026-10-29-hygiene-retention-deletion-slice); no production rollout. |
 | 2026-10-29 | Frontend route acceptance and timing comparison | `4a88e6123` | [Browser timings and 44-route acceptance](#2026-10-29-frontend-route-acceptance-and-timing-comparison); no production rollout. |
 | 2026-10-29 | Hygiene preview/executor parity proof | `dfec5dca4` | [Same-snapshot candidate and rule-change verification](#2026-10-29-hygiene-preview-and-executor-parity-proof); no production rollout. |
+| 2026-10-29 | Whole-refresh SQL trace comparison | `97ec76b28` | [Same-fixture before/after statements, result rows, time, memory, and verification](#2026-10-29-whole-refresh-sql-count-and-row-comparison); no production rollout. |
