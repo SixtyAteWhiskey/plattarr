@@ -62,7 +62,9 @@ namespace NzbDrone.Core.Test.QueueTests
             var decisions = new HygieneQueueDecisionService(evaluator, states, ruleService, config.Object);
             var strikes = new HygieneQueueStrikeService(states, ruleService, evaluator);
             var actionService = new HygieneQueueActionService(
-                decisions, actions, config.Object,
+                decisions,
+                actions,
+                config.Object,
                 Mocker.GetMock<ITrackedDownloadService>().Object,
                 Mocker.GetMock<IProvideDownloadClient>().Object,
                 Mocker.GetMock<IFailedDownloadService>().Object,
@@ -73,7 +75,7 @@ namespace NzbDrone.Core.Test.QueueTests
             var queueService = new QueueService(Mocker.GetMock<IEventAggregator>().Object, timedStrikes, timedActions, TestLogger);
             var downloads = Enumerable.Range(0, QueueSize).Select(i => new TrackedDownload
             {
-                DownloadClient = i % 4 + 1,
+                DownloadClient = (i % 4) + 1,
                 IsTrackable = true,
                 Kind = MediaKind.Movies,
                 State = TrackedDownloadState.Downloading,
@@ -108,13 +110,13 @@ namespace NzbDrone.Core.Test.QueueTests
                 var stateCount = connection.ExecuteScalar<int>("SELECT COUNT(*) FROM \"HygieneQueueStates\"");
                 var actionCount = connection.ExecuteScalar<int>("SELECT COUNT(*) FROM \"HygieneActions\"");
                 var completedRecovery = connection.ExecuteScalar<int>("SELECT COUNT(*) FROM \"HygieneActions\" WHERE \"DownloadId\" = 'recoverable' AND \"Status\" = 'completed'");
-                stateCount.Should().Be(historySize - (historySize - 1) / 100);
+                stateCount.Should().Be(historySize - ((historySize - 1) / 100));
                 actionCount.Should().Be(historySize);
                 completedRecovery.Should().Be(1);
                 queueService.GetQueue().Should().HaveCount(QueueSize);
 
                 TestContext.Progress.WriteLine($"history={historySize} queue={QueueSize} first_ms={first.ElapsedMs:F3} first_strikes_ms={first.StrikesMs:F3} first_actions_ms={first.ActionsMs:F3} first_alloc_bytes={first.AllocatedBytes} first_rss_delta_bytes={first.RssBytes} first_sql_statements={firstSql.Statements} first_sql_rows={firstSql.Rows} " +
-                    $"steady_median_ms={Median(steady.Select(x => x.ElapsedMs)) :F3} steady_range_ms={steady.Min(x => x.ElapsedMs):F3}-{steady.Max(x => x.ElapsedMs):F3} " +
+                    $"steady_median_ms={Median(steady.Select(x => x.ElapsedMs)):F3} steady_range_ms={steady.Min(x => x.ElapsedMs):F3}-{steady.Max(x => x.ElapsedMs):F3} " +
                     $"steady_strikes_ms={Median(steady.Select(x => x.StrikesMs)):F3} steady_actions_ms={Median(steady.Select(x => x.ActionsMs)):F3} " +
                     $"steady_median_alloc_bytes={Median(steady.Select(x => (double)x.AllocatedBytes)):F0} steady_rss_delta_bytes={steady.Sum(x => x.RssBytes)} " +
                     $"states_after={stateCount} actions_after={actionCount} recovered={completedRecovery}");
@@ -136,13 +138,15 @@ namespace NzbDrone.Core.Test.QueueTests
             connection.Execute("WITH RECURSIVE n(x) AS (SELECT 0 UNION ALL SELECT x + 1 FROM n WHERE x + 1 < @count) " +
                 "INSERT INTO \"HygieneQueueStates\" (\"DownloadClientId\", \"DownloadId\", \"MediaKind\", \"ReasonCode\", \"Strikes\", \"RemainingSize\", \"LastSeenAt\") " +
                 "SELECT x % 4 + 1, printf('download-%d', x), 1, 'healthy', 0, 500, CASE WHEN x < 20 OR x % 100 = 0 THEN @stale ELSE @recent END FROM n",
-                new { count, stale, recent }, transaction);
+                new { count, stale, recent },
+                transaction);
             connection.Execute("WITH RECURSIVE n(x) AS (SELECT 0 UNION ALL SELECT x + 1 FROM n WHERE x + 1 < @count) " +
                 "INSERT INTO \"HygieneActions\" (\"DownloadClientId\", \"DownloadId\", \"MediaKind\", \"ReasonCode\", \"RuleId\", \"Status\", \"Checkpoint\", \"RecoveryPath\", \"NextAttemptAt\", \"CreatedAt\", \"UpdatedAt\") " +
                 "SELECT x % 4 + 1, CASE WHEN x = @last THEN 'recoverable' ELSE printf('download-%d', x % 2000) END, 1, 'client-failed', 1, " +
                 "CASE WHEN x = @last THEN 'processing' WHEN x % 1000 = 999 THEN 'failed' ELSE 'completed' END, 'replacement-requested', 'synthetic', " +
                 "CASE WHEN x % 1000 = 999 AND x != @last THEN @retryAt ELSE NULL END, @recent, @recent FROM n",
-                new { count, last = count - 1, retryAt, recent }, transaction);
+                new { count, last = count - 1, retryAt, recent },
+                transaction);
             transaction.Commit();
         }
 
