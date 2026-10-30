@@ -28,6 +28,7 @@ namespace NzbDrone.Core.Test.IndexerTests.FunFileTests
     {
         // Prowlarr/Indexers 5f5db4e58d06be18619c3a858b9a91ade6f341ca, definitions/v11/funfile.yml.
         private const string DefinitionPath = "Files/Indexers/FunFile/funfile-5f5db4e.yml";
+        private const string CandidateDefinitionPath = "Files/Indexers/FunFile/funfile-candidate.yml";
         private const string BaseUrl = "https://www.funfile.org/";
         private const string ResultHtml = """
             <table class="mainframe"><tr><td><table cellpadding="2"><tbody>
@@ -59,23 +60,12 @@ namespace NzbDrone.Core.Test.IndexerTests.FunFileTests
         [SetUp]
         public void SetUp()
         {
-            _definition = new DeserializerBuilder()
-                .IgnoreUnmatchedProperties()
-                .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                .Build()
-                .Deserialize<CardigannDefinition>(ReadAllText(DefinitionPath));
-
             const string nativeJson = """
                 {"baseUrl":"https://www.funfile.org/","username":"sample-user","password":"FAKE-PASSWORD"}
                 """;
             var converter = new ProviderSettingConverter();
             _settings = (CardigannSettings)converter.Parse(FunFileSettingsConverter.Convert(nativeJson), typeof(CardigannSettings));
-
-            _cardigann = new CardigannRequestGenerator(Mocker.Resolve<IConfigService>(), _definition, TestLogger, TimeSpan.Zero)
-            {
-                Settings = _settings,
-                Definition = new IndexerDefinition { Name = "FunFile", Implementation = "Cardigann", Settings = _settings }
-            };
+            LoadDefinition(DefinitionPath);
 
             var capabilities = new IndexerCapabilities();
             capabilities.Categories.AddCategoryMapping(44, NewznabStandardCategory.TVAnime, "Anime");
@@ -91,6 +81,21 @@ namespace NzbDrone.Core.Test.IndexerTests.FunFileTests
             capabilities.Categories.AddCategoryMapping(27, NewznabStandardCategory.Books, "Ebook");
             _native = new FunFileRequestGenerator(
                 (UserPassTorrentBaseSettings)converter.Parse(nativeJson, typeof(UserPassTorrentBaseSettings)), capabilities);
+        }
+
+        private void LoadDefinition(string path)
+        {
+            _definition = new DeserializerBuilder()
+                .IgnoreUnmatchedProperties()
+                .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                .Build()
+                .Deserialize<CardigannDefinition>(ReadAllText(path));
+
+            _cardigann = new CardigannRequestGenerator(Mocker.Resolve<IConfigService>(), _definition, TestLogger, TimeSpan.Zero)
+            {
+                Settings = _settings,
+                Definition = new IndexerDefinition { Name = "FunFile", Implementation = "Cardigann", Settings = _settings }
+            };
         }
 
         private static Dictionary<string, string> Query(IndexerRequest request)
@@ -142,7 +147,7 @@ namespace NzbDrone.Core.Test.IndexerTests.FunFileTests
         [Test]
         public void candidate_definition_should_match_native_imdb_request()
         {
-            _definition.Search.Inputs["s_title"] = "1";
+            LoadDefinition(CandidateDefinitionPath);
             var criteria = new MovieSearchCriteria
             {
                 SearchTerm = "Example Film",
@@ -160,7 +165,7 @@ namespace NzbDrone.Core.Test.IndexerTests.FunFileTests
         [Test]
         public void candidate_definition_should_match_other_supported_search_modes()
         {
-            _definition.Search.Inputs["s_title"] = "1";
+            LoadDefinition(CandidateDefinitionPath);
 
             void AssertSame(IndexerRequest native, IndexerRequest cardigann, string mode)
             {
@@ -227,7 +232,11 @@ namespace NzbDrone.Core.Test.IndexerTests.FunFileTests
                 {
                     requests.Add(request);
                     var html = request.Method == HttpMethod.Get
-                        ? "<form name=\"login\" action=\"takelogin.php\"><input name=\"username\"><input name=\"password\"></form>"
+                        ? "<form name=\"login\" method=\"post\" action=\"https://www.funfile.org/takelogin.php\">" +
+                          "<input type=\"hidden\" name=\"returnto\" value=\"\">" +
+                          "<input name=\"username\"><input name=\"password\">" +
+                          "<input type=\"submit\" name=\"login\" value=\"Login\"></form>" +
+                          "<script src=\"https://www.google.com/recaptcha/api.js\"></script>"
                         : "<a href=\"logout.php\">Log out</a>";
                     return Task.FromResult(new HttpResponse(request, new HttpHeader(), html));
                 });
@@ -241,6 +250,7 @@ namespace NzbDrone.Core.Test.IndexerTests.FunFileTests
             requests.Select(r => r.Method).Should().Equal(HttpMethod.Get, HttpMethod.Post);
             requests[1].GetContent().Should().Contain("username=sample-user");
             requests[1].GetContent().Should().Contain("password=FAKE-PASSWORD");
+            requests[1].GetContent().Should().Contain("login=Login");
         }
 
         [Test]
@@ -288,7 +298,7 @@ namespace NzbDrone.Core.Test.IndexerTests.FunFileTests
         [Test]
         public void candidate_definition_should_preserve_native_release_guid()
         {
-            _definition.Search.Fields.Add("guid", new SelectorBlock { Text = "{{ .Result.details }}" });
+            LoadDefinition(CandidateDefinitionPath);
 
             var criteria = new MovieSearchCriteria
             {
