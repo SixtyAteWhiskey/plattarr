@@ -71,10 +71,7 @@ namespace NzbDrone.Core.Hygiene
                 }
             }
 
-            foreach (var state in _states.FindExpired(now.AddDays(-30)))
-            {
-                _states.Delete(state);
-            }
+            _states.DeleteExpired(now.AddDays(-30));
         }
     }
 }

@@ -63,7 +63,7 @@ namespace NzbDrone.Core.Test.QueueTests
         }
 
         [Test]
-        public void expired_query_excludes_states_at_or_after_the_cutoff()
+        public void expired_delete_excludes_states_at_or_after_the_cutoff()
         {
             var cutoff = new DateTime(2026, 10, 1, 12, 0, 0, DateTimeKind.Utc);
             var expired = Insert(7, "expired");
@@ -72,9 +72,11 @@ namespace NzbDrone.Core.Test.QueueTests
             var boundary = Insert(7, "boundary");
             boundary.LastSeenAt = cutoff;
             Subject.Update(boundary);
-            Insert(7, "recent");
+            var recent = Insert(7, "recent");
 
-            Subject.FindExpired(cutoff).Select(state => state.Id).Should().Equal(expired.Id);
+            Subject.DeleteExpired(cutoff);
+
+            Subject.All().Select(state => state.Id).Should().BeEquivalentTo(new[] { boundary.Id, recent.Id });
         }
 
         private HygieneQueueState Insert(int clientId, string downloadId)
