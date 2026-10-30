@@ -23,6 +23,7 @@ namespace NzbDrone.Core.Hygiene
             "import-blocked",
             "download-warning",
             "download-stalled",
+            "download-metadata",
             "download-slow",
             "download-unstable"
         };

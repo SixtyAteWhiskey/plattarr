@@ -20,7 +20,8 @@ remain different or unimplemented.
 
 Create rules on the Hygiene page or through `/api/v3/hygiene/rule`. A rule names
 one of `client-failed`, `import-blocked`, `download-warning`,
-`download-stalled`, `download-slow`, or `download-unstable`; a media kind
+`download-stalled`, `download-slow`, `download-unstable`, or
+`download-metadata`; a media kind
 (Movies, TV, Music, or all); a download client (or all); a strike limit; and a
 minimum number of minutes between strikes. New rules are disabled. A rule
 enabled for a specific kind and client takes priority over one for just the
@@ -72,6 +73,15 @@ items. Stalled/slow actions keep source files by default, or ask the client to
 delete them when the matching rule opts in, then use the existing failed-download
 path for blocklisting and any configured replacement search.
 
+`download-metadata` identifies qBittorrent `metaDL` and `forcedMetaDL`
+states. A new rule starts disabled; enabled rules count consecutive observations
+at the configured interval and reset when metadata is no longer being fetched.
+The first observation records the first strike, so a three-strike rule needs at
+least two complete intervals. The same torrent privacy, tracked-download, and
+global gate checks apply as for stalled downloads. The client state is checked
+again immediately before removal, and cleanup pauses if metadata completed or
+the torrent disappeared. Source-file deletion defaults off.
+
 `GET /api/v3/hygiene/preview` reports the current reason, count, matching
 rule threshold, eligibility, and an explanation. `GET`, `POST`, `PUT /{id}`,
 and `DELETE /{id}` on `/api/v3/hygiene/rule` manage monitoring rules. The
@@ -86,7 +96,8 @@ and reach its strike threshold. The preview and executor share the same
 the executor would process under the current settings.
 
 The executor handles tracked `client-failed`, `import-blocked`,
-`download-stalled`, `download-slow`, and `download-unstable` items. Generic `download-warning`
+`download-stalled`, `download-slow`, `download-unstable`, and
+`download-metadata` items. Generic `download-warning`
 items stay monitor-only. For an eligible item, it removes the job from the
 download client, keeping its files by default or deleting them when the matched
 rule opts in, records the failure through the existing per-kind failed-download

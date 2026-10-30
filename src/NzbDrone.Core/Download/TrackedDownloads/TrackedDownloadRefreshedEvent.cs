@@ -6,10 +6,12 @@ namespace NzbDrone.Core.Download.TrackedDownloads
     public class TrackedDownloadRefreshedEvent : IEvent
     {
         public List<TrackedDownload> TrackedDownloads { get; private set; }
+        public bool ProcessingComplete { get; private set; }
 
-        public TrackedDownloadRefreshedEvent(List<TrackedDownload> trackedDownloads)
+        public TrackedDownloadRefreshedEvent(List<TrackedDownload> trackedDownloads, bool processingComplete = false)
         {
             TrackedDownloads = trackedDownloads;
+            ProcessingComplete = processingComplete;
         }
     }
 }

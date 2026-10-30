@@ -40,6 +40,7 @@ export const reasonOptions = [
   { value: 'import-blocked', label: 'Import blocked' },
   { value: 'download-warning', label: 'Download warning' },
   { value: 'download-stalled', label: 'Download stalled' },
+  { value: 'download-metadata', label: 'Downloading metadata' },
   { value: 'download-slow', label: 'Slow download' },
   { value: 'download-unstable', label: 'Repeated slow or stalled' },
 ];
@@ -597,6 +598,15 @@ function HygieneRules({
                       recovers. The default is 12 strikes, at least 5 minutes
                       apart. Slow detection uses a matching Slow download rule’s
                       speed threshold.
+                    </Text>
+                  ) : null}
+
+                  {reasonCode === 'download-metadata' ? (
+                    <Text size="small" tone="secondary">
+                      Counts consecutive observations while qBittorrent fetches
+                      metadata. The count resets when metadata finishes. Cleanup
+                      requires an enabled rule and the global action gate;
+                      private or unverified torrents remain held for review.
                     </Text>
                   ) : null}
 

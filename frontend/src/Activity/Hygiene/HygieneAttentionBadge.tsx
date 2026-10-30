@@ -15,6 +15,7 @@ const reasonTones: Record<string, HygieneAttentionTone> = {
   'client-unavailable': 'warning',
   'download-warning': 'warning',
   'download-stalled': 'warning',
+  'download-metadata': 'warning',
   'download-slow': 'warning',
   'download-unstable': 'warning',
   pending: 'info',

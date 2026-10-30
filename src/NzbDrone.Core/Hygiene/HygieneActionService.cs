@@ -304,7 +304,7 @@ namespace NzbDrone.Core.Hygiene
                 return;
             }
 
-            var isStalledOrSlowReason = action.ReasonCode is "download-stalled" or "download-slow" or "download-unstable";
+            var isStalledOrSlowReason = action.ReasonCode is "download-stalled" or "download-slow" or "download-unstable" or "download-metadata";
             var isStalledOrSlowTorrent = isStalledOrSlowReason &&
                                          tracked?.Protocol == NzbDrone.Core.Indexers.DownloadProtocol.Torrent;
 
@@ -361,6 +361,15 @@ namespace NzbDrone.Core.Hygiene
                 }
 
                 var clientItem = clientItems.FirstOrDefault(x => x.DownloadId == tracked.DownloadItem.DownloadId);
+
+                // Metadata may complete or the torrent may disappear after the last
+                // queue refresh. Do not act without a current metadata state.
+                if (action.ReasonCode == "download-metadata" && clientItem?.DownloadClientDownloadingMetadata != true)
+                {
+                    Pause(action);
+                    return;
+                }
+
                 if (clientItem != null)
                 {
                     try

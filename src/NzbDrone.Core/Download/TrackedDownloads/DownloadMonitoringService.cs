@@ -183,7 +183,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
         {
             var trackedDownloads = _trackedDownloadService.GetTrackedDownloads().Where(t => t.IsTrackable && DownloadIsTrackable(t)).ToList();
 
-            _eventAggregator.PublishEvent(new TrackedDownloadRefreshedEvent(trackedDownloads));
+            _eventAggregator.PublishEvent(new TrackedDownloadRefreshedEvent(trackedDownloads, processingComplete: true));
         }
 
         public void Handle(TrackedDownloadsRemovedEvent message)

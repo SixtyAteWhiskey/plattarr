@@ -65,6 +65,7 @@ namespace NzbDrone.Core.Queue
                 SizeLeft = trackedDownload.DownloadItem.RemainingSize,
                 DownloadRateBytesPerSecond = trackedDownload.DownloadItem.DownloadRateBytesPerSecond,
                 DownloadClientStalled = trackedDownload.DownloadItem.DownloadClientStalled,
+                DownloadClientDownloadingMetadata = trackedDownload.DownloadItem.DownloadClientDownloadingMetadata,
                 TimeLeft = trackedDownload.DownloadItem.RemainingTime,
                 Status = Enum.TryParse(trackedDownload.DownloadItem.Status.ToString(), out QueueStatus outValue) ? outValue : QueueStatus.Unknown,
                 TrackedDownloadStatus = trackedDownload.Status,
@@ -103,7 +104,12 @@ namespace NzbDrone.Core.Queue
 
             try
             {
-                _hygieneQueueStrikeService.Observe(_queue);
+                // The refresh before import processing can temporarily turn an
+                // import-blocked item into import-pending. Wait for the processed
+                // snapshot before clearing its strikes.
+                var observed = message.ProcessingComplete ? _queue : _queue.Where(item =>
+                    item.TrackedDownloadState is not (TrackedDownloadState.ImportPending or TrackedDownloadState.Importing));
+                _hygieneQueueStrikeService.Observe(observed);
                 _hygieneQueueActionService.Process(_queue);
             }
             catch (Exception ex)

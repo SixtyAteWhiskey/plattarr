@@ -12,6 +12,49 @@ namespace NzbDrone.Core.Test.QueueTests
     [TestFixture]
     public class HygieneQueueDecisionServiceFixture
     {
+        [TestCase(true, true, true, true)]
+        [TestCase(false, true, true, false)]
+        [TestCase(true, false, true, false)]
+        [TestCase(true, true, false, false)]
+        public void metadata_rule_respects_gate_rule_and_torrent_privacy(bool enabled, bool gate, bool publicTorrent, bool wouldAct)
+        {
+            var item = new QueueItem
+            {
+                DownloadClientId = 7,
+                DownloadId = "synthetic-metadata",
+                Status = QueueStatus.Queued,
+                DownloadClientDownloadingMetadata = true,
+                Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Torrent,
+                RemoteRelease = new NzbDrone.Core.Movies.Parser.Model.RemoteMovie
+                {
+                    Release = new NzbDrone.Core.Parser.Model.ReleaseInfo
+                    {
+                        IndexerPrivacy = publicTorrent ? NzbDrone.Core.Indexers.IndexerPrivacy.Public : NzbDrone.Core.Indexers.IndexerPrivacy.Private
+                    }
+                }
+            };
+            var states = new Mock<IHygieneQueueStateRepository>();
+            states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>())).Returns(new[]
+            {
+                new HygieneQueueState { DownloadClientId = 7, DownloadId = item.DownloadId, ReasonCode = "download-metadata", Strikes = 3 }
+            });
+            var rules = new Mock<IHygieneRuleRepository>();
+            rules.Setup(x => x.All()).Returns(new List<HygieneRule>
+            {
+                new() { Id = 9, ReasonCode = "download-metadata", Enabled = enabled, StrikeLimit = 3, StrikeIntervalMinutes = 5 }
+            });
+            var config = new Mock<IConfigService>();
+            config.SetupGet(x => x.HygieneActionsEnabled).Returns(gate);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object);
+
+            var assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.ReasonCode.Should().Be("download-metadata");
+            assessment.WouldAct.Should().Be(wouldAct);
+
+            item.DownloadClientDownloadingMetadata = false;
+            decisions.Evaluate(new[] { item }).Should().ContainSingle().Which.WouldAct.Should().BeFalse();
+        }
+
         [TestCase(true)]
         [TestCase(false)]
         public void cumulative_rule_acts_after_twelve_alternating_slow_or_stalled_strikes(bool stalled)

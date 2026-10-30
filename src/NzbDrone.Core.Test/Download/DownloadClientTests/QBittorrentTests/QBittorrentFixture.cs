@@ -282,6 +282,25 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
             item.RemainingTime.Should().NotHaveValue();
         }
 
+        [TestCase("metaDL", true)]
+        [TestCase("forcedMetaDL", true)]
+        [TestCase("queuedDL", false)]
+        [TestCase("downloading", false)]
+        public void metadata_state_is_reported_separately(string state, bool expected)
+        {
+            var torrent = new QBittorrentTorrent
+            {
+                Hash = "HASH",
+                Name = _title,
+                State = state,
+                Label = "",
+                SavePath = ""
+            };
+            GivenTorrents(new List<QBittorrentTorrent> { torrent });
+
+            Subject.GetItems().Single().DownloadClientDownloadingMetadata.Should().Be(expected);
+        }
+
         [Test]
         public void downloading_item_should_have_required_properties()
         {

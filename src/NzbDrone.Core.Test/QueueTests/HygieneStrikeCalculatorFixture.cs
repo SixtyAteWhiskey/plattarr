@@ -21,6 +21,16 @@ namespace NzbDrone.Core.Test.QueueTests
         }
 
         [Test]
+        public void metadata_strikes_count_at_intervals_and_reset_after_metadata_completes()
+        {
+            var state = HygieneStrikeCalculator.Advance(null, "download-metadata", true, 0, Now, 5);
+            HygieneStrikeCalculator.Advance(state, "download-metadata", true, 0, Now.AddMinutes(4), 5).Strikes.Should().Be(1);
+            HygieneStrikeCalculator.Advance(state, "download-metadata", true, 0, Now.AddMinutes(5), 5).Strikes.Should().Be(2);
+            HygieneStrikeCalculator.Advance(state, "healthy", false, 100, Now.AddMinutes(6), 5).Strikes.Should().Be(0);
+            HygieneStrikeCalculator.Advance(state, "download-metadata", true, 0, Now.AddMinutes(7), 5).Strikes.Should().Be(1);
+        }
+
+        [Test]
         public void progress_should_reset_consecutive_strikes()
         {
             var state = HygieneStrikeCalculator.Advance(null, "download-warning", true, 100, Now, 5);
