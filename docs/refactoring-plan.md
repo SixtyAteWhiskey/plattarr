@@ -163,6 +163,9 @@ support decision before any removal.
   - [x] Prove an offline candidate definition restores the native IMDb request
     and release GUID, with Cardigann parser support for an explicit GUID; see
     the candidate parity slice below (`cbbb43e27`).
+  - [x] Compare the corrected candidate's TV term/episode and IMDb, music,
+    book, and basic search requests with the native provider using its full
+    category map; see the expanded parity slice below (`7242d9a0e`).
   - [ ] Verify authenticated site behavior, ship a corrected definition, then
     wire and verify both conversion paths before removal.
 - [ ] Remove only independently justified candidates in bounded changes;
@@ -1108,6 +1111,31 @@ nonincremental Release build with zero warnings and errors, 216 API tests,
 78 Host tests (five skipped), and 48 selected Core tests. `git diff --check`
 passed. No production rollout occurred.
 
+## 2026-10-29 FunFile expanded offline search parity
+
+The earlier candidate check covered movie term and IMDb requests. Commit
+`7242d9a0e` compares the same corrected in-memory definition with native
+FunFile for TV term/season/episode and IMDb searches, plus music, book, and
+basic term searches. Paths and query parameter dictionaries match for these
+cases. The fixture now includes the native provider's TV anime and audiobook
+category mappings; omitting the TV anime mapping initially produced a false
+`c44` difference because a parent TV category expands to both TV and anime.
+
+This is an offline request check with synthetic settings. It does not verify
+the live login form, authenticated search results, or other site layouts. The
+corrected definition remains an in-memory test candidate, and neither saved
+rows nor imports use Cardigann for FunFile. Source/build/image savings are
+zero; no production configuration changed. The authenticated, definition
+delivery, conversion, and removal boxes remain open.
+
+`FILTER='FullyQualifiedName~FunFileCardigannParityFixture|FullyQualifiedName~
+FunFileSettingsConverterFixture|FullyQualifiedName~FunFileRequestGeneratorFixture|
+FullyQualifiedName~IndexerServiceFixture|FullyQualifiedName~IndexersStageFixture|
+FullyQualifiedName~ModuleBoundaryFixture' tools/verify.sh` passed a
+nonincremental Release build with zero warnings and errors, 216 API tests,
+78 Host tests (five skipped), and 49 selected Core tests. `git diff --check`
+passed. No production rollout occurred.
+
 ## Progress log
 
 | Date | Slice | Commit or PR | Result and evidence |
@@ -1136,3 +1164,4 @@ passed. No production rollout occurred.
 | 2026-10-29 | FunFile settings conversion shape | `7aa898d77` | [Stored-row and imported-source proof](#2026-10-29-funfile-settings-conversion-proof); runtime conversion and search parity remain open. |
 | 2026-10-29 | FunFile offline request/result parity | `aa7b1e196`, `d42b6964d` | [Pinned definition, request/login/result comparison and backend gate](#2026-10-29-funfile-offline-request-and-result-parity-check); authenticated parity and provider retirement remain open. |
 | 2026-10-29 | FunFile candidate definition parity | `cbbb43e27` | [Offline IMDb request and GUID candidate with parser support](#2026-10-29-funfile-candidate-definition-parity); shipped definition, authenticated parity, and retirement remain open. |
+| 2026-10-29 | FunFile expanded offline search parity | `7242d9a0e` | [TV, music, book, and basic request comparison with the complete native category map](#2026-10-29-funfile-expanded-offline-search-parity); authenticated parity and retirement remain open. |
