@@ -78,7 +78,17 @@ namespace NzbDrone.Core.Test.IndexerTests.FunFileTests
             };
 
             var capabilities = new IndexerCapabilities();
+            capabilities.Categories.AddCategoryMapping(44, NewznabStandardCategory.TVAnime, "Anime");
+            capabilities.Categories.AddCategoryMapping(22, NewznabStandardCategory.PC, "Applications");
+            capabilities.Categories.AddCategoryMapping(43, NewznabStandardCategory.AudioAudiobook, "Audio Books");
+            capabilities.Categories.AddCategoryMapping(4, NewznabStandardCategory.PCGames, "Games");
+            capabilities.Categories.AddCategoryMapping(40, NewznabStandardCategory.OtherMisc, "Miscellaneous");
             capabilities.Categories.AddCategoryMapping(19, NewznabStandardCategory.Movies, "Movies");
+            capabilities.Categories.AddCategoryMapping(7, NewznabStandardCategory.TV, "TV");
+            capabilities.Categories.AddCategoryMapping(6, NewznabStandardCategory.Audio, "Music");
+            capabilities.Categories.AddCategoryMapping(31, NewznabStandardCategory.PCMobileOther, "Portable");
+            capabilities.Categories.AddCategoryMapping(49, NewznabStandardCategory.Other, "Tutorials");
+            capabilities.Categories.AddCategoryMapping(27, NewznabStandardCategory.Books, "Ebook");
             _native = new FunFileRequestGenerator(
                 (UserPassTorrentBaseSettings)converter.Parse(nativeJson, typeof(UserPassTorrentBaseSettings)), capabilities);
         }
@@ -145,6 +155,66 @@ namespace NzbDrone.Core.Test.IndexerTests.FunFileTests
 
             cardigann.Url.Path.Should().Be(native.Url.Path);
             Query(cardigann).Should().BeEquivalentTo(Query(native));
+        }
+
+        [Test]
+        public void candidate_definition_should_match_other_supported_search_modes()
+        {
+            _definition.Search.Inputs["s_title"] = "1";
+
+            void AssertSame(IndexerRequest native, IndexerRequest cardigann, string mode)
+            {
+                cardigann.Url.Path.Should().Be(native.Url.Path, mode);
+                Query(cardigann).Should().BeEquivalentTo(Query(native), mode);
+            }
+
+            var tv = new TvSearchCriteria
+            {
+                SearchTerm = "Example Show",
+                Season = 2,
+                Episode = "03",
+                Categories = new[] { NewznabStandardCategory.TV.Id }
+            };
+            AssertSame(
+                _native.GetSearchRequests(tv).GetAllTiers().Single().Single(),
+                _cardigann.GetSearchRequests(tv).GetAllTiers().Single().Single(),
+                "TV term and episode");
+
+            tv.ImdbId = "0076759";
+            AssertSame(
+                _native.GetSearchRequests(tv).GetAllTiers().Single().Single(),
+                _cardigann.GetSearchRequests(tv).GetAllTiers().Single().Single(),
+                "TV IMDb");
+
+            var music = new MusicSearchCriteria
+            {
+                SearchTerm = "Example Album",
+                Categories = new[] { NewznabStandardCategory.Audio.Id }
+            };
+            AssertSame(
+                _native.GetSearchRequests(music).GetAllTiers().Single().Single(),
+                _cardigann.GetSearchRequests(music).GetAllTiers().Single().Single(),
+                "music term");
+
+            var book = new BookSearchCriteria
+            {
+                SearchTerm = "Example Book",
+                Categories = new[] { NewznabStandardCategory.Books.Id }
+            };
+            AssertSame(
+                _native.GetSearchRequests(book).GetAllTiers().Single().Single(),
+                _cardigann.GetSearchRequests(book).GetAllTiers().Single().Single(),
+                "book term");
+
+            var basic = new BasicSearchCriteria
+            {
+                SearchTerm = "Example Release",
+                Categories = new[] { NewznabStandardCategory.Movies.Id }
+            };
+            AssertSame(
+                _native.GetSearchRequests(basic).GetAllTiers().Single().Single(),
+                _cardigann.GetSearchRequests(basic).GetAllTiers().Single().Single(),
+                "basic term");
         }
 
         [Test]
