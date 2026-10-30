@@ -18,7 +18,7 @@ that no test exercises).
 | Notifications | Webhook, Custom Script, Discord, MediaBrowser (Emby and Jellyfin) | The first three have golden tests that pin their wire format. MediaBrowser is the media server family in use. |
 | Metadata consumers | Xbmc (Kodi NFO, also read by Jellyfin and Emby) | The one format every media server reads. |
 | Import lists | TMDb, RSS import, import exclusions | Keeps the import list framework tested. Both need no third-party account. |
-| Indexers | Everything (Prowlarr's layer, Cardigann, Newznab, Torznab) | Not pruned yet. Needs the owner's indexer list first. |
+| Indexers | Everything (Prowlarr's layer, Cardigann, Newznab, Torznab, and native definitions) | Not pruned yet. A 2026-10-25 owner snapshot is inventoried in [the refactoring plan](refactoring-plan.md#2026-10-29-indexer-pruning-inventory-first-pass); the current configured list is still needed before removing a provider. |
 
 ## Removed
 
