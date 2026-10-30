@@ -76,7 +76,8 @@ tracked-download refresh. Earlier slices bounded the queue-state and action
 reads; the journal's recent-entry read serves a separate API. The action
 journal is currently small, so this is a scalability candidate rather than a
 proven production bottleneck. The whole-refresh synthetic profile below
-identifies retention deletes as the larger cold-refresh cost at scale.
+identified retention deletes as the larger cold-refresh cost at scale; the
+following slice addresses them.
 
 - [x] Profile the SQL read sequence and inspect the existing database indexes
   and query plans; see the dated read-path profile below.
@@ -85,8 +86,7 @@ identifies retention deletes as the larger cold-refresh cost at scale.
 - [x] Replace one full-table read at a time with a bounded query where the
   profile shows useful savings. Consider recent actions, unfinished actions,
   identity lookups, and state retention separately. The four prior slices and
-  the bounded journal read below cover these materialized reads; whole-refresh
-  profiling remains open.
+  the bounded journal read below cover these materialized reads.
 - [ ] Preserve action identity, retry/backoff, checkpoint recovery, rule
   precedence, private-torrent safety, file-deletion choices, and replacement
   search behavior. Preview and execution must select the same candidates.
@@ -96,6 +96,10 @@ identifies retention deletes as the larger cold-refresh cost at scale.
 - [x] Bound the adjacent Hygiene journal API's recent-action read and verify
   descending ID order and the existing response limit. This is separate from
   queue-refresh profiling; see the dated journal slice below.
+- [x] Replace per-row expired-state retention deletes with one cutoff query
+  after refreshing current queue states. The same-fixture whole-refresh
+  comparison and verification are in the dated retention slice below
+  (`e541e1639`).
 
 ## 3. Remove proven duplication
 
@@ -619,10 +623,51 @@ warmup. RSS is a process working-set delta and is sensitive to allocation and
 GC history across cases; it is not retained .NET heap. No download-client
 call, replacement search, PostgreSQL run, production data, or direct SQL query
 counter was included. The earlier SQL read-path profile supplies the read
-comparison; a same-fixture before/after implementation comparison remains open.
-The next bounded change should address per-row retention deletion, with a
-separate recovery and preview/execution proof before treating it as safe.
-No runtime code or production state changed.
+comparison. The following slice supplies a same-fixture before/after
+implementation comparison and addresses per-row retention deletion. A direct
+preview/execution parity proof remains open. No runtime code or production
+state changed in this profiling slice.
+
+## 2026-10-29 Hygiene retention deletion slice
+
+The first large queue refresh previously read every expired queue-state row
+and deleted each one by ID. Strike observation now updates current downloads
+first, then deletes states with `LastSeenAt < now - 30 days` in one SQL
+statement. The strict cutoff, queued-download refresh, and retention period
+are unchanged. No migration or index was added.
+
+The same `HygieneQueueRefreshBenchmark` command and synthetic migrated SQLite
+fixture described above ran before and after commit `e541e1639` on this
+machine. Each size contains 20 healthy tracked downloads; 99 or 999 absent
+states expire at the 10,000- and 100,000-row sizes. The timed region includes
+the real `QueueService.Handle`, state writes and deletes, action recovery, and
+decision processing, but excludes seeding. A first refresh occurs once per
+fixture; five later refreshes supply each steady median. These results have
+normal cold-run variation, especially at 100 rows.
+
+| State and action rows each | First refresh before / after ms | Strike phase before / after ms | First .NET allocation before / after bytes | Steady median before / after ms |
+| ---: | ---: | ---: | ---: | ---: |
+| 100 | 89.939 / 93.271 | 77.643 / 80.311 | 1,124,152 / 1,157,744 | 1.575 / 1.455 |
+| 10,000 | 349.796 / 69.484 | 343.192 / 62.759 | 2,620,784 / 1,024,192 | 3.294 / 3.478 |
+| 100,000 | 2,754.661 / 116.985 | 2,737.597 / 97.722 | 17,295,408 / 1,139,472 | 23.600 / 22.462 |
+
+At 100,000 rows, first-refresh time fell by 2,637.676 ms (95.8%). The
+retention path no longer materializes 999 expired state rows or issues 999
+individual deletes. Structurally, its one read plus 999 deletes became one
+delete statement; a direct SQL query counter was not included in the timed
+benchmark. Process working-set growth on the first 100,000-row refresh was
+10,113,024 bytes before and 897,024 bytes after, but RSS deltas depend on GC
+and earlier cases in the process. All three benchmark cases retained the
+expected state count and completed the one recoverable action.
+
+Repository and strike-service tests cover the strict cutoff and refreshing an
+old queued state before deletion. The isolated focused run passed 24 Core
+tests. `FILTER='FullyQualifiedName~Hygiene|FullyQualifiedName~ModuleBoundaryFixture'
+tools/verify.sh` passed a non-incremental Release solution build, 216 API
+tests, 78 Host tests (five skipped), and 86 focused Core tests. The prior broad
+Core run stall was not retried. A direct preview/execution parity proof,
+PostgreSQL profile, and production data remain open; no production rollout
+occurred.
 
 ## Progress log
 
@@ -639,3 +684,4 @@ No runtime code or production state changed.
 | 2026-10-29 | Bounded Hygiene journal read | `19cdbfa10` | [Synthetic read comparison and focused verification](#2026-10-29-bounded-hygiene-journal-read); broad Core gate remains open; no production rollout. |
 | 2026-10-29 | Queue-refresh SQL read-path profile | `8c21ed4b6` | [Synthetic combined read comparison](#2026-10-29-queue-refresh-sql-read-path-profile); actual refresh profile remains open. |
 | 2026-10-29 | Actual Hygiene queue-refresh profile | `67605605d` | [Real-service SQLite timings and recovery proof](#2026-10-29-actual-hygiene-queue-refresh-profile); no production rollout. |
+| 2026-10-29 | Hygiene retention deletion | `e541e1639` | [Same-fixture whole-refresh comparison and verification](#2026-10-29-hygiene-retention-deletion-slice); no production rollout. |
