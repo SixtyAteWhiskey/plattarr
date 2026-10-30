@@ -128,6 +128,37 @@ function GettingStarted() {
               </ol>
             </Stack>
           </section>
+          <section aria-labelledby="connections-heading">
+            <Stack gap="medium">
+              <Heading level={2} id="connections-heading">
+                {translate('GettingStartedConnections')}
+              </Heading>
+              <Surface elevation="low" padding="large">
+                <Stack gap="small">
+                  <Heading level={3}>
+                    {translate('GettingStartedMediaServersTitle')}
+                  </Heading>
+                  <Text>{translate('GettingStartedMediaServersBody')}</Text>
+                  <Text>{translate('GettingStartedPlexBody')}</Text>
+                  <Link to="/settings/connect">
+                    {translate('GettingStartedConnectLink')}
+                  </Link>
+                </Stack>
+              </Surface>
+              <Surface elevation="low" padding="large">
+                <Stack gap="small">
+                  <Heading level={3}>
+                    {translate('GettingStartedRequestAppsTitle')}
+                  </Heading>
+                  <Text>{translate('GettingStartedRequestAppsBody')}</Text>
+                  <Text>{translate('GettingStartedRequestAppsLimits')}</Text>
+                  <Link to="/settings/general">
+                    {translate('GettingStartedGeneralLink')}
+                  </Link>
+                </Stack>
+              </Surface>
+            </Stack>
+          </section>
           <Text>
             {translate('GettingStartedHelp')}{' '}
             <Link to="https://github.com/SixtyAteWhiskey/plattarr/blob/develop/docs/first-run.md">
