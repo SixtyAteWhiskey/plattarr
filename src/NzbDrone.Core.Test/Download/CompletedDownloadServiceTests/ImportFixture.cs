@@ -103,6 +103,26 @@ namespace NzbDrone.Core.Test.Download
         }
 
         [Test]
+        public void empty_import_result_explains_location_and_file_checks_without_exposing_the_path()
+        {
+            Mocker.GetMock<IDownloadedMovieImportService>()
+                .Setup(v => v.ProcessPath(It.IsAny<string>(), It.IsAny<ImportMode>(), It.IsAny<Movie>(), It.IsAny<DownloadClientItem>()))
+                .Returns(new List<ImportResult>());
+
+            Subject.Import(_trackedDownload);
+
+            _trackedDownload.State.Should().Be(TrackedDownloadState.ImportPending);
+            _trackedDownload.Status.Should().Be(TrackedDownloadStatus.Warning);
+            var message = _trackedDownload.StatusMessages.Should().ContainSingle().Subject.Messages.Should().ContainSingle().Subject;
+            message.Should().Contain("No files were imported")
+                .And.Contain("download location")
+                .And.Contain("remote path mappings")
+                .And.Contain("import eligibility")
+                .And.NotContain(_trackedDownload.DownloadItem.OutputPath.FullPath);
+            Mocker.GetMock<IEventAggregator>().Verify(v => v.PublishEvent(It.IsAny<DownloadCompletedEvent>()), Times.Never());
+        }
+
+        [Test]
         public void should_not_mark_as_imported_if_all_files_were_rejected()
         {
             Mocker.GetMock<IDownloadedMovieImportService>()
