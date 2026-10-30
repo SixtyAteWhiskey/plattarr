@@ -178,6 +178,9 @@ Native providers without a verified feed replacement remain supported.
   - [x] Confirm that the live Prowlarr feed is the definition delivery path
     and audit the upstream schema and parser before proposing a correction;
     see the upstream delivery gate below.
+  - [x] Recheck the live FunFile feed and current upstream schema/parser before
+    conversion. They still lack the candidate's IMDb and release-GUID fixes
+    on 2026-10-30; see the dated feed recheck below.
   - [ ] Verify authenticated site behavior, ship a corrected definition, then
     wire and verify both conversion paths before removal.
 - [ ] Remove only independently justified candidates in bounded changes;
@@ -1206,6 +1209,25 @@ native implementation, stored rows, and upstream imports remain untouched.
 This is a delivery-path audit with zero source/build/image savings. The
 authenticated behavior and upstream delivery checkboxes remain open.
 
+## 2026-10-30 FunFile feed recheck
+
+Plattarr still requests version 12 from Prowlarr's `master` definition feed.
+The live [`master/12/funfile` definition](https://indexers.prowlarr.com/master/12/funfile)
+and current [upstream FunFile YAML](https://github.com/Prowlarr/Indexers/blob/master/definitions/v11/funfile.yml)
+have the same SHA-256 as the pinned baseline:
+`96d57562b70fe227e9f9d69d288408619270951a80a706723b40c8363945898f`.
+The current [v11 schema](https://github.com/Prowlarr/Indexers/blob/master/definitions/v11/schema.json)
+and [v12 schema](https://github.com/Prowlarr/Indexers/blob/master/definitions/v12/schema.json)
+still exclude `guid` from search field names, and the current
+[Prowlarr parser](https://github.com/Prowlarr/Prowlarr/blob/develop/src/NzbDrone.Core/Indexers/Definitions/Cardigann/CardigannParser.cs)
+still assigns the release GUID from `download`. The corrected test definition
+therefore cannot yet be delivered through the feed with native release identity.
+No disposable FunFile account is available for authenticated login and search
+comparison. Keep both runtime conversion paths and native removal open until
+that evidence and upstream schema, parser, and definition changes are available.
+This recheck changed no runtime code, stored rows, or production configuration;
+source/build/image savings are zero.
+
 ## Progress log
 
 | Date | Slice | Commit or PR | Result and evidence |
@@ -1237,3 +1259,4 @@ authenticated behavior and upstream delivery checkboxes remain open.
 | 2026-10-29 | FunFile expanded offline search parity | `7242d9a0e` | [TV, music, book, and basic request comparison with the complete native category map](#2026-10-29-funfile-expanded-offline-search-parity); authenticated parity and retirement remain open. |
 | 2026-10-29 | FunFile candidate file and public login form | `a0ee8ae14` | [Standalone corrected YAML, public form observation, and upstream schema limit](#2026-10-29-funfile-candidate-delivery-check); authenticated parity and retirement remain open. |
 | 2026-10-29 | FunFile upstream delivery audit | `57a133562` | [Live feed, active schemas, parser behavior, and rejected local bundle](#2026-10-29-funfile-upstream-delivery-gate); authenticated parity and retirement remain open. |
+| 2026-10-30 | FunFile feed recheck | pending | [Live feed and upstream schema/parser recheck](#2026-10-30-funfile-feed-recheck); authenticated parity and retirement remain open. |
