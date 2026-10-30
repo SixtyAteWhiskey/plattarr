@@ -12,6 +12,80 @@ namespace NzbDrone.Core.Test.QueueTests
     [TestFixture]
     public class HygieneQueueDecisionServiceFixture
     {
+        [TestCase(false, true, true, true, false)]
+        [TestCase(true, false, true, true, false)]
+        [TestCase(true, true, false, true, false)]
+        [TestCase(true, true, true, false, false)]
+        [TestCase(true, true, true, true, true)]
+        public void warning_cleanup_requires_opt_in_gate_rule_and_public_torrent(bool optIn, bool gate, bool enabled, bool publicTorrent, bool wouldAct)
+        {
+            var item = new QueueItem
+            {
+                DownloadClientId = 7,
+                DownloadId = "synthetic-warning",
+                Status = QueueStatus.Warning,
+                Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Torrent,
+                RemoteRelease = new NzbDrone.Core.Movies.Parser.Model.RemoteMovie
+                {
+                    Release = new NzbDrone.Core.Parser.Model.ReleaseInfo
+                    {
+                        IndexerPrivacy = publicTorrent ? NzbDrone.Core.Indexers.IndexerPrivacy.Public : NzbDrone.Core.Indexers.IndexerPrivacy.Private
+                    }
+                }
+            };
+            var states = new Mock<IHygieneQueueStateRepository>();
+            states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>())).Returns(new[]
+            {
+                new HygieneQueueState { DownloadClientId = 7, DownloadId = item.DownloadId, ReasonCode = "download-warning", Strikes = 3 }
+            });
+            var rules = new Mock<IHygieneRuleRepository>();
+            rules.Setup(x => x.All()).Returns(new List<HygieneRule>
+            {
+                new() { Id = 9, ReasonCode = "download-warning", Enabled = enabled, WarningCleanupEnabled = optIn, DeleteFilesOnFailure = true, SearchForReplacement = true, StrikeLimit = 3, StrikeIntervalMinutes = 5 }
+            });
+            var config = new Mock<IConfigService>();
+            config.SetupGet(x => x.HygieneActionsEnabled).Returns(gate);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object);
+
+            var assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.ReasonCode.Should().Be("download-warning");
+            assessment.WouldAct.Should().Be(wouldAct);
+            if (wouldAct)
+            {
+                assessment.ActionExplanation.Should().Contain("delete its source files").And.Contain("request a replacement search");
+            }
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void warning_cleanup_for_non_torrents_requires_client_removability(bool canBeRemoved)
+        {
+            var item = new QueueItem
+            {
+                DownloadClientId = 7,
+                DownloadId = "synthetic-usenet-warning",
+                Status = QueueStatus.Warning,
+                DownloadClientCanBeRemoved = canBeRemoved,
+                Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Usenet,
+                RemoteRelease = new NzbDrone.Core.Movies.Parser.Model.RemoteMovie()
+            };
+            var states = new Mock<IHygieneQueueStateRepository>();
+            states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>())).Returns(new[]
+            {
+                new HygieneQueueState { DownloadClientId = 7, DownloadId = item.DownloadId, ReasonCode = "download-warning", Strikes = 3 }
+            });
+            var rules = new Mock<IHygieneRuleRepository>();
+            rules.Setup(x => x.All()).Returns(new List<HygieneRule>
+            {
+                new() { Id = 9, ReasonCode = "download-warning", Enabled = true, WarningCleanupEnabled = true, StrikeLimit = 3, StrikeIntervalMinutes = 5 }
+            });
+            var config = new Mock<IConfigService>();
+            config.SetupGet(x => x.HygieneActionsEnabled).Returns(true);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object);
+
+            decisions.Evaluate(new[] { item }).Should().ContainSingle().Which.WouldAct.Should().Be(canBeRemoved);
+        }
+
         [TestCase(true, true, true, true)]
         [TestCase(false, true, true, false)]
         [TestCase(true, false, true, false)]

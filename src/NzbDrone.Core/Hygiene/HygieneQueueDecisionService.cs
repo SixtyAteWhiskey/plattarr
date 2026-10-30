@@ -91,7 +91,11 @@ namespace NzbDrone.Core.Hygiene
                 assessment.WouldAct = false;
                 assessment.ActionExplanation = !assessment.Eligible ? "The rule threshold has not been reached."
                     : !_config.HygieneActionsEnabled ? "Automatic actions are disabled by the global Hygiene gate."
-                    : assessment.ReasonCode is not ("client-failed" or "import-blocked" or "download-stalled" or "download-slow" or "download-unstable" or "download-metadata")
+                    : assessment.ReasonCode == "download-warning" && rule?.WarningCleanupEnabled != true
+                        ? "Automatic cleanup for download warnings is not enabled on this rule."
+                    : assessment.ReasonCode == "download-warning" && item.Protocol != DownloadProtocol.Torrent && !item.DownloadClientCanBeRemoved
+                        ? "The download client has not marked this job as removable."
+                    : assessment.ReasonCode is not ("client-failed" or "import-blocked" or "download-warning" or "download-stalled" or "download-slow" or "download-unstable" or "download-metadata")
                         ? "This reason is monitor-only and requires manual review."
                     : (assessment.ReasonCode is "download-stalled" or "download-slow" or "download-unstable" or "download-metadata") && item.Protocol != DownloadProtocol.Torrent
                         ? "Automatic stalled, slow, and metadata cleanup is available only for torrent downloads."

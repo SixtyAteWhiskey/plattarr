@@ -17643,6 +17643,9 @@
           "enabled": {
             "type": "boolean"
           },
+          "warningCleanupEnabled": {
+            "type": "boolean"
+          },
           "deleteFilesOnFailure": {
             "type": "boolean"
           },

@@ -32,8 +32,10 @@ Action-capable rules have a **Delete source files when this rule acts** option.
 It defaults off for new rules and all rules that existed before migration 17.
 When enabled, Hygiene asks the download client to remove the job and its source
 files. This affects future actions only; it does not remove files left behind
-by previous actions. `download-warning` is monitor-only and cannot enable this
-option. The rule, strike threshold, global action gate, and existing torrent
+by previous actions. `download-warning` also requires its separate **Allow
+automatic cleanup for download warnings** switch. Existing rules keep this
+switch off after migration, even if monitoring was already enabled. The rule,
+strike threshold, global action gate, and existing torrent
 safety checks must still allow an action before any removal occurs.
 
 Each saved rule card shows how many current queue assessments select that
@@ -96,10 +98,11 @@ and reach its strike threshold. The preview and executor share the same
 the executor would process under the current settings.
 
 The executor handles tracked `client-failed`, `import-blocked`,
-`download-stalled`, `download-slow`, `download-unstable`, and
-`download-metadata` items. Generic `download-warning`
-items stay monitor-only. For an eligible item, it removes the job from the
-download client, keeping its files by default or deleting them when the matched
+`download-stalled`, `download-slow`, `download-unstable`,
+`download-metadata`, and explicitly opted-in `download-warning` items.
+Download warnings include generic client or import warnings, so review a rule’s
+scope and the reported warning before enabling cleanup. For an eligible item,
+it removes the job from the download client, keeping its files by default or deleting them when the matched
 rule opts in, records the failure through the existing per-kind failed-download
 handlers, and stops tracking it. Those handlers record a blocklist entry.
 Each rule can turn off the automatic replacement search. When the rule leaves

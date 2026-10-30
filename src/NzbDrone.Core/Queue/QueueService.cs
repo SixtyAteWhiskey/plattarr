@@ -66,6 +66,7 @@ namespace NzbDrone.Core.Queue
                 DownloadRateBytesPerSecond = trackedDownload.DownloadItem.DownloadRateBytesPerSecond,
                 DownloadClientStalled = trackedDownload.DownloadItem.DownloadClientStalled,
                 DownloadClientDownloadingMetadata = trackedDownload.DownloadItem.DownloadClientDownloadingMetadata,
+                DownloadClientCanBeRemoved = trackedDownload.DownloadItem.CanBeRemoved,
                 TimeLeft = trackedDownload.DownloadItem.RemainingTime,
                 Status = Enum.TryParse(trackedDownload.DownloadItem.Status.ToString(), out QueueStatus outValue) ? outValue : QueueStatus.Unknown,
                 TrackedDownloadStatus = trackedDownload.Status,

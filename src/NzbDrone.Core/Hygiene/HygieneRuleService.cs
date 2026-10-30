@@ -53,7 +53,6 @@ namespace NzbDrone.Core.Hygiene
                 (rule.MediaKind != 0 && !Enum.IsDefined((MediaKind)rule.MediaKind)) ||
                 rule.DownloadClientId < 0 || rule.StrikeLimit < 3 || rule.StrikeLimit > 100 ||
                 rule.StrikeIntervalMinutes < 1 || rule.StrikeIntervalMinutes > 1440 ||
-                (rule.ReasonCode == "download-warning" && rule.DeleteFilesOnFailure) ||
                 (rule.ReasonCode == "download-slow" && (rule.MinimumDownloadRateKiBps < 1 || rule.MinimumDownloadRateKiBps > 1048576)) ||
                 (rule.ReasonCode != "download-slow" && rule.MinimumDownloadRateKiBps != 0))
             {
@@ -91,6 +90,17 @@ namespace NzbDrone.Core.Hygiene
                     savedRule.DownloadClientId,
                     existingRule.Enabled ? "enabled" : "disabled",
                     savedRule.Enabled ? "enabled" : "disabled");
+            }
+
+            if (existingRule != null && existingRule.WarningCleanupEnabled != savedRule.WarningCleanupEnabled)
+            {
+                _logger.Info("Hygiene rule {0} (reason: {1}, media kind: {2}, download client id: {3}) warning cleanup changed from {4} to {5}",
+                    savedRule.Id,
+                    savedRule.ReasonCode,
+                    GetMediaKindName(savedRule.MediaKind),
+                    savedRule.DownloadClientId,
+                    existingRule.WarningCleanupEnabled ? "enabled" : "disabled",
+                    savedRule.WarningCleanupEnabled ? "enabled" : "disabled");
             }
 
             if (existingRule != null && existingRule.DeleteFilesOnFailure != savedRule.DeleteFilesOnFailure)
