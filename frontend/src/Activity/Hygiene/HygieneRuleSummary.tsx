@@ -130,7 +130,8 @@ function HygieneRuleSummary({
                         ` · below ${rule.minimumDownloadRateKiBps} KiB/s`}
                     </Text>
                     <Text size="small" tone="secondary">
-                      {rule.reasonCode === 'download-warning'
+                      {rule.reasonCode === 'download-warning' &&
+                      !rule.warningCleanupEnabled
                         ? 'Monitor only'
                         : `${fileChoice} · ${searchChoice}`}
                     </Text>

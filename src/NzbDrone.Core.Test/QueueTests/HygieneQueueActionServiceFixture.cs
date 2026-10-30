@@ -158,6 +158,7 @@ namespace NzbDrone.Core.Test.QueueTests
         [TestCase("download-slow")]
         [TestCase("download-unstable")]
         [TestCase("download-metadata")]
+        [TestCase("download-warning")]
         public void eligible_stalled_or_slow_torrent_is_removed_without_deleting_files(string reasonCode)
         {
             var context = new ActionContext(MediaKind.Movies, true, reasonCode);
@@ -170,6 +171,30 @@ namespace NzbDrone.Core.Test.QueueTests
             context.Actions.Should().ContainSingle().Which.Status.Should().Be("completed");
             context.Actions[0].ReasonCode.Should().Be(reasonCode);
             context.Actions[0].Checkpoint.Should().Be("replacement-requested");
+        }
+
+        [Test]
+        public void warning_rule_can_delete_source_and_request_replacement()
+        {
+            var context = new ActionContext(MediaKind.Tv, true, "download-warning", deleteFilesOnFailure: true, searchForReplacement: true);
+
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), true), Times.Once);
+            context.FailedDownloads.Verify(x => x.MarkAsFailed(context.TrackedDownload, false), Times.Once);
+            context.Actions.Should().ContainSingle().Which.Status.Should().Be("completed");
+        }
+
+        [Test]
+        public void warning_cleanup_pauses_if_client_job_has_disappeared()
+        {
+            var context = new ActionContext(MediaKind.Tv, true, "download-warning", deleteFilesOnFailure: true);
+            context.DownloadClient.Setup(x => x.GetItems()).Returns(new List<DownloadClientItem>());
+
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), It.IsAny<bool>()), Times.Never);
+            context.FailedDownloads.Verify(x => x.MarkAsFailed(It.IsAny<TrackedDownload>(), It.IsAny<bool>()), Times.Never);
         }
 
         [Test]
@@ -811,7 +836,7 @@ namespace NzbDrone.Core.Test.QueueTests
             public ActionContext(MediaKind kind, bool gateEnabled, string reasonCode = "client-failed", IFailedDownloadService failedDownloadService = null, bool deleteFilesOnFailure = false, bool searchForReplacement = true)
             {
                 GateEnabled = gateEnabled;
-                var isStalledOrSlow = reasonCode is "download-stalled" or "download-slow" or "download-unstable" or "download-metadata";
+                var isStalledOrSlow = reasonCode is "download-stalled" or "download-slow" or "download-unstable" or "download-metadata" or "download-warning";
                 var clientItem = new DownloadClientItem
                 {
                     DownloadId = "test-download",

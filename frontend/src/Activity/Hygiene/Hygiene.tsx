@@ -828,13 +828,14 @@ function Hygiene() {
                       tone="secondary"
                     >
                       Enabled rules for client failures, blocked imports,
-                      stalled downloads, slow downloads, and repeated problems
-                      can remove eligible tracked jobs after their strike
-                      threshold. Private or unverified torrent releases and
-                      other warnings remain monitor only. Source files are kept
-                      unless the matching rule explicitly enables file deletion.
-                      Each rule can skip replacement search; otherwise, the
-                      existing failed-download settings still apply.
+                      stalled, slow, and metadata downloads, repeated problems,
+                      and opted-in download warnings can remove eligible tracked
+                      jobs after their strike threshold. Private or unverified
+                      torrent releases remain monitor only. Source files are
+                      kept unless the matching rule explicitly enables file
+                      deletion. Each rule can skip replacement search;
+                      otherwise, the existing failed-download settings still
+                      apply.
                     </Text>
 
                     {saveError ? (

@@ -307,10 +307,12 @@ namespace NzbDrone.Core.Hygiene
             var isStalledOrSlowReason = action.ReasonCode is "download-stalled" or "download-slow" or "download-unstable" or "download-metadata";
             var isStalledOrSlowTorrent = isStalledOrSlowReason &&
                                          tracked?.Protocol == NzbDrone.Core.Indexers.DownloadProtocol.Torrent;
+            var isWarningTorrent = action.ReasonCode == "download-warning" &&
+                                   tracked?.Protocol == NzbDrone.Core.Indexers.DownloadProtocol.Torrent;
 
             if (tracked == null || tracked.Kind != kind || tracked.State == TrackedDownloadState.Ignored ||
                 tracked.DownloadItem == null || (isStalledOrSlowReason && !isStalledOrSlowTorrent) ||
-                (!tracked.DownloadItem.CanBeRemoved && !isStalledOrSlowTorrent))
+                (!tracked.DownloadItem.CanBeRemoved && !isStalledOrSlowTorrent && !isWarningTorrent))
             {
                 throw new InvalidOperationException("The tracked download is no longer eligible for removal.");
             }
@@ -362,9 +364,11 @@ namespace NzbDrone.Core.Hygiene
 
                 var clientItem = clientItems.FirstOrDefault(x => x.DownloadId == tracked.DownloadItem.DownloadId);
 
-                // Metadata may complete or the torrent may disappear after the last
-                // queue refresh. Do not act without a current metadata state.
-                if (action.ReasonCode == "download-metadata" && clientItem?.DownloadClientDownloadingMetadata != true)
+                // A job may disappear, or metadata may complete, after the last
+                // queue refresh. Do not remove without a current client item.
+                if ((action.ReasonCode == "download-metadata" && clientItem?.DownloadClientDownloadingMetadata != true) ||
+                    (action.ReasonCode == "download-warning" &&
+                     (clientItem == null || (!isWarningTorrent && !clientItem.CanBeRemoved))))
                 {
                     Pause(action);
                     return;

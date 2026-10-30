@@ -76,7 +76,7 @@ namespace NzbDrone.Core.Test.QueueTests
         }
 
         [Test]
-        public void monitor_only_rule_cannot_request_source_file_deletion()
+        public void warning_rule_can_choose_source_file_deletion()
         {
             var rule = new HygieneRule
             {
@@ -86,9 +86,11 @@ namespace NzbDrone.Core.Test.QueueTests
                 StrikeIntervalMinutes = 5
             };
 
-            Action save = () => Subject.Upsert(rule);
+            var repository = Mocker.GetMock<IHygieneRuleRepository>();
+            repository.Setup(x => x.All()).Returns(new List<HygieneRule>());
+            repository.Setup(x => x.Insert(rule)).Returns(rule);
 
-            save.Should().Throw<ArgumentException>();
+            Subject.Upsert(rule).DeleteFilesOnFailure.Should().BeTrue();
         }
 
         [Test]
