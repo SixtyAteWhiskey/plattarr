@@ -66,7 +66,11 @@ namespace NzbDrone.Core.Download
             {
                 if (!WasGrabbed(trackedDownload))
                 {
-                    trackedDownload.Warn(trackedDownload.DownloadItem.IsEncrypted ? "Download is encrypted and wasn't grabbed by Radarr, skipping automatic download handling" : "Download has failed wasn't grabbed by Radarr, skipping automatic download handling");
+                    var observedFailure = trackedDownload.DownloadItem.IsEncrypted
+                        ? "The download client reports this download is encrypted."
+                        : "The download client reports this download failed.";
+
+                    trackedDownload.Warn($"{observedFailure} Plattarr cannot link it to a grab for this media type, so automatic failure handling was skipped. It may have been added outside Plattarr, assigned to a different category, or have missing grab history. Check the client item and category, then compare Activity history before taking manual action.");
                     return;
                 }
 

@@ -4,6 +4,7 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
+using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Messaging.Events;
@@ -100,6 +101,22 @@ namespace NzbDrone.Core.Test.Download
             Mocker.GetMock<IParsingService>()
                   .Setup(s => s.GetMovie(It.IsAny<string>()))
                   .Returns(_trackedDownload.GetRemoteMovie().Movie);
+        }
+
+        [Test]
+        public void invalid_local_path_blocks_import_without_exposing_the_path()
+        {
+            var privatePath = OsInfo.IsWindows ? "/private/download" : @"C:\private\download";
+            _trackedDownload.DownloadItem.OutputPath = new OsPath(privatePath);
+
+            Subject.Import(_trackedDownload);
+
+            _trackedDownload.State.Should().Be(TrackedDownloadState.Downloading);
+            _trackedDownload.Status.Should().Be(TrackedDownloadStatus.Warning);
+            _trackedDownload.StatusMessages.Should().ContainSingle().Which.Messages.Should().ContainSingle()
+                .Which.Should().NotContain(privatePath);
+            Mocker.GetMock<IDownloadedMovieImportService>()
+                .Verify(v => v.ProcessPath(It.IsAny<string>(), It.IsAny<ImportMode>(), It.IsAny<Movie>(), It.IsAny<DownloadClientItem>()), Times.Never());
         }
 
         [Test]

@@ -94,7 +94,7 @@ namespace NzbDrone.Core.Test.MediaFiles.MovieImport
         }
 
         [Test]
-        public void should_include_the_reason_when_the_import_fails()
+        public void should_explain_file_operation_failures_without_exposing_paths()
         {
             Mocker.GetMock<IUpgradeMediaFiles>()
                   .Setup(s => s.UpgradeMovieFile(It.IsAny<MovieFile>(), It.IsAny<LocalMovie>(), It.IsAny<bool>()))
@@ -103,11 +103,11 @@ namespace NzbDrone.Core.Test.MediaFiles.MovieImport
             var result = Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true).Single();
 
             result.Result.Should().Be(ImportResultType.Skipped);
-            result.Errors.Should().Equal("Failed to import movie: Read-only file system : '/data/Importing/Interstellar.2014.mkv'");
+            result.Errors.Should().Equal("Failed to import movie: A file operation failed. Check available space, mounts, and whether another process is using the file.");
         }
 
         [Test]
-        public void should_include_the_reason_when_access_to_the_path_is_denied()
+        public void should_explain_access_failures_without_exposing_paths()
         {
             Mocker.GetMock<IUpgradeMediaFiles>()
                   .Setup(s => s.UpgradeMovieFile(It.IsAny<MovieFile>(), It.IsAny<LocalMovie>(), It.IsAny<bool>()))
@@ -115,7 +115,31 @@ namespace NzbDrone.Core.Test.MediaFiles.MovieImport
 
             var result = Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true).Single();
 
-            result.Errors.Should().Equal("Failed to import movie: Access to the path '/data/Importing' is denied.");
+            result.Errors.Should().Equal("Failed to import movie: File access was denied. Check read and write permissions for the download and library locations.");
+        }
+
+        [Test]
+        public void should_explain_missing_files_without_exposing_paths()
+        {
+            Mocker.GetMock<IUpgradeMediaFiles>()
+                  .Setup(s => s.UpgradeMovieFile(It.IsAny<MovieFile>(), It.IsAny<LocalMovie>(), It.IsAny<bool>()))
+                  .Throws(new FileNotFoundException("Missing private file", "/data/private/movie.mkv"));
+
+            var result = Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true).Single();
+
+            result.Errors.Should().Equal("Failed to import movie: A required file or folder could not be found. Check that the download and library locations are available and mapped correctly.");
+        }
+
+        [Test]
+        public void should_explain_unexpected_errors_without_exposing_exception_details()
+        {
+            Mocker.GetMock<IUpgradeMediaFiles>()
+                  .Setup(s => s.UpgradeMovieFile(It.IsAny<MovieFile>(), It.IsAny<LocalMovie>(), It.IsAny<bool>()))
+                  .Throws(new InvalidOperationException("https://private.example/?api_key=secret"));
+
+            var result = Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true).Single();
+
+            result.Errors.Should().Equal("Failed to import movie: An unexpected error occurred. Check the local logs for details before retrying.");
         }
 
         [Test]

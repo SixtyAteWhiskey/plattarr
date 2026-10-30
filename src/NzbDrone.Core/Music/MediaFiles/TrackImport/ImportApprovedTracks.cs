@@ -317,7 +317,7 @@ namespace NzbDrone.Core.Music.MediaFiles.TrackImport
                     _logger.Warn(e, "Couldn't import track " + localTrack);
                     _eventAggregator.PublishEvent(new TrackImportFailedEvent(e, localTrack, !localTrack.ExistingFile, downloadClientItem));
 
-                    importResults.Add(new ImportResult(importDecision, "Failed to import track, Permissions error: " + e.Message));
+                    importResults.Add(new ImportResult(importDecision, ImportFailureMessage.For("track", e)));
                 }
                 catch (RecycleBinException e)
                 {
@@ -330,8 +330,7 @@ namespace NzbDrone.Core.Music.MediaFiles.TrackImport
                 {
                     _logger.Warn(e, "Couldn't import track " + localTrack);
 
-                    // The queue shows only this message, so it carries the reason (for example a read-only file system).
-                    importResults.Add(new ImportResult(importDecision, "Failed to import track: " + e.Message));
+                    importResults.Add(new ImportResult(importDecision, ImportFailureMessage.For("track", e)));
                 }
             }
 

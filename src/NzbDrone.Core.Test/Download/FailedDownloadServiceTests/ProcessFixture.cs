@@ -74,22 +74,41 @@ namespace NzbDrone.Core.Test.Download.FailedDownloadServiceTests
         public void should_warn_if_matching_history_is_not_found()
         {
             _trackedDownload.DownloadItem.Status = DownloadItemStatus.Failed;
+            _trackedDownload.DownloadItem.Message = "Private failure details at /private/downloads with token=secret";
             GivenNoGrabbedHistory();
 
             Subject.Check(_trackedDownload);
 
-            _trackedDownload.StatusMessages.Should().NotBeEmpty();
+            _trackedDownload.StatusMessages.Should().ContainSingle();
+            _trackedDownload.StatusMessages[0].Messages.Should().ContainSingle();
+            var warning = _trackedDownload.StatusMessages[0].Messages[0];
+            warning.Should().Contain("download client reports this download failed")
+                   .And.Contain("cannot link it to a grab")
+                   .And.Contain("may have been added outside Plattarr")
+                   .And.Contain("Check the client item and category")
+                   .And.NotContain("/private/")
+                   .And.NotContain("token=secret")
+                   .And.NotContain("Radarr");
+            AssertDownloadNotFailed();
         }
 
         [Test]
-        public void should_not_warn_if_matching_history_is_not_found_and_not_failed()
+        public void should_explain_an_encrypted_download_without_exposing_client_details()
         {
-            _trackedDownload.DownloadItem.Status = DownloadItemStatus.Failed;
+            _trackedDownload.DownloadItem.IsEncrypted = true;
+            _trackedDownload.DownloadItem.Message = "Private password and URL";
             GivenNoGrabbedHistory();
 
             Subject.Check(_trackedDownload);
 
-            _trackedDownload.StatusMessages.Should().NotBeEmpty();
+            _trackedDownload.StatusMessages.Should().ContainSingle();
+            _trackedDownload.StatusMessages[0].Messages.Should().ContainSingle();
+            var warning = _trackedDownload.StatusMessages[0].Messages[0];
+            warning.Should().Contain("download client reports this download is encrypted")
+                   .And.Contain("automatic failure handling was skipped")
+                   .And.NotContain("Private password")
+                   .And.NotContain("URL");
+            AssertDownloadNotFailed();
         }
 
         private void AssertDownloadNotFailed()

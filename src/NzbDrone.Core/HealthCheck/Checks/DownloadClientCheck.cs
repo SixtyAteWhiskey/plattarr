@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using NzbDrone.Core.Download;
@@ -50,11 +49,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
                     return new HealthCheck(GetType(),
                         HealthCheckResult.Error,
                         HealthCheckReason.DownloadClientCheckUnableToCommunicate,
-                        _localizationService.GetLocalizedString("DownloadClientCheckUnableToCommunicateMessage", new Dictionary<string, object>
-                        {
-                            { "downloadClientName", downloadClient.Definition.Name },
-                            { "errorMessage", ex.Message }
-                        }),
+                        _localizationService.GetLocalizedString("DownloadClientCheckUnableToReadItemsMessage"),
                         "#unable-to-communicate-with-download-client");
                 }
             }
