@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Download;
@@ -33,17 +34,32 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
         [Test]
         public void should_return_error_when_download_client_throws()
         {
+            const string guidance = "Plattarr could not read items from a configured download client. Check the client and local logs.";
             var downloadClient = Mocker.GetMock<IDownloadClient>();
-            downloadClient.Setup(s => s.Definition).Returns(new DownloadClientDefinition { Name = "Test" });
+            downloadClient.Setup(s => s.Definition).Returns(new DownloadClientDefinition { Name = "Private client name" });
 
             downloadClient.Setup(s => s.GetItems())
-                          .Throws<Exception>();
+                          .Throws(new Exception("Connection failed at https://private.example/?apikey=secret"));
 
             Mocker.GetMock<IProvideDownloadClient>()
                   .Setup(s => s.GetDownloadClients(It.IsAny<bool>()))
                   .Returns(new IDownloadClient[] { downloadClient.Object });
 
-            Subject.Check().ShouldBeError();
+            Mocker.GetMock<ILocalizationService>()
+                  .Setup(s => s.GetLocalizedString("DownloadClientCheckUnableToReadItemsMessage"))
+                  .Returns(guidance);
+
+            var result = Subject.Check();
+
+            result.ShouldBeError();
+            result.Message.Should().Be(guidance)
+                  .And.NotContain("Private client name")
+                  .And.NotContain("private.example")
+                  .And.NotContain("apikey=secret");
+            Mocker.GetMock<ILocalizationService>()
+                  .Verify(s => s.GetLocalizedString("DownloadClientCheckUnableToReadItemsMessage"), Times.Once());
+            Mocker.GetMock<ILocalizationService>()
+                  .Verify(s => s.GetLocalizedString("DownloadClientCheckUnableToCommunicateMessage", It.IsAny<Dictionary<string, object>>()), Times.Never());
         }
 
         [Test]

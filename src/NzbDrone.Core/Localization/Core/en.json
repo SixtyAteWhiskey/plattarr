@@ -632,6 +632,7 @@
   "DownloadClientAriaSettingsDirectoryHelpText": "Optional location to put downloads in, leave blank to use the default Aria2 location",
   "DownloadClientCheckNoneAvailableMessage": "No download client is available",
   "DownloadClientCheckUnableToCommunicateMessage": "Unable to communicate with {downloadClientName}. {errorMessage}",
+  "DownloadClientCheckUnableToReadItemsMessage": "Plattarr could not read items from a configured download client. The client may be unavailable, its connection settings may be wrong, or its response may be invalid. Check the client and Download Clients settings, then inspect local logs for the specific error.",
   "DownloadClientDelugeSettingsDirectory": "Download Directory",
   "DownloadClientDelugeSettingsDirectoryCompleted": "Move When Completed Directory",
   "DownloadClientDelugeSettingsDirectoryCompletedHelpText": "Optional location to move completed downloads to, leave blank to use the default Deluge location",
