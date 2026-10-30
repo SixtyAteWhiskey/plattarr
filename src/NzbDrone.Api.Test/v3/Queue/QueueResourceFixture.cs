@@ -5,6 +5,7 @@ using NUnit.Framework;
 using NzbDrone.Common.Serializer;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Parser.Model;
@@ -84,6 +85,29 @@ namespace NzbDrone.Api.Test.v3.Queue
             resource.MediaKind.Should().Be(MediaKind.Music);
             resource.ArtistId.Should().BeNull();
             STJson.ToJson(resource).Should().Contain("\"mediaKind\": \"music\"");
+        }
+
+        [Test]
+        public void should_serialize_unmatched_failure_guidance_in_queue_status_messages()
+        {
+            var queue = new NzbDrone.Core.Queue.Queue
+            {
+                Kind = MediaKind.Tv,
+                Quality = new QualityModel(Quality.Unknown),
+                Languages = new List<NzbDrone.Core.Languages.Language>(),
+                TrackedDownloadStatus = TrackedDownloadStatus.Warning,
+                StatusMessages = new List<TrackedDownloadStatusMessage>
+                {
+                    new TrackedDownloadStatusMessage("Disposable item", "The download client reports this download failed. Plattarr cannot link it to a grab for this media type. Check the client item and category, then compare Activity history before taking manual action.")
+                }
+            };
+
+            var json = STJson.ToJson(queue.ToResource(false));
+
+            json.Should().Contain("\"trackedDownloadStatus\": \"warning\"")
+                .And.Contain("\"statusMessages\"")
+                .And.Contain("cannot link it to a grab")
+                .And.Contain("Check the client item and category");
         }
 
         [Test]
