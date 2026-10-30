@@ -146,6 +146,14 @@ support decision before any removal.
   regression tests before retiring a same-ID provider. All five candidates
   still import as native implementations, and an obsolete stored row survives
   startup; see the compatibility gate below (`5c1a3690d`).
+- [x] Compare the first candidate's native settings and search requests with
+  its versioned Cardigann definition before writing a conversion. FunFile is
+  the first plausible candidate, but its IMDb search flags differ; the native
+  request behavior is now covered by a focused fixture (`42a55d926`). See
+  the feasibility check below.
+- [ ] For FunFile, prove settings conversion for stored rows and upstream
+  imports, then prove search and result behavior against the replacement
+  before deleting the native implementation.
 - [ ] Remove only independently justified candidates in bounded changes;
   retain a working implementation for each supported provider framework.
 - [ ] Measure source/build/image or bundle savings and verify startup,
@@ -961,6 +969,36 @@ provider configuration was changed. The removal and savings checkboxes stay
 open until settings conversion, search behavior, and affected contracts are
 proved for an individual candidate.
 
+## 2026-10-29 FunFile retirement feasibility check
+
+The next implementation target is one unconfigured, obsolete native provider.
+FunFile is the first plausible candidate: its native settings and the
+[versioned Cardigann definition at the audited upstream revision](https://github.com/Prowlarr/Indexers/blob/5f5db4e58d06be18619c3a858b9a91ade6f341ca/definitions/v11/funfile.yml)
+both use username and password. The definition adds optional fields and
+categories; matching credentials alone does not convert stored rows or prove
+equivalent searches. CGPeers is less suitable as a first conversion because
+its native provider uses username/password and a freeleech-token choice while
+the versioned definition requires a cookie. HDTorrents is still offered as a
+native add choice. The other candidates still need individual analysis.
+
+The native FunFile request generator always sends `s_title=1`, including for
+IMDb lookup, and adds `s_desc=1` for IMDb lookup. The audited Cardigann
+definition leaves `s_title` empty on IMDb lookup. The new focused fixture
+locks the native movie-term and IMDb request shape, including category and
+search values, so a replacement can be compared against current behavior.
+This static difference is enough to defer deletion; it does not establish
+whether the site's result set differs. Live authenticated search, result
+parsing, settings conversion, and the saved-row/import gates remain open. No
+provider, production configuration, or runtime path changed; source/build/
+image savings for this characterization slice are zero.
+
+The two focused Core tests passed. `FILTER='FullyQualifiedName~
+FunFileRequestGeneratorFixture|FullyQualifiedName~IndexerServiceFixture|
+FullyQualifiedName~IndexersStageFixture|FullyQualifiedName~ModuleBoundaryFixture'
+tools/verify.sh` passed a nonincremental Release build with zero warnings and
+errors, 216 API tests, 78 Host tests (five skipped), and 35 focused Core
+tests. No production rollout occurred.
+
 ## Progress log
 
 | Date | Slice | Commit or PR | Result and evidence |
@@ -985,3 +1023,4 @@ proved for an individual candidate.
 | 2026-10-29 | Indexer pruning inventory, first pass | `ffdb9e065` | [Historical configuration and replacement evidence](#2026-10-29-indexer-pruning-inventory-first-pass); superseded by the live reconciliation below; no provider removed. |
 | 2026-10-29 | Live indexer reconciliation and candidate audit | `c9513b0cb` | [Read-only production counts, live Cardigann coverage, and dependency audit](#2026-10-29-live-indexer-reconciliation-and-candidate-audit); no provider removed. |
 | 2026-10-29 | Native indexer compatibility gate | `5c1a3690d` | [Startup and import regression proof](#2026-10-29-native-indexer-compatibility-gate); no provider removed or production rollout. |
+| 2026-10-29 | FunFile retirement feasibility | `42a55d926` | [Native request gate, replacement gap, and backend verification](#2026-10-29-funfile-retirement-feasibility-check); retirement and savings remain open. |
