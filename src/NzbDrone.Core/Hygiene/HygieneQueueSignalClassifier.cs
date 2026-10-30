@@ -17,6 +17,16 @@ namespace NzbDrone.Core.Hygiene
                 return;
             }
 
+            if (item.DownloadClientDownloadingMetadata)
+            {
+                Set(
+                    assessment,
+                    "download-metadata",
+                    "The download client is fetching torrent metadata; it may need attention if this state persists.",
+                    "Check tracker and peer connectivity if metadata remains unavailable.");
+                return;
+            }
+
             if (item.DownloadClientStalled)
             {
                 Set(

@@ -157,6 +157,7 @@ namespace NzbDrone.Core.Test.QueueTests
         [TestCase("download-stalled")]
         [TestCase("download-slow")]
         [TestCase("download-unstable")]
+        [TestCase("download-metadata")]
         public void eligible_stalled_or_slow_torrent_is_removed_without_deleting_files(string reasonCode)
         {
             var context = new ActionContext(MediaKind.Movies, true, reasonCode);
@@ -169,6 +170,18 @@ namespace NzbDrone.Core.Test.QueueTests
             context.Actions.Should().ContainSingle().Which.Status.Should().Be("completed");
             context.Actions[0].ReasonCode.Should().Be(reasonCode);
             context.Actions[0].Checkpoint.Should().Be("replacement-requested");
+        }
+
+        [Test]
+        public void metadata_cleanup_pauses_if_metadata_finished_before_client_removal()
+        {
+            var context = new ActionContext(MediaKind.Movies, true, "download-metadata");
+            context.TrackedDownload.DownloadItem.DownloadClientDownloadingMetadata = false;
+
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), It.IsAny<bool>()), Times.Never);
+            context.FailedDownloads.Verify(x => x.MarkAsFailed(It.IsAny<TrackedDownload>(), It.IsAny<bool>()), Times.Never);
         }
 
         [Test]
@@ -798,10 +811,11 @@ namespace NzbDrone.Core.Test.QueueTests
             public ActionContext(MediaKind kind, bool gateEnabled, string reasonCode = "client-failed", IFailedDownloadService failedDownloadService = null, bool deleteFilesOnFailure = false, bool searchForReplacement = true)
             {
                 GateEnabled = gateEnabled;
-                var isStalledOrSlow = reasonCode is "download-stalled" or "download-slow" or "download-unstable";
+                var isStalledOrSlow = reasonCode is "download-stalled" or "download-slow" or "download-unstable" or "download-metadata";
                 var clientItem = new DownloadClientItem
                 {
                     DownloadId = "test-download",
+                    DownloadClientDownloadingMetadata = reasonCode == "download-metadata",
                     CanBeRemoved = !isStalledOrSlow,
                     DownloadClientInfo = new DownloadClientItemClientInfo
                     {

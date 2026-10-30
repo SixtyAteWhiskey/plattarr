@@ -104,6 +104,11 @@ const reasonPresentations: Record<string, HygienePresentation> = {
     icon: icons.WARNING,
     tone: 'warning',
   },
+  'download-metadata': {
+    cue: 'Metadata',
+    icon: icons.WARNING,
+    tone: 'warning',
+  },
   'download-stalled': {
     cue: 'Stalled',
     icon: icons.WARNING,

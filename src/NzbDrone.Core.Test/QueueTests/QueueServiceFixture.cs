@@ -124,6 +124,73 @@ namespace NzbDrone.Core.Test.QueueTests
         }
 
         [Test]
+        public void import_pending_refresh_does_not_reset_blocked_strikes_before_processing_finishes()
+        {
+            var observed = new List<TrackedDownloadState?>();
+            Mocker.GetMock<IHygieneQueueStrikeService>()
+                .Setup(x => x.Observe(It.IsAny<IEnumerable<NzbDrone.Core.Queue.Queue>>()))
+                .Callback<IEnumerable<NzbDrone.Core.Queue.Queue>>(items => observed.AddRange(items.Select(x => x.TrackedDownloadState)));
+
+            _trackedDownloads[0].State = TrackedDownloadState.ImportBlocked;
+            Subject.Handle(new TrackedDownloadRefreshedEvent(_trackedDownloads, processingComplete: true));
+            _trackedDownloads[0].State = TrackedDownloadState.ImportPending;
+            Subject.Handle(new TrackedDownloadRefreshedEvent(_trackedDownloads));
+            _trackedDownloads[0].State = TrackedDownloadState.ImportBlocked;
+            Subject.Handle(new TrackedDownloadRefreshedEvent(_trackedDownloads, processingComplete: true));
+            _trackedDownloads[0].State = TrackedDownloadState.ImportPending;
+            Subject.Handle(new TrackedDownloadRefreshedEvent(_trackedDownloads, processingComplete: true));
+
+            observed.Should().Equal(TrackedDownloadState.ImportBlocked, TrackedDownloadState.ImportBlocked, TrackedDownloadState.ImportPending);
+        }
+
+        [Test]
+        public void blocked_strikes_survive_intermediate_pending_and_reset_after_processed_recovery()
+        {
+            var tracked = _trackedDownloads[0];
+            tracked.DownloadClient = 7;
+            tracked.DownloadItem.DownloadId = "synthetic-import";
+            tracked.DownloadItem.Status = DownloadItemStatus.Completed;
+            tracked.State = TrackedDownloadState.ImportBlocked;
+            var state = new HygieneQueueState
+            {
+                DownloadClientId = 7,
+                DownloadId = "synthetic-import",
+                ReasonCode = "import-blocked",
+                Strikes = 1,
+                RemainingSize = tracked.DownloadItem.RemainingSize,
+                LastSeenAt = DateTime.UtcNow.AddMinutes(-3),
+                LastStrikeAt = DateTime.UtcNow.AddMinutes(-3)
+            };
+            var stateRepository = new Mock<IHygieneQueueStateRepository>();
+            stateRepository.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>())).Returns(new[] { state });
+            var ruleRepository = new Mock<IHygieneRuleRepository>();
+            ruleRepository.Setup(x => x.All()).Returns(new List<HygieneRule>
+            {
+                new() { Id = 3, ReasonCode = "import-blocked", Enabled = true, StrikeLimit = 3, StrikeIntervalMinutes = 2 }
+            });
+            var strikes = new HygieneQueueStrikeService(stateRepository.Object, new HygieneRuleService(ruleRepository.Object, NLog.LogManager.GetCurrentClassLogger()), new HygieneQueueEvaluator());
+            Mocker.SetConstant<IHygieneQueueStrikeService>(strikes);
+
+            tracked.State = TrackedDownloadState.ImportPending;
+            Subject.Handle(new TrackedDownloadRefreshedEvent(_trackedDownloads));
+            state.Strikes.Should().Be(1);
+            tracked.State = TrackedDownloadState.ImportBlocked;
+            Subject.Handle(new TrackedDownloadRefreshedEvent(_trackedDownloads, processingComplete: true));
+            state.Strikes.Should().Be(2);
+            tracked.State = TrackedDownloadState.ImportPending;
+            Subject.Handle(new TrackedDownloadRefreshedEvent(_trackedDownloads, processingComplete: true));
+            state.Strikes.Should().Be(0);
+        }
+
+        [Test]
+        public void queue_carries_metadata_state_from_client()
+        {
+            _trackedDownloads[0].DownloadItem.DownloadClientDownloadingMetadata = true;
+            Subject.Handle(new TrackedDownloadRefreshedEvent(_trackedDownloads));
+            Subject.GetQueue().Single().DownloadClientDownloadingMetadata.Should().BeTrue();
+        }
+
+        [Test]
         public void strike_storage_failure_should_not_prevent_the_queue_from_refreshing()
         {
             Mocker.GetMock<IHygieneQueueStrikeService>()

@@ -10,9 +10,9 @@ namespace NzbDrone.Core.Hygiene
             var previousSize = state?.RemainingSize;
             state ??= new HygieneQueueState();
 
-            var strikeable = needsAttention && reasonCode is "client-failed" or "import-blocked" or "download-warning" or "download-stalled" or "download-slow";
+            var strikeable = needsAttention && reasonCode is "client-failed" or "import-blocked" or "download-warning" or "download-stalled" or "download-slow" or "download-metadata";
             var progressed = previousSize.HasValue && remainingSize < previousSize.Value;
-            var progressResetsStrikes = reasonCode != "download-slow";
+            var progressResetsStrikes = reasonCode is not ("download-slow" or "download-metadata");
 
             if (!strikeable || (progressed && progressResetsStrikes))
             {
