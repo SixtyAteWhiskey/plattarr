@@ -2,8 +2,10 @@ using System.Collections.Generic;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
+using NzbDrone.Core.Datastore.Converters;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.Definitions;
+using NzbDrone.Core.Indexers.Definitions.Cardigann;
 using NzbDrone.Core.Indexers.Definitions.Gazelle;
 using NzbDrone.Core.Indexers.Newznab;
 using NzbDrone.Core.Lifecycle;
@@ -66,6 +68,30 @@ namespace NzbDrone.Core.Test.IndexerTests
             Subject.Handle(new ApplicationStartedEvent());
 
             AllStoredModels.Should().ContainSingle(c => c.Id == existingIndexer.Id);
+        }
+
+        [Test]
+        public void should_round_trip_converted_funfile_settings_in_a_stored_row()
+        {
+            var repo = Mocker.Resolve<IndexerRepository>();
+            const string nativeSettings = """
+                {"baseUrl":"https://www.funfile.org/","username":"sample-user","password":"FAKE-PASSWORD","torrentBaseSettings":{"minimumSeeders":4}}
+                """;
+            var converter = new ProviderSettingConverter();
+            var converted = (CardigannSettings)converter.Parse(FunFileSettingsConverter.Convert(nativeSettings), typeof(CardigannSettings));
+
+            var row = repo.Insert(new IndexerDefinition
+            {
+                Name = "FunFile conversion proof",
+                Implementation = "Cardigann",
+                Settings = converted
+            });
+
+            var stored = (CardigannSettings)repo.Get(row.Id).Settings;
+            stored.DefinitionFile.Should().Be("funfile");
+            stored.ExtraFieldData["username"].Should().Be("sample-user");
+            stored.ExtraFieldData["password"].Should().Be("FAKE-PASSWORD");
+            stored.TorrentBaseSettings.MinimumSeeders.Should().Be(4);
         }
     }
 }

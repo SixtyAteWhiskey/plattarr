@@ -2,9 +2,11 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
+using NzbDrone.Core.Datastore.Converters;
 using NzbDrone.Core.IndexerProxies;
 using NzbDrone.Core.IndexerProxies.FlareSolverr;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.Definitions;
 using NzbDrone.Core.Indexers.Definitions.Cardigann;
 using NzbDrone.Core.Indexers.Overrides;
 using NzbDrone.Core.Languages;
@@ -247,6 +249,32 @@ namespace NzbDrone.Core.Test.Upstream
             indexer.Implementation.Should().Be(implementation);
             indexer.ConfigContract.Should().Be(contract);
             result.Skips.Should().NotContain(s => s.Table == "Indexers" && s.Reason == SkipReason.UnknownProvider);
+        }
+
+        [Test]
+        public void should_convert_a_funfile_upstream_row_after_native_import()
+        {
+            const string nativeSettings = """
+                {"baseUrl":"https://www.funfile.org/","username":"sample-user","password":"FAKE-PASSWORD","torrentBaseSettings":{"minimumSeeders":4}}
+                """;
+            var result = Run(new[]
+            {
+                Profile(1, "Standard", 1, 1, 1, 1),
+                Indexer(11, "Existing FunFile", "FunFile", "UserPassTorrentBaseSettings", nativeSettings)
+            });
+
+            var imported = _indexers.All().Single();
+            imported.Implementation.Should().Be("FunFile");
+
+            var serializer = new ProviderSettingConverter();
+            var converted = (CardigannSettings)serializer.Parse(
+                FunFileSettingsConverter.Convert(serializer.Serialize(imported.Settings)), typeof(CardigannSettings));
+
+            converted.DefinitionFile.Should().Be("funfile");
+            converted.ExtraFieldData["username"].Should().Be("sample-user");
+            converted.ExtraFieldData["password"].Should().Be("FAKE-PASSWORD");
+            converted.TorrentBaseSettings.MinimumSeeders.Should().Be(4);
+            result.Skips.Should().NotContain(s => s.Table == "Indexers");
         }
 
         [Test]
