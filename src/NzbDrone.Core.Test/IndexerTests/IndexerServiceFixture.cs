@@ -3,6 +3,8 @@ using FizzWare.NBuilder;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.Definitions;
+using NzbDrone.Core.Indexers.Definitions.Gazelle;
 using NzbDrone.Core.Indexers.Newznab;
 using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.Test.Framework;
@@ -41,6 +43,29 @@ namespace NzbDrone.Core.Test.IndexerTests
             AllStoredModels.Should().NotContain(c => c.Id == existingIndexers.Id);
 
             ExceptionVerification.ExpectedWarns(1);
+        }
+
+        [Test]
+        public void should_keep_a_stored_obsolete_native_indexer_on_startup()
+        {
+            var repo = Mocker.Resolve<IndexerRepository>();
+
+            Mocker.SetConstant<IIndexerRepository>(repo);
+
+#pragma warning disable CS0618 // Existing native rows must remain usable until their settings have a proven migration.
+            _indexers.Add(Mocker.Resolve<CGPeers>());
+#pragma warning restore CS0618
+
+            var existingIndexer = repo.Insert(new IndexerDefinition
+            {
+                Name = "Legacy CGPeers",
+                Implementation = "CGPeers",
+                Settings = new GazelleSettings()
+            });
+
+            Subject.Handle(new ApplicationStartedEvent());
+
+            AllStoredModels.Should().ContainSingle(c => c.Id == existingIndexer.Id);
         }
     }
 }

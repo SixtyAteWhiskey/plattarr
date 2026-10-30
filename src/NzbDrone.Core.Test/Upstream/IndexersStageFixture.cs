@@ -229,6 +229,26 @@ namespace NzbDrone.Core.Test.Upstream
             result.Tables.Single(t => t.App == "Prowlarr" && t.Table == "Indexers").Should().Match<ReconciliationRow>(r => r.Read == 2 && r.Imported == 1 && r.Skipped == 1);
         }
 
+        [TestCase("CGPeers", "GazelleSettings")]
+        [TestCase("FunFile", "UserPassTorrentBaseSettings")]
+        [TestCase("HDSpace", "HDSpaceSettings")]
+        [TestCase("HDTorrents", "UserPassTorrentBaseSettings")]
+        [TestCase("PornoLab", "PornoLabSettings")]
+        public void should_still_import_native_indexers_with_cardigann_definition_ids(string implementation, string contract)
+        {
+            var result = Run(new[]
+            {
+                Profile(1, "Standard", 1, 1, 1, 1),
+                Indexer(11, "Existing native", implementation, contract, NoAuth())
+            });
+
+            var indexer = _indexers.All().Single();
+
+            indexer.Implementation.Should().Be(implementation);
+            indexer.ConfigContract.Should().Be(contract);
+            result.Skips.Should().NotContain(s => s.Table == "Indexers" && s.Reason == SkipReason.UnknownProvider);
+        }
+
         [Test]
         public void should_keep_a_disabled_indexer_disabled_with_the_profile_flags()
         {
