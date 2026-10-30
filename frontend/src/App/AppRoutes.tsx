@@ -54,6 +54,9 @@ function RedirectWithUrlBase() {
   return <Redirect to={getPathWithUrlBase('/')} />;
 }
 
+const GettingStarted = React.lazy(
+  () => import('GettingStarted/GettingStarted')
+);
 const Settings = React.lazy(() => import('Settings/Settings'));
 const MediaManagement = React.lazy(
   () => import('Settings/MediaManagement/MediaManagement')
@@ -205,6 +208,8 @@ function AppRoutes() {
       <Route path="/wanted/missing" component={MissingPage} />
 
       <Route path="/wanted/cutoffunmet" component={CutoffUnmetPage} />
+
+      <Route path="/getting-started" component={GettingStarted} />
 
       {/*
         Settings

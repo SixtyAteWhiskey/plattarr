@@ -13,13 +13,16 @@ from benchmark_frontend_routes import DevTools, free_port, read, ready, wait_for
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 ROUTES = (
-    "/", "/tv", "/music", "/activity/queue", "/activity/history",
-    "/activity/blocklist", "/activity/hygiene", "/settings",
+    "/", "/tv", "/music", "/getting-started", "/activity/queue", "/activity/history",
+    "/activity/blocklist", "/activity/hygiene", "/calendar",
+    "/wanted/missing", "/wanted/cutoffunmet", "/settings",
     "/settings/mediamanagement", "/settings/profiles", "/settings/quality",
     "/settings/customformats", "/settings/indexers",
     "/settings/downloadclients", "/settings/importlists", "/settings/connect",
     "/settings/metadata", "/settings/tags", "/settings/general",
-    "/settings/ui", "/system", "/system/status",
+    "/settings/ui", "/system", "/system/status", "/system/tasks",
+    "/system/backup", "/system/updates", "/system/events",
+    "/system/logs/files", "/system/logs/files/update",
 )
 
 

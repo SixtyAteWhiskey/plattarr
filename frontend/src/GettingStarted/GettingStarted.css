@@ -1,0 +1,11 @@
+.guide {
+  max-width: 900px;
+}
+
+.steps {
+  display: grid;
+  gap: 16px;
+
+  margin: 0;
+  padding-left: 32px;
+}

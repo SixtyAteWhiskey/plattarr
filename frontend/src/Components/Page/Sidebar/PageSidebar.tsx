@@ -46,6 +46,12 @@ interface SidebarItem {
 
 const LINKS: SidebarItem[] = [
   {
+    iconName: icons.INFO,
+    title: () => translate('GettingStarted'),
+    to: '/getting-started',
+  },
+
+  {
     iconName: icons.MOVIE_CONTINUING,
     title: () => translate('Movies'),
     to: '/',

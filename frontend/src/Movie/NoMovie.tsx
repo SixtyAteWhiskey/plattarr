@@ -26,6 +26,10 @@ function NoMovie(props: NoMovieProps) {
       <div className={styles.message}>{translate('NoMoviesExist')}</div>
 
       <div className={styles.buttonContainer}>
+        <Button to="/getting-started">{translate('GettingStarted')}</Button>
+      </div>
+
+      <div className={styles.buttonContainer}>
         <Button to="/add/import" kind={kinds.PRIMARY}>
           {translate('ImportExistingMovies')}
         </Button>
