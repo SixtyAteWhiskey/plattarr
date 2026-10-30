@@ -116,7 +116,7 @@ namespace NzbDrone.Core.Download
 
             if (importResults.Empty())
             {
-                trackedDownload.Warn("No files found are eligible for import in {0}", outputPath);
+                trackedDownload.Warn("No files were imported. Check that the download location exists and is accessible to Plattarr, including shared mounts and remote path mappings. If the location is accessible, review the files and their import eligibility.");
 
                 return;
             }
