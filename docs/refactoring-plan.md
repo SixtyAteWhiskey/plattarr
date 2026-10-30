@@ -133,6 +133,12 @@ target, but removal needs an inventory of configured and supported workflows.
 Windows/updater paths still participate in build paths and need a product
 support decision before any removal.
 
+Prowlarr's definition feed is the source for indexers it covers. FunFile appears
+below because Plattarr still contains an older native FunFile implementation.
+The FunFile work is a safe retirement path for that code and for existing saved
+or imported rows, not a plan to maintain a separate Plattarr FunFile definition.
+Native providers without a verified feed replacement remain supported.
+
 - [x] Inventory configured indexers and compare native definitions with
   Cardigann coverage; document the replacement path for each candidate.
   - [x] Reconcile the documented 2026-10-25 owner snapshot with native
@@ -151,9 +157,9 @@ support decision before any removal.
   the first plausible candidate, but its IMDb search flags differ; the native
   request behavior is now covered by a focused fixture (`42a55d926`). See
   the feasibility check below.
-- [ ] For FunFile, prove settings conversion for stored rows and upstream
-  imports, then prove search and result behavior against the replacement
-  before deleting the native implementation.
+- [ ] Retire the legacy native FunFile implementation only after proving
+  settings conversion for stored rows and upstream imports, and search and
+  result behavior against the Cardigann definition from Prowlarr's feed.
   - [x] Prove the native-to-Cardigann settings shape with a database-backed
     stored row and a disposable Prowlarr import row; see the conversion proof
     below. This does not switch either runtime path.
