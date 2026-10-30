@@ -233,14 +233,14 @@ namespace NzbDrone.Core.Download
 
             if (downloadItemOutputPath.IsEmpty)
             {
-                trackedDownload.Warn("Download doesn't contain intermediate path, Skipping.");
+                trackedDownload.Warn("No download location is available for this completed item, so automatic import cannot continue. Check the download client's completed-download location and path mappings.");
                 return false;
             }
 
             if ((OsInfo.IsWindows && !downloadItemOutputPath.IsWindowsPath) ||
                 (OsInfo.IsNotWindows && !downloadItemOutputPath.IsUnixPath))
             {
-                trackedDownload.Warn("[{0}] is not a valid local path. You may need a Remote Path Mapping.", downloadItemOutputPath);
+                trackedDownload.Warn("The download location is not a valid path for this system, so automatic import cannot continue. Check the download client's location and configure a Remote Path Mapping if the client uses a different path.");
                 return false;
             }
 
