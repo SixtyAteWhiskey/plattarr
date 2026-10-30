@@ -169,6 +169,9 @@ support decision before any removal.
   - [x] Put the corrected candidate in a standalone test definition and
     verify the supported request modes, release GUID, and current public
     login-form shape; see the candidate delivery check below (`a0ee8ae14`).
+  - [x] Confirm that the live Prowlarr feed is the definition delivery path
+    and audit the upstream schema and parser before proposing a correction;
+    see the upstream delivery gate below.
   - [ ] Verify authenticated site behavior, ship a corrected definition, then
     wire and verify both conversion paths before removal.
 - [ ] Remove only independently justified candidates in bounded changes;
@@ -1173,6 +1176,29 @@ nonincremental Release build with zero warnings and errors, 216 API tests,
 78 Host tests (five skipped), and 49 selected Core tests. A later focused
 rebuild and run passed all seven FunFile parity tests. `git diff --check`
 passed. No production rollout occurred.
+
+## 2026-10-29 FunFile upstream delivery gate
+
+Plattarr's definition service downloads the Prowlarr package and resolves
+FunFile from that feed. The live `master/12/funfile` endpoint currently serves
+the same bytes as the pinned v11 definition (SHA-256
+`96d57562b70fe227e9f9d69d288408619270951a80a706723b40c8363945898f`).
+The v12 feed endpoint falls back to the v11 FunFile definition; the upstream
+tree has no separate v12 FunFile file. Both the [v11 schema](https://github.com/Prowlarr/Indexers/blob/5f5db4e58d06be18619c3a858b9a91ade6f341ca/definitions/v11/schema.json)
+and [v12 schema](https://github.com/Prowlarr/Indexers/blob/5f5db4e58d06be18619c3a858b9a91ade6f341ca/definitions/v12/schema.json)
+reject `guid` in search fields. The [Prowlarr Cardigann parser](https://github.com/Prowlarr/Prowlarr/blob/23b38d77843c5430214a2808532995d4b30bd31a/src/NzbDrone.Core/Indexers/Definitions/Cardigann/CardigannParser.cs)
+also assigns the release GUID from `download` and has no explicit `guid`
+field handler. The candidate's identity fix therefore needs upstream schema
+and parser support as well as a definition change. The IMDb `s_title` change
+still needs authenticated site evidence before upstream delivery.
+
+A local bundled-definition attempt was dropped: it would make Plattarr
+maintain another copy of an indexer already supplied by Prowlarr, and that
+copy could drift when the feed updates. No runtime change from that attempt
+remains. The existing test candidate is still useful for offline parity; the
+native implementation, stored rows, and upstream imports remain untouched.
+This is a delivery-path audit with zero source/build/image savings. The
+authenticated behavior and upstream delivery checkboxes remain open.
 
 ## Progress log
 
