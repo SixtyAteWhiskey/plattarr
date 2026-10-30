@@ -89,9 +89,11 @@ following slice addresses them.
   profile shows useful savings. Consider recent actions, unfinished actions,
   identity lookups, and state retention separately. The four prior slices and
   the bounded journal read below cover these materialized reads.
-- [ ] Preserve action identity, retry/backoff, checkpoint recovery, rule
+- [x] Preserve action identity, retry/backoff, checkpoint recovery, rule
   precedence, private-torrent safety, file-deletion choices, and replacement
   search behavior. Preview and execution must select the same candidates.
+  The same-snapshot parity and rule-change proof is recorded below
+  (`dfec5dca4`); the existing focused recovery and action fixtures passed.
 - [ ] Compare database rows read, query count, refresh time, and memory at the
   same fixture sizes. Run focused Core/API tests and isolated recovery and
   preview/execution proofs before the full backend gate.
@@ -724,6 +726,31 @@ runtime exception, pending loading state, or document overflow. This empty
 fixture does not prove populated-library layouts, provider actions, or a
 parser-only speedup. No production rollout occurred.
 
+## 2026-10-29 Hygiene preview and executor parity proof
+
+The new Core fixture uses the real evaluator, decision service, and action
+service with one tracked failed Movie at the strike threshold, one below it,
+and one private torrent at the threshold. On the same queue snapshot, preview
+marked only the first item `WouldAct`; execution created exactly one completed
+journal action for that download and made one client removal call. The
+below-threshold and private items were not acted on. A second case verified
+that disabling the matching rule after preview prevents a new action when the
+executor reevaluates it. The existing API fixture separately verifies that
+preview includes pending items without mutation; the executor receives only
+tracked queue items. Completed journal actions and changed rules can also
+prevent a later action, so same-snapshot candidate parity is the precise
+claim.
+
+The focused action fixture passed 35 Core tests. `FILTER='FullyQualifiedName~Hygiene|FullyQualifiedName~ModuleBoundaryFixture'
+tools/verify.sh` passed a nonincremental Release solution build with zero
+warnings and errors, 216 API tests, 78 Host tests (five skipped), and 88 Core
+tests. Those focused fixtures also cover identity, retry/backoff, checkpoint
+recovery, rule precedence, private torrent safety, deletion choices, and
+replacement search. `git diff --check` passed. This proof changes tests and
+documentation only; it does not add runtime work or alter production state.
+The whole-refresh database query and row comparison in section 2 remains
+open.
+
 ## Progress log
 
 | Date | Slice | Commit or PR | Result and evidence |
@@ -741,3 +768,4 @@ parser-only speedup. No production rollout occurred.
 | 2026-10-29 | Actual Hygiene queue-refresh profile | `67605605d` | [Real-service SQLite timings and recovery proof](#2026-10-29-actual-hygiene-queue-refresh-profile); no production rollout. |
 | 2026-10-29 | Hygiene retention deletion | `e541e1639` | [Same-fixture whole-refresh comparison and verification](#2026-10-29-hygiene-retention-deletion-slice); no production rollout. |
 | 2026-10-29 | Frontend route acceptance and timing comparison | `4a88e6123` | [Browser timings and 44-route acceptance](#2026-10-29-frontend-route-acceptance-and-timing-comparison); no production rollout. |
+| 2026-10-29 | Hygiene preview/executor parity proof | `dfec5dca4` | [Same-snapshot candidate and rule-change verification](#2026-10-29-hygiene-preview-and-executor-parity-proof); no production rollout. |
