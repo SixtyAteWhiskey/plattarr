@@ -173,38 +173,49 @@ separate rollout decision.
 
 ## 6. Connect media servers
 
-### Jellyfin
+### Jellyfin and Emby
 
-Install/configure Jellyfin to read the same library paths Plattarr writes. In
-Plattarr's Settings > Connect, add the Emby/Jellyfin notification, use the
-Jellyfin server URL and API key, select the library refresh events, and run the
-provider test. The current provider uses the MediaBrowser protocol for
-Jellyfin/Emby library refresh and notification events.
-
-### Emby
-
-Use the same path and API-key setup as Jellyfin. Add the Emby/Jellyfin
-notification provider, test the connection, and enable the refresh events you
-want. The server must be able to see the imported paths as its own library.
+1. Create libraries in the media server pointing to the files Plattarr imports.
+   The server and Plattarr can use different paths for the same files, but both
+   must be able to access them.
+2. In **Settings > Connect**, add **Emby / Jellyfin**. Enter the host and port
+   as reachable from Plattarr, enable SSL if appropriate, enter the server API
+   key, and set the advanced URL Base if the server uses one.
+3. Enable **Update Library** and the **On File Import** event. Select other
+   events, such as rename, if you want them to trigger updates too. If the
+   server sees a different library path, set the advanced map-from and map-to
+   paths to the Plattarr and media-server paths respectively.
+4. For Jellyfin, turn off **Send Notifications**, which it does not support;
+   library updates are a separate setting. Test and save the connection. After
+   an import, check that the item appears in the
+   server library. A successful connection test alone does not prove an import
+   or library update.
 
 ### Plex
 
-Configure Plex libraries to point to the same media paths. Use Plex's own
-scheduled or manual library scan to verify visibility after import. Plattarr
+Configure Plex libraries to read the imported files, and use Plex's scheduled
+or manual library scan. Confirm that the item appears after the scan. Plattarr
 does not currently provide a native Plex library-refresh connection.
 
 ## 7. Connect Seerr (formerly Jellyseerr) or Ombi
 
-### Seerr
+1. In Plattarr, prepare a Movie root folder and quality profile, and a TV root
+   folder and profile if you want TV requests. Find the Plattarr API key and
+   configured URL Base in **Settings > General**. Keep the key private.
+2. In the request app, add a Radarr server for Movies and a Sonarr server for
+   TV. Use the Plattarr host and port reachable from that app, the Plattarr
+   API key, and URL bases `/radarr` and `/sonarr` respectively. If Plattarr
+   itself uses a URL base, put it first: for example, `/plattarr/radarr` and
+   `/plattarr/sonarr`. Configure SSL to match the connection.
+3. Test each connection, then select the appropriate root folder, quality
+   profile, monitoring and any other request options in the request app. A
+   connection test and profile list do not prove a request, download, or import.
+   Verify the intended flow on a disposable setup before relying on it.
 
-In Seerr, add Plattarr as a Radarr server for Movies and/or a Sonarr server
-for TV. Use Plattarr's reachable URL and URL base `/radarr` or `/sonarr`, and
-the Plattarr API key. For example, the read-only compatibility routes are:
-
-This connection uses Plattarr's Radarr and Sonarr compatibility APIs. Seerr does
-not call Prowlarr's management API (`/api/v1/...`); that is separate from the
-also-unimplemented per-indexer Torznab/Newznab feed contract planned for
-`/{indexerId}/api`.
+These paths expose Plattarr's Radarr- and Sonarr-compatible APIs; they are not
+separate Radarr or Sonarr installations. They are independent of the unimplemented
+Prowlarr management API and per-indexer Torznab/Newznab feeds. The following
+read-only checks test the compatibility endpoints and list available choices:
 
 ```bash
 curl -fsS -H "X-Api-Key: $PLATTARR_API_KEY" "$PLATTARR_URL/radarr/api/v3/system/status"
@@ -215,24 +226,23 @@ curl -fsS -H "X-Api-Key: $PLATTARR_API_KEY" "$PLATTARR_URL/sonarr/api/v3/quality
 curl -fsS -H "X-Api-Key: $PLATTARR_API_KEY" "$PLATTARR_URL/sonarr/api/v3/rootfolder"
 ```
 
-Seerr's Radarr and Sonarr adapters send the API key as an `apikey` query
-parameter. Both URL bases accept that placement as well as the standard API
-key header. The read-only calls above prove connectivity and list the profile
-and root-folder choices. `tools/liveproof/seerr_contract.py` replays the
-adapter's read and mutation contract only against a disposable instance on
-`localhost:7881`; see [liveproof](../tools/liveproof/README.md) before running
-it. The replay is pinned to Seerr 3.5.1; recheck a different installed version
-before claiming its exact request contract.
+`PLATTARR_URL` includes Plattarr's own URL base, if configured. Seerr sends the
+API key as an `apikey` query parameter; the compatibility routes also accept it
+in the header as shown above. Avoid exposing URLs containing keys in logs.
 
-### Ombi
+### Compatibility evidence and limits
 
-Ombi v4.53.10 sent AddOnly movie and one-episode TV requests successfully to
-the `/radarr` and `/sonarr` API bases of a disposable Plattarr instance. The
-actual methods and payload shapes were captured without credentials and added
-to the [contract replay](../tools/liveproof/README.md#ombi-contract-replay).
-This verifies that specific request flow. Test a shared installation's own
-profiles, root paths, and tags before connecting Ombi there; 4K and
-search-on-add requests have not been checked.
+A disposable replay of the Seerr 3.5.1 Radarr and Sonarr adapter contract
+covered profile and root-folder reads, movie and TV lookup, add, update and
+delete, episode monitoring, and download refresh. It was a contract replay,
+not a complete Seerr-to-library download. Other versions and request modes
+need separate verification. See the [Seerr replay](../tools/liveproof/README.md#seerr-contract-replay).
+
+A disposable Ombi 4.53.10 instance sent an AddOnly movie request and a TV
+request for one episode successfully to those compatibility bases. The
+[sanitized capture and replay](../tools/liveproof/README.md#ombi-contract-replay)
+do not establish compatibility for other versions, 4K, search-on-add, or a
+production configuration. Neither proof establishes a real download or import.
 
 ## 8. Compare indexer flags across Prowlarr and Plattarr
 
