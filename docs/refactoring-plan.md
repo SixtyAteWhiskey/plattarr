@@ -157,8 +157,12 @@ support decision before any removal.
   - [x] Prove the native-to-Cardigann settings shape with a database-backed
     stored row and a disposable Prowlarr import row; see the conversion proof
     below. This does not switch either runtime path.
-  - [ ] Compare authenticated login, search requests, and parsed results with
-    the replacement. Then wire and verify both conversion paths before removal.
+  - [x] Pin the audited definition and compare movie-term and IMDb requests,
+    mocked form submission, and parsed fields from one synthetic result page;
+    see the offline parity check below.
+  - [ ] Resolve the IMDb request and release-GUID differences, verify
+    authenticated site behavior, then wire and verify both conversion paths
+    before removal.
 - [ ] Remove only independently justified candidates in bounded changes;
   retain a working implementation for each supported provider framework.
 - [ ] Measure source/build/image or bundle savings and verify startup,
@@ -1021,9 +1025,9 @@ full settings round trip, case-insensitive source keys, and rejected shapes.
 These tests prove that both sources can be converted by one rule. The startup
 migration and upstream importer have not been switched to Cardigann: doing so
 before request, login, and result parity is established could change behavior.
-The versioned definition uses `login.php` while the native implementation
-posts to `takelogin.php`, and their IMDb `s_title` flags differ. Those gaps
-remain part of the next parity slice. This proof changes no runtime path;
+The versioned definition fetches `login.php` before submitting the page's form;
+the native implementation posts to `takelogin.php`. The actual form action and
+their IMDb `s_title` flags still need parity evidence. This proof changes no runtime path;
 before and after source/build/image savings are zero. No production data or
 provider configuration was used.
 
@@ -1033,6 +1037,44 @@ FullyQualifiedName~IndexerServiceFixture|FullyQualifiedName~IndexersStageFixture
 FullyQualifiedName~ModuleBoundaryFixture' tools/verify.sh`: nonincremental
 Release build with zero warnings and errors, 216 API tests, 78 Host tests
 (five skipped), and 42 selected Core tests. `git diff --check` passed. No
+production rollout occurred.
+
+## 2026-10-29 FunFile offline request and result parity check
+
+The target is equivalent search requests and release identity before switching
+stored or imported FunFile rows. The exact upstream `v11/funfile.yml` from
+`5f5db4e58d06be18619c3a858b9a91ade6f341ca` is pinned as a test asset
+(SHA-256 `96d57562b70fe227e9f9d69d288408619270951a80a706723b40c8363945898f`).
+The fixture builds native and Cardigann requests from the same converted
+synthetic settings. Movie-term query parameters match. IMDb lookup uses the
+same search value, category, and `s_desc=1`, but Cardigann omits the native
+`s_title=1`. The difference is now checked against the actual request
+generators, not inferred only from YAML.
+
+A mocked login page with a `takelogin.php` form action causes Cardigann to
+fetch `login.php` and post the converted credentials to `takelogin.php`. This
+corrects the earlier assumption that the YAML's login path is necessarily the
+POST endpoint. The mock does not establish the live site's form action,
+captcha behavior, or successful authentication.
+
+Both parsers read the same synthetic two-row HTML. Title, details/download
+URLs, category, size, file/grab/seed/peer counts, volume factors, ratio, seed
+time, genres, description, and publish time match. Release GUID does not:
+native FunFile uses the details URL while Cardigann uses the download URL.
+That may change release identity and deduplication, so it is a retirement
+blocker. The fixture represents one page shape; authenticated results and
+other layouts remain unproved. No runtime provider, setting, or production
+data changed; source/build/image savings remain zero.
+
+The initial analyzer build exposed nine existing StyleCop errors in two queue
+test files. Formatting-only commit `aa7b1e196` resolved them. Commit
+`d42b6964d` adds the offline parity fixture. Together they passed
+`FILTER='FullyQualifiedName~FunFileCardigannParityFixture|FullyQualifiedName~
+FunFileSettingsConverterFixture|FullyQualifiedName~FunFileRequestGeneratorFixture|
+FullyQualifiedName~IndexerServiceFixture|FullyQualifiedName~IndexersStageFixture|
+FullyQualifiedName~ModuleBoundaryFixture' tools/verify.sh`: nonincremental
+Release build with zero warnings and errors, 216 API tests, 78 Host tests
+(five skipped), and 46 selected Core tests. `git diff --check` passed. No
 production rollout occurred.
 
 ## Progress log
@@ -1061,3 +1103,4 @@ production rollout occurred.
 | 2026-10-29 | Native indexer compatibility gate | `5c1a3690d` | [Startup and import regression proof](#2026-10-29-native-indexer-compatibility-gate); no provider removed or production rollout. |
 | 2026-10-29 | FunFile retirement feasibility | `42a55d926` | [Native request gate, replacement gap, and backend verification](#2026-10-29-funfile-retirement-feasibility-check); retirement and savings remain open. |
 | 2026-10-29 | FunFile settings conversion shape | `7aa898d77` | [Stored-row and imported-source proof](#2026-10-29-funfile-settings-conversion-proof); runtime conversion and search parity remain open. |
+| 2026-10-29 | FunFile offline request/result parity | `aa7b1e196`, `d42b6964d` | [Pinned definition, request/login/result comparison and backend gate](#2026-10-29-funfile-offline-request-and-result-parity-check); authenticated parity and provider retirement remain open. |
