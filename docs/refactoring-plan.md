@@ -63,11 +63,13 @@ measured before changing them.
   media-kind switcher's behavior, navigation, loading state, and error handling.
 - [x] Audit production-only build inputs and direct dependencies. Remove or
   replace a package only after checking all imports and generated output.
-- [ ] Compare initial transfer, parse/execute time, route navigation time, and
-  total output against the baseline. Confirm no unacceptable regression for
-  repeat navigation or slow connections.
-- [ ] Run frontend typecheck, lint, stylelint, production build, and browser
-  acceptance across Movies, TV, Music, shared pages, and narrow layouts.
+- [x] Compare initial transfer, browser compile/script time, route navigation
+  time, and total output against the baseline. Confirm no unacceptable
+  regression for repeat navigation or slow connections. Chrome's compile
+  counter does not isolate parser time; see the acceptance comparison below.
+- [x] Run frontend typecheck, lint, stylelint, production build, and browser
+  acceptance across Movies, TV, Music, shared pages, and narrow layouts; see
+  the 44-route check below.
 
 ## 2. Bound Hygiene work during queue refresh
 
@@ -669,6 +671,59 @@ Core run stall was not retried. A direct preview/execution parity proof,
 PostgreSQL profile, and production data remain open; no production rollout
 occurred.
 
+## 2026-10-29 frontend route acceptance and timing comparison
+
+The checked-in browser benchmark now records Chrome's `ScriptDuration` and
+`V8CompileDuration` at the cold Movies render and after first Settings
+navigation. On the same machine and disposable empty Release fixture, the
+original production UI at `633377d0a` and the clean current production UI
+were measured with `python3 tools/benchmark_frontend_routes.py --profile fast
+--samples 5` and `--profile slow --samples 3`. The slow profile uses 150 ms
+latency and 200,000 bytes/s throughput. Each sample starts a fresh Chrome tab;
+browser cache is disabled for the cold load and enabled for route navigation.
+Numbers below are medians; the parenthesized range captures variation.
+
+| Metric | Original UI | Current UI |
+| --- | ---: | ---: |
+| Fast initial browser transfer, bytes | 1,710,991 (1,710,983–1,716,053) | 1,606,788 (1,606,776–1,611,842) |
+| Fast first Movies render, ms | 476.6 (458.4–729.2) | 472.6 (454.4–655.3) |
+| Fast cold script / compile, ms | 85.0 / 0.1 | 85.7 / 0.1 |
+| Fast first / repeat Settings navigation, ms | 22.3 / 21.8 | 23.9 / 21.4 |
+| Slow initial browser transfer, bytes | 1,710,994 (1,710,986–1,716,044) | 1,606,790 (1,606,784–1,611,840) |
+| Slow first Movies render, ms | 8,920.3 (8,842.6–8,959.1) | 8,452.6 (8,418.3–8,508.6) |
+| Slow cold script / compile, ms | 76.0 / 0.1 | 82.1 / 0.2 |
+| Slow first / repeat Settings navigation, ms | 22.9 / 21.4 | 184.3 / 22.1 |
+
+Initial browser transfer fell by about 104 KB (6.1%). On the slow profile,
+first Movies content appeared about 468 ms earlier at the median. First
+Settings navigation cost about 161 ms more because its chunk loads on demand;
+repeat navigation stayed around 21–22 ms. Cold script-duration ranges overlap
+(fast original 72.6–95.8 ms, current 79.2–96.4 ms; slow original 72.6–79.8
+ms, current 73.3–85.9 ms), so these samples do not establish an execution
+improvement. Chrome reported only 0.1–0.2 ms of `V8CompileDuration`; that
+counter does not isolate parsing or establish a parsing improvement. All 16
+sampled flows had zero runtime exceptions. The visible Movies-content marker
+is not a paint-timing API.
+
+The clean production output contains 98 files and 22,955,736 bytes, down
+214,727 bytes (0.9%) from the original 23,170,463 bytes. A development build
+had left stale assets in `_output/UI`; a production rebuild over it reproduced
+the same 98 production files byte for byte but left extra development files.
+The directory was moved aside before the final production build and restored
+after the baseline browser comparison. Total-output figures use only clean
+production directories.
+
+`corepack yarn typecheck`, `corepack yarn lint`, `corepack yarn
+stylelint-linux`, a clean production webpack build, Python syntax compilation,
+and `git diff --check` passed. The read-only
+`python3 tools/check_frontend_routes.py` opened 22 representative routes at
+both 1440 and 480 pixels on a disposable Release instance: Movies, TV, Music,
+Activity Queue/History/Blocklist/Hygiene, Settings and all twelve leaf pages,
+System, and System Status. All 44 checks rendered content without a page error,
+runtime exception, pending loading state, or document overflow. This empty
+fixture does not prove populated-library layouts, provider actions, or a
+parser-only speedup. No production rollout occurred.
+
 ## Progress log
 
 | Date | Slice | Commit or PR | Result and evidence |
@@ -685,3 +740,4 @@ occurred.
 | 2026-10-29 | Queue-refresh SQL read-path profile | `8c21ed4b6` | [Synthetic combined read comparison](#2026-10-29-queue-refresh-sql-read-path-profile); actual refresh profile remains open. |
 | 2026-10-29 | Actual Hygiene queue-refresh profile | `67605605d` | [Real-service SQLite timings and recovery proof](#2026-10-29-actual-hygiene-queue-refresh-profile); no production rollout. |
 | 2026-10-29 | Hygiene retention deletion | `e541e1639` | [Same-fixture whole-refresh comparison and verification](#2026-10-29-hygiene-retention-deletion-slice); no production rollout. |
+| 2026-10-29 | Frontend route acceptance and timing comparison | `4a88e6123` | [Browser timings and 44-route acceptance](#2026-10-29-frontend-route-acceptance-and-timing-comparison); no production rollout. |
