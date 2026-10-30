@@ -70,8 +70,10 @@ namespace NzbDrone.Core.Test.QueueTests
             var config = new Mock<IConfigService>();
             config.SetupGet(x => x.HygieneActionsEnabled).Returns(() => context.GateEnabled);
             var decisions = new HygieneQueueDecisionService(
-                new HygieneQueueEvaluator(), states.Object,
-                new HygieneRuleService(rules.Object, TestLogger), config.Object);
+                new HygieneQueueEvaluator(),
+                states.Object,
+                new HygieneRuleService(rules.Object, TestLogger),
+                config.Object);
             context.Decisions.Setup(x => x.Evaluate(It.IsAny<IEnumerable<QueueItem>>()))
                 .Returns((IEnumerable<QueueItem> items) => decisions.Evaluate(items));
 
@@ -103,8 +105,10 @@ namespace NzbDrone.Core.Test.QueueTests
             var config = new Mock<IConfigService>();
             config.SetupGet(x => x.HygieneActionsEnabled).Returns(() => context.GateEnabled);
             var decisions = new HygieneQueueDecisionService(
-                new HygieneQueueEvaluator(), states.Object,
-                new HygieneRuleService(rules.Object, TestLogger), config.Object);
+                new HygieneQueueEvaluator(),
+                states.Object,
+                new HygieneRuleService(rules.Object, TestLogger),
+                config.Object);
             context.Decisions.Setup(x => x.Evaluate(It.IsAny<IEnumerable<QueueItem>>()))
                 .Returns((IEnumerable<QueueItem> items) => decisions.Evaluate(items));
 
