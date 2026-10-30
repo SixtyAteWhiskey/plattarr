@@ -133,15 +133,15 @@ target, but removal needs an inventory of configured and supported workflows.
 Windows/updater paths still participate in build paths and need a product
 support decision before any removal.
 
-- [ ] Inventory configured indexers and compare native definitions with
+- [x] Inventory configured indexers and compare native definitions with
   Cardigann coverage; document the replacement path for each candidate.
   - [x] Reconcile the documented 2026-10-25 owner snapshot with native
     implementations and the upstream definition tree; see the inventory below.
-  - [ ] Recheck the current configured indexer names, implementation types, and
-    Cardigann definition IDs before identifying removable candidates. The
-    historical snapshot does not establish current use.
-- [ ] Check whether a candidate is referenced by migrations, imports, tests,
-  generated API resources, or active build and packaging paths.
+  - [x] Recheck the current configured indexer names, implementation types, and
+    Cardigann definition IDs; see the live reconciliation below.
+- [x] Check whether a candidate is referenced by migrations, imports, tests,
+  generated API resources, or active build and packaging paths. The five
+  same-ID candidates and their runtime discovery behavior are audited below.
 - [ ] Remove only independently justified candidates in bounded changes;
   retain a working implementation for each supported provider framework.
 - [ ] Measure source/build/image or bundle savings and verify startup,
@@ -856,9 +856,10 @@ The last documented owner Prowlarr snapshot (2026-10-25) had 17 configured
 indexers: 15 Cardigann, one Knaben, and one SubsPlease. Its Cardigann IDs were
 not recorded individually; one was a custom definition,
 `torrentdownload-server01`. The snapshot also matched 13 Radarr indexers to
-Prowlarr. It is historical evidence, not a current configuration export. No
-Prowlarr database or running instance was available in this workspace for a
-fresh read. See [the importer evidence](importer.md#prowlarr-row-counts).
+Prowlarr. It is historical evidence, not a current configuration export. At
+this first pass, no Prowlarr database or running instance was available in the
+local workspace; the production reconciliation is recorded below. See [the
+importer evidence](importer.md#prowlarr-row-counts).
 
 The checked-in native-definition directory has 144 tracked files, totaling
 1,462,513 source bytes before build; that is an inventory size, not a projected
@@ -888,6 +889,47 @@ definitions Plattarr actually loads, then inspect that candidate's migrations,
 imports, tests, generated resources, and packaging paths. Keep at least one
 working implementation per supported provider framework.
 
+## 2026-10-29 live indexer reconciliation and candidate audit
+
+The production Plattarr instance was checked read-only on the owner's host.
+`GET /api/v3/indexer` and a read-only SQLite query of its active `Indexers`
+table agreed: 17 configured rows, 15 enabled. There are 15 Cardigann rows
+(13 enabled, two disabled), one enabled Knaben, and one enabled SubsPlease.
+All 15 Cardigann rows have distinct nonempty definition IDs, including the
+custom `torrentdownload-server01`; all 15 IDs appear in the instance's
+`GET /api/v3/indexer/schema` response. Only implementation, enabled state,
+definition ID presence, and counts were used. URLs, keys, cookies, settings,
+and the private indexer list were neither printed nor committed. This live
+inventory confirms the two native types identified in the historical snapshot
+are still in use; both remain protected from pruning.
+
+The following five *unconfigured* native types have same-ID Cardigann entries
+in the live schema. This proves discoverability, not equivalent settings,
+search results, or a safe migration for existing users. Their source files
+total 77,219 bytes; that is a source-only upper bound for this five-file
+slice, not a measured build or image saving.
+
+| Native type | Cardigann definition ID | Native add schema | Replacement path before removal |
+| --- | --- | --- | --- |
+| CGPeers | `cgpeers` | Hidden as obsolete | Convert stored native rows to Cardigann settings and verify category/search behavior. |
+| FunFile | `funfile` | Hidden as obsolete | Convert stored native rows to Cardigann settings and verify authentication and search behavior. |
+| HDSpace | `hdspace` | Hidden as obsolete | Convert stored native rows to Cardigann settings and verify authentication and search behavior. |
+| HDTorrents | `hdtorrents` | Still offered | Convert stored native rows, then check the add-indexer choice and search behavior. |
+| PornoLab | `pornolab` | Hidden as obsolete | Convert stored native rows to Cardigann settings and verify authentication and search behavior. |
+
+An exhaustive case-insensitive search of tracked files found each of these
+names only in its own C# source file: no explicit migration, importer, test,
+frontend, generated API resource, project, or packaging reference. The SDK
+Core project includes C# sources by default, and provider discovery is based
+on exported runtime types, so the absence of textual callers does not make
+deletion safe. `IndexerFactory.GetDefaultDefinitions` excludes obsolete types
+from the add schema, while `ProviderFactory.RemoveMissingImplementations`
+deletes a stored row if its implementation disappears. The importer also
+rejects an implementation that is no longer exported. No conversion of
+existing native settings to Cardigann was proved, and no provider was removed.
+The removal, build-size comparison, and contract verification checkboxes stay
+open.
+
 ## Progress log
 
 | Date | Slice | Commit or PR | Result and evidence |
@@ -909,4 +951,5 @@ working implementation per supported provider framework.
 | 2026-10-29 | Whole-refresh SQL trace comparison | `97ec76b28` | [Same-fixture before/after statements, result rows, time, memory, and verification](#2026-10-29-whole-refresh-sql-count-and-row-comparison); no production rollout. |
 | 2026-10-29 | Shared UI inventory and library filter connector | `f01b20951` | [Duplication ranking, source reduction, and frontend verification](#2026-10-29-shared-ui-duplication-inventory-and-first-extraction); populated filter interaction remains open. |
 | 2026-10-29 | Activity filter connector extraction | `6c9af15a5` | [Five-view modal, error, and narrow-screen verification](#2026-10-29-activity-filter-connector-extraction); populated custom-filter behavior remains open. |
-| 2026-10-29 | Indexer pruning inventory, first pass | `ffdb9e065` | [Historical configuration and replacement evidence](#2026-10-29-indexer-pruning-inventory-first-pass); current configured list remains open; no provider removed. |
+| 2026-10-29 | Indexer pruning inventory, first pass | `ffdb9e065` | [Historical configuration and replacement evidence](#2026-10-29-indexer-pruning-inventory-first-pass); superseded by the live reconciliation below; no provider removed. |
+| 2026-10-29 | Live indexer reconciliation and candidate audit | Pending commit | [Read-only production counts, live Cardigann coverage, and dependency audit](#2026-10-29-live-indexer-reconciliation-and-candidate-audit); no provider removed. |
