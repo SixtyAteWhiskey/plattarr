@@ -160,9 +160,11 @@ support decision before any removal.
   - [x] Pin the audited definition and compare movie-term and IMDb requests,
     mocked form submission, and parsed fields from one synthetic result page;
     see the offline parity check below.
-  - [ ] Resolve the IMDb request and release-GUID differences, verify
-    authenticated site behavior, then wire and verify both conversion paths
-    before removal.
+  - [x] Prove an offline candidate definition restores the native IMDb request
+    and release GUID, with Cardigann parser support for an explicit GUID; see
+    the candidate parity slice below (`cbbb43e27`).
+  - [ ] Verify authenticated site behavior, ship a corrected definition, then
+    wire and verify both conversion paths before removal.
 - [ ] Remove only independently justified candidates in bounded changes;
   retain a working implementation for each supported provider framework.
 - [ ] Measure source/build/image or bundle savings and verify startup,
@@ -1077,6 +1079,35 @@ Release build with zero warnings and errors, 216 API tests, 78 Host tests
 (five skipped), and 46 selected Core tests. `git diff --check` passed. No
 production rollout occurred.
 
+## 2026-10-29 FunFile candidate definition parity
+
+The preceding offline comparison found two gaps: the audited Cardigann
+definition omitted `s_title=1` for IMDb searches and used the download URL
+as the release GUID, while native FunFile used the details URL. Commit
+`cbbb43e27` adds an optional `guid` result field to the Cardigann parser.
+Without that field, a definition still uses the download URL as its GUID.
+An explicit GUID takes precedence even when it appears before the download
+field, so existing definitions retain their behavior.
+
+The focused fixture changes the pinned definition in memory, setting
+`s_title` to `1` and adding a `guid` field derived from its already parsed
+details URL. On the same synthetic IMDb criteria, the candidate request now
+matches native path and query parameters. On the same synthetic HTML, the
+candidate GUID matches native FunFile's details URL while the download URL
+stays intact. This is a candidate proof, not a shipped definition update:
+the live definition still comes from Prowlarr's updating package. No saved
+row, importer, provider implementation, or production setting was switched.
+Source/build/image savings are zero; authenticated search, login, and other
+result layouts remain unverified.
+
+`FILTER='FullyQualifiedName~FunFileCardigannParityFixture|FullyQualifiedName~
+FunFileSettingsConverterFixture|FullyQualifiedName~FunFileRequestGeneratorFixture|
+FullyQualifiedName~IndexerServiceFixture|FullyQualifiedName~IndexersStageFixture|
+FullyQualifiedName~ModuleBoundaryFixture' tools/verify.sh` passed a
+nonincremental Release build with zero warnings and errors, 216 API tests,
+78 Host tests (five skipped), and 48 selected Core tests. `git diff --check`
+passed. No production rollout occurred.
+
 ## Progress log
 
 | Date | Slice | Commit or PR | Result and evidence |
@@ -1104,3 +1135,4 @@ production rollout occurred.
 | 2026-10-29 | FunFile retirement feasibility | `42a55d926` | [Native request gate, replacement gap, and backend verification](#2026-10-29-funfile-retirement-feasibility-check); retirement and savings remain open. |
 | 2026-10-29 | FunFile settings conversion shape | `7aa898d77` | [Stored-row and imported-source proof](#2026-10-29-funfile-settings-conversion-proof); runtime conversion and search parity remain open. |
 | 2026-10-29 | FunFile offline request/result parity | `aa7b1e196`, `d42b6964d` | [Pinned definition, request/login/result comparison and backend gate](#2026-10-29-funfile-offline-request-and-result-parity-check); authenticated parity and provider retirement remain open. |
+| 2026-10-29 | FunFile candidate definition parity | `cbbb43e27` | [Offline IMDb request and GUID candidate with parser support](#2026-10-29-funfile-candidate-definition-parity); shipped definition, authenticated parity, and retirement remain open. |
