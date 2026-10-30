@@ -154,6 +154,11 @@ support decision before any removal.
 - [ ] For FunFile, prove settings conversion for stored rows and upstream
   imports, then prove search and result behavior against the replacement
   before deleting the native implementation.
+  - [x] Prove the native-to-Cardigann settings shape with a database-backed
+    stored row and a disposable Prowlarr import row; see the conversion proof
+    below. This does not switch either runtime path.
+  - [ ] Compare authenticated login, search requests, and parsed results with
+    the replacement. Then wire and verify both conversion paths before removal.
 - [ ] Remove only independently justified candidates in bounded changes;
   retain a working implementation for each supported provider framework.
 - [ ] Measure source/build/image or bundle savings and verify startup,
@@ -999,6 +1004,37 @@ tools/verify.sh` passed a nonincremental Release build with zero warnings and
 errors, 216 API tests, 78 Host tests (five skipped), and 35 focused Core
 tests. No production rollout occurred.
 
+## 2026-10-29 FunFile settings conversion proof
+
+The target is a lossless settings shape for a future native-to-Cardigann
+conversion. A shared converter moves native `username` and `password` into
+Cardigann `extraFieldData` and sets `definitionFile` to `funfile`. It keeps the
+base URL, common indexer settings, and torrent settings. It rejects missing
+credentials or pre-existing Cardigann fields rather than silently dropping
+them. Synthetic credentials are used throughout.
+
+A database-backed fixture inserts a converted Cardigann row and reads it back
+with its definition ID, credentials, and minimum seeders intact. An upstream
+fixture first imports a FunFile row as native, then applies the same converter
+to the imported settings and checks the result. A separate fixture covers the
+full settings round trip, case-insensitive source keys, and rejected shapes.
+These tests prove that both sources can be converted by one rule. The startup
+migration and upstream importer have not been switched to Cardigann: doing so
+before request, login, and result parity is established could change behavior.
+The versioned definition uses `login.php` while the native implementation
+posts to `takelogin.php`, and their IMDb `s_title` flags differ. Those gaps
+remain part of the next parity slice. This proof changes no runtime path;
+before and after source/build/image savings are zero. No production data or
+provider configuration was used.
+
+Commit `7aa898d77` passed `FILTER='FullyQualifiedName~
+FunFileSettingsConverterFixture|FullyQualifiedName~FunFileRequestGeneratorFixture|
+FullyQualifiedName~IndexerServiceFixture|FullyQualifiedName~IndexersStageFixture|
+FullyQualifiedName~ModuleBoundaryFixture' tools/verify.sh`: nonincremental
+Release build with zero warnings and errors, 216 API tests, 78 Host tests
+(five skipped), and 42 selected Core tests. `git diff --check` passed. No
+production rollout occurred.
+
 ## Progress log
 
 | Date | Slice | Commit or PR | Result and evidence |
@@ -1024,3 +1060,4 @@ tests. No production rollout occurred.
 | 2026-10-29 | Live indexer reconciliation and candidate audit | `c9513b0cb` | [Read-only production counts, live Cardigann coverage, and dependency audit](#2026-10-29-live-indexer-reconciliation-and-candidate-audit); no provider removed. |
 | 2026-10-29 | Native indexer compatibility gate | `5c1a3690d` | [Startup and import regression proof](#2026-10-29-native-indexer-compatibility-gate); no provider removed or production rollout. |
 | 2026-10-29 | FunFile retirement feasibility | `42a55d926` | [Native request gate, replacement gap, and backend verification](#2026-10-29-funfile-retirement-feasibility-check); retirement and savings remain open. |
+| 2026-10-29 | FunFile settings conversion shape | `7aa898d77` | [Stored-row and imported-source proof](#2026-10-29-funfile-settings-conversion-proof); runtime conversion and search parity remain open. |
