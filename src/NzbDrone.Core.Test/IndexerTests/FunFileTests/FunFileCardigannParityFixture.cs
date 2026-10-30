@@ -130,6 +130,24 @@ namespace NzbDrone.Core.Test.IndexerTests.FunFileTests
         }
 
         [Test]
+        public void candidate_definition_should_match_native_imdb_request()
+        {
+            _definition.Search.Inputs["s_title"] = "1";
+            var criteria = new MovieSearchCriteria
+            {
+                SearchTerm = "Example Film",
+                ImdbId = "0076759",
+                Categories = new[] { NewznabStandardCategory.Movies.Id }
+            };
+
+            var native = _native.GetSearchRequests(criteria).GetAllTiers().Single().Single();
+            var cardigann = _cardigann.GetSearchRequests(criteria).GetAllTiers().Single().Single();
+
+            cardigann.Url.Path.Should().Be(native.Url.Path);
+            Query(cardigann).Should().BeEquivalentTo(Query(native));
+        }
+
+        [Test]
         public async Task should_post_the_form_action_after_loading_the_login_page()
         {
             var requests = new List<HttpRequest>();
@@ -195,6 +213,33 @@ namespace NzbDrone.Core.Test.IndexerTests.FunFileTests
             cardigann.Genres.Should().BeEquivalentTo(native.Genres);
             cardigann.Description.Should().Be(native.Description);
             cardigann.PublishDate.Should().BeCloseTo(native.PublishDate, TimeSpan.FromSeconds(2));
+        }
+
+        [Test]
+        public void candidate_definition_should_preserve_native_release_guid()
+        {
+            _definition.Search.Fields.Add("guid", new SelectorBlock { Text = "{{ .Result.details }}" });
+
+            var criteria = new MovieSearchCriteria
+            {
+                SearchTerm = "Example Film",
+                Categories = new[] { NewznabStandardCategory.Movies.Id }
+            };
+            var nativeRequest = _native.GetSearchRequests(criteria).GetAllTiers().Single().Single();
+            var cardigannRequest = _cardigann.GetSearchRequests(criteria).GetAllTiers().Single().Single();
+            var capabilities = new IndexerCapabilities();
+            capabilities.Categories.AddCategoryMapping(19, NewznabStandardCategory.Movies, "Movies");
+            var nativeParser = new FunFileParser(new UserPassTorrentBaseSettings { BaseUrl = BaseUrl }, capabilities.Categories);
+            var cardigannParser = new CardigannParser(Mocker.Resolve<IConfigService>(), _definition, TestLogger)
+            {
+                Settings = _settings
+            };
+
+            var native = (TorrentInfo)nativeParser.ParseResponse(Response(nativeRequest)).Single();
+            var cardigann = (TorrentInfo)cardigannParser.ParseResponse(Response(cardigannRequest)).Single();
+
+            cardigann.Guid.Should().Be(native.Guid);
+            cardigann.DownloadUrl.Should().Be(native.DownloadUrl);
         }
     }
 }
