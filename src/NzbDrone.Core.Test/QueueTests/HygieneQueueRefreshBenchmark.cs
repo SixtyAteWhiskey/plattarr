@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data.SQLite;
 using System.Diagnostics;
 using System.Linq;
 using Dapper;
@@ -34,6 +35,18 @@ namespace NzbDrone.Core.Test.QueueTests
             {
                 Assert.Ignore("This benchmark fixes SQLite as its database engine.");
             }
+
+            var sourceDatabase = Mocker.Resolve<IDatabase>();
+            var sqlTrace = new SqlTraceCapture();
+            var tracedDatabase = new Database("Hygiene benchmark", () =>
+            {
+                var connection = (SQLiteConnection)sourceDatabase.OpenConnection();
+                connection.TraceFlags = SQLiteTraceFlags.SQLITE_TRACE_STMT | SQLiteTraceFlags.SQLITE_TRACE_ROW;
+                connection.Trace2 += sqlTrace.OnTrace;
+                return connection;
+            });
+            Mocker.SetConstant<IDatabase>(tracedDatabase);
+            Mocker.SetConstant<IMainDatabase>(new MainDatabase(tracedDatabase));
 
             var states = Mocker.Resolve<HygieneQueueStateRepository>();
             var actions = Mocker.Resolve<HygieneActionRepository>();
@@ -82,7 +95,9 @@ namespace NzbDrone.Core.Test.QueueTests
                 // Warm the service/JIT path before filling the history and timing writes.
                 queueService.Handle(new TrackedDownloadRefreshedEvent(new List<TrackedDownload>()));
                 Seed(historySize);
+                sqlTrace.Start();
                 var first = Measure(queueService, downloads, timedStrikes, timedActions);
+                var firstSql = sqlTrace.Stop();
                 var steady = new List<(double ElapsedMs, double StrikesMs, double ActionsMs, long AllocatedBytes, long RssBytes)>();
                 for (var repeat = 0; repeat < 5; repeat++)
                 {
@@ -98,7 +113,7 @@ namespace NzbDrone.Core.Test.QueueTests
                 completedRecovery.Should().Be(1);
                 queueService.GetQueue().Should().HaveCount(QueueSize);
 
-                TestContext.Progress.WriteLine($"history={historySize} queue={QueueSize} first_ms={first.ElapsedMs:F3} first_strikes_ms={first.StrikesMs:F3} first_actions_ms={first.ActionsMs:F3} first_alloc_bytes={first.AllocatedBytes} first_rss_delta_bytes={first.RssBytes} " +
+                TestContext.Progress.WriteLine($"history={historySize} queue={QueueSize} first_ms={first.ElapsedMs:F3} first_strikes_ms={first.StrikesMs:F3} first_actions_ms={first.ActionsMs:F3} first_alloc_bytes={first.AllocatedBytes} first_rss_delta_bytes={first.RssBytes} first_sql_statements={firstSql.Statements} first_sql_rows={firstSql.Rows} " +
                     $"steady_median_ms={Median(steady.Select(x => x.ElapsedMs)) :F3} steady_range_ms={steady.Min(x => x.ElapsedMs):F3}-{steady.Max(x => x.ElapsedMs):F3} " +
                     $"steady_strikes_ms={Median(steady.Select(x => x.StrikesMs)):F3} steady_actions_ms={Median(steady.Select(x => x.ActionsMs)):F3} " +
                     $"steady_median_alloc_bytes={Median(steady.Select(x => (double)x.AllocatedBytes)):F0} steady_rss_delta_bytes={steady.Sum(x => x.RssBytes)} " +
@@ -194,6 +209,44 @@ namespace NzbDrone.Core.Test.QueueTests
         {
             var ordered = values.OrderBy(x => x).ToArray();
             return ordered[ordered.Length / 2];
+        }
+
+        private sealed class SqlTraceCapture
+        {
+            private bool _enabled;
+            private int _statements;
+            private int _rows;
+
+            public void Start()
+            {
+                _statements = 0;
+                _rows = 0;
+                _enabled = true;
+            }
+
+            public (int Statements, int Rows) Stop()
+            {
+                _enabled = false;
+                return (_statements, _rows);
+            }
+
+            public void OnTrace(object sender, TraceEventArgs args)
+            {
+                if (!_enabled)
+                {
+                    return;
+                }
+
+                if ((args.Flags & SQLiteTraceFlags.SQLITE_TRACE_STMT) != 0)
+                {
+                    _statements++;
+                }
+
+                if ((args.Flags & SQLiteTraceFlags.SQLITE_TRACE_ROW) != 0)
+                {
+                    _rows++;
+                }
+            }
         }
     }
 }
