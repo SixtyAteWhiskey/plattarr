@@ -166,6 +166,9 @@ support decision before any removal.
   - [x] Compare the corrected candidate's TV term/episode and IMDb, music,
     book, and basic search requests with the native provider using its full
     category map; see the expanded parity slice below (`7242d9a0e`).
+  - [x] Put the corrected candidate in a standalone test definition and
+    verify the supported request modes, release GUID, and current public
+    login-form shape; see the candidate delivery check below (`a0ee8ae14`).
   - [ ] Verify authenticated site behavior, ship a corrected definition, then
     wire and verify both conversion paths before removal.
 - [ ] Remove only independently justified candidates in bounded changes;
@@ -1136,6 +1139,41 @@ nonincremental Release build with zero warnings and errors, 216 API tests,
 78 Host tests (five skipped), and 49 selected Core tests. `git diff --check`
 passed. No production rollout occurred.
 
+## 2026-10-29 FunFile candidate delivery check
+
+Commit `a0ee8ae14` puts the corrected FunFile YAML in a standalone test asset.
+It differs from the pinned upstream definition only by setting `s_title` to
+`1` for IMDb searches and using the parsed details URL as `guid`. The parity
+fixture now loads that file instead of changing a definition object in memory.
+The existing movie, TV, music, book, basic-search, and result-identity checks
+therefore exercise the candidate file. The public login form checked on
+2026-10-29 posts to `https://www.funfile.org/takelogin.php` and has username,
+password, return-to, and submit fields; the mock login fixture now uses that
+form shape. The page also loads a reCAPTCHA script. This public-page check
+cannot prove that an authenticated login or search succeeds, or whether a
+challenge appears during login. No test account was available.
+
+The current [upstream v11 definition](https://github.com/Prowlarr/Indexers/blob/master/definitions/v11/funfile.yml)
+still matches the pinned file byte for byte (SHA-256
+`96d57562b70fe227e9f9d69d288408619270951a80a706723b40c8363945898f`).
+The [upstream v11 schema](https://github.com/Prowlarr/Indexers/blob/master/definitions/v11/schema.json)
+does not allow `guid` in search fields. Its field-name pattern lists
+`details` and `download` but not `guid`. Definition delivery therefore needs
+schema support or another compatible way to preserve release identity before
+the corrected YAML can be shipped through the upstream feed. This test-only
+slice changes no runtime provider, stored row, import path, or production
+output; source/build/image savings are zero. Authenticated behavior, schema
+compatibility, definition delivery, conversion, and native removal stay open.
+
+`FILTER='FullyQualifiedName~FunFileCardigannParityFixture|FullyQualifiedName~
+FunFileSettingsConverterFixture|FullyQualifiedName~FunFileRequestGeneratorFixture|
+FullyQualifiedName~IndexerServiceFixture|FullyQualifiedName~IndexersStageFixture|
+FullyQualifiedName~ModuleBoundaryFixture' tools/verify.sh` passed a
+nonincremental Release build with zero warnings and errors, 216 API tests,
+78 Host tests (five skipped), and 49 selected Core tests. A later focused
+rebuild and run passed all seven FunFile parity tests. `git diff --check`
+passed. No production rollout occurred.
+
 ## Progress log
 
 | Date | Slice | Commit or PR | Result and evidence |
@@ -1165,3 +1203,4 @@ passed. No production rollout occurred.
 | 2026-10-29 | FunFile offline request/result parity | `aa7b1e196`, `d42b6964d` | [Pinned definition, request/login/result comparison and backend gate](#2026-10-29-funfile-offline-request-and-result-parity-check); authenticated parity and provider retirement remain open. |
 | 2026-10-29 | FunFile candidate definition parity | `cbbb43e27` | [Offline IMDb request and GUID candidate with parser support](#2026-10-29-funfile-candidate-definition-parity); shipped definition, authenticated parity, and retirement remain open. |
 | 2026-10-29 | FunFile expanded offline search parity | `7242d9a0e` | [TV, music, book, and basic request comparison with the complete native category map](#2026-10-29-funfile-expanded-offline-search-parity); authenticated parity and retirement remain open. |
+| 2026-10-29 | FunFile candidate file and public login form | `a0ee8ae14` | [Standalone corrected YAML, public form observation, and upstream schema limit](#2026-10-29-funfile-candidate-delivery-check); authenticated parity and retirement remain open. |
