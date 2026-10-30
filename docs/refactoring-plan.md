@@ -112,12 +112,14 @@ Consolidate repeated UI or workflow code only where the behavior is genuinely
 shared. Prefer a small common component or helper with explicit media-kind
 inputs over a generic framework that hides the differences among modules.
 
-- [ ] Inventory repeated filter dialogs, form controls, queue/activity
+- [x] Inventory repeated filter dialogs, form controls, queue/activity
   presentation, and manual-import UI. Rank candidates by repeated logic,
-  change frequency, and defect risk; file length alone is not a reason.
-- [ ] Extract one pattern at a time and remove the old copies in the same
+  change frequency, and defect risk; file length alone is not a reason. See
+  the dated inventory below (`f01b20951`).
+- [x] Extract one pattern at a time and remove the old copies in the same
   change. Keep module-specific parsing, naming, quality, and import rules in
-  their owning modules.
+  their owning modules. The first library filter connector pattern is complete
+  (`f01b20951`); remaining candidates are listed below.
 - [ ] Keep the architecture allowlist shrinking or unchanged. Verify behavior
   for all affected media kinds, including empty, error, and narrow-screen
   states where the UI is involved.
@@ -793,6 +795,34 @@ The broad Core suite stopped making progress and was canceled after about
 five minutes, consistent with the earlier local stall. No production rollout
 occurred.
 
+## 2026-10-29 shared UI duplication inventory and first extraction
+
+The inventory compared repeated behavior, recent changes, and the risk of
+merging media-specific workflows. The order below is for future bounded
+slices, not a plan to collapse every similar-looking component.
+
+| Rank | Candidate | Repeated logic and change evidence | Defect risk / decision |
+| --- | --- | --- | --- |
+| 1 | Library index filter connectors | Movie, Series, and Artist each repeated identity selectors, filter action dispatch, and `FilterModal` props across 166 lines. The three files had two commits in the preceding 30 days before this slice. | Low: the same `FilterModal` already owns the UI. Extracted only the connector wiring. |
+| 2 | Activity filter connectors | History and Blocklist have five near-identical Movie/TV/Music connectors spanning 272 lines; their paths had two commits in the preceding 30 days. | Moderate: preserve each store slice, action, and custom-filter type when extracting. |
+| 3 | Queue and activity presentation | Queue status/row and History/Blocklist rows have shared status and row presentation concerns; the four sampled paths had five commits in the preceding 30 days. | Moderate to high: event and queue meanings differ. Inventory specific shared branches before extracting. |
+| 4 | Form controls | `FormInputGroup` already centralizes the primitive. Media Management and its naming form had four commits across the two sampled paths in 30 days. | No new extraction yet: repeated usage of a shared primitive is not duplicated behavior. |
+| 5 | Manual import | Movie, TV, and Music interactive import rows each own media-specific selection and validation; three sampled paths had two commits in 30 days. | High: first isolate a proven common behavior without moving parsing, naming, quality, or import rules. |
+
+The first slice replaces the three library index connectors with one shared
+connector helper and explicit per-module selectors, filter action, and custom
+filter type. The target was maintenance duplication, not runtime speed: the
+same three files plus their shared helper fell from 166 to 78 source lines
+(−88, −53%) on the same checkout. Their former identity `reselect` wrappers
+did not transform data. No backend file or architecture allowlist entry
+changed. The production webpack build reported zero errors and warnings;
+frontend typecheck, lint, stylelint, and `git diff --check` passed. A disposable
+Release browser check rendered 22 routes at 1440 and 480 pixels (44 checks)
+with no error page, runtime exception, stuck loading state, or document
+overflow, including the three library routes. The empty fixture disables
+their Filter buttons, so populated-library filter interaction and explicit
+error-state acceptance remain open. No production rollout occurred.
+
 ## Progress log
 
 | Date | Slice | Commit or PR | Result and evidence |
@@ -812,3 +842,4 @@ occurred.
 | 2026-10-29 | Frontend route acceptance and timing comparison | `4a88e6123` | [Browser timings and 44-route acceptance](#2026-10-29-frontend-route-acceptance-and-timing-comparison); no production rollout. |
 | 2026-10-29 | Hygiene preview/executor parity proof | `dfec5dca4` | [Same-snapshot candidate and rule-change verification](#2026-10-29-hygiene-preview-and-executor-parity-proof); no production rollout. |
 | 2026-10-29 | Whole-refresh SQL trace comparison | `97ec76b28` | [Same-fixture before/after statements, result rows, time, memory, and verification](#2026-10-29-whole-refresh-sql-count-and-row-comparison); no production rollout. |
+| 2026-10-29 | Shared UI inventory and library filter connector | `f01b20951` | [Duplication ranking, source reduction, and frontend verification](#2026-10-29-shared-ui-duplication-inventory-and-first-extraction); populated filter interaction remains open. |
