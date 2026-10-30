@@ -118,11 +118,12 @@ inputs over a generic framework that hides the differences among modules.
   the dated inventory below (`f01b20951`).
 - [x] Extract one pattern at a time and remove the old copies in the same
   change. Keep module-specific parsing, naming, quality, and import rules in
-  their owning modules. The first library filter connector pattern is complete
-  (`f01b20951`); remaining candidates are listed below.
-- [ ] Keep the architecture allowlist shrinking or unchanged. Verify behavior
+  their owning modules. The library and Activity filter connector patterns are
+  complete (`f01b20951`, `6c9af15a5`); other candidates are listed below.
+- [x] Keep the architecture allowlist shrinking or unchanged. Verify behavior
   for all affected media kinds, including empty, error, and narrow-screen
-  states where the UI is involved.
+  states where the UI is involved. The Activity slice passed all five affected
+  views at both widths and their API-error states; see below.
 
 ## 4. Prune unused surface area with evidence
 
@@ -823,6 +824,27 @@ overflow, including the three library routes. The empty fixture disables
 their Filter buttons, so populated-library filter interaction and explicit
 error-state acceptance remain open. No production rollout occurred.
 
+## 2026-10-29 Activity filter connector extraction
+
+The five Movie, TV, and Music History and Movie and TV Blocklist filter modal
+connectors repeated identity selectors, filter dispatch, and modal props. Each
+now supplies its own store selectors, filter action, and custom-filter type to
+the existing shared connector. Music Blocklist has no custom-filter connector
+to replace. This is a maintenance slice; the five wrappers fell from 272 to
+55 source lines (−217, −80%) on the same checkout. No backend file or module
+boundary allowlist entry changed.
+
+Frontend typecheck, lint, stylelint, a production webpack build, and `git diff
+--check` passed. The existing disposable Release browser gate passed 44 route
+checks at 1440 and 480 pixels with no error page, runtime exception, stuck
+loading state, or document overflow. A focused disposable browser pass switched
+among all five affected Activity views at both widths, opened each Custom
+Filter modal, and found no runtime exception or document overflow. Blocking
+each view's History or Blocklist API request produced the expected load-error
+alert in all five views, without an error page. The fixture was empty, so
+populated custom-filter save and result filtering were not exercised. No
+production rollout occurred.
+
 ## Progress log
 
 | Date | Slice | Commit or PR | Result and evidence |
@@ -843,3 +865,4 @@ error-state acceptance remain open. No production rollout occurred.
 | 2026-10-29 | Hygiene preview/executor parity proof | `dfec5dca4` | [Same-snapshot candidate and rule-change verification](#2026-10-29-hygiene-preview-and-executor-parity-proof); no production rollout. |
 | 2026-10-29 | Whole-refresh SQL trace comparison | `97ec76b28` | [Same-fixture before/after statements, result rows, time, memory, and verification](#2026-10-29-whole-refresh-sql-count-and-row-comparison); no production rollout. |
 | 2026-10-29 | Shared UI inventory and library filter connector | `f01b20951` | [Duplication ranking, source reduction, and frontend verification](#2026-10-29-shared-ui-duplication-inventory-and-first-extraction); populated filter interaction remains open. |
+| 2026-10-29 | Activity filter connector extraction | `6c9af15a5` | [Five-view modal, error, and narrow-screen verification](#2026-10-29-activity-filter-connector-extraction); populated custom-filter behavior remains open. |
