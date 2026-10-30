@@ -125,7 +125,7 @@ namespace NzbDrone.Core.Test.MusicTests.MediaFiles
         }
 
         [Test]
-        public void should_include_the_reason_when_the_import_fails()
+        public void should_explain_file_operation_failures_without_exposing_paths()
         {
             Mocker.GetMock<IUpgradeMediaFiles>()
                   .Setup(s => s.UpgradeTrackFile(It.IsAny<TrackFile>(), It.IsAny<LocalTrack>(), It.IsAny<bool>()))
@@ -134,11 +134,11 @@ namespace NzbDrone.Core.Test.MusicTests.MediaFiles
             var result = Subject.Import(new List<ImportDecision<LocalTrack>> { _approvedDecisions.First() }, true).Single();
 
             result.Result.Should().Be(ImportResultType.Skipped);
-            result.Errors.Should().Equal("Failed to import track: Read-only file system : '/data/Importing/01 - Pilot.flac'");
+            result.Errors.Should().Equal("Failed to import track: A file operation failed. Check available space, mounts, and whether another process is using the file.");
         }
 
         [Test]
-        public void should_include_the_reason_when_access_to_the_path_is_denied()
+        public void should_explain_access_failures_without_exposing_paths()
         {
             Mocker.GetMock<IUpgradeMediaFiles>()
                   .Setup(s => s.UpgradeTrackFile(It.IsAny<TrackFile>(), It.IsAny<LocalTrack>(), It.IsAny<bool>()))
@@ -146,7 +146,7 @@ namespace NzbDrone.Core.Test.MusicTests.MediaFiles
 
             var result = Subject.Import(new List<ImportDecision<LocalTrack>> { _approvedDecisions.First() }, true).Single();
 
-            result.Errors.Should().Equal("Failed to import track, Permissions error: Access to the path '/data/Importing' is denied.");
+            result.Errors.Should().Equal("Failed to import track: File access was denied. Check read and write permissions for the download and library locations.");
         }
 
         [Test]
