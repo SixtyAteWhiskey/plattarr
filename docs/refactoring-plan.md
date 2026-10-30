@@ -135,6 +135,11 @@ support decision before any removal.
 
 - [ ] Inventory configured indexers and compare native definitions with
   Cardigann coverage; document the replacement path for each candidate.
+  - [x] Reconcile the documented 2026-10-25 owner snapshot with native
+    implementations and the upstream definition tree; see the inventory below.
+  - [ ] Recheck the current configured indexer names, implementation types, and
+    Cardigann definition IDs before identifying removable candidates. The
+    historical snapshot does not establish current use.
 - [ ] Check whether a candidate is referenced by migrations, imports, tests,
   generated API resources, or active build and packaging paths.
 - [ ] Remove only independently justified candidates in bounded changes;
@@ -845,6 +850,44 @@ alert in all five views, without an error page. The fixture was empty, so
 populated custom-filter save and result filtering were not exercised. No
 production rollout occurred.
 
+## 2026-10-29 indexer pruning inventory, first pass
+
+The last documented owner Prowlarr snapshot (2026-10-25) had 17 configured
+indexers: 15 Cardigann, one Knaben, and one SubsPlease. Its Cardigann IDs were
+not recorded individually; one was a custom definition,
+`torrentdownload-server01`. The snapshot also matched 13 Radarr indexers to
+Prowlarr. It is historical evidence, not a current configuration export. No
+Prowlarr database or running instance was available in this workspace for a
+fresh read. See [the importer evidence](importer.md#prowlarr-row-counts).
+
+The checked-in native-definition directory has 144 tracked files, totaling
+1,462,513 source bytes before build; that is an inventory size, not a projected
+binary or image saving. The [upstream Prowlarr definition tree at
+`5f5db4e58d06be18619c3a858b9a91ade6f341ca`](https://api.github.com/repos/Prowlarr/Indexers/git/trees/5f5db4e58d06be18619c3a858b9a91ade6f341ca?recursive=1)
+contains 580 versioned indexer YAML definitions (579 under `v11`, one under
+`v12`) and no `knaben.yml` or `subsplease.yml`.
+Plattarr requests version 12 definitions and filters an explicit blocklist of
+definitions moved to C#. A matching YAML name alone would therefore not prove
+an available replacement in Plattarr; the definition must be served at the
+requested version, pass the blocklist, and support the configured workflow.
+
+| Configured provider in historical snapshot | Current replacement evidence | Decision for this slice |
+| --- | --- | --- |
+| 15 Cardigann entries | Already use the Cardigann implementation. The custom definition needs copying into `Definitions/Custom` when importing. Their IDs and current availability still need checking. | Keep the implementation and definition loader. |
+| Knaben | Native C# provider; no same-name upstream YAML in the checked tree. It is also used in documented Movie, TV, and Music acceptance. | Retain; no verified Cardigann replacement. |
+| SubsPlease | Native C# provider; no same-name upstream YAML in the checked tree. | Retain; no verified Cardigann replacement. |
+
+Removing either native type would affect existing rows: provider startup
+deletes stored definitions whose implementation is missing, and the upstream
+importer marks a source indexer with an unavailable implementation as
+`UNKNOWN_PROVIDER`. The Knaben import fixture explicitly exercises its type.
+No native provider was removed, no runtime metric changed, and no production
+rollout occurred. Before a removal slice, compare a sanitized current list
+(name, implementation, definition ID only) with the native type list and the
+definitions Plattarr actually loads, then inspect that candidate's migrations,
+imports, tests, generated resources, and packaging paths. Keep at least one
+working implementation per supported provider framework.
+
 ## Progress log
 
 | Date | Slice | Commit or PR | Result and evidence |
@@ -866,3 +909,4 @@ production rollout occurred.
 | 2026-10-29 | Whole-refresh SQL trace comparison | `97ec76b28` | [Same-fixture before/after statements, result rows, time, memory, and verification](#2026-10-29-whole-refresh-sql-count-and-row-comparison); no production rollout. |
 | 2026-10-29 | Shared UI inventory and library filter connector | `f01b20951` | [Duplication ranking, source reduction, and frontend verification](#2026-10-29-shared-ui-duplication-inventory-and-first-extraction); populated filter interaction remains open. |
 | 2026-10-29 | Activity filter connector extraction | `6c9af15a5` | [Five-view modal, error, and narrow-screen verification](#2026-10-29-activity-filter-connector-extraction); populated custom-filter behavior remains open. |
+| 2026-10-29 | Indexer pruning inventory, first pass | Pending commit | [Historical configuration and replacement evidence](#2026-10-29-indexer-pruning-inventory-first-pass); current configured list remains open; no provider removed. |
