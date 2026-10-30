@@ -46,12 +46,6 @@ interface SidebarItem {
 
 const LINKS: SidebarItem[] = [
   {
-    iconName: icons.INFO,
-    title: () => translate('GettingStarted'),
-    to: '/getting-started',
-  },
-
-  {
     iconName: icons.MOVIE_CONTINUING,
     title: () => translate('Movies'),
     to: '/',
@@ -173,6 +167,12 @@ const LINKS: SidebarItem[] = [
     to: '/system',
     statusComponent: HealthStatus,
   },
+
+  {
+    iconName: icons.INFO,
+    title: () => translate('GettingStarted'),
+    to: '/getting-started',
+  },
 ];
 
 function hasActiveChildLink(link: SidebarItem, pathname: string) {
@@ -245,7 +245,7 @@ function PageSidebar({ isSidebarVisible, isSmallScreen }: PageSidebarProps) {
         }
 
         return false;
-      })?.to ?? LINKS[0].to
+      })?.to ?? '/getting-started'
     );
   }, [pathname]);
 
