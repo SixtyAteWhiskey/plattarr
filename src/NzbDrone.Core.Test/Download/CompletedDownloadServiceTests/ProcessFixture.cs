@@ -4,6 +4,7 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
+using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Modules;
@@ -152,6 +153,24 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
             Subject.Check(_trackedDownload);
 
             AssertNotReadyToImport();
+            _trackedDownload.Status.Should().Be(TrackedDownloadStatus.Warning);
+            _trackedDownload.StatusMessages.Should().ContainSingle().Which.Messages.Should().ContainSingle()
+                .Which.Should().Be("No download location is available for this completed item, so automatic import cannot continue. Check the download client's completed-download location and path mappings.");
+        }
+
+        [Test]
+        public void should_explain_invalid_local_path_without_exposing_it()
+        {
+            var privatePath = OsInfo.IsWindows ? "/private/download" : @"C:\private\download";
+            _trackedDownload.DownloadItem.OutputPath = new OsPath(privatePath);
+
+            Subject.Check(_trackedDownload);
+
+            AssertNotReadyToImport();
+            _trackedDownload.Status.Should().Be(TrackedDownloadStatus.Warning);
+            _trackedDownload.StatusMessages.Should().ContainSingle().Which.Messages.Should().ContainSingle()
+                .Which.Should().Be("The download location is not a valid path for this system, so automatic import cannot continue. Check the download client's location and configure a Remote Path Mapping if the client uses a different path.")
+                .And.NotContain(privatePath);
         }
 
         [Test]
