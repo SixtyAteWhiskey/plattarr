@@ -43,7 +43,7 @@ build; do not compare it with production output.
 - [x] Compare the queue-refresh SQL read sequence with small and larger
   synthetic action/state histories, counting queries and materialized rows;
   see the dated read-path profile below.
-- [ ] Profile an actual `QueueService.Handle` refresh with the same fixture
+- [x] Profile an actual `QueueService.Handle` refresh with the same fixture
   sizes, including writes, recovery, .NET memory, and total elapsed time.
 - [x] Record the baseline in a dated section of this document and choose the
   first bounded implementation slice from the measured results.
@@ -75,11 +75,12 @@ measured before changing them.
 tracked-download refresh. Earlier slices bounded the queue-state and action
 reads; the journal's recent-entry read serves a separate API. The action
 journal is currently small, so this is a scalability candidate rather than a
-proven production bottleneck.
+proven production bottleneck. The whole-refresh synthetic profile below
+identifies retention deletes as the larger cold-refresh cost at scale.
 
 - [x] Profile the SQL read sequence and inspect the existing database indexes
   and query plans; see the dated read-path profile below.
-- [ ] Measure an actual queue refresh with synthetic histories before making
+- [x] Measure an actual queue refresh with synthetic histories before making
   another repository change based on whole-refresh performance.
 - [x] Replace one full-table read at a time with a bounded query where the
   profile shows useful savings. Consider recent actions, unfinished actions,
@@ -577,6 +578,52 @@ and queue/event overhead. PostgreSQL was not profiled. The actual refresh
 comparison and recovery/preview proof remain open in section 2. No runtime
 code or production state changed.
 
+## 2026-10-29 actual Hygiene queue-refresh profile
+
+`HygieneQueueRefreshBenchmark` calls the real `QueueService.Handle`, strike
+observer, action processor, and SQLite repositories in the migrated Core test
+database. The disposable fixture has 20 tracked, healthy Movie downloads and
+100, 10,000, or 100,000 queue-state rows and the same number of action rows.
+Current queue states are stale enough to cause 20 updates. One percent of the
+non-current states are over 30 days old and are deleted on the first refresh:
+zero, 99, or 999 rows. One action is recoverable at the
+`replacement-requested` checkpoint; it completes without a matching tracked
+download. Up to one in 1,000 other actions is failed with a future retry time,
+so the recovery read sees them without calling a download client. The global
+action gate is on, but healthy queue items cannot trigger cleanup.
+
+The command was `. tools/env.sh && dotnet test
+src/NzbDrone.Core.Test/Radarr.Core.Test.csproj -c Release --no-restore
+--filter FullyQualifiedName~HygieneQueueRefreshBenchmark --logger
+'console;verbosity=normal'`. The explicit, nonparallel fixture warmed the
+empty service path, seeded each history, then timed the first refresh and five
+subsequent refreshes in the same process. It recorded elapsed time for the
+whole handler and both Hygiene phases, process-wide .NET allocated bytes, and
+working-set RSS deltas. The timed region excludes fixture seeding and final
+database assertions. The three cases passed, including the exact state count,
+action count, one completed recovery, and 20 queue entries.
+
+| Rows in each history | First refresh ms (strikes / actions) | First .NET allocated / RSS growth | Steady median ms (range; strikes / actions) | Steady median .NET allocated |
+| ---: | ---: | ---: | ---: | ---: |
+| 100 | 94.744 (80.647 / 7.948) | 1,169,560 / 6,164,480 bytes | 1.544 (1.520–2.260; 0.748 / 0.742) | 281,408 bytes |
+| 10,000 | 349.425 (343.225 / 6.009) | 2,620,784 / 5,697,536 bytes | 3.344 (3.235–3.728; 1.733 / 1.493) | 293,144 bytes |
+| 100,000 | 2,772.854 (2,754.633 / 17.997) | 17,269,856 / 9,580,544 bytes | 22.333 (21.605–27.843; 11.413 / 10.971) | 416,976 bytes |
+
+The large first-refresh cost is in strike observation, which deletes expired
+states one by one through the repository. The 100,000-row case removed 999
+states and spent about 2.75 seconds in that phase. On later refreshes, those
+states are gone and the 20 current states no longer need a write within one
+minute; the whole handler's median was about 22 ms. The 100-row first result
+still contains some cold repository and SQLite work despite the empty-path
+warmup. RSS is a process working-set delta and is sensitive to allocation and
+GC history across cases; it is not retained .NET heap. No download-client
+call, replacement search, PostgreSQL run, production data, or direct SQL query
+counter was included. The earlier SQL read-path profile supplies the read
+comparison; a same-fixture before/after implementation comparison remains open.
+The next bounded change should address per-row retention deletion, with a
+separate recovery and preview/execution proof before treating it as safe.
+No runtime code or production state changed.
+
 ## Progress log
 
 | Date | Slice | Commit or PR | Result and evidence |
@@ -591,3 +638,4 @@ code or production state changed.
 | 2026-10-29 | Hygiene strike observation state reads | `740367330` | [Synthetic query comparison and focused verification](#2026-10-29-hygiene-strike-observation-state-reads); broad Core gate remains open; no production rollout. |
 | 2026-10-29 | Bounded Hygiene journal read | `19cdbfa10` | [Synthetic read comparison and focused verification](#2026-10-29-bounded-hygiene-journal-read); broad Core gate remains open; no production rollout. |
 | 2026-10-29 | Queue-refresh SQL read-path profile | `8c21ed4b6` | [Synthetic combined read comparison](#2026-10-29-queue-refresh-sql-read-path-profile); actual refresh profile remains open. |
+| 2026-10-29 | Actual Hygiene queue-refresh profile | `67605605d` | [Real-service SQLite timings and recovery proof](#2026-10-29-actual-hygiene-queue-refresh-profile); no production rollout. |
