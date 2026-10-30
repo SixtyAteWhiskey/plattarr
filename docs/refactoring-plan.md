@@ -142,6 +142,10 @@ support decision before any removal.
 - [x] Check whether a candidate is referenced by migrations, imports, tests,
   generated API resources, or active build and packaging paths. The five
   same-ID candidates and their runtime discovery behavior are audited below.
+- [x] Lock the existing native-row startup and import behavior in focused
+  regression tests before retiring a same-ID provider. All five candidates
+  still import as native implementations, and an obsolete stored row survives
+  startup; see the compatibility gate below (`5c1a3690d`).
 - [ ] Remove only independently justified candidates in bounded changes;
   retain a working implementation for each supported provider framework.
 - [ ] Measure source/build/image or bundle savings and verify startup,
@@ -930,6 +934,33 @@ existing native settings to Cardigann was proved, and no provider was removed.
 The removal, build-size comparison, and contract verification checkboxes stay
 open.
 
+## 2026-10-29 native indexer compatibility gate
+
+The target is stored-provider and import continuity during future pruning.
+The baseline code deletes a stored row at startup when its native
+implementation is absent, and the upstream importer skips a source row with
+an unknown implementation. The preceding live inventory found five
+unconfigured native candidates with same-ID Cardigann definitions, but a
+definition ID does not convert their stored settings or prove equivalent
+search behavior.
+
+Commit `5c1a3690d` adds a database-backed startup test that retains one
+stored, obsolete CGPeers row when its native implementation is available.
+Five import cases cover CGPeers, FunFile, HDSpace, HDTorrents, and PornoLab
+using their native implementation and settings-contract names. The existing
+missing-implementation startup case still verifies that an unknown row is
+deleted. This test-only slice changes no production code or build output;
+source and image savings are zero. It is a guard against an unproved deletion,
+not a provider migration or a Cardigann parity proof.
+
+The focused Core fixtures passed 29 tests. `FILTER='FullyQualifiedName~IndexerServiceFixture|FullyQualifiedName~IndexersStageFixture|FullyQualifiedName~ModuleBoundaryFixture'
+tools/verify.sh` passed a nonincremental Release solution build with zero
+warnings and errors, 216 API tests, 78 Host tests (five skipped), and 33
+focused Core tests. `git diff --check` passed. No production instance or
+provider configuration was changed. The removal and savings checkboxes stay
+open until settings conversion, search behavior, and affected contracts are
+proved for an individual candidate.
+
 ## Progress log
 
 | Date | Slice | Commit or PR | Result and evidence |
@@ -953,3 +984,4 @@ open.
 | 2026-10-29 | Activity filter connector extraction | `6c9af15a5` | [Five-view modal, error, and narrow-screen verification](#2026-10-29-activity-filter-connector-extraction); populated custom-filter behavior remains open. |
 | 2026-10-29 | Indexer pruning inventory, first pass | `ffdb9e065` | [Historical configuration and replacement evidence](#2026-10-29-indexer-pruning-inventory-first-pass); superseded by the live reconciliation below; no provider removed. |
 | 2026-10-29 | Live indexer reconciliation and candidate audit | `c9513b0cb` | [Read-only production counts, live Cardigann coverage, and dependency audit](#2026-10-29-live-indexer-reconciliation-and-candidate-audit); no provider removed. |
+| 2026-10-29 | Native indexer compatibility gate | `5c1a3690d` | [Startup and import regression proof](#2026-10-29-native-indexer-compatibility-gate); no provider removed or production rollout. |
