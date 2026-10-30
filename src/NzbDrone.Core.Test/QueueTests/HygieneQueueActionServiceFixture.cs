@@ -27,6 +27,96 @@ namespace NzbDrone.Core.Test.QueueTests
     [TestFixture]
     public class HygieneQueueActionServiceFixture : CoreTest
     {
+        [Test]
+        public void preview_candidates_match_new_actions_for_the_same_queue_snapshot()
+        {
+            var context = new ActionContext(MediaKind.Movies, true);
+            context.QueueItem.RemoteRelease = new NzbDrone.Core.Movies.Parser.Model.RemoteMovie();
+            var belowLimit = new QueueItem
+            {
+                Id = 13,
+                DownloadClientId = 4,
+                DownloadId = "below-limit",
+                Status = QueueStatus.Failed,
+                RemoteRelease = new NzbDrone.Core.Movies.Parser.Model.RemoteMovie()
+            };
+            var privateTorrent = new QueueItem
+            {
+                Id = 14,
+                DownloadClientId = 4,
+                DownloadId = "private-torrent",
+                Status = QueueStatus.Failed,
+                Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Torrent,
+                RemoteRelease = new NzbDrone.Core.Movies.Parser.Model.RemoteMovie
+                {
+                    Release = new NzbDrone.Core.Parser.Model.ReleaseInfo
+                    {
+                        IndexerPrivacy = NzbDrone.Core.Indexers.IndexerPrivacy.Private
+                    }
+                }
+            };
+            var queue = new[] { context.QueueItem, belowLimit, privateTorrent };
+            var states = new Mock<IHygieneQueueStateRepository>();
+            states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>()))
+                .Returns((IEnumerable<(int, string)> identities) => new[]
+                {
+                    new HygieneQueueState { DownloadClientId = 4, DownloadId = "test-download", ReasonCode = "client-failed", Strikes = 3 },
+                    new HygieneQueueState { DownloadClientId = 4, DownloadId = "below-limit", ReasonCode = "client-failed", Strikes = 2 },
+                    new HygieneQueueState { DownloadClientId = 4, DownloadId = "private-torrent", ReasonCode = "client-failed", Strikes = 3 }
+                }.Where(state => identities.Contains((state.DownloadClientId, state.DownloadId))).ToList());
+            var rule = new HygieneRule { Id = 9, ReasonCode = "client-failed", Enabled = true, StrikeLimit = 3, StrikeIntervalMinutes = 5 };
+            var rules = new Mock<IHygieneRuleRepository>();
+            rules.Setup(x => x.All()).Returns(() => new List<HygieneRule> { rule });
+            var config = new Mock<IConfigService>();
+            config.SetupGet(x => x.HygieneActionsEnabled).Returns(() => context.GateEnabled);
+            var decisions = new HygieneQueueDecisionService(
+                new HygieneQueueEvaluator(), states.Object,
+                new HygieneRuleService(rules.Object, TestLogger), config.Object);
+            context.Decisions.Setup(x => x.Evaluate(It.IsAny<IEnumerable<QueueItem>>()))
+                .Returns((IEnumerable<QueueItem> items) => decisions.Evaluate(items));
+
+            var preview = decisions.Evaluate(queue);
+
+            preview.Where(x => x.WouldAct).Select(x => x.QueueId).Should().Equal(context.QueueItem.Id);
+            preview.Single(x => x.QueueId == belowLimit.Id).Eligible.Should().BeFalse();
+            preview.Single(x => x.QueueId == privateTorrent.Id).Eligible.Should().BeTrue();
+            preview.Single(x => x.QueueId == privateTorrent.Id).WouldAct.Should().BeFalse();
+
+            context.Service.Process(queue);
+
+            context.Actions.Should().ContainSingle().Which.DownloadId.Should().Be(context.QueueItem.DownloadId);
+            context.Actions[0].Status.Should().Be("completed");
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), false), Times.Once);
+        }
+
+        [Test]
+        public void rule_disabled_after_preview_prevents_a_new_action()
+        {
+            var context = new ActionContext(MediaKind.Movies, true);
+            context.QueueItem.RemoteRelease = new NzbDrone.Core.Movies.Parser.Model.RemoteMovie();
+            var states = new Mock<IHygieneQueueStateRepository>();
+            states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>()))
+                .Returns(new[] { new HygieneQueueState { DownloadClientId = 4, DownloadId = "test-download", ReasonCode = "client-failed", Strikes = 3 } });
+            var rule = new HygieneRule { Id = 9, ReasonCode = "client-failed", Enabled = true, StrikeLimit = 3, StrikeIntervalMinutes = 5 };
+            var rules = new Mock<IHygieneRuleRepository>();
+            rules.Setup(x => x.All()).Returns(() => new List<HygieneRule> { rule });
+            var config = new Mock<IConfigService>();
+            config.SetupGet(x => x.HygieneActionsEnabled).Returns(() => context.GateEnabled);
+            var decisions = new HygieneQueueDecisionService(
+                new HygieneQueueEvaluator(), states.Object,
+                new HygieneRuleService(rules.Object, TestLogger), config.Object);
+            context.Decisions.Setup(x => x.Evaluate(It.IsAny<IEnumerable<QueueItem>>()))
+                .Returns((IEnumerable<QueueItem> items) => decisions.Evaluate(items));
+
+            decisions.Evaluate(new[] { context.QueueItem }).Should().ContainSingle().Which.WouldAct.Should().BeTrue();
+            rule.Enabled = false;
+
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.Actions.Should().BeEmpty();
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), It.IsAny<bool>()), Times.Never);
+        }
+
         [TestCase(MediaKind.Movies)]
         [TestCase(MediaKind.Tv)]
         [TestCase(MediaKind.Music)]
