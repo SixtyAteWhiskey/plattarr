@@ -1260,3 +1260,12 @@ source/build/image savings are zero.
 | 2026-10-29 | FunFile candidate file and public login form | `a0ee8ae14` | [Standalone corrected YAML, public form observation, and upstream schema limit](#2026-10-29-funfile-candidate-delivery-check); authenticated parity and retirement remain open. |
 | 2026-10-29 | FunFile upstream delivery audit | `57a133562` | [Live feed, active schemas, parser behavior, and rejected local bundle](#2026-10-29-funfile-upstream-delivery-gate); authenticated parity and retirement remain open. |
 | 2026-10-30 | FunFile feed recheck | `00c99ce9c` | [Live feed SHA-256 and upstream schema/parser recheck](#2026-10-30-funfile-feed-recheck); `git diff --check` passed; authenticated parity and retirement remain open. |
+# Production indexer preservation — 2026-10-30
+
+The owner wants the indexers to continue working as they do in production and
+prefers avoiding changes to their functionality. The Cardigann GUID parser
+experiment described above has therefore been removed from the rollout; the
+candidate FunFile definition remains a fixture only, and its GUID parity test
+now records the remaining difference. The native FunFile provider stays in use.
+The earlier experiment results are historical and do not describe the current
+parser. Any future transition still needs the previously documented gates.

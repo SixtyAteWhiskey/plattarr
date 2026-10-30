@@ -296,7 +296,7 @@ namespace NzbDrone.Core.Test.IndexerTests.FunFileTests
         }
 
         [Test]
-        public void candidate_definition_should_preserve_native_release_guid()
+        public void candidate_definition_does_not_preserve_native_release_guid_with_production_parser()
         {
             LoadDefinition(CandidateDefinitionPath);
 
@@ -318,7 +318,8 @@ namespace NzbDrone.Core.Test.IndexerTests.FunFileTests
             var native = (TorrentInfo)nativeParser.ParseResponse(Response(nativeRequest)).Single();
             var cardigann = (TorrentInfo)cardigannParser.ParseResponse(Response(cardigannRequest)).Single();
 
-            cardigann.Guid.Should().Be(native.Guid);
+            cardigann.Guid.Should().Be(cardigann.DownloadUrl);
+            cardigann.Guid.Should().NotBe(native.Guid);
             cardigann.DownloadUrl.Should().Be(native.DownloadUrl);
         }
     }
