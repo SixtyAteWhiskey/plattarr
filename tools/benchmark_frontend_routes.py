@@ -105,6 +105,15 @@ async def click_and_time(devtools, href, condition):
     return round(await devtools.evaluate(expression, await_promise=True), 1)
 
 
+async def script_metrics(devtools):
+    result = await devtools.command("Performance.getMetrics")
+    values = {item["name"]: item["value"] for item in result["metrics"]}
+    return {
+        name: round(values[name] * 1000, 1)
+        for name in ("ScriptDuration", "V8CompileDuration")
+    }
+
+
 async def wait_for_static_network_idle(devtools, base_url):
     active = {}
 
@@ -178,11 +187,7 @@ async def sample(chrome_url, app_url, profile):
             await ready(devtools, "location.pathname === '/' && document.body && document.body.innerText.includes('Add New')")
             await asyncio.sleep(0.2)
             first_render_ms = round(await devtools.evaluate("performance.now()"), 1)
-            metrics = await devtools.command("Performance.getMetrics")
-            script_ms = round(next(
-                item["value"] * 1000 for item in metrics["metrics"]
-                if item["name"] == "ScriptDuration"
-            ), 1)
+            cold_metrics = await script_metrics(devtools)
             await wait_for_static_network_idle(devtools, app_url)
             cold_bytes, cold_exceptions = transfer_bytes(devtools.events, app_url)
 
@@ -190,12 +195,16 @@ async def sample(chrome_url, app_url, profile):
             settings_condition = "location.pathname === '/settings' && document.title.startsWith('Settings -')"
             movies_condition = "location.pathname === '/' && document.title === 'Radarr' && document.body.innerText.includes('Add New')"
             first_settings_ms = await click_and_time(devtools, "/settings", settings_condition)
+            settings_metrics = await script_metrics(devtools)
             await click_and_time(devtools, "/", movies_condition)
             repeat_settings_ms = await click_and_time(devtools, "/settings", settings_condition)
             _, all_exceptions = transfer_bytes(devtools.events, app_url)
             return {
                 "first_render_ms": first_render_ms,
-                "script_ms": script_ms,
+                "script_ms": cold_metrics["ScriptDuration"],
+                "compile_ms": cold_metrics["V8CompileDuration"],
+                "first_settings_script_ms": round(settings_metrics["ScriptDuration"] - cold_metrics["ScriptDuration"], 1),
+                "first_settings_compile_ms": round(settings_metrics["V8CompileDuration"] - cold_metrics["V8CompileDuration"], 1),
                 "initial_transfer_bytes": cold_bytes,
                 "first_settings_ms": first_settings_ms,
                 "repeat_settings_ms": repeat_settings_ms,
