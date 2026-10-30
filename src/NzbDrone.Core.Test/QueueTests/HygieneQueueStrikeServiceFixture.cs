@@ -22,8 +22,8 @@ namespace NzbDrone.Core.Test.QueueTests
             states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>()))
                 .Returns((IEnumerable<(int, string)> identities) =>
                     savedStates.Where(state => identities.Contains((state.DownloadClientId, state.DownloadId))).ToList());
-            states.Setup(x => x.FindExpired(It.IsAny<DateTime>()))
-                .Returns((DateTime cutoff) => savedStates.Where(state => state.LastSeenAt < cutoff).ToList());
+            states.Setup(x => x.DeleteExpired(It.IsAny<DateTime>()))
+                .Callback((DateTime cutoff) => savedStates.RemoveAll(state => state.LastSeenAt < cutoff));
             states.Setup(x => x.Insert(It.IsAny<HygieneQueueState>()))
                 .Returns((HygieneQueueState state) =>
                 {
@@ -71,10 +71,8 @@ namespace NzbDrone.Core.Test.QueueTests
             states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>()))
                 .Returns((IEnumerable<(int, string)> identities) =>
                     savedStates.Where(state => identities.Contains((state.DownloadClientId, state.DownloadId))).ToList());
-            states.Setup(x => x.FindExpired(It.IsAny<DateTime>()))
-                .Returns((DateTime cutoff) => savedStates.Where(state => state.LastSeenAt < cutoff).ToList());
-            states.Setup(x => x.Delete(It.IsAny<HygieneQueueState>()))
-                .Callback((HygieneQueueState state) => savedStates.Remove(state));
+            states.Setup(x => x.DeleteExpired(It.IsAny<DateTime>()))
+                .Callback((DateTime cutoff) => savedStates.RemoveAll(state => state.LastSeenAt < cutoff));
             var rules = new Mock<IHygieneRuleRepository>();
             rules.Setup(x => x.All()).Returns(new List<HygieneRule>());
             var service = new HygieneQueueStrikeService(states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), new HygieneQueueEvaluator());
@@ -84,6 +82,7 @@ namespace NzbDrone.Core.Test.QueueTests
             savedStates.Select(state => state.DownloadId).Should().BeEquivalentTo(new[] { "queued", "recent" });
             savedStates.Single(state => state.DownloadId == "queued").LastSeenAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
             states.Verify(x => x.All(), Times.Never);
+            states.Verify(x => x.DeleteExpired(It.IsAny<DateTime>()), Times.Once);
         }
     }
 }
