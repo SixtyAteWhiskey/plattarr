@@ -1664,6 +1664,7 @@
   "MoreDetails": "More details",
   "MoreInfo": "More Info",
   "MountMovieHealthCheckMessage": "Mount containing a movie path is mounted read-only: ",
+  "MountMovieReadOnlyHealthCheckMessage": "A mount containing a movie path reports read-only. Mount settings or a filesystem issue may be responsible. Check the movie root folders and mount status on the host, resolve the cause, then rerun System Health before retrying imports.",
   "MoveAutomatically": "Move Automatically",
   "MoveFiles": "Move Files",
   "MoveMovieFoldersDontMoveFiles": "No, I'll Move the Files Myself",
