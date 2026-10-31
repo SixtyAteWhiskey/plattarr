@@ -12,6 +12,7 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients.Sabnzbd;
 using NzbDrone.Core.Download.Clients.Sabnzbd.Responses;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.Validation;
 using NzbDrone.Test.Common;
@@ -388,6 +389,9 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
         {
             _completed.Items.First().FailMessage = "Unpacking failed, write error or disk is full?";
             _completed.Items.First().Status = SabnzbdDownloadStatus.Failed;
+            Mocker.GetMock<ILocalizationService>()
+                  .Setup(s => s.GetLocalizedString("DownloadClientSabnzbdUnpackWarningMessage"))
+                  .Returns("Check SABnzbd History, free space, and folder write access before retrying.");
 
             GivenQueue(null);
             GivenHistory(_completed);
@@ -395,6 +399,39 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
             var items = Subject.GetItems();
 
             items.First().Status.Should().Be(DownloadItemStatus.Warning);
+            items.First().Message.Should().Be("Check SABnzbd History, free space, and folder write access before retrying.");
+        }
+
+        [Test]
+        public void should_not_publish_sabnzbd_failure_details_in_queue_message()
+        {
+            _failed.Items.First().FailMessage = "Write failed at /private/downloads/job?apiKey=secret";
+            Mocker.GetMock<ILocalizationService>()
+                  .Setup(s => s.GetLocalizedString("DownloadClientSabnzbdFailedMessage"))
+                  .Returns("Check SABnzbd History and resolve the cause before retrying.");
+
+            GivenQueue(null);
+            GivenHistory(_failed);
+
+            var item = Subject.GetItems().Single();
+
+            item.Status.Should().Be(DownloadItemStatus.Failed);
+            item.Message.Should().Be("Check SABnzbd History and resolve the cause before retrying.");
+            item.Message.Should().NotContain("/private/downloads").And.NotContain("secret");
+        }
+
+        [Test]
+        public void should_not_publish_stale_failure_details_for_completed_sabnzbd_history()
+        {
+            _completed.Items.First().FailMessage = "Old failure at /private/downloads/job";
+
+            GivenQueue(null);
+            GivenHistory(_completed);
+
+            var item = Subject.GetItems().Single();
+
+            item.Status.Should().Be(DownloadItemStatus.Completed);
+            item.Message.Should().BeNull();
         }
 
         [Test]
