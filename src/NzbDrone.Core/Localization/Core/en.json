@@ -721,6 +721,7 @@
   "DownloadClientRTorrentSettingsUrlPathHelpText": "Path to the XMLRPC endpoint, see {url}. This is usually RPC2 or [path to ruTorrent]{url2} when using ruTorrent.",
   "DownloadClientRemovesCompletedDownloadsHealthCheckMessage": "Download client {downloadClientName} is set to remove completed downloads. This can result in downloads being removed from your client before {appName} can import them.",
   "DownloadClientRootFolderHealthCheckMessage": "Download client {downloadClientName} places downloads in the root folder {rootFolderPath}. You should not download to a root folder.",
+  "DownloadClientRootFolderOverlapHealthCheckMessage": "A download client's output folder is a configured media root folder or is inside one. Compare the output folders in Download Clients with the media root folders, set a separate download destination outside the media roots, then rerun System Health before retrying imports.",
   "DownloadClientSabnzbdValidationCheckBeforeDownload": "Disable 'Check before download' option in Sabnbzd",
   "DownloadClientSabnzbdValidationCheckBeforeDownloadDetail": "Using 'Check before download' affects {appName} ability to track new downloads. Also Sabnzbd recommends 'Abort jobs that cannot be completed' instead since it's more effective.",
   "DownloadClientSabnzbdValidationDevelopVersion": "Sabnzbd develop version, assuming version 3.0.0 or higher.",

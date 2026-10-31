@@ -5,11 +5,13 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Serializer;
+using NzbDrone.Core.Download;
 using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.HealthCheck.Checks;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Localization;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.RootFolders;
 using NzbDrone.Test.Common;
 using Radarr.Api.V3.Health;
 
@@ -18,6 +20,42 @@ namespace NzbDrone.Api.Test.v3.Health
     [TestFixture]
     public class HealthResourceFixture : TestBase
     {
+        [Test]
+        public void should_serialize_download_folder_warning_without_client_or_path_details()
+        {
+            const string privateName = "private-client.example/key=secret";
+            const string guidance = "A download client's output folder is a configured media root folder or is inside one. Compare the output folders in Download Clients with the media root folders, set a separate download destination outside the media roots, then rerun System Health before retrying imports.";
+            var rootPath = @"c:\private\library".AsOsAgnostic();
+            var downloadPath = @"c:\private\library\downloads".AsOsAgnostic();
+
+            var client = new Mock<IDownloadClient>();
+            client.SetupGet(c => c.Definition).Returns(new DownloadClientDefinition { Name = privateName });
+            client.Setup(c => c.GetStatus()).Returns(new DownloadClientInfo
+            {
+                OutputRootFolders = new List<OsPath> { new(downloadPath) }
+            });
+
+            var clients = new Mock<IProvideDownloadClient>();
+            clients.Setup(c => c.GetDownloadClients(true)).Returns(new List<IDownloadClient> { client.Object });
+            var rootFolders = new Mock<IRootFolderService>();
+            rootFolders.Setup(r => r.All()).Returns(new List<RootFolder> { new() { Path = rootPath } });
+            var localization = new Mock<ILocalizationService>();
+            localization.Setup(s => s.GetLocalizedString("DownloadClientRootFolderOverlapHealthCheckMessage")).Returns(guidance);
+
+            var resource = new DownloadClientRootFolderCheck(clients.Object, rootFolders.Object, NLog.LogManager.GetLogger(nameof(HealthResourceFixture)), localization.Object).Check().ToResource();
+            var json = STJson.ToJson(resource);
+
+            resource.Source.Should().Be(nameof(DownloadClientRootFolderCheck));
+            resource.Type.Should().Be(HealthCheckResult.Warning);
+            resource.Message.Should().Be(guidance);
+            resource.WikiUrl.Should().Contain("#downloads-in-root-folder");
+            json.Should().Contain("Compare the output folders")
+                .And.NotContain(privateName)
+                .And.NotContain(rootPath)
+                .And.NotContain(downloadPath)
+                .And.NotContain("key=secret");
+        }
+
         [Test]
         public void should_serialize_partial_indexer_failure_without_provider_details()
         {

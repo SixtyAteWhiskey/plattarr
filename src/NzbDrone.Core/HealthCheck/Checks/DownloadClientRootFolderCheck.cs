@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using NLog;
@@ -48,18 +47,14 @@ namespace NzbDrone.Core.HealthCheck.Checks
                 try
                 {
                     var status = client.GetStatus();
-                    var folders = rootFolders.Where(r => status.OutputRootFolders.Any(folder => r.Path.PathEquals(folder.FullPath) || r.Path.IsParentPath(folder.FullPath)));
+                    var hasOverlappingFolder = rootFolders.Any(r => status.OutputRootFolders.Any(folder => r.Path.PathEquals(folder.FullPath) || r.Path.IsParentPath(folder.FullPath)));
 
-                    foreach (var folder in folders)
+                    if (hasOverlappingFolder)
                     {
                         return new HealthCheck(GetType(),
                             HealthCheckResult.Warning,
                             HealthCheckReason.DownloadClientRootFolder,
-                            _localizationService.GetLocalizedString("DownloadClientRootFolderHealthCheckMessage", new Dictionary<string, object>
-                            {
-                                { "downloadClientName", client.Definition.Name },
-                                { "rootFolderPath", folder.Path }
-                            }),
+                            _localizationService.GetLocalizedString("DownloadClientRootFolderOverlapHealthCheckMessage"),
                             "#downloads-in-root-folder");
                     }
                 }

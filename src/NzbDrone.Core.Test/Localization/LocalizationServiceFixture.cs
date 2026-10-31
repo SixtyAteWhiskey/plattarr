@@ -58,6 +58,19 @@ namespace NzbDrone.Core.Test.Localization
         }
 
         [Test]
+        public void should_use_safe_download_folder_guidance_for_untranslated_language()
+        {
+            Mocker.GetMock<IConfigService>().Setup(m => m.UILanguage).Returns((int)Language.French);
+
+            var message = Subject.GetLocalizedString("DownloadClientRootFolderOverlapHealthCheckMessage");
+
+            message.Should().Contain("output folder")
+                .And.Contain("media root folders")
+                .And.NotContain("{rootFolderPath}")
+                .And.NotContain("{downloadClientName}");
+        }
+
+        [Test]
         public void should_get_string_in_default_dictionary_if_unknown_language_and_string_exists()
         {
             Mocker.GetMock<IConfigService>().Setup(m => m.UILanguage).Returns(0);
