@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.HealthCheck.Checks;
@@ -18,6 +19,9 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
         [SetUp]
         public void SetUp()
         {
+            _indexers.Clear();
+            _blockedIndexers.Clear();
+
             Mocker.GetMock<IIndexerFactory>()
                   .Setup(v => v.GetAvailableProviders())
                   .Returns(_indexers);
@@ -67,6 +71,26 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
             GivenIndexer(2, 0.0, 0.0);
 
             Subject.Check().ShouldBeWarning();
+        }
+
+        [Test]
+        public void should_explain_partial_block_without_publishing_indexer_name()
+        {
+            const string privateName = "private-indexer.example/key=secret";
+            const string guidance = "Some enabled indexers remain blocked after failures that began over six hours ago. Check Indexers for the affected entries and review local logs for details. Connectivity, credentials, or the indexer service may be involved; verify the cause before changing settings or retrying.";
+            GivenIndexer(1, 10.0, 24.0).SetupGet(s => s.Definition).Returns(new IndexerDefinition { Id = 1, Name = privateName });
+            GivenIndexer(2, 0.0, 0.0);
+            Mocker.GetMock<ILocalizationService>()
+                  .Setup(s => s.GetLocalizedString("IndexerLongTermStatusCheckPartialBlockedMessage"))
+                  .Returns(guidance);
+
+            var result = Subject.Check();
+
+            result.ShouldBeWarning("remain blocked", "#indexers-are-unavailable-due-to-failures");
+            result.Message.Should().Be(guidance)
+                .And.NotContain(privateName);
+            Mocker.GetMock<ILocalizationService>()
+                  .Verify(s => s.GetLocalizedString("IndexerLongTermStatusCheckSingleClientMessage", It.IsAny<Dictionary<string, object>>()), Times.Never());
         }
 
         [Test]
