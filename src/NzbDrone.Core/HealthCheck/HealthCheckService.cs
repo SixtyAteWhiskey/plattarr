@@ -7,6 +7,7 @@ using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Messaging;
 using NzbDrone.Common.Reflection;
 using NzbDrone.Common.TPL;
+using NzbDrone.Core.HealthCheck.Checks;
 using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
@@ -20,6 +21,7 @@ namespace NzbDrone.Core.HealthCheck
 
     public class HealthCheckService : IHealthCheckService,
                                       IExecute<CheckHealthCommand>,
+                                      IExecute<CheckIndexerStatusHealthCommand>,
                                       IHandleAsync<ApplicationStartedEvent>,
                                       IHandleAsync<IEvent>
     {
@@ -27,6 +29,7 @@ namespace NzbDrone.Core.HealthCheck
         private readonly IProvideHealthCheck[] _healthChecks;
         private readonly IProvideHealthCheck[] _startupHealthChecks;
         private readonly IProvideHealthCheck[] _scheduledHealthChecks;
+        private readonly IProvideHealthCheck[] _indexerStatusHealthChecks;
         private readonly Dictionary<Type, IEventDrivenHealthCheck[]> _eventDrivenHealthChecks;
         private readonly IEventAggregator _eventAggregator;
         private readonly Logger _logger;
@@ -55,6 +58,7 @@ namespace NzbDrone.Core.HealthCheck
 
             _startupHealthChecks = _healthChecks.Where(v => v.CheckOnStartup).ToArray();
             _scheduledHealthChecks = _healthChecks.Where(v => v.CheckOnSchedule).ToArray();
+            _indexerStatusHealthChecks = _healthChecks.Where(v => v is IndexerStatusCheck or IndexerLongTermStatusCheck).ToArray();
             _eventDrivenHealthChecks = GetEventDrivenHealthChecks();
             _startupGracePeriodEndTime = runtimeInfo.StartTime + TimeSpan.FromMinutes(15);
         }
@@ -141,6 +145,19 @@ namespace NzbDrone.Core.HealthCheck
             lock (_pendingHealthChecks)
             {
                 foreach (var healthCheck in healthChecks)
+                {
+                    _pendingHealthChecks.Add(healthCheck);
+                }
+            }
+
+            ProcessHealthChecks();
+        }
+
+        public void Execute(CheckIndexerStatusHealthCommand message)
+        {
+            lock (_pendingHealthChecks)
+            {
+                foreach (var healthCheck in _indexerStatusHealthChecks)
                 {
                     _pendingHealthChecks.Add(healthCheck);
                 }
