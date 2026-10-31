@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Indexers;
@@ -53,10 +52,7 @@ namespace NzbDrone.Core.HealthCheck.Checks
             return new HealthCheck(GetType(),
                 HealthCheckResult.Warning,
                 HealthCheckReason.IndexerLongTermStatusUnavailable,
-                _localizationService.GetLocalizedString("IndexerLongTermStatusCheckSingleClientMessage", new Dictionary<string, object>
-                {
-                    { "indexerNames", string.Join(", ", backOffProviders.Select(v => v.Provider.Definition.Name)) }
-                }),
+                _localizationService.GetLocalizedString("IndexerLongTermStatusCheckPartialBlockedMessage"),
                 "#indexers-are-unavailable-due-to-failures");
         }
     }
