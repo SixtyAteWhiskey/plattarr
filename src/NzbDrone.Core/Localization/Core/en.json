@@ -1292,6 +1292,7 @@
   "IndexerIPTorrentsSettingsSearchSortByHelpText": "Select the order in which to sort search results",
   "IndexerJackettAll": "Indexers using the unsupported Jackett 'all' endpoint: {indexerNames}",
   "IndexerLongTermStatusCheckAllClientMessage": "All indexers are unavailable due to failures for more than 6 hours",
+  "IndexerLongTermStatusCheckPartialBlockedMessage": "Some enabled indexers remain blocked after failures that began over six hours ago. Check Indexers for the affected entries and review local logs for details. Connectivity, credentials, or the indexer service may be involved; verify the cause before changing settings or retrying.",
   "IndexerLongTermStatusCheckSingleClientMessage": "Indexers unavailable due to failures for more than 6 hours: {indexerNames}",
   "IndexerMTeamTpSettingsApiKeyHelpText": "API Key from the Site (Found in User Control Panel => Laboratory)",
   "IndexerMTeamTpSettingsFreeleechOnlyHelpText": "Search freeleech releases only",

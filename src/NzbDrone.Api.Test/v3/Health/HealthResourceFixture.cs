@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using FluentAssertions;
 using Moq;
@@ -6,6 +7,7 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Common.Serializer;
 using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.HealthCheck.Checks;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Localization;
 using NzbDrone.Core.Movies;
 using NzbDrone.Test.Common;
@@ -16,6 +18,38 @@ namespace NzbDrone.Api.Test.v3.Health
     [TestFixture]
     public class HealthResourceFixture : TestBase
     {
+        [Test]
+        public void should_serialize_partial_indexer_failure_without_provider_details()
+        {
+            const string privateName = "private-indexer.example/key=secret";
+            const string guidance = "Some enabled indexers remain blocked after failures that began over six hours ago. Check Indexers for the affected entries and review local logs for details. Connectivity, credentials, or the indexer service may be involved; verify the cause before changing settings or retrying.";
+            var blockedIndexer = new Mock<IIndexer>();
+            blockedIndexer.SetupGet(i => i.Definition).Returns(new IndexerDefinition { Id = 1, Name = privateName });
+            var availableIndexer = new Mock<IIndexer>();
+            availableIndexer.SetupGet(i => i.Definition).Returns(new IndexerDefinition { Id = 2 });
+
+            var factory = new Mock<IIndexerFactory>();
+            factory.Setup(f => f.GetAvailableProviders()).Returns(new List<IIndexer> { blockedIndexer.Object, availableIndexer.Object });
+            var status = new Mock<IIndexerStatusService>();
+            status.Setup(s => s.GetBlockedProviders()).Returns(new List<IndexerStatus>
+            {
+                new IndexerStatus { ProviderId = 1, InitialFailure = DateTime.UtcNow.AddHours(-7), DisabledTill = DateTime.UtcNow.AddHours(1) }
+            });
+            var localization = new Mock<ILocalizationService>();
+            localization.Setup(s => s.GetLocalizedString("IndexerLongTermStatusCheckPartialBlockedMessage")).Returns(guidance);
+
+            var resource = new IndexerLongTermStatusCheck(factory.Object, status.Object, localization.Object).Check().ToResource();
+            var json = STJson.ToJson(resource);
+
+            resource.Source.Should().Be(nameof(IndexerLongTermStatusCheck));
+            resource.Type.Should().Be(HealthCheckResult.Warning);
+            resource.Message.Should().Be(guidance);
+            resource.WikiUrl.Should().Contain("#indexers-are-unavailable-due-to-failures");
+            json.Should().Contain("Check Indexers")
+                .And.NotContain(privateName)
+                .And.NotContain("key=secret");
+        }
+
         [Test]
         public void should_serialize_safe_mount_failure_message()
         {

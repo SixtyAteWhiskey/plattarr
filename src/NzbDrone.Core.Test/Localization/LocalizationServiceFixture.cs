@@ -46,6 +46,18 @@ namespace NzbDrone.Core.Test.Localization
         }
 
         [Test]
+        public void should_use_safe_indexer_guidance_for_untranslated_language()
+        {
+            Mocker.GetMock<IConfigService>().Setup(m => m.UILanguage).Returns((int)Language.French);
+
+            var message = Subject.GetLocalizedString("IndexerLongTermStatusCheckPartialBlockedMessage");
+
+            message.Should().Contain("remain blocked")
+                .And.Contain("review local logs")
+                .And.NotContain("{indexerNames}");
+        }
+
+        [Test]
         public void should_get_string_in_default_dictionary_if_unknown_language_and_string_exists()
         {
             Mocker.GetMock<IConfigService>().Setup(m => m.UILanguage).Returns(0);
