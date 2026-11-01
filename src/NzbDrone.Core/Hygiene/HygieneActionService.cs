@@ -4,6 +4,7 @@ using System.Linq;
 using NLog;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.Download.History;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
@@ -75,6 +76,7 @@ namespace NzbDrone.Core.Hygiene
         private readonly IProvideDownloadClient _downloadClients;
         private readonly IFailedDownloadService _failedDownloads;
         private readonly IManageCommandQueue _commandQueue;
+        private readonly IDownloadHistoryService _history;
         private readonly Logger _logger;
 
         public HygieneQueueActionService(
@@ -85,6 +87,7 @@ namespace NzbDrone.Core.Hygiene
             IProvideDownloadClient downloadClients,
             IFailedDownloadService failedDownloads,
             IManageCommandQueue commandQueue,
+            IDownloadHistoryService history,
             Logger logger)
         {
             _decisions = decisions;
@@ -94,6 +97,7 @@ namespace NzbDrone.Core.Hygiene
             _downloadClients = downloadClients;
             _failedDownloads = failedDownloads;
             _commandQueue = commandQueue;
+            _history = history;
             _logger = logger;
         }
 
@@ -160,10 +164,17 @@ namespace NzbDrone.Core.Hygiene
             }
 
             var existing = _actions.FindLatest(queueItem.DownloadClientId, queueItem.DownloadId, assessment.ReasonCode);
+            var repeatGrab = false;
 
             if (existing?.Status == Completed)
             {
-                return;
+                repeatGrab = HygieneActionOccurrence.WasGrabbedAgain(existing, _history.GetLatestGrab(queueItem.DownloadId));
+                if (!repeatGrab)
+                {
+                    return;
+                }
+
+                existing = null;
             }
 
             if (existing != null && alreadyResumed.Contains(existing.Id))
@@ -190,11 +201,13 @@ namespace NzbDrone.Core.Hygiene
                 ReasonCode = assessment.ReasonCode,
                 RuleId = assessment.RuleId ?? 0,
                 DeleteFilesOnFailure = currentAssessment.DeleteFilesOnFailure,
-                SearchForReplacement = currentAssessment.SearchForReplacement,
+                SearchForReplacement = currentAssessment.SearchForReplacement && !repeatGrab,
                 Title = assessment.Title,
                 Status = Processing,
                 Checkpoint = Prepared,
-                RecoveryPath = Recovery,
+                RecoveryPath = repeatGrab
+                    ? "The same torrent hash was grabbed again after an earlier cleanup. Another replacement search was skipped to prevent a repeat loop. Review the indexer's blocked-hash setting before searching again."
+                    : Recovery,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             });

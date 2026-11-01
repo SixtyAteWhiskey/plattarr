@@ -9,6 +9,7 @@ using NUnit.Framework;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.Download.History;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Hygiene;
 using NzbDrone.Core.Messaging.Events;
@@ -59,7 +60,8 @@ namespace NzbDrone.Core.Test.QueueTests
             config.SetupGet(x => x.HygieneActionsEnabled).Returns(true);
             var evaluator = new HygieneQueueEvaluator();
             var ruleService = new HygieneRuleService(rules, TestLogger);
-            var decisions = new HygieneQueueDecisionService(evaluator, states, ruleService, config.Object);
+            var downloadHistory = Mocker.GetMock<IDownloadHistoryService>().Object;
+            var decisions = new HygieneQueueDecisionService(evaluator, states, ruleService, config.Object, actions, downloadHistory);
             var strikes = new HygieneQueueStrikeService(states, ruleService, evaluator);
             var actionService = new HygieneQueueActionService(
                 decisions,
@@ -69,6 +71,7 @@ namespace NzbDrone.Core.Test.QueueTests
                 Mocker.GetMock<IProvideDownloadClient>().Object,
                 Mocker.GetMock<IFailedDownloadService>().Object,
                 Mocker.GetMock<NzbDrone.Core.Messaging.Commands.IManageCommandQueue>().Object,
+                downloadHistory,
                 TestLogger);
             var timedStrikes = new TimedStrikes(strikes);
             var timedActions = new TimedActions(actionService);
