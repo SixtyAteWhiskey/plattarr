@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Download.History;
 using NzbDrone.Core.Indexers;
 
 namespace NzbDrone.Core.Hygiene
@@ -17,17 +18,23 @@ namespace NzbDrone.Core.Hygiene
         private readonly IHygieneQueueStateRepository _states;
         private readonly IHygieneRuleService _rules;
         private readonly IConfigService _config;
+        private readonly IHygieneActionRepository _actions;
+        private readonly IDownloadHistoryService _history;
 
         public HygieneQueueDecisionService(
             IHygieneQueueEvaluator evaluator,
             IHygieneQueueStateRepository states,
             IHygieneRuleService rules,
-            IConfigService config)
+            IConfigService config,
+            IHygieneActionRepository actions,
+            IDownloadHistoryService history)
         {
             _evaluator = evaluator;
             _states = states;
             _rules = rules;
             _config = config;
+            _actions = actions;
+            _history = history;
         }
 
         public List<HygieneQueueAssessment> Evaluate(IEnumerable<NzbDrone.Core.Queue.Queue> queue)
@@ -106,6 +113,23 @@ namespace NzbDrone.Core.Hygiene
                     : IsPrivateTorrent(item)
                         ? "Automatic actions are held for private or unverified torrent releases."
                     : SetWouldAct(assessment);
+
+                if (assessment.WouldAct)
+                {
+                    var completed = _actions.FindLatest(item.DownloadClientId, item.DownloadId, assessment.ReasonCode);
+                    if (completed?.Status == "completed")
+                    {
+                        if (HygieneActionOccurrence.WasGrabbedAgain(completed, _history.GetLatestGrab(item.DownloadId)))
+                        {
+                            assessment.ActionExplanation = "The same torrent hash was grabbed again after cleanup. The executor will remove this new occurrence and skip another replacement search to prevent a repeat loop.";
+                        }
+                        else
+                        {
+                            assessment.WouldAct = false;
+                            assessment.ActionExplanation = "Cleanup was already completed for this download ID. Check whether the client job remained after removal; automatic cleanup will resume if a new grab of this hash is recorded.";
+                        }
+                    }
+                }
             }
 
             return assessments;
