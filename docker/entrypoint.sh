@@ -17,8 +17,8 @@ if [ "$(id -u)" = "0" ]; then
     mkdir -p /config
     chown plattarr:plattarr /config
 
-    exec su-exec plattarr:plattarr /app/bin/Radarr -nobrowser -data=/config "$@"
+    exec su-exec plattarr:plattarr /app/bin/Radarr -nobrowser -data=/config -exitimmediately "$@"
 fi
 
 # Already running as a non-root user (for example, `user:` set in Compose).
-exec /app/bin/Radarr -nobrowser -data=/config "$@"
+exec /app/bin/Radarr -nobrowser -data=/config -exitimmediately "$@"
