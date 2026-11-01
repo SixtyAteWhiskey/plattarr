@@ -129,8 +129,6 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
                     RemainingSize = 0,
                     RemainingTime = TimeSpan.Zero,
 
-                    Message = sabHistoryItem.FailMessage,
-
                     CanBeRemoved = true,
                     CanMoveFiles = true
                 };
@@ -141,10 +139,12 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
                         sabHistoryItem.FailMessage.Equals("Unpacking failed, write error or disk is full?", StringComparison.InvariantCultureIgnoreCase))
                     {
                         historyItem.Status = DownloadItemStatus.Warning;
+                        historyItem.Message = _localizationService.GetLocalizedString("DownloadClientSabnzbdUnpackWarningMessage");
                     }
                     else
                     {
                         historyItem.Status = DownloadItemStatus.Failed;
+                        historyItem.Message = _localizationService.GetLocalizedString("DownloadClientSabnzbdFailedMessage");
                     }
                 }
                 else if (sabHistoryItem.Status == SabnzbdDownloadStatus.Completed)
