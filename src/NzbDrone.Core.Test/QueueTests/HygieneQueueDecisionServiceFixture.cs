@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Download.History;
 using NzbDrone.Core.Hygiene;
 using NzbDrone.Core.Queue;
 using QueueItem = NzbDrone.Core.Queue.Queue;
@@ -12,6 +14,76 @@ namespace NzbDrone.Core.Test.QueueTests
     [TestFixture]
     public class HygieneQueueDecisionServiceFixture
     {
+        [Test]
+        public void completed_metadata_action_is_held_until_the_same_hash_is_grabbed_again()
+        {
+            var item = new QueueItem
+            {
+                DownloadClientId = 7,
+                DownloadId = "repeated-hash",
+                DownloadClientDownloadingMetadata = true,
+                Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Torrent,
+                Status = QueueStatus.Downloading,
+                RemoteRelease = new NzbDrone.Core.Movies.Parser.Model.RemoteMovie
+                {
+                    Release = new NzbDrone.Core.Parser.Model.ReleaseInfo
+                    {
+                        IndexerPrivacy = NzbDrone.Core.Indexers.IndexerPrivacy.Public
+                    }
+                }
+            };
+            var states = new Mock<IHygieneQueueStateRepository>();
+            states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>())).Returns(new[]
+            {
+                new HygieneQueueState { DownloadClientId = 7, DownloadId = item.DownloadId, ReasonCode = "download-metadata", Strikes = 30 }
+            });
+            var rules = new Mock<IHygieneRuleRepository>();
+            rules.Setup(x => x.All()).Returns(new List<HygieneRule>
+            {
+                new() { Id = 8, ReasonCode = "download-metadata", Enabled = true, StrikeLimit = 3, StrikeIntervalMinutes = 2 }
+            });
+            var config = new Mock<IConfigService>();
+            config.SetupGet(x => x.HygieneActionsEnabled).Returns(true);
+            var completedAt = DateTime.UtcNow.AddMinutes(-10);
+            var actions = new Mock<IHygieneActionRepository>();
+            actions.Setup(x => x.FindLatest(7, item.DownloadId, "download-metadata")).Returns(new HygieneAction
+            {
+                DownloadClientId = 7,
+                DownloadId = item.DownloadId,
+                ReasonCode = "download-metadata",
+                Status = "completed",
+                CreatedAt = completedAt
+            });
+            var history = new Mock<IDownloadHistoryService>();
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object, actions.Object, history.Object);
+
+            var held = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            held.WouldAct.Should().BeFalse();
+            held.ActionExplanation.Should().Contain("already completed");
+
+            history.Setup(x => x.GetLatestGrab(item.DownloadId)).Returns(new DownloadHistory
+            {
+                DownloadClientId = 9,
+                DownloadId = item.DownloadId,
+                EventType = DownloadHistoryEventType.DownloadGrabbed,
+                Date = completedAt.AddMinutes(5)
+            });
+
+            decisions.Evaluate(new[] { item }).Should().ContainSingle().Which.WouldAct.Should().BeFalse();
+
+            history.Setup(x => x.GetLatestGrab(item.DownloadId)).Returns(new DownloadHistory
+            {
+                DownloadClientId = 7,
+                DownloadId = item.DownloadId,
+                EventType = DownloadHistoryEventType.DownloadGrabbed,
+                Date = completedAt.AddMinutes(5)
+            });
+
+            var repeated = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            repeated.WouldAct.Should().BeTrue();
+            repeated.ActionExplanation.Should().Contain("grabbed again");
+        }
+
         [TestCase(false, true, true, true, false)]
         [TestCase(true, false, true, true, false)]
         [TestCase(true, true, false, true, false)]
@@ -45,7 +117,7 @@ namespace NzbDrone.Core.Test.QueueTests
             });
             var config = new Mock<IConfigService>();
             config.SetupGet(x => x.HygieneActionsEnabled).Returns(gate);
-            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object, new Mock<IHygieneActionRepository>().Object, new Mock<NzbDrone.Core.Download.History.IDownloadHistoryService>().Object);
 
             var assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
             assessment.ReasonCode.Should().Be("download-warning");
@@ -81,7 +153,7 @@ namespace NzbDrone.Core.Test.QueueTests
             });
             var config = new Mock<IConfigService>();
             config.SetupGet(x => x.HygieneActionsEnabled).Returns(true);
-            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object, new Mock<IHygieneActionRepository>().Object, new Mock<NzbDrone.Core.Download.History.IDownloadHistoryService>().Object);
 
             decisions.Evaluate(new[] { item }).Should().ContainSingle().Which.WouldAct.Should().Be(canBeRemoved);
         }
@@ -119,7 +191,7 @@ namespace NzbDrone.Core.Test.QueueTests
             });
             var config = new Mock<IConfigService>();
             config.SetupGet(x => x.HygieneActionsEnabled).Returns(gate);
-            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object, new Mock<IHygieneActionRepository>().Object, new Mock<NzbDrone.Core.Download.History.IDownloadHistoryService>().Object);
 
             var assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
             assessment.ReasonCode.Should().Be("download-metadata");
@@ -171,7 +243,7 @@ namespace NzbDrone.Core.Test.QueueTests
             });
             var config = new Mock<IConfigService>();
             config.SetupGet(x => x.HygieneActionsEnabled).Returns(true);
-            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object, new Mock<IHygieneActionRepository>().Object, new Mock<NzbDrone.Core.Download.History.IDownloadHistoryService>().Object);
 
             var assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
 
@@ -209,7 +281,7 @@ namespace NzbDrone.Core.Test.QueueTests
             });
             var config = new Mock<IConfigService>();
             config.SetupGet(x => x.HygieneActionsEnabled).Returns(true);
-            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object, new Mock<IHygieneActionRepository>().Object, new Mock<NzbDrone.Core.Download.History.IDownloadHistoryService>().Object);
 
             var assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
 
@@ -247,7 +319,7 @@ namespace NzbDrone.Core.Test.QueueTests
             });
             var config = new Mock<IConfigService>();
             config.SetupGet(x => x.HygieneActionsEnabled).Returns(false);
-            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object, new Mock<IHygieneActionRepository>().Object, new Mock<NzbDrone.Core.Download.History.IDownloadHistoryService>().Object);
 
             var assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
 
@@ -265,7 +337,7 @@ namespace NzbDrone.Core.Test.QueueTests
             rules.Setup(x => x.All()).Returns(new List<HygieneRule>());
             var config = new Mock<IConfigService>();
             config.SetupGet(x => x.HygieneActionsEnabled).Returns(false);
-            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object, new Mock<IHygieneActionRepository>().Object, new Mock<NzbDrone.Core.Download.History.IDownloadHistoryService>().Object);
 
             var assessment = decisions.Evaluate(new[] { new QueueItem { Status = QueueStatus.Delay } }).Should().ContainSingle().Subject;
 
@@ -301,7 +373,7 @@ namespace NzbDrone.Core.Test.QueueTests
             rules.Setup(x => x.All()).Returns(new List<HygieneRule> { rule });
             var config = new Mock<IConfigService>();
             config.SetupGet(x => x.HygieneActionsEnabled).Returns(true);
-            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object, new Mock<IHygieneActionRepository>().Object, new Mock<NzbDrone.Core.Download.History.IDownloadHistoryService>().Object);
 
             var assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
 
@@ -366,7 +438,7 @@ namespace NzbDrone.Core.Test.QueueTests
             });
             var config = new Mock<IConfigService>();
             config.SetupGet(x => x.HygieneActionsEnabled).Returns(gateEnabled);
-            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object);
+            var decisions = new HygieneQueueDecisionService(new HygieneQueueEvaluator(), states.Object, new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()), config.Object, new Mock<IHygieneActionRepository>().Object, new Mock<NzbDrone.Core.Download.History.IDownloadHistoryService>().Object);
 
             var assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
 
