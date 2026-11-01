@@ -21,6 +21,7 @@ interface Indexer extends Provider {
   priority: number;
   downloadClientId: number;
   isDisabled: boolean;
+  supportedMediaKinds?: ('movies' | 'tv' | 'music')[];
   tags: number[];
   description?: string;
   language?: string;

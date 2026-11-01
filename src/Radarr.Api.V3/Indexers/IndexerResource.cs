@@ -5,7 +5,9 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Annotations;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.Definitions.Cardigann;
+using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.IndexerVersions;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.Parser;
 using Radarr.Http.ClientSchema;
 
@@ -42,17 +44,22 @@ namespace Radarr.Api.V3.Indexers
         public DateTime Added { get; set; }
         public string SortName { get; set; }
         public bool IsDisabled { get; set; }
+        public string[] SupportedMediaKinds { get; set; }
     }
 
     public class IndexerResourceMapper : ProviderResourceMapper<IndexerResource, IndexerDefinition>
     {
         private readonly IIndexerDefinitionUpdateService _definitionService;
         private readonly IIndexerStatusService _indexerStatusService;
+        private readonly IIndexerCategoryService _indexerCategoryService;
 
-        public IndexerResourceMapper(IIndexerDefinitionUpdateService definitionService, IIndexerStatusService indexerStatusService)
+        public IndexerResourceMapper(IIndexerDefinitionUpdateService definitionService,
+                                     IIndexerStatusService indexerStatusService,
+                                     IIndexerCategoryService indexerCategoryService)
         {
             _definitionService = definitionService;
             _indexerStatusService = indexerStatusService;
+            _indexerCategoryService = indexerCategoryService;
         }
 
         public override IndexerResource ToResource(IndexerDefinition definition)
@@ -113,6 +120,12 @@ namespace Radarr.Api.V3.Indexers
             resource.Added = definition.Added;
             resource.SortName = definition.Name?.NormalizeSortTitle();
             resource.IsDisabled = _indexerStatusService.IsDisabled(definition.Id);
+            resource.SupportedMediaKinds = definition.SupportsSearch && definition.Capabilities?.Categories != null
+                ? new[] { MediaKind.Movies, MediaKind.Tv, MediaKind.Music }
+                    .Where(kind => definition.Capabilities.Categories.SupportedCategories(_indexerCategoryService.GetCategories(definition.Id, kind)).Any())
+                    .Select(kind => kind.ToString().ToLowerInvariant())
+                    .ToArray()
+                : Array.Empty<string>();
 
             return resource;
         }

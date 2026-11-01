@@ -49,3 +49,13 @@
   flex-wrap: wrap;
   margin-top: 5px;
 }
+
+.mediaCategories {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  gap: 4px;
+
+  font-size: 12px;
+}

@@ -7,6 +7,7 @@ import FormGroup from 'Components/Form/FormGroup';
 import FormInputGroup from 'Components/Form/FormInputGroup';
 import FormLabel from 'Components/Form/FormLabel';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import MediaKindSwitcher from 'Components/MediaKindSwitcher';
 import useShowAdvancedSettings from 'Helpers/Hooks/useShowAdvancedSettings';
 import { useMediaKind } from 'Helpers/mediaKindStore';
 import { inputTypes, kinds } from 'Helpers/Props';
@@ -23,6 +24,7 @@ import {
   SetChildSave,
 } from 'typings/Settings/SettingsState';
 import translate from 'Utilities/String/translate';
+import styles from './IndexerOptions.css';
 
 const SECTION = 'indexerOptions';
 
@@ -87,6 +89,10 @@ function IndexerOptions({
 
   return (
     <FieldSet legend={translate('Options')}>
+      <div className={styles.mediaKindSwitcher}>
+        <MediaKindSwitcher />
+      </div>
+
       {isFetching ? <LoadingIndicator /> : null}
 
       {!isFetching && error ? (

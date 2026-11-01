@@ -6,6 +6,7 @@ interface CssExports {
   'enabled': string;
   'enabledActivities': string;
   'indexer': string;
+  'mediaCategories': string;
   'name': string;
   'nameContainer': string;
   'status': string;
