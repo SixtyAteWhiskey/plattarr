@@ -97,6 +97,9 @@ function Indexers() {
             <div className={styles.statusHelp}>
               {translate('IndexerAvailabilityHelpText')}
             </div>
+            <div className={styles.statusHelp}>
+              {translate('IndexerMediaCategoriesHelpText')}
+            </div>
           </div>
         ) : null}
 
