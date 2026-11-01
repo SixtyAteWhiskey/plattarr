@@ -84,6 +84,15 @@ global gate checks apply as for stalled downloads. The client state is checked
 again immediately before removal, and cleanup pauses if metadata completed or
 the torrent disappeared. Source-file deletion defaults off.
 
+After a completed cleanup, an eligible job with the same client and download ID
+is held rather than removed repeatedly. The preview explains that hold. If a
+new grab of the same torrent hash is recorded after that action began, the next
+queue refresh treats it as a new occurrence and removes it. The repeat action
+skips another replacement search to stop an automatic same-hash grab loop;
+review the indexer's blocked-hash setting before searching again. A completed
+action alone does not prove the client job disappeared, and a lingering job
+without a newer grab remains a manual-recovery case.
+
 `GET /api/v3/hygiene/preview` reports the current reason, count, matching
 rule threshold, eligibility, and an explanation. `GET`, `POST`, `PUT /{id}`,
 and `DELETE /{id}` on `/api/v3/hygiene/rule` manage monitoring rules. The

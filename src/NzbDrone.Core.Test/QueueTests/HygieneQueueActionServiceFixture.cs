@@ -7,6 +7,7 @@ using NUnit.Framework;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Clients;
+using NzbDrone.Core.Download.History;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Hygiene;
 using NzbDrone.Core.Messaging.Commands;
@@ -27,6 +28,69 @@ namespace NzbDrone.Core.Test.QueueTests
     [TestFixture]
     public class HygieneQueueActionServiceFixture : CoreTest
     {
+        [Test]
+        public void completed_metadata_action_does_not_repeat_without_a_new_grab()
+        {
+            var context = new ActionContext(MediaKind.Tv, true, "download-metadata");
+            var completedAt = DateTime.UtcNow.AddMinutes(-10);
+            context.Actions.Add(new HygieneAction
+            {
+                Id = 1,
+                DownloadClientId = context.QueueItem.DownloadClientId,
+                DownloadId = context.QueueItem.DownloadId,
+                ReasonCode = "download-metadata",
+                Status = "completed",
+                CreatedAt = completedAt
+            });
+            context.DownloadHistory.Setup(x => x.GetLatestGrab(context.QueueItem.DownloadId))
+                .Returns(new DownloadHistory
+                {
+                    DownloadClientId = context.QueueItem.DownloadClientId,
+                    DownloadId = context.QueueItem.DownloadId,
+                    EventType = DownloadHistoryEventType.DownloadGrabbed,
+                    Date = completedAt.AddMinutes(-5)
+                });
+
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.Actions.Should().ContainSingle();
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), It.IsAny<bool>()), Times.Never);
+        }
+
+        [Test]
+        public void new_grab_of_completed_metadata_hash_is_removed_once_without_another_search()
+        {
+            var context = new ActionContext(MediaKind.Tv, true, "download-metadata");
+            var completedAt = DateTime.UtcNow.AddMinutes(-10);
+            context.Actions.Add(new HygieneAction
+            {
+                Id = 1,
+                DownloadClientId = context.QueueItem.DownloadClientId,
+                DownloadId = context.QueueItem.DownloadId,
+                ReasonCode = "download-metadata",
+                Status = "completed",
+                CreatedAt = completedAt
+            });
+            context.DownloadHistory.Setup(x => x.GetLatestGrab(context.QueueItem.DownloadId))
+                .Returns(new DownloadHistory
+                {
+                    DownloadClientId = context.QueueItem.DownloadClientId,
+                    DownloadId = context.QueueItem.DownloadId,
+                    EventType = DownloadHistoryEventType.DownloadGrabbed,
+                    Date = completedAt.AddMinutes(5)
+                });
+
+            context.Service.Process(new[] { context.QueueItem });
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.Actions.Should().HaveCount(2);
+            context.Actions[1].Status.Should().Be("completed");
+            context.Actions[1].SearchForReplacement.Should().BeFalse();
+            context.Actions[1].RecoveryPath.Should().Contain("same torrent hash");
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), false), Times.Once);
+            context.FailedDownloads.Verify(x => x.MarkAsFailed(context.TrackedDownload, true), Times.Once);
+        }
+
         [Test]
         public void preview_candidates_match_new_actions_for_the_same_queue_snapshot()
         {
@@ -73,7 +137,9 @@ namespace NzbDrone.Core.Test.QueueTests
                 new HygieneQueueEvaluator(),
                 states.Object,
                 new HygieneRuleService(rules.Object, TestLogger),
-                config.Object);
+                config.Object,
+                new Mock<IHygieneActionRepository>().Object,
+                new Mock<IDownloadHistoryService>().Object);
             context.Decisions.Setup(x => x.Evaluate(It.IsAny<IEnumerable<QueueItem>>()))
                 .Returns((IEnumerable<QueueItem> items) => decisions.Evaluate(items));
 
@@ -108,7 +174,9 @@ namespace NzbDrone.Core.Test.QueueTests
                 new HygieneQueueEvaluator(),
                 states.Object,
                 new HygieneRuleService(rules.Object, TestLogger),
-                config.Object);
+                config.Object,
+                new Mock<IHygieneActionRepository>().Object,
+                new Mock<IDownloadHistoryService>().Object);
             context.Decisions.Setup(x => x.Evaluate(It.IsAny<IEnumerable<QueueItem>>()))
                 .Returns((IEnumerable<QueueItem> items) => decisions.Evaluate(items));
 
@@ -829,6 +897,7 @@ namespace NzbDrone.Core.Test.QueueTests
             public Mock<ITrackedDownloadService> TrackedDownloads { get; } = new();
             public Mock<IFailedDownloadService> FailedDownloads { get; } = new();
             public Mock<IManageCommandQueue> CommandQueue { get; } = new();
+            public Mock<IDownloadHistoryService> DownloadHistory { get; } = new();
             public Mock<IHygieneQueueDecisionService> Decisions { get; } = new();
             public HygieneQueueAssessment Assessment { get; }
             public IHygieneQueueActionService Service { get; }
@@ -930,6 +999,7 @@ namespace NzbDrone.Core.Test.QueueTests
                     downloadProvider.Object,
                     failedDownloadService ?? FailedDownloads.Object,
                     CommandQueue.Object,
+                    DownloadHistory.Object,
                     TestLogger);
             }
         }
