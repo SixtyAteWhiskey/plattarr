@@ -1246,6 +1246,8 @@
   "IndexerAlphaRatioSettingsExcludeSceneHelpText": "Exclude SCENE releases from results",
   "IndexerAlphaRatioSettingsFreeleechOnlyHelpText": "Search freeleech releases only",
   "IndexerAvailabilityHelpText": "Enabled indexers are configured for use, but have not necessarily passed a live test. Unavailable indexers are temporarily blocked after failures. Use Test All Indexers to check connectivity, then Refresh to update these states.",
+  "IndexerMediaCategoriesHelpText": "Search category labels show which media types an indexer supports. Search mode, tags, and availability can further narrow the indexers used for a specific search.",
+  "IndexerSearchCategories": "Search categories",
   "IndexerAvistazSettingsFreeleechOnlyHelpText": "Search freeleech releases only",
   "IndexerAvistazSettingsPasswordHelpText": "Site Password",
   "IndexerAvistazSettingsPidHelpText": "PID from My Account or My Profile page",

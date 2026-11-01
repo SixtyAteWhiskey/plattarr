@@ -32,6 +32,7 @@ function Indexer({
   supportsSearch,
   priority,
   isDisabled,
+  supportedMediaKinds = [],
   showPriority,
   onCloneIndexerPress,
 }: IndexerProps) {
@@ -61,6 +62,11 @@ function Indexer({
   } as const;
   const activityKind =
     availability === 'enabled' ? kinds.SUCCESS : kinds.DISABLED;
+  const mediaLabels = {
+    movies: translate('Movies'),
+    tv: translate('Series'),
+    music: translate('Music'),
+  };
 
   const handleEditIndexerPress = useCallback(() => {
     setIsEditIndexerModalOpen(true);
@@ -128,6 +134,19 @@ function Indexer({
             {translate('Priority')}: {priority}
           </Label>
         ) : null}
+      </div>
+
+      <div className={styles.mediaCategories}>
+        <span>{translate('IndexerSearchCategories')}:</span>
+        {supportedMediaKinds.length ? (
+          supportedMediaKinds.map((kind) => (
+            <Label key={kind} kind={kinds.DEFAULT}>
+              {mediaLabels[kind]}
+            </Label>
+          ))
+        ) : (
+          <span>{translate('None')}</span>
+        )}
       </div>
 
       <TagList tags={tags} tagList={tagList} />
