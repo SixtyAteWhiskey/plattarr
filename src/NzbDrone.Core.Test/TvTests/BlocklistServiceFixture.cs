@@ -96,6 +96,7 @@ namespace NzbDrone.Core.Test.TvTests
             GivenBlocklisted(Item(DownloadProtocol.Torrent, hash: "ABC123"));
 
             Subject.Blocklisted(7, Torrent("abc123")).Should().BeTrue();
+            Subject.Blocklisted(7, Torrent("abc123", "second-indexer")).Should().BeTrue();
         }
 
         [Test]

@@ -15,7 +15,20 @@ using NzbDrone.Core.Download.Clients.QBittorrent;
 using NzbDrone.Core.Download.Torrents;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Indexers.Torznab;
+using NzbDrone.Core.Modules;
+using NzbDrone.Core.Music;
+using NzbDrone.Core.Music.Parser.Model;
+using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Tv;
+using NzbDrone.Core.Tv.Parser.Model;
 using NzbDrone.Test.Common;
+using MusicBlocklist = NzbDrone.Core.Music.Blocklisting.MusicBlocklist;
+using MusicBlocklistRepository = NzbDrone.Core.Music.Blocklisting.IBlocklistRepository;
+using MusicBlocklistService = NzbDrone.Core.Music.Blocklisting.BlocklistService;
+using TvBlocklist = NzbDrone.Core.Tv.Blocklisting.TvBlocklist;
+using TvBlocklistRepository = NzbDrone.Core.Tv.Blocklisting.IBlocklistRepository;
+using TvBlocklistService = NzbDrone.Core.Tv.Blocklisting.BlocklistService;
 
 namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
 {
@@ -511,6 +524,107 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
             indexer.Setup(i => i.Download(It.IsAny<Uri>())).ReturnsAsync(new IndexerDownloadResponse(data));
 
             return indexer;
+        }
+
+        private Mock<IIndexer> GivenSecondIndexerReturningBlocklistedHash(byte[] data)
+        {
+            const string hash = "CBC2F069FE8BB2F544EAE707D75BCD3DE9DCF951";
+            var tvRepository = Mocker.GetMock<TvBlocklistRepository>();
+            tvRepository.Setup(r => r.BlocklistedByTorrentInfoHash(42, hash))
+                .Returns(new List<NzbDrone.Core.Tv.Blocklisting.Blocklist>
+                {
+                    new() { ParentId = 42, Indexer = "First Indexer", TorrentInfoHash = hash }
+                });
+            var musicRepository = Mocker.GetMock<MusicBlocklistRepository>();
+            musicRepository.Setup(r => r.BlocklistedByTorrentInfoHash(84, hash))
+                .Returns(new List<NzbDrone.Core.Music.Blocklisting.Blocklist>
+                {
+                    new() { ParentId = 84, Indexer = "First Indexer", TorrentInfoHash = hash }
+                });
+
+            var blocklist = new ReleaseBlocklist(new IMediaBlocklist[]
+            {
+                new TvBlocklist(new TvBlocklistService(tvRepository.Object)),
+                new MusicBlocklist(new MusicBlocklistService(musicRepository.Object))
+            });
+            Mocker.GetMock<IReleaseBlocklist>()
+                .Setup(b => b.IsTorrentHashBlocklisted(It.IsAny<RemoteRelease>(), It.IsAny<string>()))
+                .Returns<RemoteRelease, string>(blocklist.IsTorrentHashBlocklisted);
+
+            var indexer = GivenIndexerReturning(data);
+            indexer.SetupGet(i => i.Definition).Returns(new IndexerDefinition
+            {
+                Id = 2,
+                Name = "Second Indexer",
+                Settings = new TorznabSettings
+                {
+                    TorrentBaseSettings = new IndexerTorrentBaseSettings
+                    {
+                        RejectBlocklistedTorrentHashesWhileGrabbing = true
+                    }
+                }
+            });
+
+            return indexer;
+        }
+
+        private RemoteRelease BlocklistedRelease(MediaKind kind)
+        {
+            var torrent = new TorrentInfo
+            {
+                Title = _title,
+                DownloadUrl = _downloadUrl,
+                DownloadProtocol = DownloadProtocol.Torrent,
+                Indexer = "Second Indexer"
+            };
+
+            return kind == MediaKind.Tv
+                ? new RemoteEpisode { Series = new Series { Id = 42 }, Release = torrent }
+                : new RemoteAlbum { Artist = new Artist { Id = 84 }, Release = torrent };
+        }
+
+        [TestCase(MediaKind.Tv, true)]
+        [TestCase(MediaKind.Tv, false)]
+        [TestCase(MediaKind.Music, true)]
+        [TestCase(MediaKind.Music, false)]
+        public void Download_should_reject_a_late_hash_blocklisted_by_a_different_indexer(MediaKind kind, bool magnetResponse)
+        {
+            const string magnet = "magnet:?xt=urn:btih:ZPBPA2P6ROZPKRHK44D5OW6NHXU5Z6KR&tr=udp";
+            var response = magnetResponse ? Encoding.UTF8.GetBytes(magnet) : new byte[] { 1, 2, 3 };
+            var indexer = GivenSecondIndexerReturningBlocklistedHash(response);
+            var release = BlocklistedRelease(kind);
+
+            Assert.ThrowsAsync<ReleaseBlockedException>(async () => await Subject.Download(release, indexer.Object));
+
+            ((TorrentInfo)release.Release).InfoHash.Should().Be("CBC2F069FE8BB2F544EAE707D75BCD3DE9DCF951");
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(p => p.AddTorrentFromUrl(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>()), Times.Never());
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(p => p.AddTorrentFromFile(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>()), Times.Never());
+        }
+
+        [TestCase(MediaKind.Tv)]
+        [TestCase(MediaKind.Music)]
+        public async Task Download_should_allow_an_interactive_grab_of_a_blocklisted_late_hash(MediaKind kind)
+        {
+            const string magnet = "magnet:?xt=urn:btih:ZPBPA2P6ROZPKRHK44D5OW6NHXU5Z6KR&tr=udp";
+            var indexer = GivenSecondIndexerReturningBlocklistedHash(Encoding.UTF8.GetBytes(magnet));
+            var release = BlocklistedRelease(kind);
+            release.ReleaseSource = ReleaseSourceType.InteractiveSearch;
+            Subject.Definition.Settings.AddTv("tv-sonarr");
+            ((IModuleCategorySettings)Subject.Definition.Settings).ModuleCategories.Add(new ModuleCategorySettings
+            {
+                Kind = MediaKind.Music,
+                Category = "music-lidarr"
+            });
+            GivenSuccessfulDownload();
+
+            await Subject.Download(release, indexer.Object);
+
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(p => p.AddTorrentFromUrl(magnet, It.IsAny<string>(), It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>()), Times.Once());
+            Mocker.GetMock<IReleaseBlocklist>()
+                  .Verify(b => b.IsTorrentHashBlocklisted(It.IsAny<RemoteRelease>(), It.IsAny<string>()), Times.Never());
         }
 
         [Test]
