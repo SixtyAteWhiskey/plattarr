@@ -58,6 +58,48 @@ namespace NzbDrone.Core.Test.QueueTests
         }
 
         [Test]
+        public void qbit_removal_evidence_is_recorded_separately_from_source_deletion()
+        {
+            var context = new ActionContext(
+                MediaKind.Tv,
+                true,
+                "download-stalled",
+                deleteFilesOnFailure: true,
+                removalEvidence: new DownloadRemovalEvidence
+                {
+                    ClientStatus = "observed-absent",
+                    SourceStatus = "observed-present"
+                });
+
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.Actions.Should().ContainSingle();
+            context.Actions[0].Status.Should().Be("completed");
+            context.Actions[0].ClientRemovalStatus.Should().Be("observed-absent");
+            context.Actions[0].SourceDeletionStatus.Should().Be("observed-present");
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), It.IsAny<bool>()), Times.Never);
+        }
+
+        [Test]
+        public void qbit_job_still_listed_keeps_hygiene_at_client_removal()
+        {
+            var context = new ActionContext(MediaKind.Tv, true, "download-stalled", removalEvidence: new DownloadRemovalEvidence
+            {
+                ClientStatus = "still-listed",
+                SourceStatus = "unverified"
+            });
+
+            context.Service.Process(new[] { context.QueueItem });
+            ExceptionVerification.ExpectedWarns(1);
+
+            context.Actions.Should().ContainSingle();
+            context.Actions[0].Status.Should().Be("failed");
+            context.Actions[0].Checkpoint.Should().Be("prepared");
+            context.Actions[0].ClientRemovalStatus.Should().Be("still-listed");
+            context.FailedDownloads.Verify(x => x.MarkAsFailed(It.IsAny<TrackedDownload>(), It.IsAny<bool>()), Times.Never);
+        }
+
+        [Test]
         public void new_grab_of_completed_metadata_hash_is_removed_once_without_another_search()
         {
             var context = new ActionContext(MediaKind.Tv, true, "download-metadata");
@@ -902,7 +944,7 @@ namespace NzbDrone.Core.Test.QueueTests
             public HygieneQueueAssessment Assessment { get; }
             public IHygieneQueueActionService Service { get; }
 
-            public ActionContext(MediaKind kind, bool gateEnabled, string reasonCode = "client-failed", IFailedDownloadService failedDownloadService = null, bool deleteFilesOnFailure = false, bool searchForReplacement = true)
+            public ActionContext(MediaKind kind, bool gateEnabled, string reasonCode = "client-failed", IFailedDownloadService failedDownloadService = null, bool deleteFilesOnFailure = false, bool searchForReplacement = true, DownloadRemovalEvidence removalEvidence = null)
             {
                 GateEnabled = gateEnabled;
                 var isStalledOrSlow = reasonCode is "download-stalled" or "download-slow" or "download-unstable" or "download-metadata" or "download-warning";
@@ -949,6 +991,13 @@ namespace NzbDrone.Core.Test.QueueTests
 
                 var clientItems = new List<DownloadClientItem> { clientItem };
                 DownloadClient.Setup(x => x.GetItems()).Returns(clientItems);
+                if (removalEvidence != null)
+                {
+                    DownloadClient.As<IReportDownloadRemovalEvidence>()
+                        .Setup(x => x.RemoveItemWithEvidence(It.IsAny<DownloadClientItem>(), It.IsAny<bool>()))
+                        .Returns(removalEvidence);
+                }
+
                 var downloadProvider = new Mock<IProvideDownloadClient>();
                 downloadProvider.Setup(x => x.Get(4)).Returns(DownloadClient.Object);
                 TrackedDownloads.Setup(x => x.Find(clientItem.DownloadId)).Returns(TrackedDownload);

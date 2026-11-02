@@ -94,6 +94,100 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
             capturedRequest.GetContent().Should().Be(expectedBody);
         }
 
+        [Test]
+        public void hygiene_removal_observes_job_and_source_path_absent()
+        {
+            var torrent = new QBittorrentTorrent
+            {
+                Hash = "ABC123",
+                SavePath = "/fixture/downloads",
+                ContentPath = "/fixture/downloads/item"
+            };
+            Mocker.GetMock<IQBittorrentProxy>()
+                .SetupSequence(x => x.GetTorrents(null, It.IsAny<QBittorrentSettings>()))
+                .Returns(new List<QBittorrentTorrent> { torrent })
+                .Returns(new List<QBittorrentTorrent>());
+            Mocker.GetMock<NzbDrone.Core.RemotePathMappings.IRemotePathMappingService>()
+                .Setup(x => x.RemapRemoteToLocal(It.IsAny<string>(), It.IsAny<OsPath>()))
+                .Returns(new OsPath("/fixture/downloads/item"));
+            Mocker.GetMock<IDiskProvider>()
+                .SetupSequence(x => x.FileExists("/fixture/downloads/item"))
+                .Returns(true)
+                .Returns(false);
+
+            var evidence = Subject.RemoveItemWithEvidence(new DownloadClientItem { DownloadId = "ABC123" }, true);
+
+            evidence.ClientStatus.Should().Be("observed-absent");
+            evidence.SourceStatus.Should().Be("observed-absent");
+            Mocker.GetMock<IQBittorrentProxy>()
+                .Verify(x => x.RemoveTorrent("abc123", true, It.IsAny<QBittorrentSettings>()), Times.Once);
+        }
+
+        [Test]
+        public void hygiene_removal_reports_source_still_present_without_exposing_its_path()
+        {
+            var torrent = new QBittorrentTorrent
+            {
+                Hash = "ABC123",
+                SavePath = "/fixture/downloads",
+                ContentPath = "/fixture/downloads/private-item"
+            };
+            Mocker.GetMock<IQBittorrentProxy>()
+                .SetupSequence(x => x.GetTorrents(null, It.IsAny<QBittorrentSettings>()))
+                .Returns(new List<QBittorrentTorrent> { torrent })
+                .Returns(new List<QBittorrentTorrent> { torrent });
+            Mocker.GetMock<NzbDrone.Core.RemotePathMappings.IRemotePathMappingService>()
+                .Setup(x => x.RemapRemoteToLocal(It.IsAny<string>(), It.IsAny<OsPath>()))
+                .Returns(new OsPath("/fixture/downloads/private-item"));
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(x => x.FileExists("/fixture/downloads/private-item"))
+                .Returns(true);
+
+            var evidence = Subject.RemoveItemWithEvidence(new DownloadClientItem { DownloadId = "ABC123" }, true);
+
+            evidence.ClientStatus.Should().Be("still-listed");
+            evidence.SourceStatus.Should().Be("observed-present");
+            evidence.ClientStatus.Should().NotContain("private-item");
+            evidence.SourceStatus.Should().NotContain("private-item");
+        }
+
+        [Test]
+        public void hygiene_removal_keeps_source_evidence_unverified_when_content_path_was_not_accessible()
+        {
+            var torrent = new QBittorrentTorrent { Hash = "ABC123", SavePath = "/fixture/downloads", ContentPath = null };
+            Mocker.GetMock<IQBittorrentProxy>()
+                .SetupSequence(x => x.GetTorrents(null, It.IsAny<QBittorrentSettings>()))
+                .Returns(new List<QBittorrentTorrent> { torrent })
+                .Returns(new List<QBittorrentTorrent>());
+
+            var evidence = Subject.RemoveItemWithEvidence(new DownloadClientItem { DownloadId = "ABC123" }, true);
+
+            evidence.ClientStatus.Should().Be("observed-absent");
+            evidence.SourceStatus.Should().Be("unverified");
+        }
+
+        [Test]
+        public void hygiene_removal_does_not_treat_save_directory_as_deleted_content()
+        {
+            var torrent = new QBittorrentTorrent
+            {
+                Hash = "ABC123",
+                SavePath = "/fixture/downloads",
+                ContentPath = "/fixture/downloads/"
+            };
+            Mocker.GetMock<IQBittorrentProxy>()
+                .SetupSequence(x => x.GetTorrents(null, It.IsAny<QBittorrentSettings>()))
+                .Returns(new List<QBittorrentTorrent> { torrent })
+                .Returns(new List<QBittorrentTorrent>());
+
+            var evidence = Subject.RemoveItemWithEvidence(new DownloadClientItem { DownloadId = "ABC123" }, true);
+
+            evidence.ClientStatus.Should().Be("observed-absent");
+            evidence.SourceStatus.Should().Be("unverified");
+            Mocker.GetMock<IDiskProvider>()
+                .Verify(x => x.FileExists(It.IsAny<string>()), Times.Never);
+        }
+
         protected void GivenRedirectToMagnet()
         {
             var httpHeader = new HttpHeader();

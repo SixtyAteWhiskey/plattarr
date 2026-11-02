@@ -22,6 +22,8 @@ namespace NzbDrone.Core.Hygiene
         public int RuleId { get; set; }
         public bool DeleteFilesOnFailure { get; set; }
         public bool SearchForReplacement { get; set; } = true;
+        public string ClientRemovalStatus { get; set; }
+        public string SourceDeletionStatus { get; set; }
         public string Title { get; set; }
         public string Status { get; set; }
         public string Checkpoint { get; set; }
@@ -391,7 +393,31 @@ namespace NzbDrone.Core.Hygiene
                 {
                     try
                     {
-                        downloadClient.RemoveItem(clientItem, action.DeleteFilesOnFailure);
+                        if (downloadClient is IReportDownloadRemovalEvidence reportingClient)
+                        {
+                            var evidence = reportingClient.RemoveItemWithEvidence(clientItem, action.DeleteFilesOnFailure);
+                            action.ClientRemovalStatus = evidence.ClientStatus is "observed-absent" or "still-listed"
+                                ? evidence.ClientStatus
+                                : "unverified";
+                            action.SourceDeletionStatus = !action.DeleteFilesOnFailure
+                                ? "not-requested"
+                                : evidence.SourceStatus is "observed-absent" or "observed-present"
+                                    ? evidence.SourceStatus
+                                    : "unverified";
+                        }
+                        else
+                        {
+                            downloadClient.RemoveItem(clientItem, action.DeleteFilesOnFailure);
+                            action.ClientRemovalStatus = "request-returned";
+                            action.SourceDeletionStatus = action.DeleteFilesOnFailure ? "unverified" : "not-requested";
+                        }
+
+                        _actions.SetFields(action, x => x.ClientRemovalStatus, x => x.SourceDeletionStatus);
+
+                        if (action.ClientRemovalStatus == "still-listed")
+                        {
+                            throw new InvalidOperationException("The download client still lists the job after removal.");
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -399,6 +425,12 @@ namespace NzbDrone.Core.Hygiene
                     }
 
                     tracked.DownloadItem.Removed = true;
+                }
+                else
+                {
+                    action.ClientRemovalStatus = "not-listed-before-request";
+                    action.SourceDeletionStatus = action.DeleteFilesOnFailure ? "unverified" : "not-requested";
+                    _actions.SetFields(action, x => x.ClientRemovalStatus, x => x.SourceDeletionStatus);
                 }
 
                 SetCheckpoint(action, ClientRemoved);
