@@ -32,6 +32,8 @@ interface HygieneAction {
   title: string;
   reasonCode: string;
   deleteFilesOnFailure: boolean;
+  clientRemovalStatus?: string;
+  sourceDeletionStatus?: string;
   status: string;
   checkpoint: string;
   recoveryPath: string;
@@ -230,6 +232,34 @@ const unknownFailureStageDescription =
 
 function getFailureStageDescription(checkpoint: string) {
   return failureStageDescriptions[checkpoint] || unknownFailureStageDescription;
+}
+
+function getClientRemovalEvidence(status?: string) {
+  switch (status) {
+    case 'observed-absent':
+      return 'The client job was listed before removal and absent immediately afterward.';
+    case 'still-listed':
+      return 'The client job was still listed immediately after the removal request.';
+    case 'request-returned':
+      return 'The client accepted the removal call; its job list was not checked.';
+    case 'not-listed-before-request':
+      return 'The job was already absent from the client list; no removal was sent.';
+    default:
+      return 'Client removal has not been independently verified.';
+  }
+}
+
+function getSourceDeletionEvidence(status?: string) {
+  switch (status) {
+    case 'observed-absent':
+      return 'The source path existed before removal and was absent immediately afterward.';
+    case 'observed-present':
+      return 'The source path was still present immediately after the removal request.';
+    case 'not-requested':
+      return 'Source-file deletion was not requested.';
+    default:
+      return 'Source-file deletion could not be verified from an accessible path.';
+  }
 }
 
 function getSearchSummary(outcome: HygieneReplacementOutcome) {
@@ -646,10 +676,22 @@ function Hygiene() {
                                 Checkpoint: {action.checkpoint}
                               </Text>
                               <Text size="small" tone="secondary">
-                                Client removal policy:{' '}
+                                Source-file policy:{' '}
                                 {action.deleteFilesOnFailure
                                   ? 'delete source files'
                                   : 'keep source files'}
+                              </Text>
+                              <Text size="small" tone="secondary">
+                                Client removal evidence:{' '}
+                                {getClientRemovalEvidence(
+                                  action.clientRemovalStatus
+                                )}
+                              </Text>
+                              <Text size="small" tone="secondary">
+                                Source-file evidence:{' '}
+                                {getSourceDeletionEvidence(
+                                  action.sourceDeletionStatus
+                                )}
                               </Text>
                               {action.replacementOutcome ? (
                                 <div className={styles.replacementOutcome}>
