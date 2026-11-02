@@ -140,6 +140,19 @@ System log records the action ID, media kind, reason, client ID, checkpoint,
 and error type. Failed journal entries expose a concise stage explanation and
 manual recovery steps in the expandable **Failure details** section.
 
+New actions record client removal and source-file observations separately.
+For qBittorrent, Hygiene checks whether the job is absent after the delete
+request. A job still listed after the request keeps the action at the client
+removal checkpoint for a later retry. If source-file deletion was requested
+and qBittorrent reported a distinct, accessible content path that existed
+beforehand, Hygiene checks its
+presence immediately afterward. An absent path is an observation, not proof
+that every file was deleted; a present path may disappear later. Missing paths,
+inaccessible mounts, and failed diagnostic reads remain unverified. Only fixed
+status codes are stored or sent through the API; paths and client responses
+are not stored in the action journal. Other clients retain the existing removal
+call and report that its return was observed without a follow-up client check.
+
 Migration 18 records the replacement command ID, target item IDs, terminal
 search status, grab count, and completion time for new actions. The action's
 `completed` status and `replacement-requested` checkpoint describe cleanup and
