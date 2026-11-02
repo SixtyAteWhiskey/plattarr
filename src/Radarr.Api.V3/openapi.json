@@ -17384,6 +17384,16 @@
             "type": "boolean",
             "readOnly": true
           },
+          "clientRemovalStatus": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "sourceDeletionStatus": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
           "searchForReplacement": {
             "type": "boolean",
             "readOnly": true

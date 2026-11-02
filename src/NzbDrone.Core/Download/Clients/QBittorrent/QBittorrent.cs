@@ -17,7 +17,7 @@ using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Download.Clients.QBittorrent
 {
-    public class QBittorrent : TorrentClientBase<QBittorrentSettings>
+    public class QBittorrent : TorrentClientBase<QBittorrentSettings>, IReportDownloadRemovalEvidence
     {
         private readonly IQBittorrentProxySelector _proxySelector;
         private readonly ICached<SeedingTimeCacheEntry> _seedingTimeCache;
@@ -358,6 +358,78 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
         public override void RemoveItem(DownloadClientItem item, bool deleteData)
         {
             Proxy.RemoveTorrent(item.DownloadId.ToLower(), deleteData, Settings);
+        }
+
+        public DownloadRemovalEvidence RemoveItemWithEvidence(DownloadClientItem item, bool deleteData)
+        {
+            var hash = item.DownloadId.ToLowerInvariant();
+            QBittorrentTorrent torrent = null;
+            OsPath sourcePath = default;
+            bool? sourceExisted = null;
+
+            // Diagnostic reads must never prevent an otherwise valid removal.
+            try
+            {
+                torrent = Proxy.GetTorrents(null, Settings)
+                    .FirstOrDefault(x => string.Equals(x.Hash, hash, StringComparison.OrdinalIgnoreCase));
+
+                if (deleteData && torrent?.ContentPath.IsNotNullOrWhiteSpace() == true &&
+                    torrent.SavePath.IsNotNullOrWhiteSpace())
+                {
+                    var remotePath = new OsPath(torrent.ContentPath);
+                    var savePath = new OsPath(torrent.SavePath);
+                    if (remotePath.IsRooted && savePath.IsRooted &&
+                        savePath.Contains(remotePath) && !remotePath.Equals(savePath, true))
+                    {
+                        sourcePath = _remotePathMappingService.RemapRemoteToLocal(Settings.Host, remotePath);
+                        if (sourcePath.IsRooted)
+                        {
+                            sourceExisted = _diskProvider.FileExists(sourcePath.FullPath) ||
+                                            _diskProvider.FolderExists(sourcePath.FullPath);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // The client request below still determines removal success.
+            }
+
+            Proxy.RemoveTorrent(hash, deleteData, Settings);
+
+            var evidence = new DownloadRemovalEvidence
+            {
+                ClientStatus = "unverified",
+                SourceStatus = deleteData ? "unverified" : "not-requested"
+            };
+
+            try
+            {
+                var stillListed = Proxy.GetTorrents(null, Settings)
+                    .Any(x => string.Equals(x.Hash, hash, StringComparison.OrdinalIgnoreCase));
+                evidence.ClientStatus = stillListed ? "still-listed" : torrent == null ? "unverified" : "observed-absent";
+            }
+            catch
+            {
+                // A post-request query failure cannot establish client state.
+            }
+
+            if (deleteData && sourceExisted == true)
+            {
+                try
+                {
+                    evidence.SourceStatus = _diskProvider.FileExists(sourcePath.FullPath) ||
+                                            _diskProvider.FolderExists(sourcePath.FullPath)
+                        ? "observed-present"
+                        : "observed-absent";
+                }
+                catch
+                {
+                    // An inaccessible path cannot establish deletion.
+                }
+            }
+
+            return evidence;
         }
 
         public override DownloadClientItem GetImportItem(DownloadClientItem item, DownloadClientItem previousImportAttempt)
