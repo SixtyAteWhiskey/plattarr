@@ -94,6 +94,29 @@ namespace NzbDrone.Core.Test.MusicTests
         }
 
         [Test]
+        public void should_reject_a_known_hash_from_another_indexer_during_the_decision()
+        {
+            Mocker.GetMock<IBlocklistRepository>()
+                  .Setup(r => r.BlocklistedByTorrentInfoHash(7, "ABC123"))
+                  .Returns(new List<Blocklist>
+                  {
+                      new() { ParentId = 7, Indexer = "first-indexer", TorrentInfoHash = "ABC123" }
+                  });
+
+            var release = new TorrentInfo
+            {
+                Title = "Artist - Album [FLAC]",
+                DownloadProtocol = DownloadProtocol.Torrent,
+                Indexer = "second-indexer",
+                InfoHash = "ABC123"
+            };
+
+            Subject.Blocklisted(7, release).Should().BeTrue();
+            Mocker.GetMock<IBlocklistRepository>()
+                  .Verify(r => r.BlocklistedByTitle(It.IsAny<int>(), It.IsAny<string>()), Times.Never());
+        }
+
+        [Test]
         public void should_keep_a_usenet_failure_without_a_hash_and_a_missing_size_as_zero()
         {
             var failure = Failure(MediaKind.Music);
