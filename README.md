@@ -50,6 +50,9 @@ production service.
 The current performance and code-cleanup work is tracked in the
 [`refactoring plan`](docs/refactoring-plan.md).
 
+API clients should handle HTTP 429 responses and follow the `Retry-After`
+header; see [API rate limits](docs/api-rate-limits.md).
+
 ## Upstream and license
 
 Plattarr is not affiliated with or supported by the Radarr, Prowlarr, Sonarr,
