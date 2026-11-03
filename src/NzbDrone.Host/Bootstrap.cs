@@ -328,11 +328,27 @@ namespace NzbDrone.Host
                 ?? config.GetValue<bool?>("AuthenticationEnabled")
                 ?? false;
 
-            if (!authenticationEnabled && method == AuthenticationType.None &&
-                !string.Equals(bindAddress, "localhost", StringComparison.OrdinalIgnoreCase) &&
-                (!IPAddress.TryParse(bindAddress, out var address) || !IPAddress.IsLoopback(address)))
+            if (authenticationEnabled)
             {
-                throw new RadarrStartupException("A new Plattarr instance cannot bind to a network address without authentication. Complete setup on loopback first, or configure Forms, External, or OIDC authentication before starting.");
+                method = AuthenticationType.Forms;
+            }
+
+            var requiredName = config.GetValue<string>("Radarr:Auth:Required");
+            if (!Enum.TryParse<AuthenticationRequiredType>(requiredName, out var required))
+            {
+                if (!Enum.TryParse(config.GetValue<string>("AuthenticationRequired"), true, out required))
+                {
+                    required = AuthenticationRequiredType.Enabled;
+                }
+            }
+
+            var isLoopback = string.Equals(bindAddress, "localhost", StringComparison.OrdinalIgnoreCase) ||
+                (IPAddress.TryParse(bindAddress, out var address) && IPAddress.IsLoopback(address));
+
+            if (!isLoopback && (method == AuthenticationType.None ||
+                (method != AuthenticationType.External && required != AuthenticationRequiredType.Enabled)))
+            {
+                throw new RadarrStartupException("A new Plattarr instance cannot bind to a network address without required authentication. Complete setup on loopback first, or configure Forms or OIDC with Authentication Required enabled, or External behind an authenticating proxy.");
             }
 
             return bindAddress;
