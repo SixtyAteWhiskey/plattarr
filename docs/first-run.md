@@ -51,7 +51,8 @@ request before forwarding it to Plattarr. Finish this step before changing
 **Bind Address** or making the service reachable from other machines.
 
 A fresh instance refuses to start with a non-loopback bind address and
-`AuthenticationMethod=None`. Existing `config.xml` installations retain their
+`AuthenticationMethod=None`, or with Forms or OIDC when **Authentication Required**
+allows local clients to bypass sign-in. Existing `config.xml` installations retain their
 configured bind and authentication behavior. An authenticated new instance may
 be configured for a network bind at first start; keep its proxy and access
 controls in place before starting it. For Docker on Linux, the README's host
