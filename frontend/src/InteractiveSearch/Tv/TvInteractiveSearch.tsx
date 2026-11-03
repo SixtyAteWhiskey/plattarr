@@ -205,6 +205,12 @@ function TvInteractiveSearch({
 
       {isFetching ? <LoadingIndicator /> : null}
 
+      {isFetching && isPopulated ? (
+        <Alert kind={kinds.INFO} className={styles.alert}>
+          {translate('InteractiveSearchStillSearching')}
+        </Alert>
+      ) : null}
+
       {!isFetching && error ? (
         <Alert kind={kinds.DANGER} className={styles.alert}>
           {errorMessage ? (
