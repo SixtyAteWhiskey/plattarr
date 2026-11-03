@@ -4,6 +4,10 @@
   margin-bottom: 10px;
 }
 
+.refreshButton {
+  margin-right: 10px;
+}
+
 .alert {
   composes: alert from '~Components/Alert.css';
 

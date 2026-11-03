@@ -172,6 +172,108 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
         }
 
         [Test]
+        public async Task should_reuse_interactive_provider_results_for_the_same_search()
+        {
+            _resultsByTerm["tier2a"] = new List<ReleaseInfo> { new() { Title = "Found" } };
+            _resultsByTerm["tier2b"] = new List<ReleaseInfo> { new() { Title = "Other" } };
+
+            await Search(interactive: true);
+            var second = await Search(interactive: true);
+
+            _searched.Select(c => c.SearchTerm).Should().Equal("tier1", "tier2a", "tier2b");
+            second.Releases.Should().HaveCount(2);
+            second.Releases[0].Should().NotBeSameAs(_resultsByTerm["tier2a"][0]);
+        }
+
+        [Test]
+        public async Task should_bypass_interactive_cache_for_explicit_refresh()
+        {
+            await Search(interactive: true);
+
+            var request = new TestRequest { InteractiveSearch = true, RefreshSearch = true, SceneTitles = new List<string> { "Title" } };
+            await Subject.Search(request, Array.Empty<int>(), MediaKind.Movies, _translator);
+
+            _searched.Select(c => c.SearchTerm).Should().Equal("tier1", "tier2a", "tier2b", "tier1", "tier2a", "tier2b");
+        }
+
+        [Test]
+        public async Task should_invalidate_interactive_cache_when_indexer_configuration_changes()
+        {
+            _resultsByTerm["tier1"] = new List<ReleaseInfo> { new() { Title = "Found" } };
+            await Search(interactive: true);
+
+            _definition.Language = "de";
+            await Search(interactive: true);
+
+            _searched.Should().HaveCount(2);
+        }
+
+        [Test]
+        public async Task should_invalidate_interactive_cache_when_scope_categories_change()
+        {
+            _resultsByTerm["tier1"] = new List<ReleaseInfo> { new() { Title = "Found" } };
+            await Search(interactive: true);
+
+            _capabilities.Categories.AddCategoryMapping(8000, NewznabStandardCategory.Other);
+            _override.Categories = new List<int> { 8000 };
+            await Search(interactive: true);
+
+            _searched.Should().HaveCount(2);
+            _searched[1].Categories.Should().Equal(8000);
+        }
+
+        [Test]
+        public async Task should_not_reuse_interactive_results_for_automatic_search()
+        {
+            _resultsByTerm["tier1"] = new List<ReleaseInfo> { new() { Title = "Found" } };
+            await Search(interactive: true);
+            await Search();
+
+            _searched.Should().HaveCount(2);
+        }
+
+        [Test]
+        public async Task should_deliver_first_results_before_the_remaining_queries_complete_without_duplicate_requests()
+        {
+            var finalQuery = new TaskCompletionSource<IList<ReleaseInfo>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            Mocker.GetMock<IReleaseSearchService>()
+                  .Setup(s => s.Search(It.IsAny<IIndexer>(), It.IsAny<SearchCriteriaBase>()))
+                  .Callback<IIndexer, SearchCriteriaBase>((_, c) => _searched.Add(c))
+                  .Returns<IIndexer, SearchCriteriaBase>((_, c) => c.SearchTerm switch
+                  {
+                      "tier2a" => Task.FromResult<IList<ReleaseInfo>>(new List<ReleaseInfo> { new() { Title = "First" } }),
+                      "tier2b" => finalQuery.Task,
+                      _ => Task.FromResult<IList<ReleaseInfo>>(new List<ReleaseInfo>())
+                  });
+
+            var request = new TestRequest { InteractiveSearch = true, SceneTitles = new List<string> { "Title", "Alternate" } };
+            Task<IndexerSearchResult> preview;
+
+            using (InteractiveSearchExecution.Begin(false, true, "search-session"))
+            {
+                preview = Subject.Search(request, Array.Empty<int>(), MediaKind.Movies, _translator);
+            }
+
+            var first = await preview.WaitAsync(TimeSpan.FromSeconds(2));
+            first.Releases.Should().ContainSingle().Which.Title.Should().Be("First");
+            _searched.Should().HaveCount(3);
+
+            Task<IndexerSearchResult> complete;
+            using (InteractiveSearchExecution.Begin(false, false, "search-session"))
+            {
+                var equivalentRequest = new TestRequest { InteractiveSearch = true, SceneTitles = new List<string> { "Alternate", "Title" } };
+                complete = Subject.Search(equivalentRequest, Array.Empty<int>(), MediaKind.Movies, _translator);
+            }
+
+            complete.IsCompleted.Should().BeFalse();
+            finalQuery.SetResult(new List<ReleaseInfo> { new() { Title = "Final" } });
+
+            var all = await complete.WaitAsync(TimeSpan.FromSeconds(2));
+            all.Releases.Select(r => r.Title).Should().Equal("First", "Final");
+            _searched.Should().HaveCount(3);
+        }
+
+        [Test]
         public async Task should_skip_indexer_with_interactive_search_disabled()
         {
             _definition.EnableInteractiveSearch = false;

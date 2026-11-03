@@ -1,10 +1,11 @@
 import { createAction } from 'redux-actions';
+import { batchActions } from 'redux-batched-actions';
 import { filterBuilderTypes, filterBuilderValueTypes, filterTypePredicates, filterTypes, sortDirections } from 'Helpers/Props';
 import { createThunk, handleThunks } from 'Store/thunks';
 import sortByProp from 'Utilities/Array/sortByProp';
 import createAjaxRequest from 'Utilities/createAjaxRequest';
 import translate from 'Utilities/String/translate';
-import createFetchHandler from './Creators/createFetchHandler';
+import { set, update } from './baseActions';
 import createHandleActions from './Creators/createHandleActions';
 import createSetClientSideCollectionFilterReducer from './Creators/Reducers/createSetClientSideCollectionFilterReducer';
 import createSetClientSideCollectionSortReducer from './Creators/Reducers/createSetClientSideCollectionSortReducer';
@@ -17,6 +18,7 @@ export const episodeSection = 'tvReleases.episode';
 export const seasonSection = 'tvReleases.season';
 
 let abortCurrentRequest = null;
+let requestSequence = 0;
 
 //
 // State
@@ -292,20 +294,91 @@ export const setSeasonReleasesFilter = createAction(SET_SEASON_RELEASES_FILTER);
 //
 // Helpers
 
-const fetchTvReleasesHelper = createFetchHandler(section, '/release/tv');
-
 //
 // Action Handlers
 
 export const actionHandlers = handleThunks({
 
   [FETCH_TV_RELEASES]: function(getState, payload, dispatch) {
-    const abortRequest = fetchTvReleasesHelper(getState, payload, dispatch);
+    if (abortCurrentRequest) {
+      abortCurrentRequest();
+    }
 
-    abortCurrentRequest = abortRequest;
+    const currentSequence = ++requestSequence;
+    const searchId = `${Date.now()}-${Math.random()}`;
+    const query = { ...payload, searchId };
+    let abortStage = null;
+
+    dispatch(batchActions([
+      update({ section, data: [] }),
+      set({ section, isFetching: true, isPopulated: false, error: null })
+    ]));
+
+    abortCurrentRequest = () => {
+      abortStage?.();
+      abortCurrentRequest = null;
+    };
+
+    const preview = createAjaxRequest({
+      url: '/release/tv',
+      data: { ...query, preview: true },
+      traditional: true
+    });
+
+    abortStage = preview.abortRequest;
+
+    preview.request.done((data) => {
+      if (currentSequence !== requestSequence) {
+        return;
+      }
+
+      dispatch(batchActions([
+        update({ section, data }),
+        set({ section, isFetching: true, isPopulated: true, error: null })
+      ]));
+
+      const complete = createAjaxRequest({
+        url: '/release/tv',
+        data: query,
+        traditional: true
+      });
+
+      abortStage = complete.abortRequest;
+
+      complete.request.done((allData) => {
+        if (currentSequence !== requestSequence) {
+          return;
+        }
+
+        dispatch(batchActions([
+          update({ section, data: allData }),
+          set({ section, isFetching: false, isPopulated: true, error: null })
+        ]));
+        abortCurrentRequest = null;
+      });
+
+      complete.request.fail((xhr) => {
+        if (currentSequence !== requestSequence) {
+          return;
+        }
+
+        dispatch(set({ section, isFetching: false, error: xhr.aborted ? null : xhr }));
+        abortCurrentRequest = null;
+      });
+    });
+
+    preview.request.fail((xhr) => {
+      if (currentSequence !== requestSequence) {
+        return;
+      }
+
+      dispatch(set({ section, isFetching: false, isPopulated: false, error: xhr.aborted ? null : xhr }));
+      abortCurrentRequest = null;
+    });
   },
 
   [CANCEL_FETCH_TV_RELEASES]: function(getState, payload, dispatch) {
+    requestSequence++;
     if (abortCurrentRequest) {
       abortCurrentRequest = abortCurrentRequest();
     }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentValidation;
@@ -176,16 +177,22 @@ namespace Radarr.Api.V3.Tv.Releases
 
         [HttpGet]
         [Produces("application/json")]
-        public async Task<List<TvReleaseResource>> GetReleases(int? seriesId, int? episodeId, int? seasonNumber)
+        public async Task<List<TvReleaseResource>> GetReleases(int? seriesId, int? episodeId, int? seasonNumber, bool refresh = false, bool preview = false, string searchId = null)
         {
             if (episodeId.HasValue)
             {
-                return await GetEpisodeReleases(episodeId.Value);
+                using (InteractiveSearchExecution.Begin(refresh, preview, searchId))
+                {
+                    return await GetEpisodeReleases(episodeId.Value);
+                }
             }
 
             if (seriesId.HasValue && seasonNumber.HasValue)
             {
-                return await GetSeasonReleases(seriesId.Value, seasonNumber.Value);
+                using (InteractiveSearchExecution.Begin(refresh, preview, searchId))
+                {
+                    return await GetSeasonReleases(seriesId.Value, seasonNumber.Value);
+                }
             }
 
             if (seriesId.HasValue || seasonNumber.HasValue)
@@ -198,12 +205,20 @@ namespace Radarr.Api.V3.Tv.Releases
 
         private async Task<List<TvReleaseResource>> GetEpisodeReleases(int episodeId)
         {
+            var wallTime = Stopwatch.StartNew();
             try
             {
                 var decisions = await _releaseSearchService.EpisodeSearch(episodeId, true, true);
                 var prioritizedDecisions = _prioritizeDownloadDecision.PrioritizeDecisions(decisions);
 
-                return MapDecisions(prioritizedDecisions);
+                var resources = MapDecisions(prioritizedDecisions);
+                _logger.Info(
+                    "Interactive TV response: scope=episode, phase={0}, elapsedMs={1}, results={2}",
+                    InteractiveSearchExecution.Preview ? "preview" : "complete",
+                    wallTime.ElapsedMilliseconds,
+                    resources.Count);
+
+                return resources;
             }
             catch (SearchFailedException ex)
             {
@@ -218,12 +233,20 @@ namespace Radarr.Api.V3.Tv.Releases
 
         private async Task<List<TvReleaseResource>> GetSeasonReleases(int seriesId, int seasonNumber)
         {
+            var wallTime = Stopwatch.StartNew();
             try
             {
                 var decisions = await _releaseSearchService.SeasonSearch(seriesId, seasonNumber, false, false, true, true);
                 var prioritizedDecisions = _prioritizeDownloadDecision.PrioritizeDecisions(decisions);
 
-                return MapDecisions(prioritizedDecisions);
+                var resources = MapDecisions(prioritizedDecisions);
+                _logger.Info(
+                    "Interactive TV response: scope=season, phase={0}, elapsedMs={1}, results={2}",
+                    InteractiveSearchExecution.Preview ? "preview" : "complete",
+                    wallTime.ElapsedMilliseconds,
+                    resources.Count);
+
+                return resources;
             }
             catch (SearchFailedException ex)
             {
