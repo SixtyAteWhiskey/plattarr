@@ -40,6 +40,28 @@ routes and request modes documented for that app.
 Keep Plattarr, your download client, and your media server on a private network.
 Do not expose the application directly through a DMZ or public WAN port. Use a
 VPN or a reverse proxy with TLS and authentication, and keep the API key private.
+On a new installation with no `config.xml`, Plattarr binds to `127.0.0.1:7880`
+by default. Open `http://127.0.0.1:7880` on the host, or use an SSH tunnel
+(`ssh -L 7880:127.0.0.1:7880 user@server`) and open that URL locally. In
+**Settings > General > Security**, choose Forms authentication, set a username
+and password, and leave **Authentication Required** enabled. OIDC is also
+supported when its authority, client, secret, and authorized user are
+configured. External authentication requires a proxy that authenticates every
+request before forwarding it to Plattarr. Finish this step before changing
+**Bind Address** or making the service reachable from other machines.
+
+A fresh instance refuses to start with a non-loopback bind address and
+`AuthenticationMethod=None`. Existing `config.xml` installations retain their
+configured bind and authentication behavior. An authenticated new instance may
+be configured for a network bind at first start; keep its proxy and access
+controls in place before starting it. For Docker on Linux, the README's host
+network example preserves the loopback-only first run. After setting up
+authentication, set **Bind Address** to `*`, save, and restart before switching
+to bridge networking. Publish a port only to the intended trusted interface.
+Plattarr exposes the full API key in
+`/initialize.json` to clients authorized for the UI, so treat UI access as
+administrative access. Do not use `External` without an authenticating proxy.
+
 When services run in containers, mount the same download and library locations
 into each service at compatible paths. A path Plattarr cannot read or a media
 server cannot see will break imports or library scans.
