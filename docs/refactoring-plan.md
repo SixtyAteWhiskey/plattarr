@@ -1269,3 +1269,31 @@ candidate FunFile definition remains a fixture only, and its GUID parity test
 now records the remaining difference. The native FunFile provider stays in use.
 The earlier experiment results are historical and do not describe the current
 parser. Any future transition still needs the previously documented gates.
+
+## 2026-11-03 repository hygiene checkpoint
+
+An inventory of the `develop` tree covered all 7,190 tracked paths (about
+50.9 MB of tracked content). It checked file types and sizes, empty files,
+exact content hashes, draft-like names, direct package references, and the
+build configuration. No empty tracked file or disposable draft was found.
+The separate local worktrees are registered Git worktrees, not files in this
+tree. Test media and fixtures, migrations, compatibility routes, packaging
+assets, and the existing indexed project notes have a verifiable purpose.
+
+Three identical `IndexerFlags` view components for Movies, TV, and Music were
+replaced by one shared component; the seven importing views retain the same
+rendering and selector. `ts-loader` and `worker-loader` had no configured
+loader rule or source reference, so their direct dependencies and orphaned
+lockfile entries were removed. The package's `main` pointed at a nonexistent
+root `index.ts`, and `readmeFilename` used the wrong case; neither is needed
+for this application, so both fields were removed. Other identical CSS and
+media-specific files remain candidates for small, behavior-checked slices;
+identical bytes alone do not prove a shared ownership boundary.
+
+The next milestone is production acceptance and release readiness: observe a
+naturally occurring TV search and blocked-hash decision without initiating a
+grab; verify new qBittorrent removal evidence on an isolated fixture and then
+read-only production observations; close the remaining first-run security,
+ImageSharp, and public metadata gates before any stable release. Preserve
+the current indexer implementations until a replacement passes the documented
+conversion and behavior gates.

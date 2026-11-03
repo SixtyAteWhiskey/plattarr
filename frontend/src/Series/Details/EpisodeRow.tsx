@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import Icon from 'Components/Icon';
+import IndexerFlags from 'Components/IndexerFlags/IndexerFlags';
 import MonitorToggleButton from 'Components/MonitorToggleButton';
 import RelativeDateCell from 'Components/Table/Cells/RelativeDateCell';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
@@ -12,7 +13,6 @@ import EpisodeNumber from 'Episode/EpisodeNumber';
 import EpisodeSearchCell from 'Episode/EpisodeSearchCell';
 import EpisodeStatus from 'Episode/EpisodeStatus';
 import EpisodeTitleLink from 'Episode/EpisodeTitleLink';
-import IndexerFlags from 'Episode/IndexerFlags';
 import EpisodeFileLanguages from 'EpisodeFile/EpisodeFileLanguages';
 import MediaInfo from 'EpisodeFile/MediaInfo';
 import * as mediaInfoTypes from 'EpisodeFile/mediaInfoTypes';
