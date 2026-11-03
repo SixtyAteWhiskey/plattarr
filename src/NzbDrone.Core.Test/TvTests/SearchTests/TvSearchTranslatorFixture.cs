@@ -104,6 +104,22 @@ namespace NzbDrone.Core.Test.TvTests.SearchTests
         }
 
         [Test]
+        public void should_stage_canonical_title_first_without_losing_alternates()
+        {
+            var request = Request<SeasonSearchRequest>(r =>
+            {
+                r.SceneTitles = new List<string> { "Agents of SHIELD", "Marvel's Agents of S.H.I.E.L.D." };
+                r.SeasonNumber = 1;
+                r.InteractiveSearch = true;
+            });
+
+            var titleTier = Translate(request).Last();
+
+            titleTier.Select(c => c.SearchTerm).Should().Equal("Marvels Agents of SHIELD", "Agents of SHIELD");
+            titleTier.Select(c => c.TitleVariant).Should().Equal(0, 1);
+        }
+
+        [Test]
         public void should_only_send_ids_the_indexer_supports()
         {
             _indexer.Capabilities.TvSearchParams = new List<TvSearchParam> { TvSearchParam.Q, TvSearchParam.Season, TvSearchParam.Ep, TvSearchParam.TvdbId };

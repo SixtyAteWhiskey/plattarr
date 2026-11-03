@@ -560,7 +560,7 @@ namespace NzbDrone.Core.Tv.Search
                                                       _searchTranslator);
 
             // Update the last search time for all episodes if at least 1 indexer was searched.
-            if (result.IndexersSearched > 0)
+            if (result.IndexersSearched > 0 && !InteractiveSearchExecution.Preview)
             {
                 var lastSearchTime = DateTime.UtcNow;
                 _logger.Debug("Setting last search time to: {0}", lastSearchTime);
@@ -569,7 +569,21 @@ namespace NzbDrone.Core.Tv.Search
                 _episodeService.UpdateLastSearchTime(criteriaBase.Episodes);
             }
 
-            return _makeDownloadDecision.GetSearchDecision(result.Releases, criteriaBase).ToList();
+            var decisions = _makeDownloadDecision.GetSearchDecision(result.Releases, criteriaBase).ToList();
+
+            if (criteriaBase.InteractiveSearch)
+            {
+                foreach (var variant in decisions.GroupBy(d => d.GetRemoteEpisode().Release.SearchTitleVariant))
+                {
+                    _logger.Info(
+                        "Interactive TV search decisions: variant={0}, useful={1}, total={2}",
+                        variant.Key?.ToString() ?? "unclassified",
+                        variant.Count(d => !d.Rejections.Any()),
+                        variant.Count());
+                }
+            }
+
+            return decisions;
         }
 
         private List<DownloadDecision> DeDupeDecisions(List<DownloadDecision> decisions)

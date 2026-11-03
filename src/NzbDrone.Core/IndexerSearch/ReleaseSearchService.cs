@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using NLog;
@@ -223,9 +224,15 @@ namespace NzbDrone.Core.IndexerSearch
         {
             if (_indexerLimitService.AtQueryLimit((IndexerDefinition)indexer.Definition))
             {
+                if (criteriaBase.InteractiveSearch)
+                {
+                    _logger.Info("Interactive provider query skipped at rate limit: indexerId={0}, variant={1}", indexer.Definition.Id, criteriaBase.TitleVariant?.ToString() ?? (criteriaBase.IsIdSearch ? "id" : "other"));
+                }
+
                 return Array.Empty<ReleaseInfo>();
             }
 
+            var wallTime = Stopwatch.StartNew();
             try
             {
                 var indexerReports = await searchAction(indexer);
@@ -276,6 +283,19 @@ namespace NzbDrone.Core.IndexerSearch
                 foreach (var query in indexerReports.Queries)
                 {
                     _eventAggregator.PublishEvent(new IndexerQueryEvent(indexer.Definition.Id, criteriaBase, query));
+                }
+
+                criteriaBase.ProviderRequestCount = indexerReports.Queries.Count;
+
+                if (criteriaBase.InteractiveSearch)
+                {
+                    _logger.Info(
+                        "Interactive provider query: indexerId={0}, variant={1}, elapsedMs={2}, providerRequests={3}, rawResults={4}",
+                        indexer.Definition.Id,
+                        criteriaBase.TitleVariant?.ToString() ?? (criteriaBase.IsIdSearch ? "id" : "other"),
+                        wallTime.ElapsedMilliseconds,
+                        indexerReports.Queries.Count,
+                        releases.Count);
                 }
 
                 return releases;
