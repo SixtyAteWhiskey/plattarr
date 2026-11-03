@@ -3,6 +3,7 @@
 interface CssExports {
   'alert': string;
   'filterMenuContainer': string;
+  'refreshButton': string;
 }
 export const cssExports: CssExports;
 export default cssExports;

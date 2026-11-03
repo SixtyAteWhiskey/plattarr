@@ -4,6 +4,7 @@ import ClientSideCollectionAppState from 'App/State/ClientSideCollectionAppState
 import TvReleasesAppState from 'App/State/TvReleasesAppState';
 import Alert from 'Components/Alert';
 import Icon from 'Components/Icon';
+import Button from 'Components/Link/Button';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import FilterMenu from 'Components/Menu/FilterMenu';
 import PageMenuButton from 'Components/Menu/PageMenuButton';
@@ -164,6 +165,10 @@ function TvInteractiveSearch({
     [dispatch]
   );
 
+  const handleRefreshPress = useCallback(() => {
+    dispatch(fetchTvReleases({ ...searchPayload, refresh: true }));
+  }, [dispatch, searchPayload]);
+
   useEffect(
     () => {
       // Only fetch releases if they are not already being fetched and not yet populated.
@@ -181,6 +186,11 @@ function TvInteractiveSearch({
   return (
     <div>
       <div className={styles.filterMenuContainer}>
+        <div className={styles.refreshButton}>
+          <Button isDisabled={isFetching} onPress={handleRefreshPress}>
+            {translate('Refresh')}
+          </Button>
+        </div>
         <FilterMenu
           alignMenu={align.RIGHT}
           selectedFilterKey={selectedFilterKey}

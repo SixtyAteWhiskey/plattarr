@@ -138,11 +138,13 @@ namespace NzbDrone.Core.Tv.Search
                 AddIfNotNull(criteria, IdCriteria(request, capabilities, categories, request.SeasonNumber, request.EpisodeNumber.ToString(), null));
             }
 
+            var titleVariant = 0;
             foreach (var queryTitle in QueryTitles(request, capabilities))
             {
                 criteria.Add(new BasicSearchCriteria
                 {
                     SearchTerm = $"{queryTitle} {absolute}",
+                    TitleVariant = titleVariant,
                     Categories = categories,
                     SearchType = "search",
                     Source = Source
@@ -150,8 +152,12 @@ namespace NzbDrone.Core.Tv.Search
 
                 if (includeStandardFormat)
                 {
-                    criteria.Add(TitleCriterion(queryTitle, categories, request.SeasonNumber, request.EpisodeNumber.ToString()));
+                    var standard = TitleCriterion(queryTitle, categories, request.SeasonNumber, request.EpisodeNumber.ToString());
+                    standard.TitleVariant = titleVariant;
+                    criteria.Add(standard);
                 }
+
+                titleVariant++;
             }
 
             if (criteria.Any())
@@ -179,6 +185,7 @@ namespace NzbDrone.Core.Tv.Search
                 AddIfNotNull(criteria, IdCriteria(request, capabilities, categories, request.SeasonNumber, null, null));
             }
 
+            var titleVariant = 0;
             foreach (var queryTitle in QueryTitles(request, capabilities))
             {
                 if (seasonQueryTitles.Contains(queryTitle, StringComparer.InvariantCultureIgnoreCase))
@@ -187,6 +194,7 @@ namespace NzbDrone.Core.Tv.Search
                     criteria.Add(new BasicSearchCriteria
                     {
                         SearchTerm = queryTitle,
+                        TitleVariant = titleVariant,
                         Categories = categories,
                         SearchType = "search",
                         Source = Source
@@ -194,8 +202,12 @@ namespace NzbDrone.Core.Tv.Search
                 }
                 else if (includeStandardFormat)
                 {
-                    criteria.Add(TitleCriterion(queryTitle, categories, request.SeasonNumber, null));
+                    var standard = TitleCriterion(queryTitle, categories, request.SeasonNumber, null);
+                    standard.TitleVariant = titleVariant;
+                    criteria.Add(standard);
                 }
+
+                titleVariant++;
             }
 
             if (criteria.Any())
@@ -272,7 +284,12 @@ namespace NzbDrone.Core.Tv.Search
             }
 
             return QueryTitles(request, capabilities)
-                .Select(title => TitleCriterion(title, categories, season, episode))
+                .Select((title, variant) =>
+                {
+                    var criteria = TitleCriterion(title, categories, season, episode);
+                    criteria.TitleVariant = variant;
+                    return criteria;
+                })
                 .ToList();
         }
 
@@ -295,7 +312,17 @@ namespace NzbDrone.Core.Tv.Search
         {
             var titles = capabilities?.SupportsRawSearch == true ? request.AllSceneTitles : request.CleanSceneTitles;
 
-            return titles
+            var canonical = request.Series?.Title;
+            if (canonical.IsNotNullOrWhiteSpace())
+            {
+                canonical = (capabilities?.SupportsRawSearch == true ? canonical : TvSearchRequest.GetCleanSceneTitle(canonical)).Replace("+", " ");
+            }
+
+            var orderedTitles = request.InteractiveSearch && canonical.IsNotNullOrWhiteSpace()
+                ? new[] { canonical }.Concat(titles)
+                : titles;
+
+            return orderedTitles
                 .Select(t => t.Replace("+", " "))
                 .Where(t => t.IsNotNullOrWhiteSpace())
                 .Distinct(StringComparer.InvariantCultureIgnoreCase)
