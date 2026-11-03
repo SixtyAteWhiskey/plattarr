@@ -1,9 +1,13 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using NLog;
 using NzbDrone.Common.Instrumentation.Extensions;
+using NzbDrone.Core.IndexerProxies;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Modules;
@@ -48,13 +52,68 @@ namespace NzbDrone.Core.IndexerSearch
         private readonly IIndexerStatusService _indexerStatusService;
         private readonly IIndexerMediaTagService _indexerMediaTagService;
         private readonly IIndexerCategoryService _indexerCategoryService;
+        private readonly IIndexerProxyFactory _indexerProxyFactory;
         private readonly Logger _logger;
+        private readonly ConcurrentDictionary<string, CachedQuery> _interactiveQueries = new();
+        private readonly ConcurrentDictionary<string, SearchSession> _searchSessions = new();
+        private static readonly TimeSpan InteractiveQueryLifetime = TimeSpan.FromMinutes(2);
+        private static readonly TimeSpan SearchSessionLifetime = TimeSpan.FromMinutes(10);
+
+        private sealed class CachedQuery
+        {
+            public DateTime Expires { get; init; }
+            public IList<ReleaseInfo> Releases { get; init; }
+        }
+
+        private sealed class SearchSession
+        {
+            private readonly TaskCompletionSource<IndexerSearchResult> _first = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            private readonly Lazy<Task<IndexerSearchResult>> _completion;
+            private readonly int _indexerCount;
+            private readonly Stopwatch _wallTime = Stopwatch.StartNew();
+
+            public SearchSession(int indexerCount, Func<Action<IList<ReleaseInfo>>, Task<IndexerSearchResult>> run)
+            {
+                _indexerCount = indexerCount;
+                _completion = new Lazy<Task<IndexerSearchResult>>(() => Execute(run));
+                Expires = DateTime.UtcNow.Add(SearchSessionLifetime);
+            }
+
+            public Task<IndexerSearchResult> First => _first.Task;
+            public Task<IndexerSearchResult> Completion => _completion.Value;
+            public DateTime Expires { get; }
+            public long ElapsedMilliseconds => _wallTime.ElapsedMilliseconds;
+
+            private void Report(IList<ReleaseInfo> releases)
+            {
+                if (releases.Count > 0)
+                {
+                    _first.TrySetResult(new IndexerSearchResult(releases.Select(r => (ReleaseInfo)r.Clone()).ToList(), _indexerCount));
+                }
+            }
+
+            private async Task<IndexerSearchResult> Execute(Func<Action<IList<ReleaseInfo>>, Task<IndexerSearchResult>> run)
+            {
+                try
+                {
+                    var result = await run(Report);
+                    _first.TrySetResult(result);
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    _first.TrySetException(ex);
+                    throw;
+                }
+            }
+        }
 
         public IndexerReleaseFetcher(IIndexerFactory indexerFactory,
                                      IReleaseSearchService releaseSearchService,
                                      IIndexerStatusService indexerStatusService,
                                      IIndexerMediaTagService indexerMediaTagService,
                                      IIndexerCategoryService indexerCategoryService,
+                                     IIndexerProxyFactory indexerProxyFactory,
                                      Logger logger)
         {
             _indexerFactory = indexerFactory;
@@ -62,6 +121,7 @@ namespace NzbDrone.Core.IndexerSearch
             _indexerStatusService = indexerStatusService;
             _indexerMediaTagService = indexerMediaTagService;
             _indexerCategoryService = indexerCategoryService;
+            _indexerProxyFactory = indexerProxyFactory;
             _logger = logger;
         }
 
@@ -108,11 +168,75 @@ namespace NzbDrone.Core.IndexerSearch
 
             _logger.ProgressInfo("Searching indexers for {0}. {1} active indexers", request, indexers.Count);
 
-            var batch = await Task.WhenAll(indexers.Select(t => SearchIndexer(t.Indexer, t.Categories, request, translator)));
+            var searchId = InteractiveSearchExecution.SearchId;
+            if (request.InteractiveSearch && !string.IsNullOrWhiteSpace(searchId) && searchId.Length <= 80)
+            {
+                var key = Hashing.SHA256Hash(JsonConvert.SerializeObject(new
+                {
+                    SearchId = searchId,
+                    Refresh = request.RefreshSearch || InteractiveSearchExecution.Refresh,
+                    Kind = kind,
+                    RequestType = request.GetType().FullName,
+                    SceneTitles = request.SceneTitles.OrderBy(t => t, StringComparer.InvariantCultureIgnoreCase).ToList(),
+                    Tags = tags.OrderBy(t => t).ToList(),
+                    Indexers = indexers.OrderBy(t => t.Indexer.Definition.Id).Select(t => new
+                    {
+                        Configuration = GetIndexerFingerprint(t.Indexer),
+                        Categories = t.Categories.OrderBy(c => c).ToArray(),
+                        Criteria = translator.Translate(request, (IndexerDefinition)t.Indexer.Definition, t.Categories)
+                            .Select(tier => tier.Select(JsonConvert.SerializeObject).OrderBy(criteria => criteria).ToList())
+                            .ToList()
+                    }).ToList()
+                }));
+
+                if (_searchSessions.TryGetValue(key, out var expired) && expired.Expires <= DateTime.UtcNow)
+                {
+                    _searchSessions.TryRemove(key, out _);
+                }
+
+                var session = _searchSessions.GetOrAdd(key,
+                    _ => new SearchSession(indexers.Count, report => RunSearch(indexers, request, kind, translator, report)));
+                var completion = session.Completion;
+
+                if (_searchSessions.Count > 64)
+                {
+                    foreach (var item in _searchSessions.Where(item => item.Value.Expires <= DateTime.UtcNow))
+                    {
+                        _searchSessions.TryRemove(item.Key, out _);
+                    }
+                }
+
+                if (InteractiveSearchExecution.Preview)
+                {
+                    var first = await session.First;
+                    _logger.Info("Interactive search preview: kind={0}, elapsedMs={1}, rawResults={2}", kind, session.ElapsedMilliseconds, first.Releases.Count);
+                    return first;
+                }
+
+                return await completion;
+            }
+
+            return await RunSearch(indexers, request, kind, translator, null);
+        }
+
+        private async Task<IndexerSearchResult> RunSearch<TRequest>(List<(IIndexer Indexer, int[] Categories)> indexers,
+            TRequest request,
+            MediaKind kind,
+            ISearchTranslator<TRequest> translator,
+            Action<IList<ReleaseInfo>> report)
+            where TRequest : ModuleSearchRequest
+        {
+            var wallTime = Stopwatch.StartNew();
+
+            var batch = await Task.WhenAll(indexers.Select(t => SearchIndexer(t.Indexer, t.Categories, request, kind, translator, report)));
 
             var releases = batch.SelectMany(x => x).ToList();
 
             _logger.ProgressDebug("Total of {0} reports were found for {1} from {2} indexers", releases.Count, request, indexers.Count);
+            if (request.InteractiveSearch)
+            {
+                _logger.Info("Interactive search summary: kind={0}, elapsedMs={1}, indexers={2}, rawResults={3}", kind, wallTime.ElapsedMilliseconds, indexers.Count, releases.Count);
+            }
 
             return new IndexerSearchResult(releases, indexers.Count);
         }
@@ -172,9 +296,19 @@ namespace NzbDrone.Core.IndexerSearch
             }
         }
 
-        private async Task<IList<ReleaseInfo>> SearchIndexer<TRequest>(IIndexer indexer, int[] categories, TRequest request, ISearchTranslator<TRequest> translator)
+        private async Task<IList<ReleaseInfo>> SearchIndexer<TRequest>(IIndexer indexer,
+            int[] categories,
+            TRequest request,
+            MediaKind kind,
+            ISearchTranslator<TRequest> translator,
+            Action<IList<ReleaseInfo>> report)
             where TRequest : ModuleSearchRequest
         {
+            var wallTime = Stopwatch.StartNew();
+            var requests = 0;
+            var cacheHits = 0;
+            var providerRequests = 0;
+            var rawResults = 0;
             try
             {
                 foreach (var tier in translator.Translate(request, (IndexerDefinition)indexer.Definition, categories))
@@ -186,7 +320,31 @@ namespace NzbDrone.Core.IndexerSearch
                         criteria.InteractiveSearch = request.InteractiveSearch;
                         criteria.Source ??= SearchSource;
 
-                        releases.AddRange(await _releaseSearchService.Search(indexer, criteria));
+                        var queryTime = Stopwatch.StartNew();
+                        var (found, cached) = await SearchQuery(indexer, criteria, kind, request.RefreshSearch || InteractiveSearchExecution.Refresh);
+                        foreach (var release in found)
+                        {
+                            release.SearchTitleVariant = criteria.TitleVariant;
+                        }
+
+                        requests += cached ? 0 : 1;
+                        cacheHits += cached ? 1 : 0;
+                        providerRequests += criteria.ProviderRequestCount;
+                        rawResults += found.Count;
+                        report?.Invoke(found);
+                        if (request.InteractiveSearch)
+                        {
+                            _logger.Info(
+                                "Interactive search query: indexerId={0}, variant={1}, elapsedMs={2}, requests={3}, cacheHit={4}, rawResults={5}",
+                                indexer.Definition.Id,
+                                criteria.TitleVariant?.ToString() ?? (criteria.IsIdSearch ? "id" : "other"),
+                                queryTime.ElapsedMilliseconds,
+                                cached ? 0 : 1,
+                                cached,
+                                found.Count);
+                        }
+
+                        releases.AddRange(found);
                     }
 
                     if (releases.Any())
@@ -199,8 +357,83 @@ namespace NzbDrone.Core.IndexerSearch
             {
                 _logger.Error(ex, "Error while searching for {0}", request);
             }
+            finally
+            {
+                if (request.InteractiveSearch)
+                {
+                    _logger.Info(
+                        "Interactive search indexer: indexerId={0}, elapsedMs={1}, criteriaRequests={2}, providerRequests={3}, cacheHits={4}, rawResults={5}",
+                        indexer.Definition.Id,
+                        wallTime.ElapsedMilliseconds,
+                        requests,
+                        providerRequests,
+                        cacheHits,
+                        rawResults);
+                }
+            }
 
             return Array.Empty<ReleaseInfo>();
+        }
+
+        private async Task<(IList<ReleaseInfo> Releases, bool Cached)> SearchQuery(IIndexer indexer, SearchCriteriaBase criteria, MediaKind kind, bool refresh)
+        {
+            if (!criteria.InteractiveSearch)
+            {
+                return (await _releaseSearchService.Search(indexer, criteria), false);
+            }
+
+            // Hash configuration in memory: the key includes credentials, capabilities, routing,
+            // scoped categories, and every criterion field without writing them to logs.
+            var key = Hashing.SHA256Hash(JsonConvert.SerializeObject(new
+            {
+                Kind = kind,
+                Configuration = GetIndexerFingerprint(indexer),
+                Criteria = criteria
+            }));
+
+            if (!refresh && _interactiveQueries.TryGetValue(key, out var hit) && hit.Expires > DateTime.UtcNow)
+            {
+                return (hit.Releases.Select(r => (ReleaseInfo)r.Clone()).ToList(), true);
+            }
+
+            var releases = await _releaseSearchService.Search(indexer, criteria);
+            _interactiveQueries[key] = new CachedQuery
+            {
+                Expires = DateTime.UtcNow.Add(InteractiveQueryLifetime),
+                Releases = releases.Select(r => (ReleaseInfo)r.Clone()).ToList()
+            };
+
+            if (_interactiveQueries.Count > 1024)
+            {
+                foreach (var item in _interactiveQueries.Where(item => item.Value.Expires <= DateTime.UtcNow))
+                {
+                    _interactiveQueries.TryRemove(item.Key, out _);
+                }
+            }
+
+            return (releases, false);
+        }
+
+        private string GetIndexerFingerprint(IIndexer indexer)
+        {
+            var definition = (IndexerDefinition)indexer.Definition;
+            return Hashing.SHA256Hash(JsonConvert.SerializeObject(new
+            {
+                definition.Id,
+                definition.Implementation,
+                definition.EnableInteractiveSearch,
+                definition.Priority,
+                definition.Redirect,
+                definition.DownloadClientId,
+                definition.IndexerUrls,
+                definition.LegacyUrls,
+                definition.Language,
+                definition.Protocol,
+                Tags = definition.Tags.OrderBy(t => t).ToList(),
+                Settings = definition.Settings,
+                Capabilities = indexer.GetCapabilities(),
+                Proxies = _indexerProxyFactory.All().OrderBy(p => p.Id).ToList()
+            }));
         }
     }
 }

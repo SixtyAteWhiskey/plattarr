@@ -18,6 +18,7 @@ using NzbDrone.Core.Tv.DecisionEngine;
 using NzbDrone.Core.Tv.Search;
 using IIndexerReleaseFetcher = NzbDrone.Core.IndexerSearch.IIndexerReleaseFetcher;
 using IndexerSearchResult = NzbDrone.Core.IndexerSearch.IndexerSearchResult;
+using InteractiveSearchExecution = NzbDrone.Core.IndexerSearch.InteractiveSearchExecution;
 
 namespace NzbDrone.Core.Test.TvTests.SearchTests
 {
@@ -139,6 +140,40 @@ namespace NzbDrone.Core.Test.TvTests.SearchTests
 
             _xemEpisodes.First().LastSearchTime.Should().NotBeNull();
             Mocker.GetMock<IEpisodeService>().Verify(v => v.UpdateLastSearchTime(It.Is<List<Episode>>(l => l.Contains(_xemEpisodes.First()))), Times.Once());
+        }
+
+        [Test]
+        public async Task should_recheck_decisions_when_the_same_interactive_search_is_reopened()
+        {
+            WithEpisodes();
+            WatchForSearchCriteria();
+
+            await Subject.EpisodeSearch(_xemEpisodes.First(), true, true);
+            await Subject.EpisodeSearch(_xemEpisodes.First(), true, true);
+
+            Mocker.GetMock<IMakeDownloadDecision>()
+                  .Verify(s => s.GetSearchDecision(It.IsAny<List<ReleaseInfo>>(), It.IsAny<TvSearchRequest>()), Times.Exactly(2));
+        }
+
+        [Test]
+        public async Task should_record_last_search_time_only_after_the_complete_stage()
+        {
+            WithEpisodes();
+            WatchForSearchCriteria();
+
+            using (InteractiveSearchExecution.Begin(false, true, "stage-test"))
+            {
+                await Subject.EpisodeSearch(_xemEpisodes.First(), true, true);
+            }
+
+            Mocker.GetMock<IEpisodeService>().Verify(v => v.UpdateLastSearchTime(It.IsAny<List<Episode>>()), Times.Never());
+
+            using (InteractiveSearchExecution.Begin(false, false, "stage-test"))
+            {
+                await Subject.EpisodeSearch(_xemEpisodes.First(), true, true);
+            }
+
+            Mocker.GetMock<IEpisodeService>().Verify(v => v.UpdateLastSearchTime(It.IsAny<List<Episode>>()), Times.Once());
         }
 
         [Test]
