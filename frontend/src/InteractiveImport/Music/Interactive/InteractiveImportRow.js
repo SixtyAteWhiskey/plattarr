@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import AlbumFormats from 'Album/AlbumFormats';
-import IndexerFlags from 'Album/IndexerFlags';
 import TrackQuality from 'Album/TrackQuality';
 import Icon from 'Components/Icon';
+import IndexerFlags from 'Components/IndexerFlags/IndexerFlags';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import TableRowCellButton from 'Components/Table/Cells/TableRowCellButton';
