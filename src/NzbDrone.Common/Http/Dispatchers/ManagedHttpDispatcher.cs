@@ -118,7 +118,9 @@ namespace NzbDrone.Common.Http.Dispatchers
                     }
                     else
                     {
-                        data = await responseMessage.Content.ReadAsByteArrayAsync(cts.Token);
+                        data = request.MaximumResponseBytes is { } maximumBytes
+                            ? await BoundedHttpResponseReader.ReadAsync(responseMessage.Content, maximumBytes, cts.Token)
+                            : await responseMessage.Content.ReadAsByteArrayAsync(cts.Token);
                     }
                 }
                 catch (Exception ex)
