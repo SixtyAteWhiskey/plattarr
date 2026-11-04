@@ -7,6 +7,7 @@ using Ical.Net.DataTypes;
 using Ical.Net.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Movies;
@@ -16,6 +17,7 @@ using Radarr.Http;
 namespace Radarr.Api.V3.Calendar
 {
     [V3FeedController("calendar")]
+    [Authorize(AuthenticationSchemes = "Calendar")]
     public class CalendarFeedController : Controller
     {
         private readonly IMovieService _movieService;

@@ -90,7 +90,7 @@ function CalendarLinkModalContent({
       icalUrl += `tags=${tags.toString()}&`;
     }
 
-    icalUrl += `apikey=${encodeURIComponent(window.Radarr.apiKey)}`;
+    icalUrl += `feedKey=${encodeURIComponent(window.Radarr.calendarFeedKey)}`;
 
     return {
       iCalHttpUrl: `${window.location.protocol}//${icalUrl}`,
