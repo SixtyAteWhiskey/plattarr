@@ -3,7 +3,6 @@ using System.Linq;
 using NLog;
 using NLog.Config;
 using NLog.Targets;
-using NLog.Targets.Syslog;
 using NLog.Targets.Syslog.Settings;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
