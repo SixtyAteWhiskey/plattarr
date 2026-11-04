@@ -2825,6 +2825,7 @@
   "UnableToAddANewMetadataProfilePleaseTryAgain": "Unable to add a new metadata profile, please try again.",
   "UnableToAddANewQualityProfilePleaseTryAgain": "Unable to add a new quality profile, please try again.",
   "UnableToAddANewRootFolderPleaseTryAgain": "Unable to add a new root folder, please try again.",
+  "UnableToAddSeriesPleaseTryAgain": "Unable to add this TV show. Review the form and try again.",
   "UnableToImportAutomatically": "Unable to Import Automatically",
   "UnableToLoadBlocklist": "Unable to load blocklist",
   "UnableToLoadCollections": "Unable to load collections",
