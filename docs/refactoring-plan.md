@@ -1293,7 +1293,18 @@ identical bytes alone do not prove a shared ownership boundary.
 The next milestone is production acceptance and release readiness: observe a
 naturally occurring TV search and blocked-hash decision without initiating a
 grab; verify new qBittorrent removal evidence on an isolated fixture and then
-read-only production observations; close the remaining first-run security,
-ImageSharp, and public metadata gates before any stable release. Preserve
+read-only production observations; verify the merged first-run authentication
+and rate limits in production, then close the ImageSharp and public metadata
+gates before any stable release. Preserve
 the current indexer implementations until a replacement passes the documented
 conversion and behavior gates.
+
+The follow-up audit at `5443f9d06` covered 7,193 tracked paths after the
+first-run authentication, rate-limit, and container-exit merges. It found no
+empty tracked files or disposable drafts. `react-async-script` was a redundant
+direct dependency: only `react-google-recaptcha` imports it, so Yarn still
+retains the transitive package. The unused Webpack live-reload type package
+pulled in Webpack 4 declarations despite the project using Webpack 5; removing
+it pruned those lockfile entries. The touch backend stays because the active
+multi-backend drag-and-drop configuration imports it. The production frontend
+asset hashes were unchanged by this dependency cleanup.
