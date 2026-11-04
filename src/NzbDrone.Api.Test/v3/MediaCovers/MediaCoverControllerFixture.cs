@@ -44,5 +44,19 @@ namespace NzbDrone.Api.Test.v3.MediaCovers
 
             Subject.GetSeriesMediaCover(1, "poster.jpg").Result.Should().BeOfType<PhysicalFileHttpResult>();
         }
+
+        [TestCase("jpg")]
+        [TestCase("png")]
+        [TestCase("webp")]
+        public void should_serve_original_when_resized_cover_is_unavailable(string extension)
+        {
+            var original = Path.Combine("/fixture/config", "MediaCover", "Artists", "1", "logo." + extension);
+            Mocker.GetMock<IDiskProvider>().Setup(x => x.FileExists(original)).Returns(true);
+
+            var result = Subject.GetArtistMediaCover(1, "logo-250." + extension).Result;
+
+            result.Should().BeOfType<PhysicalFileHttpResult>()
+                  .Which.FileName.Should().Be(original);
+        }
     }
 }

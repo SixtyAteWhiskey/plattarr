@@ -7,6 +7,7 @@ _output
 _artifacts
 _tests
 **/bin/Debug
+**/bin/Release
 **/obj
 deploy
 *.md

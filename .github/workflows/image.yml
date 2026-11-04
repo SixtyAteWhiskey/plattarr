@@ -72,42 +72,108 @@ jobs:
   build:
     if: github.event_name == 'pull_request'
     needs: validation
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
     steps:
       - name: Check out
         uses: actions/checkout@v6
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
-
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Image metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository_owner }}/plattarr
-          tags: |
-            type=raw,value=develop,enable={{is_default_branch}}
-            type=sha,format=short
-            type=ref,event=pr
-
-      - name: Build
+      - name: Build completed Alpine image
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/${{ matrix.arch }}
+          target: runtime
           push: false
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          load: true
+          tags: plattarr:pr-${{ matrix.arch }}
           build-args: |
             PLATTARR_VERSION=10.0.0.${{ github.run_number }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=pr-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=pr-${{ matrix.arch }}
+
+      - name: Start completed image
+        shell: bash
+        run: |
+          docker run -d --name plattarr-smoke plattarr:pr-${{ matrix.arch }}
+          trap 'docker rm -f plattarr-smoke' EXIT
+          for attempt in {1..90}; do
+            if docker exec plattarr-smoke wget -qO- http://127.0.0.1:7880/ping; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs --tail 100 plattarr-smoke
+          exit 1
+
+      - name: Build cover smoke target
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/${{ matrix.arch }}
+          target: cover-smoke
+          push: false
+          load: true
+          tags: plattarr:cover-smoke-${{ matrix.arch }}
+          build-args: |
+            PLATTARR_VERSION=10.0.0.${{ github.run_number }}
+          cache-from: type=gha,scope=pr-${{ matrix.arch }}
+
+      - name: Repeat cover resizes in one Alpine process
+        run: docker run --rm --entrypoint /app/bin/CoverSmoke plattarr:cover-smoke-${{ matrix.arch }}
+
+      - name: Prepare base image source for size comparison
+        if: matrix.arch == 'amd64'
+        run: |
+          mkdir -p "$RUNNER_TEMP/plattarr-base"
+          git fetch --depth=1 origin ${{ github.event.pull_request.base.sha }}
+          git archive FETCH_HEAD | tar -x -C "$RUNNER_TEMP/plattarr-base"
+
+      - name: Build base Alpine image for size comparison
+        if: matrix.arch == 'amd64'
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ runner.temp }}/plattarr-base
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: plattarr:base-amd64
+          build-args: |
+            PLATTARR_VERSION=10.0.0.${{ github.run_number }}
+          cache-from: type=gha,scope=base-amd64
+          cache-to: type=gha,mode=max,scope=base-amd64
+
+      - name: Record compressed image size impact
+        shell: bash
+        run: |
+          current=$(docker image save plattarr:pr-${{ matrix.arch }} | gzip -1 | wc -c)
+          echo "Current image gzip tar bytes: $current"
+          docker image inspect plattarr:pr-${{ matrix.arch }} --format='Uncompressed bytes {{.Size}}'
+          if [ "${{ matrix.arch }}" = amd64 ]; then
+            base=$(docker image save plattarr:base-amd64 | gzip -1 | wc -c)
+            echo "Base image gzip tar bytes: $base"
+            echo "Delta bytes: $((current - base))"
+          fi
+
+      - name: Scan completed image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: plattarr:pr-${{ matrix.arch }}
+          format: table
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          exit-code: '1'
 
   windows-cover-path:
     if: github.event_name == 'pull_request'
@@ -125,8 +191,33 @@ jobs:
       - name: Restore API tests
         run: dotnet restore src/NzbDrone.Api.Test/Radarr.Api.Test.csproj
 
+      - name: Restore core tests
+        run: dotnet restore src/NzbDrone.Core.Test/Radarr.Core.Test.csproj
+
       - name: Verify cover path containment on Windows
         run: dotnet test src/NzbDrone.Api.Test/Radarr.Api.Test.csproj -c Release --no-restore -p:RunAnalyzers=false -p:TreatWarningsAsErrors=false --filter FullyQualifiedName~MediaCoverControllerFixture
+
+      - name: Verify native cover resizing on Windows
+        run: dotnet test src/NzbDrone.Core.Test/Radarr.Core.Test.csproj -c Release --no-restore -p:RunAnalyzers=false -p:TreatWarningsAsErrors=false --filter FullyQualifiedName~ImageResizerFixture
+
+  macos-cover-resize:
+    if: github.event_name == 'pull_request'
+    runs-on: macos-15-intel
+    timeout-minutes: 30
+    steps:
+      - name: Check out
+        uses: actions/checkout@v6
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.403
+
+      - name: Restore core tests
+        run: dotnet restore src/NzbDrone.Core.Test/Radarr.Core.Test.csproj
+
+      - name: Verify native cover resizing on macOS
+        run: dotnet test src/NzbDrone.Core.Test/Radarr.Core.Test.csproj -c Release --no-restore -p:RunAnalyzers=false -p:TreatWarningsAsErrors=false --filter FullyQualifiedName~ImageResizerFixture
 
   publish:
     if: github.event_name != 'pull_request'
@@ -170,6 +261,7 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
+          target: runtime
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

@@ -46,11 +46,15 @@ COPY --from=frontend /src/_output/UI _output/UI
 RUN ./build.sh --packages -f net10.0 -r "$(cat /tmp/rid)" \
  && mkdir -p /out \
  && cp -r "_artifacts/$(cat /tmp/rid)/net10.0/Radarr" /out/bin
+RUN dotnet publish tools/CoverSmoke/CoverSmoke.csproj \
+      -c Release -f net10.0 -r "$(cat /tmp/rid)" --self-contained true \
+      -p:RunAnalyzers=false -p:TreatWarningsAsErrors=false \
+      -o /out/cover-smoke
 
 # ---------------------------------------------------------------------------
 # Runtime
 # ---------------------------------------------------------------------------
-FROM alpine:${ALPINE_VERSION}
+FROM alpine:${ALPINE_VERSION} AS runtime
 ARG PLATTARR_VERSION=""
 
 RUN apk add --no-cache \
@@ -95,3 +99,13 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD wget -qO- http://127.0.0.1:7880/ping || exit 1
 
 ENTRYPOINT ["/entrypoint.sh"]
+
+# CI runs this target with the same runtime files as the completed image.
+FROM runtime AS cover-smoke
+COPY --from=backend /out/cover-smoke/CoverSmoke /app/bin/CoverSmoke
+COPY --from=backend /out/cover-smoke/CoverSmoke.dll /app/bin/CoverSmoke.dll
+COPY --from=backend /out/cover-smoke/CoverSmoke.deps.json /app/bin/CoverSmoke.deps.json
+COPY --from=backend /out/cover-smoke/CoverSmoke.runtimeconfig.json /app/bin/CoverSmoke.runtimeconfig.json
+
+# Keep a plain `docker build` equivalent to the production runtime target.
+FROM runtime AS final

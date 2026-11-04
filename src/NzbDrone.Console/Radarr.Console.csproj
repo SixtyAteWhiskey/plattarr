@@ -9,6 +9,7 @@
     <AssemblyName>Radarr</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.154.0" />
     <ProjectReference Include="..\NzbDrone.Host\Radarr.Host.csproj" />
   </ItemGroup>
 </Project>
