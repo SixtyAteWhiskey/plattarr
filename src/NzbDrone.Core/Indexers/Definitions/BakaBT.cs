@@ -52,6 +52,9 @@ namespace NzbDrone.Core.Indexers.Definitions
                 .SetCookies(GetCookies() ?? new Dictionary<string, string>())
                 .Build();
 
+            request.PublicDestinationOnly = true;
+            request.MaximumResponseBytes = 16L * 1024 * 1024;
+
             var response = await _httpClient.ExecuteProxiedAsync(request, Definition);
 
             var parser = new HtmlParser();

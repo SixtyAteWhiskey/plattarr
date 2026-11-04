@@ -60,6 +60,9 @@ namespace NzbDrone.Core.Indexers.Definitions
                     .Accept(HttpAccept.Html)
                     .Build();
 
+                request.PublicDestinationOnly = true;
+                request.MaximumResponseBytes = 16L * 1024 * 1024;
+
                 var response = await _httpClient.ExecuteProxiedAsync(request, Definition);
 
                 var parser = new HtmlParser();

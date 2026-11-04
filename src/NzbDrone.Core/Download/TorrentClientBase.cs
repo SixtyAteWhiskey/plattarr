@@ -129,8 +129,13 @@ namespace NzbDrone.Core.Download
             return null;
         }
 
-        private async Task<string> DownloadFromWebUrl(RemoteRelease remoteRelease, IIndexer indexer, string torrentUrl)
+        private async Task<string> DownloadFromWebUrl(RemoteRelease remoteRelease, IIndexer indexer, string torrentUrl, int redirectCount = 0)
         {
+            if (redirectCount >= 5)
+            {
+                throw new WebException("Too many torrent download redirections", WebExceptionStatus.ProtocolError);
+            }
+
             if (FetchThroughIndexer(indexer))
             {
                 var data = (await indexer.Download(new Uri(torrentUrl))).Data;
@@ -152,6 +157,7 @@ namespace NzbDrone.Core.Download
             {
                 var request = new HttpRequest(torrentUrl);
                 request.MaximumResponseBytes = 32L * 1024 * 1024;
+                request.PublicDestinationOnly = true;
                 request.RateLimitKey = remoteRelease?.Release?.IndexerId.ToString();
                 request.Headers.Accept = "application/x-bittorrent";
                 request.AllowAutoRedirect = false;
@@ -177,7 +183,7 @@ namespace NzbDrone.Core.Download
 
                         request.Url += new HttpUri(locationHeader);
 
-                        return await DownloadFromWebUrl(remoteRelease, indexer, request.Url.ToString());
+                        return await DownloadFromWebUrl(remoteRelease, indexer, request.Url.ToString(), redirectCount + 1);
                     }
 
                     throw new WebException("Remote website tried to redirect without providing a location.");

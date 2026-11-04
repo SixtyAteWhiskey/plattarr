@@ -47,6 +47,13 @@ namespace NzbDrone.Common.Http.Dispatchers
 
         public async Task<HttpResponse> GetResponseAsync(HttpRequest request, CookieContainer cookies)
         {
+            var proxySettings = request.ProxySettings ?? _proxySettingsProvider.GetProxySettings(request.Url);
+
+            if (request.PublicDestinationOnly)
+            {
+                await PublicDestinationPolicy.ValidateAsync((Uri)request.Url, proxySettings != null);
+            }
+
             using var requestMessage = new HttpRequestMessage(request.Method, (Uri)request.Url);
             requestMessage.Version = HttpVersion.Version20;
             requestMessage.VersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
@@ -100,7 +107,7 @@ namespace NzbDrone.Common.Http.Dispatchers
                 AddRequestHeaders(requestMessage, request.Headers);
             }
 
-            var httpClient = GetClient(request.Url, request.ProxySettings);
+            var httpClient = GetClient(proxySettings, request.PublicDestinationOnly && proxySettings == null);
 
             var stopwatch = Stopwatch.StartNew();
 
@@ -160,17 +167,14 @@ namespace NzbDrone.Common.Http.Dispatchers
             }
         }
 
-        protected virtual System.Net.Http.HttpClient GetClient(HttpUri uri, HttpProxySettings requestProxy = null)
+        protected virtual System.Net.Http.HttpClient GetClient(HttpProxySettings proxySettings, bool publicOnly)
         {
-            // A request-level proxy (indexer proxies) takes precedence over the global setting
-            var proxySettings = requestProxy ?? _proxySettingsProvider.GetProxySettings(uri);
+            var key = (proxySettings?.Key ?? NO_PROXY_KEY) + (publicOnly ? "-public-only" : string.Empty);
 
-            var key = proxySettings?.Key ?? NO_PROXY_KEY;
-
-            return _httpClientCache.Get(key, () => CreateHttpClient(proxySettings));
+            return _httpClientCache.Get(key, () => CreateHttpClient(proxySettings, publicOnly));
         }
 
-        protected virtual System.Net.Http.HttpClient CreateHttpClient(HttpProxySettings proxySettings)
+        protected virtual System.Net.Http.HttpClient CreateHttpClient(HttpProxySettings proxySettings, bool publicOnly)
         {
             var handler = new SocketsHttpHandler()
             {
@@ -181,7 +185,9 @@ namespace NzbDrone.Common.Http.Dispatchers
                 PreAuthenticate = true,
                 MaxConnectionsPerServer = 12,
                 PooledConnectionLifetime = TimeSpan.FromMinutes(30),
-                ConnectCallback = Socket.OSSupportsIPv6 ? _httpHappyEyeballs.OnConnect : null,
+                ConnectCallback = publicOnly
+                    ? (context, cancellationToken) => _httpHappyEyeballs.OnConnect(context, cancellationToken, true)
+                    : Socket.OSSupportsIPv6 ? _httpHappyEyeballs.OnConnect : null,
                 SslOptions = new SslClientAuthenticationOptions
                 {
                     RemoteCertificateValidationCallback = _certificateValidationService.ShouldByPassValidationError
