@@ -60,6 +60,7 @@ namespace NzbDrone.Core.Download
             try
             {
                 var request = new HttpRequest(url);
+                request.MaximumResponseBytes = 32L * 1024 * 1024;
                 request.RateLimitKey = remoteRelease?.Release?.IndexerId.ToString();
                 request.AllowAutoRedirect = true;
 
