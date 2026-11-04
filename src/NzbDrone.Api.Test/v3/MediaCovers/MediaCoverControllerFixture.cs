@@ -1,3 +1,4 @@
+using System.IO;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Moq;
@@ -37,7 +38,7 @@ namespace NzbDrone.Api.Test.v3.MediaCovers
         [Test]
         public void should_serve_a_cover_in_its_expected_folder()
         {
-            const string path = "/fixture/config/MediaCover/Series/1/poster.jpg";
+            var path = Path.Combine("/fixture/config", "MediaCover", "Series", "1", "poster.jpg");
             Mocker.GetMock<IDiskProvider>().Setup(x => x.FileExists(path)).Returns(true);
             Mocker.GetMock<IDiskProvider>().Setup(x => x.GetFileSize(path)).Returns(100);
 
