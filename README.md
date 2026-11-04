@@ -24,10 +24,10 @@ services:
       PUID: 1000
       PGID: 1000
       UMASK: "002"
-      TZ: America/Denver
+      TZ: Etc/UTC
     volumes:
       - ./config:/config
-      - /mnt/data:/data
+      - /srv/media:/data
     network_mode: host
     restart: unless-stopped
 ```

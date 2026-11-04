@@ -37,7 +37,7 @@ Checked in the repo at `3d6984b`, not assumed:
 | The Docker entrypoint is `exec /app/bin/Radarr -nobrowser -data=/config "$@"`. | `docker/entrypoint.sh` | Extra container arguments reach the binary, so `docker compose run --rm plattarr /import ...` works without a new entrypoint. |
 
 Checked against a dump of the owner's databases on 2026-10-21: see
-[Dump findings](#dump-findings). Upstream column names not listed there still come
+[Source-shape findings](#source-shape-findings). Upstream column names not listed there still come
 from Radarr and Prowlarr `develop` as remembered and are confirmed against the dump
 before the code that uses them is written.
 
@@ -428,16 +428,13 @@ Prowlarr's); a download client chosen on a Radarr copy; a match by URL only (no 
 **Cardigann.** One warning lists every imported Cardigann indexer with its definition ID: the
 definitions are downloaded on the first start, and a custom definition (a `.yml` in Prowlarr's
 `Definitions/Custom`) must be copied to Plattarr's `Definitions/Custom` (supported by
-`IndexerDefinitionUpdateService`). The owner has one: `torrentdownload-server01`.
+`IndexerDefinitionUpdateService`). The owner has one: `custom-definition`.
 
-**Dry run over protected source copies** (2026-10-25, image `sha-28319e9`, backup-API copies of
-`prowlarr.db` (schema 44) and `radarr.db` (242), imported into scratch `/config`): Prowlarr `Indexers`
-17 of 17, `IndexerProxies` 1 of 1, `AppSyncProfiles` 1 of 1, Radarr `Indexers` 13 of 13 matched, no
-skip; no settings key lost in the round trip; no flag difference (Radarr's four all-off copies
-mirror four indexers disabled in Prowlarr); one warning, the Cardigann list. `Applications` (4)
-and `ApplicationIndexerMapping` (37) are listed as not imported by design. Step 4 adds the
-download-client stage; other non-empty unstaged tables need explicit `/skip=` entries on both
-dry-run and committed imports.
+**Protected-copy dry run.** A disposable import of consistent source backups
+confirmed that configured indexers, proxy settings, and application profiles
+round-tripped without losing supported setting keys. The report listed
+unimported applications and custom definitions by category; exact owner row
+counts and definition IDs remain in the private report.
 
 Tests (`IndexersStageFixture`, 18, SQLite and Postgres; `ImportReconciliationFixture` gained 2):
 each rule above with a read-back through the target repositories, and no warning or skip
@@ -464,10 +461,9 @@ catalog), `requiredFlags` (Sonarr bits translated), categories outside the Sonar
 above 0. Anime categories that Prowlarr did not sync and `animeStandardFormatSearch` are reported,
 not carried. Without Prowlarr every Sonarr indexer is `UNMATCHED_INDEXER`.
 
-**Live Sonarr source snapshot (2026-10-25, read-only):** 32 series, 3170 episodes, 1488 episode files,
-30 subtitle files, 6 quality profiles (default names), 1 custom format (no indexer-flag
-condition), 14 Torznab indexers (no `requiredFlags`), file flags 0 and 1 only. No series without a
-profile, no episode with a NULL `Monitored`. F4 does not affect this data.
+**Read-only source-shape check.** The source schema and monitored/profile/flag
+shapes matched the importer fixtures. Exact library and provider counts remain
+in the private report.
 
 Tests (`SonarrStagesFixture`, the two-source tests in `ProfilesStageFixture`, four Sonarr tests in
 `IndexersStageFixture`, the Sonarr cases in `UpstreamRealSchemaFixture`,
@@ -580,103 +576,21 @@ reported as `CONFIG_CONFLICT`. The ten unportable config rows remain `INSTANCE` 
 their values never enter a report. After these additions, ten tables and 16,564 rows
 remain safe to defer for this cutover. The Prowlarr copies had no deferred non-empty tables.
 
-**Step 4 protected-copy replay (2026-10-25).** After adding the release-profile and selective
-Config stages, both dry-run and committed import succeeded against the same read-only backup-API
-copies. The report read 30,245 rows, imported 13,671 rows, explicitly deferred 16,564 rows across
-the ten safe tables above, and recorded nine warnings. The dry-run target had zero Movies, TV
-series and release profiles after rollback. The committed scratch target contained 87 Movies,
-32 TV series, one download client, 17 indexers, three tags and one release profile. It had the
-five allowlisted Config keys and no HMAC, Rijndael or Plex client identity setting. The scratch
-targets and reports were removed; no source database or running app was written.
+**Protected-copy replay.** Dry-run rollback and committed import both passed
+against disposable targets. The report distinguished imported rows from
+explicit deferrals and kept secret-bearing configuration out of the target.
+Exact source and library counts remain in the private report.
 
-### Container cutover rehearsal (2026-10-25)
+### Isolated cutover and production acceptance
 
-After the TV quality-profile validator fix (`2b539e181`), GitHub Actions image build
-`40187227003` passed. Only the isolated `plattarr-cutover` container was recreated on a scratch port, using
-`ghcr.io/sixtyatewhiskey/plattarr:sha-2b539e1` and its existing imported `/config`. The app reported version `10.0.0.87`, migration version 11, and `/ping`
-passed. `/data` was mounted read-only; `/testdata` was the only writable media mount. The live Radarr and Sonarr containers stayed up.
-
-The base-path routes returned the expected root folders:
-
-| Seerr base | Status route | Root folders |
-|---|---|---|
-| `/radarr` | `/radarr/api/v3/system/status` | `/data/Movies`, `/testdata/movies` |
-| `/sonarr` | `/sonarr/api/v3/system/status` | `/data/Shows`, `/testdata/tv` |
-
-The owner confirmed the dev server connects in live Seerr when its URL Base fields are
-`/radarr` and `/sonarr`. The separate rehearsal instance still needs the same app-level
-Seerr check; no Seerr settings were changed by this rehearsal.
-
-**Download and import.** The imported download client remained disabled; the separate
-scratch qBittorrent client was enabled, and all 17 imported indexers remained disabled.
-On the preceding `sha-d5ed40f` run, the companion movie proof added Sintel, direct-pushed
-the same CC-licensed torrent and imported it under `/testdata/movies`.
-The TV-only quality profile (ID 7) accepted a Game of Thrones add (TVDB 121361) at
-`/testdata/tv/Game of Thrones (2011)`. A direct release push for S01E01 was approved and
-grabbed by qBittorrent in the TV category. The CC-licensed Sintel torrent completed,
-was renamed before import, and produced `downloadFolderImported` history for episode
-S01E01. `hasFile` became true and the file was written under the scratch root as
-`Season 1/Game of Thrones - S01E01 - Winter Is Coming WEBDL-480p.mp4`. The first push
-attempt returned qBittorrent's duplicate-hash conflict because the movie proof's Sintel
-torrent was still registered; removing that scratch torrent entry while preserving its
-files let the retry complete. The temporary movie and TV records, files and torrent were
-removed afterwards, and the original rename settings were restored.
-
-**Scan and counts.** `RescanMovie` and `RescanSeries` completed. After cleanup, the
-scratch copy and live apps both reported 87 movies with 75 movie files, and 32 TV series
-with 1,504 episode files (31 series have files). Counts were unchanged by the final
-scans. The committed import report initially contained 1,488 TV episode-file rows; the
-first measured post-start snapshot already had 1,504, matching live Sonarr. This run did
-not isolate which startup/background refresh surfaced the additional 16 files.
-
-One scan logged an ffprobe error for the existing read-only file
-`/data/Movies/Inception (2010)/Inception (2010) BR-DISK.m2ts`. Both the scratch and live
-Radarr records show the same 5,681,651,712-byte BR-DISK file with null media-info fields;
-the scan did not change library counts. The three protected source DB copies still pass
-`PRAGMA integrity_check` and remain mode 600. A separate mode-600 backup of the scratch
-target DB, made before the image update, also passes the integrity check. The rehearsal
-test roots contain no files now.
-
-At measurement, Plattarr used about 252 MiB and the scratch qBittorrent container about
-23 MiB. The image size was 476,853,826 bytes (about 454.7 MiB).
-
-### Production cutover (2026-10-25)
-
-The production cutover was executed on 2026-10-25 from fresh protected source database
-copies. The image was `ghcr.io/sixtyatewhiskey/plattarr:sha-2b539e1` (revision
-`2b539e181b09eb7fc06cc43e90945d44500465d4`). Import reporting and the planned
-deferrals were checked before starting production. Protected source database copies,
-source app configs, and the previous Seerr settings are retained in an owner-only
-backup location outside this repository. The backups and their exact location are not
-recorded here.
-
-Source app queues were empty before the switch. The original containers were stopped
-one at a time and retained for rollback. Production Plattarr is healthy on port 7880
-with migration 11. The source containers remain stopped; qBittorrent and Seerr remain
-running. The development instance was stopped to free port 7880. A separate Scratch
-instance remains isolated on its own port and was not promoted or modified.
-
-The imported library uses the `/data/Movies`, `/data/Shows`, and `/data/Music` roots.
-Music monitoring states and the custom audio profile were restored. qBittorrent uses
-the existing `radarr`, `tv-sonarr`, and `lidarr` categories. Its downloads path maps
-to `/data/Importing` in Plattarr.
-
-Seerr's default movie and TV entries now target port 7880 with URL bases `/radarr` and
-`/sonarr`. A temporary request confirmed that the production default routes to
-Plattarr; the check was performed with searching prevented and the downloader disabled.
-The temporary request and empty library record were removed after verification. No
-media files were deleted.
-
-Indexers that passed their connection tests are enabled. Two indexers failed DNS
-resolution and remain disabled pending diagnosis; source-disabled indexers remain
-disabled. qBittorrent is enabled. Plattarr authentication settings were left as
-provisioned; no Forms-auth account or password was created during cutover.
-
-**Rollback.** Stop the production Plattarr container, restore the saved Seerr settings
-and restart Seerr, then start the retained `radarr`, `sonarr`, `lidarr`, and `prowlarr`
-containers. The old app configs and databases were not changed or removed. Start the
-development instance only if the previous port-7880 service is also needed. Keep the
-Scratch instance separate.
+An isolated container used a copied configuration, a read-only media mount,
+and a separate writable test root. Compatibility status routes, synthetic
+qBittorrent grabs, an import, and final scans passed. The scratch records,
+torrents, and files were removed afterward. Source applications and their
+configurations were preserved for rollback. Production was checked with
+searching prevented during cutover, and no media file was deleted. Exact
+container names, image digests, media titles, paths, provider states, library
+counts, and routing details are retained only in the owner-private report.
 
 ### Tags
 
@@ -768,7 +682,7 @@ would duplicate every indexer.
 - **Prowlarr rows.** `Settings` JSON is already in the shape Plattarr's layer uses (it
   is Prowlarr's layer). The adapter: renames the stored `appMinimumSeeders` to
   `minimumSeeders` in the torrent base settings (the key is optional and absent from
-  every row in the owner's data; see [Dump findings](#dump-findings)); sets `EnableRss`, `EnableAutomaticSearch`, `EnableInteractiveSearch` from the
+  every row in the owner's data; see [Source-shape findings](#source-shape-findings)); sets `EnableRss`, `EnableAutomaticSearch`, `EnableInteractiveSearch` from the
   row's `AppSyncProfile`; takes `MinimumSeeders` from the indexer if set, otherwise
   from the sync profile; drops `AppProfileId`; remaps `Tags` and `DownloadClientId`.
   `Priority`, `Redirect`, `Enable`, `Added`, `Implementation`, `ConfigContract` are
@@ -943,162 +857,16 @@ movies and paths, and reads the report with the owner. It is the only test that 
 real data volume and real surprises; the fixtures exist so that what it finds can be
 reproduced as a test afterwards.
 
-## Dump findings
+## Source-shape findings
 
-Source: consistent copies of the owner's live databases (SQLite backup API, source
-opened read-only, containers untouched), taken 2026-10-21. Both passed
-`PRAGMA integrity_check`. Raw rows are not in the repository. Fixtures are scrubbed
-(see [Tests](#tests)).
-
-### Supported versions
-
-| App | Image | `MAX(VersionInfo.Version)` | Tables |
-|---|---|---|---|
-| Radarr | hotio/radarr | 242 | 41 |
-| Prowlarr | linuxserver/prowlarr | 44 | 20 |
-| Sonarr | hotio/sonarr 4.0.20.3014 | 217 | 38 |
-
-The adapters record these as the first supported versions and refuse a database with a
-newer `MAX(Version)` unless the user passes an override. A lower version is read with
-the columns it has.
-
-### Radarr row counts that shape the design
-
-`Movies` 87, `MovieMetadata` 113, `MovieFiles` 75, `History` 277, `DownloadHistory` 352,
-`Blocklist` 53, `Indexers` 13, `DownloadClients` 1, `QualityProfiles` 6,
-`CustomFormats` 1, `Tags` 1, `RootFolders` 1. Empty: `Notifications`, `ImportLists`,
-`ReleaseProfiles`, `RemotePathMappings`, `PendingReleases`, `MetadataFiles`,
-`ExtraFiles`, `ImportExclusions`, `AutoTagging`. `Credits` (4,623) is the largest
-imported table; `Commands` (3,504) is transient and skipped.
-
-### Prowlarr row counts
-
-`Indexers` 17 (15 Cardigann, Knaben, SubsPlease), `Applications` 4, `AppSyncProfiles` 1,
-`ApplicationIndexerMapping` 37, `IndexerProxies` 1, `Tags` 2, `History` 203,960.
-**`DownloadClients` is empty**, so the "Prowlarr-only client" case does not occur in
-this data (the rule stays for other users). `Prowlarr.History` is not imported.
-
-### Confirmed shapes
-
-- **Radarr `DownloadHistory.Release`** is populated only for `EventType = 1` (grabbed):
-  141 of 141 rows; it is null for all other event types. It is camelCase `ReleaseInfo`
-  JSON: `title`, `size`, `guid`, `downloadUrl`, `infoUrl`, `commentUrl`, `magnetUrl`,
-  `infoHash`, `seeders`, `peers`, `indexerId`, `indexer`, `indexerPriority`,
-  `downloadProtocol` (`"torrent"`), `tmdbId`, `imdbId`, `publishDate`, `languages`,
-  `age`, `ageHours`, `ageMinutes`. `imdbId` is an **integer** (not `tt...`), `tmdbId`
-  can be 0, `languages` can be empty. **`downloadUrl` embeds the Prowlarr API key** in
-  its query string, so the importer must not log it and fixtures must replace it.
-- **`DownloadHistory.Data`** holds `downloadClient`, `downloadClientName`, `indexer`
-  (grab rows only), `customFormatScore`. `History.Data` for an import adds `fileId`,
-  `droppedPath`, `importedPath`, `releaseGroup`, `size`, `indexerFlags` (a string such
-  as `G_Freeleech`, not an integer). `History.Quality` and `Languages` are indented
-  JSON with upstream IDs, so they go through the catalog maps.
-- **Radarr Torznab `Indexers.Settings`**: `baseUrl` ends in `/<prowlarrIndexerId>/`,
-  and the ID is the Prowlarr indexer ID (confirmed for 13 of 13 rows against
-  `ApplicationIndexerMapping`). Other keys: `apiPath`, `apiKey`, `minimumSeeders`,
-  `seedCriteria` (object), `rejectBlocklistedTorrentHashesWhileGrabbing`,
-  `requiredFlags`, `categories`, `multiLanguages`, `failDownloads`, `removeYear`.
-  `ConfigContract` is `TorznabSettings`; `Tags` is a JSON string; `DownloadClientId` is 0.
-- **Radarr `DownloadClients.Settings`** (qBittorrent): `host`, `port`, `useSsl`,
-  `username`, `password`, `movieCategory`, `recentMoviePriority`, `olderMoviePriority`,
-  `initialState`, `sequentialOrder`, `firstAndLast`, `contentLayout`.
-  `movieImportedCategory` is **absent** when unset (unstored stays unstored, as the
-  mapping already says). `ConfigContract` is `QBittorrentSettings`.
-- **Prowlarr `Indexers.Settings`**: top-level keys seen are `definitionFile`,
-  `extraFieldData`, `baseSettings` (`limitsUnit`), `torrentBaseSettings`, `baseUrl`
-  (13 of 17). `torrentBaseSettings` contains only `preferMagnetUrl` in all 17 rows.
-  **`appMinimumSeeders`, `seedRatio`, `seedTime`, `packSeedTime` are absent** from every
-  row: they are written only when set. The adapter treats each as optional and the
-  fixture set includes one row with them present, built from upstream's property
-  names (camelCase). The key name `appMinimumSeeders` is therefore *not* confirmed by
-  real data. Native indexers (Knaben, SubsPlease) use `ConfigContract`
-  `NoAuthTorrentBaseSettings`. `Indexers` columns: `Id, Name, Implementation,
-  Settings, ConfigContract, Enable, Priority, Added, Redirect, AppProfileId, Tags,
-  DownloadClientId`; there is no `Protocol` column.
-- **Prowlarr `AppSyncProfiles`** columns: `Id, Name, EnableRss, EnableInteractiveSearch,
-  EnableAutomaticSearch, MinimumSeeders`.
-- **Prowlarr `Applications`** columns include `Name, Implementation, Settings,
-  ConfigContract, SyncLevel, Tags`. `Settings` has `prowlarrUrl`, `baseUrl`, `apiKey`,
-  `syncCategories`, `syncRejectBlocklistedTorrentHashesWhileGrabbing`; Sonarr adds
-  `animeSyncCategories` and `syncAnimeStandardFormatSearch`. The owner's four rows are
-  Radarr, Sonarr, **LazyLibrarian** and Lidarr. LazyLibrarian is not a Plattarr
-  application: the importer reads Prowlarr's `Applications` only to confirm that a
-  Radarr sync target exists and does not import the table.
-- **`ApplicationIndexerMapping`**: `IndexerId` (Prowlarr), `AppId`, `RemoteIndexerId`
-  (the app's own indexer ID), `RemoteIndexerName` (null here).
-- **`IndexerProxies`**: FlareSolverr with a `host` and `requestTimeout`; tagged. Tags
-  are `lazylibrarian` and `flaresolverr`.
-
-### Findings that change the design
-
-1. **`DownloadHistory.IndexerId` is mostly dangling.** 211 of 352 rows are 0 and, of
-   the 141 non-zero rows, 81 point to a Radarr indexer ID that no longer exists. The
-   "same match as `ReleaseProfiles.IndexerId`" rule stands, but an unmatched ID is the
-   normal case and must map to 0 without a warning per row. The report gives one
-   count.
-2. **Radarr's synchronized indexers are not in sync with Prowlarr's.** 13 Radarr
-   indexers map to 13 of Prowlarr's 17; Prowlarr indexers 10, 37, 41 and 46 have no
-   Radarr row. They are imported from Prowlarr regardless. Radarr indexers 29, 31, 32,
-   34 (Radarr IDs) have all three `Enable*` flags at 0; the importer compares them with
-   the Prowlarr value and reports differences (not compared yet).
-3. **The `appMinimumSeeders` rename cannot be tested from real rows.** See above.
-4. **Prowlarr's `Config` table holds secrets** (keys are not all readable names and
-   values are GUIDs or hashes). It is never read by the importer.
-5. **The `moduleCategories` check from the live regression is still open.** The dev
-   database has no `DownloadClients` row (the test client was removed), so it cannot
-   be answered from it. Check by creating a qBittorrent client through the API on the
-   dev stack and reading its `Settings` column, then remove it. Not needed for the
-   adapter: the importer writes `moduleCategories` itself.
-
-### Live row shapes (session 30)
-
-Read-only through the scrubbed row printer on the owner's Radarr copy (version 242, 6
-profiles, 1 custom format, 30 quality definitions, 87 movies). Nothing below is a value; it is
-what the stored JSON and constraints look like.
-
-1. **`Tags` is pretty-printed JSON**, not compact: `[]` and `"[\n  1\n]"`. Anything that reads a
-   `Tags` column parses it (`TagRemapper` does); a string match or a regex would miss tagged rows.
-2. **`QualityProfiles.Items`** holds 26 entries in two shapes. A leaf is
-   `{"quality": id, "items": [], "allowed": bool}`; a group is
-   `{"id": 1000+, "name": "...", "items": [leaf, ...], "allowed": bool}` with no `quality` key
-   (the live data has four groups, ids 1000 to 1003). Group IDs are profile-local, so the same
-   ID in two profiles is a different group. No live profile has a group as its cutoff, so the
-   group-cutoff path is covered by a synthetic row only.
-3. **`QualityProfiles.FormatItems`** is `[{"format": <CustomFormats.Id>, "score": n}]`, one entry
-   per custom format. `Language` is an integer in the live data (1 = English), nullable in the schema.
-4. **`QualityDefinitions` sizes are nullable.** 9 of 30 rows have `MaxSize` and `PreferredSize` NULL
-   (Bluray-1080p, Remux-1080p, the four 2160p qualities, BR-DISK and Raw-HD) and `MinSize` 0. The target
-   column is `double?`, so NULL is kept, not defaulted.
-5. **`CustomFormats.Specifications`** is `[{"type": "<Name>Specification", "body": {order,
-   implementationName, infoLink, name, negate, required, value, ...}}]`, the same wrapper the
-   target's converter reads, so a type the target lacks fails the parse and skips that row.
-6. **`DelayProfiles`**: one row, the default (`Order` 2147483647, `Tags` `[]`, `MinimumCustomFormatScore`
-   NULL).
-7. **`Movies.MovieFileId` is 0 for 12 of 87 movies** (monitored, no file yet). All other IDs in
-   the copy resolve: no dangling `MovieFileId`, profile, metadata, credit, alternative title,
-   translation, history, blocklist, subtitle or download-history row. The planner still treats a
-   dangling reference as corrupt data and skips the row, but the real data will not exercise it.
-8. **26 `MovieMetadata` rows have no movie** (113 metadata, 87 movies); 60 metadata rows name a
-   collection and 21 `Collections` rows exist. Metadata is a catalog of known titles, not a
-   library, so all 113 are imported *(reversible: it is a per-table filter in one stage)*.
-   `ImdbId` is NULL or empty for 6.
-9. **`MovieFiles.MediaInfo`** is a large embedded document (up to 123 KB per row, mostly
-   `rawStreamData` and `rawFrameData` text). It is copied as is; 75 rows, so about 5 MB.
-   `Quality` is `{"quality": id, "revision": {"version", "real", "isRepack"}}`, `Languages` an
-   array of language IDs, `IndexerFlags` an integer.
-10. **`AlternativeTitles.CleanTitle` is UNIQUE in the source schema.** Checked: the target's
-    `Movies_AlternativeTitles` index on `CleanTitle` is not unique, so nothing is lost on import
-    (pinned by `should_allow_two_metadata_rows_to_share_an_alternative_title_clean_title`).
-11. **Event types.** `History`: 1 (grabbed) 141, 3 (downloaded) 79, 4 (failed) 53, 6 (file deleted) 4.
-    `DownloadHistory`: 1: 141, 2: 79, 3: 53, 5: 79. Every one of these is in `RadarrEventTypes`.
-12. **`History.Data` for a grab carries a `downloadUrl` with the Prowlarr API key in its query
-    string**, like `DownloadHistory.Release`. The activity stage must not log it, and should decide
-    strip the `apikey` parameter on import: a stored key is a secret in the new database that
-    nothing needs, because a download link is not reused after the grab. Decided: strip (item 8).
-13. **`Config`** holds 8 keys: `autounmonitorpreviouslydownloadedmovies`, `cleanupmetadataimages`,
-    `maximumsize`, `plexclientidentifier` and four secrets (`hmacpassphrase`, `hmacsalt`,
-    `rijndaelpassphrase`, `rijndaelsalt`). The four secrets are instance keys and are not carried.
-14. **`Metadata` (consumers)**: 5 rows, all disabled (Kodi, WDTV, Roksbox, MediaBrowser, Kometa).
+Read-only, integrity-checked source copies established the supported schema
+versions and JSON shapes used by the importer. The important design findings
+are that upstream tag arrays must be parsed as JSON, profile quality groups
+have local IDs, nullable size limits must stay nullable, and some history
+indexer references are dangling. Unknown references map to zero with one
+aggregate warning. Secret-bearing source configuration is never imported.
+Synthetic fixtures cover the exact row shapes; production row counts,
+application names, provider IDs, and source locations remain private.
 
 ## Known costs
 
@@ -1124,7 +892,7 @@ what the stored JSON and constraints look like.
 ## Open items
 
 1. ~~Dump the owner's two databases.~~ Done 2026-10-21 (see
-   [Dump findings](#dump-findings)). Supported versions are Radarr 242 and Prowlarr 44.
+   [Source-shape findings](#source-shape-findings)). Supported versions are Radarr 242 and Prowlarr 44.
    Fixtures for the pure building blocks are written (hand-made, fake secrets); row
    extraction from the real databases is `tools/upstream-fixtures`, not built.
 2. ~~Confirm the `Release` JSON shape.~~ Done: camelCase `ReleaseInfo`, grabbed rows

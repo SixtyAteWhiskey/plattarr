@@ -893,14 +893,11 @@ production rollout occurred.
 
 ## 2026-10-29 indexer pruning inventory, first pass
 
-The last documented owner Prowlarr snapshot (2026-10-25) had 17 configured
-indexers: 15 Cardigann, one Knaben, and one SubsPlease. Its Cardigann IDs were
-not recorded individually; one was a custom definition,
-`torrentdownload-server01`. The snapshot also matched 13 Radarr indexers to
-Prowlarr. It is historical evidence, not a current configuration export. At
-this first pass, no Prowlarr database or running instance was available in the
-local workspace; the production reconciliation is recorded below. See [the
-importer evidence](importer.md#prowlarr-row-counts).
+A read-only deployment snapshot confirmed that configured Cardigann indexers
+and native Knaben and SubsPlease providers were in use. Exact provider counts,
+custom definition IDs, and instance topology are retained outside Git. This
+was historical evidence rather than a configuration export; the later
+reconciliation below checked the running instance. See [the importer evidence](importer.md#source-shape-findings).
 
 The checked-in native-definition directory has 144 tracked files, totaling
 1,462,513 source bytes before build; that is an inventory size, not a projected
@@ -932,17 +929,12 @@ working implementation per supported provider framework.
 
 ## 2026-10-29 live indexer reconciliation and candidate audit
 
-The production Plattarr instance was checked read-only on the owner's host.
-`GET /api/v3/indexer` and a read-only SQLite query of its active `Indexers`
-table agreed: 17 configured rows, 15 enabled. There are 15 Cardigann rows
-(13 enabled, two disabled), one enabled Knaben, and one enabled SubsPlease.
-All 15 Cardigann rows have distinct nonempty definition IDs, including the
-custom `torrentdownload-server01`; all 15 IDs appear in the instance's
-`GET /api/v3/indexer/schema` response. Only implementation, enabled state,
-definition ID presence, and counts were used. URLs, keys, cookies, settings,
-and the private indexer list were neither printed nor committed. This live
-inventory confirms the two native types identified in the historical snapshot
-are still in use; both remain protected from pruning.
+A read-only comparison of the indexer API and database agreed on enabled
+states and implementation types. Cardigann definition IDs were present in the
+schema, and both native Knaben and SubsPlease remained configured. URLs, keys,
+cookies, settings, exact row counts, and custom definition IDs remain in the
+owner-private report. This confirms those native types are protected from
+pruning until replacement behavior is proved.
 
 The following five *unconfigured* native types have same-ID Cardigann entries
 in the live schema. This proves discoverability, not equivalent settings,
