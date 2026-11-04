@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
 using System.IO;
+using System.Net;
 using System.Net.Security;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -24,6 +25,7 @@ using NzbDrone.Common.Http;
 using NzbDrone.Common.Instrumentation;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Common.Options;
+using NzbDrone.Core.Authentication;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Datastore.Extensions;
 using NzbDrone.Core.Upstream;
@@ -158,7 +160,8 @@ namespace NzbDrone.Host
         {
             var config = GetConfiguration(context);
 
-            var bindAddress = config.GetValue<string>($"Radarr:Server:{nameof(ServerOptions.BindAddress)}") ?? config.GetValue(nameof(ConfigFileProvider.BindAddress), "*");
+            var configPath = new AppFolderInfo(context).GetConfigPath();
+            var bindAddress = ResolveBindAddress(config, File.Exists(configPath));
             var port = config.GetValue<int?>($"Radarr:Server:{nameof(ServerOptions.Port)}") ?? config.GetValue(nameof(ConfigFileProvider.Port), 7880);
             var sslPort = config.GetValue<int?>($"Radarr:Server:{nameof(ServerOptions.SslPort)}") ?? config.GetValue(nameof(ConfigFileProvider.SslPort), 8787);
             var enableSsl = config.GetValue<bool?>($"Radarr:Server:{nameof(ServerOptions.EnableSsl)}") ?? config.GetValue(nameof(ConfigFileProvider.EnableSsl), false);
@@ -301,6 +304,54 @@ namespace NzbDrone.Host
         private static string BuildUrl(string scheme, string bindAddress, int port)
         {
             return $"{scheme}://{bindAddress}:{port}";
+        }
+
+        public static string ResolveBindAddress(IConfiguration config, bool configFileExists)
+        {
+            var configuredAddress = config.GetValue<string>($"Radarr:Server:{nameof(ServerOptions.BindAddress)}")
+                ?? config.GetValue<string>(nameof(ConfigFileProvider.BindAddress));
+
+            if (configFileExists)
+            {
+                return configuredAddress ?? "*";
+            }
+
+            var bindAddress = configuredAddress ?? "127.0.0.1";
+            var methodName = config.GetValue<string>("Radarr:Auth:Method");
+
+            if (!Enum.TryParse<AuthenticationType>(methodName, out var method))
+            {
+                Enum.TryParse(config.GetValue<string>(nameof(ConfigFileProvider.AuthenticationMethod)), true, out method);
+            }
+
+            var authenticationEnabled = config.GetValue<bool?>("Radarr:Auth:Enabled")
+                ?? config.GetValue<bool?>("AuthenticationEnabled")
+                ?? false;
+
+            if (authenticationEnabled)
+            {
+                method = AuthenticationType.Forms;
+            }
+
+            var requiredName = config.GetValue<string>("Radarr:Auth:Required");
+            if (!Enum.TryParse<AuthenticationRequiredType>(requiredName, out var required))
+            {
+                if (!Enum.TryParse(config.GetValue<string>("AuthenticationRequired"), true, out required))
+                {
+                    required = AuthenticationRequiredType.Enabled;
+                }
+            }
+
+            var isLoopback = string.Equals(bindAddress, "localhost", StringComparison.OrdinalIgnoreCase) ||
+                (IPAddress.TryParse(bindAddress, out var address) && IPAddress.IsLoopback(address));
+
+            if (!isLoopback && (method == AuthenticationType.None ||
+                (method != AuthenticationType.External && required != AuthenticationRequiredType.Enabled)))
+            {
+                throw new RadarrStartupException("A new Plattarr instance cannot bind to a network address without required authentication. Complete setup on loopback first, or configure Forms or OIDC with Authentication Required enabled, or External behind an authenticating proxy.");
+            }
+
+            return bindAddress;
         }
 
         private static SslStreamCertificateContext ValidateSslCertificate(string cert, string key, string password)

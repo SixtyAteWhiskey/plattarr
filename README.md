@@ -28,15 +28,18 @@ services:
     volumes:
       - ./config:/config
       - /mnt/data:/data
-    ports:
-      - "7880:7880"
+    network_mode: host
     restart: unless-stopped
 ```
 
 Keep downloads and media under the same `/data` mount so imports can use
 hardlinks and atomic moves. Use a new `/config` directory: Plattarr has its own
 database and migrations, so an existing Radarr, Sonarr, or Lidarr config must
-not be reused.
+not be reused. On a fresh install, the application listens on `127.0.0.1:7880`
+until you configure authentication. This Linux host-network example lets you
+open it locally or through an SSH tunnel without exposing first-run setup to
+the network. See the [first-run guide](docs/first-run.md) before changing the
+bind address or publishing a port.
 
 ## Development
 

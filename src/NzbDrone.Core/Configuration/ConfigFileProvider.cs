@@ -94,6 +94,7 @@ namespace NzbDrone.Core.Configuration
         private readonly LogOptions _logOptions;
 
         private readonly string _configFile;
+        private readonly bool _isNewConfigFile;
         private static readonly Regex HiddenCharacterRegex = new Regex("[^a-z0-9]", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly object Mutex = new object();
@@ -113,6 +114,7 @@ namespace NzbDrone.Core.Configuration
             _eventAggregator = eventAggregator;
             _diskProvider = diskProvider;
             _configFile = appFolderInfo.GetConfigPath();
+            _isNewConfigFile = !diskProvider.FileExists(_configFile);
             _postgresOptions = postgresOptions.Value;
             _authOptions = authOptions.Value;
             _appOptions = appOptions.Value;
@@ -172,7 +174,7 @@ namespace NzbDrone.Core.Configuration
         {
             get
             {
-                const string defaultValue = "*";
+                var defaultValue = _isNewConfigFile ? "127.0.0.1" : "*";
 
                 var bindAddress = _serverOptions.BindAddress ?? GetValue("BindAddress", defaultValue);
                 if (string.IsNullOrWhiteSpace(bindAddress))
@@ -404,7 +406,15 @@ namespace NzbDrone.Core.Configuration
 
         public void EnsureDefaultConfigFile()
         {
-            if (!File.Exists(_configFile))
+            var missing = !File.Exists(_configFile);
+
+            if (_isNewConfigFile)
+            {
+                // Keep a safe fallback even when the first start uses an environment override.
+                SetValue("BindAddress", "127.0.0.1");
+            }
+
+            if (missing)
             {
                 SaveConfigDictionary(GetConfigDictionary());
             }
