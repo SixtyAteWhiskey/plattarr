@@ -245,6 +245,7 @@ namespace NzbDrone.Core.Indexers
 
             request.AllowAutoRedirect = false;
             request.MaximumResponseBytes = MaximumDownloadResponseBytes;
+            request.PublicDestinationOnly = true;
 
             byte[] fileData;
             long elapsedTime;

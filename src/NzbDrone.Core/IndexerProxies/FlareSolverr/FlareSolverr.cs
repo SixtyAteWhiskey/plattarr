@@ -173,6 +173,7 @@ namespace NzbDrone.Core.IndexerProxies.FlareSolverr
             newRequest.Method = HttpMethod.Post;
             newRequest.LogResponseContent = true;
             newRequest.RequestTimeout = TimeSpan.FromSeconds(Settings.RequestTimeout + 5);
+            newRequest.MaximumResponseBytes = request.MaximumResponseBytes;
             newRequest.SetContent(req.ToJson());
             newRequest.ContentSummary = req.ToJson(Formatting.None);
 

@@ -55,6 +55,8 @@ namespace NzbDrone.Core.Indexers.Headphones
             var requestBuilder = new HttpRequestBuilder(link.AbsoluteUri);
 
             var request = requestBuilder.Build();
+            request.PublicDestinationOnly = true;
+            request.MaximumResponseBytes = 32L * 1024 * 1024;
 
             request.Credentials = new BasicNetworkCredential(Settings.Username, Settings.Password);
 

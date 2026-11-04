@@ -38,6 +38,11 @@ namespace NzbDrone.Core.Indexers
         {
             var selectedProxies = GetProxies(definition);
 
+            if (request.PublicDestinationOnly)
+            {
+                await PublicDestinationPolicy.ValidateAsync((Uri)request.Url, selectedProxies.Any(p => p is not FlareSolverr));
+            }
+
             request = PreRequest(request, selectedProxies);
 
             return PostResponse(await ExecuteAsync(request), selectedProxies);
@@ -46,6 +51,11 @@ namespace NzbDrone.Core.Indexers
         public HttpResponse ExecuteProxied(HttpRequest request, ProviderDefinition definition)
         {
             var selectedProxies = GetProxies(definition);
+
+            if (request.PublicDestinationOnly)
+            {
+                PublicDestinationPolicy.ValidateAsync((Uri)request.Url, selectedProxies.Any(p => p is not FlareSolverr)).GetAwaiter().GetResult();
+            }
 
             request = PreRequest(request, selectedProxies);
 

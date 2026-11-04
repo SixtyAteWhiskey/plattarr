@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -23,8 +24,18 @@ public class HttpHappyEyeballs
 
     public async ValueTask<Stream> OnConnect(SocketsHttpConnectionContext context, CancellationToken cancellationToken = default)
     {
+        return await OnConnect(context, cancellationToken, false);
+    }
+
+    public async ValueTask<Stream> OnConnect(SocketsHttpConnectionContext context, CancellationToken cancellationToken, bool publicOnly)
+    {
         var endPoint = context.DnsEndPoint;
         var resolvedAddresses = await Dns.GetHostAddressesAsync(endPoint.Host, endPoint.AddressFamily, cancellationToken).ConfigureAwait(false);
+
+        if (publicOnly && (resolvedAddresses.Length == 0 || resolvedAddresses.Any(a => !PublicDestinationPolicy.IsPublicAddress(a))))
+        {
+            throw new WebException("Release download destination is not public", WebExceptionStatus.ProtocolError);
+        }
 
         if (resolvedAddresses.Length == 0)
         {
