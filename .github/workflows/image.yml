@@ -106,14 +106,15 @@ jobs:
       - name: Start completed image
         shell: bash
         run: |
-          docker run -d --name plattarr-smoke -p 127.0.0.1:7880:7880 plattarr:pr-${{ matrix.arch }}
-          trap 'docker logs plattarr-smoke; docker rm -f plattarr-smoke' EXIT
+          docker run -d --name plattarr-smoke plattarr:pr-${{ matrix.arch }}
+          trap 'docker rm -f plattarr-smoke' EXIT
           for attempt in {1..90}; do
-            if curl --fail --silent http://127.0.0.1:7880/ping; then
+            if docker exec plattarr-smoke wget -qO- http://127.0.0.1:7880/ping; then
               exit 0
             fi
             sleep 2
           done
+          docker logs --tail 100 plattarr-smoke
           exit 1
 
       - name: Build cover smoke target
@@ -201,7 +202,7 @@ jobs:
 
   macos-cover-resize:
     if: github.event_name == 'pull_request'
-    runs-on: macos-15
+    runs-on: macos-15-intel
     timeout-minutes: 30
     steps:
       - name: Check out

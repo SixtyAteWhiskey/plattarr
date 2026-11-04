@@ -106,3 +106,6 @@ COPY --from=backend /out/cover-smoke/CoverSmoke /app/bin/CoverSmoke
 COPY --from=backend /out/cover-smoke/CoverSmoke.dll /app/bin/CoverSmoke.dll
 COPY --from=backend /out/cover-smoke/CoverSmoke.deps.json /app/bin/CoverSmoke.deps.json
 COPY --from=backend /out/cover-smoke/CoverSmoke.runtimeconfig.json /app/bin/CoverSmoke.runtimeconfig.json
+
+# Keep a plain `docker build` equivalent to the production runtime target.
+FROM runtime AS final
