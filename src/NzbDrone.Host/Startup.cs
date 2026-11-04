@@ -127,6 +127,7 @@ namespace NzbDrone.Host
             });
 
             services.AddAppAuthentication();
+            services.AddRateLimiter(RequestRateLimiting.Configure);
 
             services.PostConfigure<ApiBehaviorOptions>(options =>
             {
@@ -207,6 +208,7 @@ namespace NzbDrone.Host
 
             app.UseRouting();
             app.UseCors();
+            app.UseRateLimiter();
             app.UseAuthentication();
             app.UseAuthorization();
             app.UseResponseCompression();
