@@ -14,7 +14,7 @@ using NzbDrone.Test.Common.AutoMoq;
 namespace NzbDrone.Core.Test.MusicTests.MetadataSource
 {
     // Recorded responses of the Lidarr metadata service (api.lidarr.audio/api/v0.4, fetched 2026-10-24
-    // from the cloud container and, for the artist and search routes, from SERVER01 with identical
+    // from a cloud container and, for the artist and search routes, from a separate test host with identical
     // bytes), so the metadata tests do not depend on a third party service being up.
     internal static class SkyHookMusicTestData
     {
