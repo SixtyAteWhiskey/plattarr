@@ -428,7 +428,7 @@ Prowlarr's); a download client chosen on a Radarr copy; a match by URL only (no 
 **Cardigann.** One warning lists every imported Cardigann indexer with its definition ID: the
 definitions are downloaded on the first start, and a custom definition (a `.yml` in Prowlarr's
 `Definitions/Custom`) must be copied to Plattarr's `Definitions/Custom` (supported by
-`IndexerDefinitionUpdateService`). The owner has one: `custom-definition`.
+`IndexerDefinitionUpdateService`). Custom definitions require this copy step.
 
 **Protected-copy dry run.** A disposable import of consistent source backups
 confirmed that configured indexers, proxy settings, and application profiles
@@ -728,9 +728,8 @@ in v1; it is not part of this stage.
 
 ### Paths
 
-Upstream containers and Plattarr usually mount media at different container paths (the
-owner's live apps mount `Movies`, `Shows` and `Importing` separately; Plattarr's dev
-stack mounts one `/data`). `pathMap` rewrites by longest matching prefix, applied to:
+Upstream containers and Plattarr may mount media at different container paths.
+`pathMap` rewrites by longest matching prefix, applied to:
 `Movies.Path`, `RootFolders.Path`, `Collections.RootFolderPath`,
 `ImportLists.RootFolderPath`, `RemotePathMappings.LocalPath`. Relative paths
 (`MovieFiles.RelativePath`, extra files) are not touched. Paths inside client settings
