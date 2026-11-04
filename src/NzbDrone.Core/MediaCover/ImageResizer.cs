@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.IO;
 using NzbDrone.Common.Disk;
 using SkiaSharp;
@@ -36,6 +37,7 @@ namespace NzbDrone.Core.MediaCover
                 };
 
                 using var input = File.OpenRead(source);
+                var animatedPng = IsAnimatedPng(input);
                 using var codec = SKCodec.Create(input) ?? throw new InvalidDataException("The media cover could not be decoded.");
 
                 if (codec.EncodedFormat is not (SKEncodedImageFormat.Jpeg or SKEncodedImageFormat.Png or SKEncodedImageFormat.Webp))
@@ -43,7 +45,7 @@ namespace NzbDrone.Core.MediaCover
                     throw new NotSupportedException("The media cover must be JPEG, PNG, or WebP.");
                 }
 
-                if (codec.FrameCount > 1 && format != SKEncodedImageFormat.Jpeg)
+                if ((animatedPng || codec.FrameCount > 1) && format != SKEncodedImageFormat.Jpeg)
                 {
                     throw new NotSupportedException("Animated PNG and WebP covers cannot be resized without losing frames.");
                 }
@@ -69,6 +71,50 @@ namespace NzbDrone.Core.MediaCover
 
                 throw;
             }
+        }
+
+        private static bool IsAnimatedPng(Stream input)
+        {
+            if (input.Length < 8)
+            {
+                return false;
+            }
+
+            Span<byte> header = stackalloc byte[8];
+            input.ReadExactly(header);
+            var png = header.SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
+
+            if (png)
+            {
+                while (input.Length - input.Position >= 12)
+                {
+                    input.ReadExactly(header);
+                    var length = BinaryPrimitives.ReadUInt32BigEndian(header);
+
+                    if (length > input.Length - input.Position - 4)
+                    {
+                        break;
+                    }
+
+                    // APNG places acTL before the first image-data chunk. Skia can
+                    // report only one frame for such files, so inspect the container.
+                    if (header.Slice(4, 4).SequenceEqual("acTL"u8))
+                    {
+                        input.Position = 0;
+                        return true;
+                    }
+
+                    if (header.Slice(4, 4).SequenceEqual("IDAT"u8))
+                    {
+                        break;
+                    }
+
+                    input.Position += length + 4L;
+                }
+            }
+
+            input.Position = 0;
+            return false;
         }
     }
 }

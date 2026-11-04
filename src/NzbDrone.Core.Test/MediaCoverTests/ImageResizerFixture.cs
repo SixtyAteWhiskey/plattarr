@@ -189,5 +189,26 @@ namespace NzbDrone.Core.Test.MediaCoverTests
             jpegCodec.Info.Width.Should().Be(20);
             jpegCodec.Info.Height.Should().Be(10);
         }
+
+        [Test]
+        public void should_not_silently_flatten_animated_png_with_partial_frames()
+        {
+            var source = GetTestPath("Files/animated-partial.png");
+            var destination = Path.Combine(TempFolder, "animated-small.png");
+            File.WriteAllText(destination, "stale cover");
+
+            Assert.Throws<NotSupportedException>(() => Subject.Resize(source, destination, 8));
+
+            File.Exists(destination).Should().BeFalse();
+
+            var jpegDestination = Path.Combine(TempFolder, "animated-small.jpg");
+            Subject.Resize(source, jpegDestination, 8);
+
+            using var jpegStream = File.OpenRead(jpegDestination);
+            using var jpegCodec = SKCodec.Create(jpegStream);
+            jpegCodec.EncodedFormat.Should().Be(SKEncodedImageFormat.Jpeg);
+            jpegCodec.Info.Width.Should().Be(12);
+            jpegCodec.Info.Height.Should().Be(8);
+        }
     }
 }

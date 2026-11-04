@@ -1,7 +1,9 @@
 # SkiaSharp cover prototype — 2026-11-04
 
 Status: isolated prototype based on `origin/develop` at `403cdd639`. It has not
-been merged, deployed, or used for a production image.
+been merged, deployed, or used for a production image. The follow-up below
+adds a native runtime CI gate and an explicit animation fallback; CI results
+are required before treating this as release ready.
 
 ## Scope
 
@@ -77,17 +79,71 @@ output. The native library requires musl and `libstdc++`; Alpine's existing
 native library is 12,358,608 bytes, versus 2,100,736 bytes for the removed
 ImageSharp managed DLL. Measure the final compressed image size before a merge.
 
-## Remaining behavior gap
+## Follow-up: animation behavior
 
-ImageSharp preserves multiple frames when an animated WebP is resized to WebP
-and when it saves an animated PNG. SkiaSharp's normal bitmap decode and image
-encode produce one frame. The prototype detects multi-frame input and refuses
-PNG or WebP output so the cover service can fall back to the original image
-instead of silently freezing the animation. Animated input to JPEG still uses
-the first frame, as the prior JPEG output did. Animated PNG/WebP resizing is
-therefore a known compatibility gap and should be resolved or explicitly
-accepted before merging.
+The compatibility decision is to serve the **original animated PNG or WebP**
+when a same-format resized derivative is requested. SkiaSharp cannot encode
+multiple frames through this path; decoding and re-encoding would lose frame
+timing, partial-frame composition, and transparency. The resizer throws before
+creating output, deletes any stale derivative, and the cover controller now
+falls back to the full-size original for `.jpg`, `.png`, and `.webp` requests.
+It also accepts `.webp` routes. This keeps the animation intact at the cost of
+serving the full-size file. Animated input resized to JPEG remains a still
+first frame, matching prior behavior.
 
-The arm64 repeated-resize crash under QEMU, native arm64 hardware run, actual
-Docker image build and scan, and Windows/macOS native runtime checks remain
-open. This branch is an evaluation, not a release-ready replacement.
+The APNG check reads `acTL` before `IDAT` because Skia may report only one
+frame for APNG. A 314-byte fixture contains three frames with 80, 120, and
+200 ms delays, partial 13 × 7 and 14 × 7 later frames, and transparent pixels.
+The focused tests confirm PNG rejection and cleanup, JPEG first-frame output,
+WebP rejection, and same-extension HTTP fallback. The source bytes are served
+unchanged, so frame timing and blend/dispose operations are preserved by the
+fallback rather than reconstructed.
+
+## Follow-up: runtime and appearance gates
+
+The PR workflow now builds and **loads** the completed Alpine image on native
+amd64 and arm64 GitHub runners, starts its server, and runs a dedicated smoke
+target derived from that image. The smoke program performs 270 mixed
+JPEG/PNG/WebP cover resizes in one process, checking format and dimensions
+after each. This catches the observed arm64 failure, which happened on resize
+8 or 9 under QEMU 8.2.2. All three prior QEMU traces show a .NET stack
+overflow during a SkiaSharp handle lookup after the initial resizes; each
+isolated resize had passed. That evidence does not distinguish an emulation
+fault from a native arm64 fault. The native runner result is decisive for this
+gate. The workflow also tests native loading on Windows and macOS, scans the
+completed Alpine image, and compares a gzip-compressed image archive with the
+same base commit's image on amd64. CI must complete before these claims can
+be reported as passed.
+
+On local Linux x64, the smoke program completed 270 resizes in 4.2 s with a
+65 MiB peak working set. A disposable ImageSharp 3.1.12 baseline ran the same
+270 operations on identical generated covers in 7.5 s with a 92 MiB peak.
+Both figures include process startup and differ by runtime/library; they are
+indicative, not a controlled throughput benchmark. The sample roles are a
+1000 × 1500 movie poster (JPEG), 1600 × 900 TV fanart (WebP), and 900 × 900
+transparent music logo (PNG). Resized heights are 250, 360, and 170.
+The self-contained musl x64 smoke executable also ran against the packaged
+application files inside the Alpine 3.22 rootfs using `bwrap`: 270 resizes in
+5.2 s and a 63 MiB peak. The full local `tools/verify.sh` gate passed a clean
+solution build, 228 API tests, 100 Host tests (5 skipped), and 10,961 Core
+tests (53 skipped).
+
+| Cover/output | Dimensions | ImageSharp bytes | SkiaSharp bytes | Difference |
+| --- | ---: | ---: | ---: | ---: |
+| Movie poster JPEG | 167 × 250 | 9,752 | 8,838 | −9.4% |
+| Movie poster PNG | 167 × 250 | 26,638 | 24,659 | −7.4% |
+| Movie poster WebP | 167 × 250 | 3,536 | 3,500 | −1.0% |
+| TV fanart JPEG | 640 × 360 | 47,231 | 43,818 | −7.2% |
+| TV fanart PNG | 640 × 360 | 167,519 | 132,400 | −21.0% |
+| TV fanart WebP | 640 × 360 | 15,900 | 15,128 | −4.9% |
+| Music logo JPEG | 170 × 170 | 7,948 | 6,430 | −19.1% |
+| Music logo PNG | 170 × 170 | 25,660 | 21,011 | −18.1% |
+| Music logo WebP | 170 × 170 | 14,640 | 4,994 | −65.9% |
+
+The outputs decode at their expected dimensions. The PNG and WebP music logo
+outputs retain an alpha range of 0–255; JPEG is opaque. Source EXIF and ICC
+removal is covered by the existing tests. The synthetic music logo's WebP
+looks visibly different: ImageSharp paints a green background while Skia
+retains transparency. JPEG/PNG edges also differ because the samplers differ,
+as quantified above. The image-size table measures derivative files; the
+completed compressed container-image impact remains a CI gate.
