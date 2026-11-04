@@ -45,6 +45,7 @@ namespace Radarr.Http.Authentication
                 .AddExternal(nameof(AuthenticationType.External))
                 .AddOidc(nameof(AuthenticationType.Oidc))
                 .AddForms(nameof(AuthenticationType.Forms))
+                .AddScheme<AuthenticationSchemeOptions, CalendarFeedAuthenticationHandler>("Calendar", options => { })
                 .AddApiKey("API", options =>
                 {
                     options.HeaderName = "X-Api-Key";

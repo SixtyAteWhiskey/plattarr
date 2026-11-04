@@ -1,8 +1,7 @@
-# Plattarr dev stack for SERVER01 (portable to the HP Elite Mini).
+# Example Plattarr development stack.
 #
 # Phase 0 safety rules:
-#   - Port 7880 (Plattarr's default), so it doesn't collide with live Radarr
-#     (7878) or gluetun's qBittorrent UI (8080) on SERVER01.
+#   - Port 7880 is Plattarr's default; adjust the host port if it is occupied.
 #   - Fresh ./config. Never point this at the live Radarr or Prowlarr config.
 #   - /data is read-only until import testing starts in Phase 1.
 #
@@ -17,7 +16,7 @@ services:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
       - UMASK=002
-      - TZ=America/Denver
+      - TZ=${TZ:-Etc/UTC}
     volumes:
       - ./config:/config
       - ${DATA_PATH:?set DATA_PATH in .env}:/data:ro

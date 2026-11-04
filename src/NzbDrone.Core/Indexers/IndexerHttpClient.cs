@@ -38,6 +38,13 @@ namespace NzbDrone.Core.Indexers
         {
             var selectedProxies = GetProxies(definition);
 
+            if (request.PublicDestinationOnly)
+            {
+                // Reject unsafe literal destinations before a proxy can rewrite the request.
+                // The dispatcher resolves and checks hostnames when the request is direct.
+                await PublicDestinationPolicy.ValidateAsync((Uri)request.Url, trustedProxy: true);
+            }
+
             request = PreRequest(request, selectedProxies);
 
             return PostResponse(await ExecuteAsync(request), selectedProxies);
@@ -46,6 +53,11 @@ namespace NzbDrone.Core.Indexers
         public HttpResponse ExecuteProxied(HttpRequest request, ProviderDefinition definition)
         {
             var selectedProxies = GetProxies(definition);
+
+            if (request.PublicDestinationOnly)
+            {
+                PublicDestinationPolicy.ValidateAsync((Uri)request.Url, trustedProxy: true).GetAwaiter().GetResult();
+            }
 
             request = PreRequest(request, selectedProxies);
 

@@ -7,6 +7,7 @@ using NzbDrone.Common;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Core.Analytics;
 using NzbDrone.Core.Configuration;
+using Radarr.Http.Authentication;
 
 namespace Radarr.Http.Frontend
 {
@@ -51,6 +52,7 @@ namespace Radarr.Http.Frontend
             builder.AppendLine("{");
             builder.AppendLine($"  \"apiRoot\": \"{_urlBase}/api/v3\",");
             builder.AppendLine($"  \"apiKey\": \"{_apiKey}\",");
+            builder.AppendLine($"  \"calendarFeedKey\": \"{CalendarFeedCredential.Derive(_apiKey)}\",");
             builder.AppendLine($"  \"release\": \"{BuildInfo.Release}\",");
             builder.AppendLine($"  \"version\": \"{BuildInfo.Version.ToString()}\",");
             builder.AppendLine($"  \"instanceName\": \"{_configFileProvider.InstanceName.ToString()}\",");

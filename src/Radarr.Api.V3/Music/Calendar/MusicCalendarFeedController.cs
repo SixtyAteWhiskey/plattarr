@@ -5,6 +5,7 @@ using Ical.Net;
 using Ical.Net.CalendarComponents;
 using Ical.Net.DataTypes;
 using Ical.Net.Serialization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Music;
@@ -16,6 +17,7 @@ namespace Radarr.Api.V3.Music.Calendar
     // Lidarr's iCal feed. Radarr's feed is Radarr.ics; this one keeps Lidarr's file name so existing
     // calendar subscriptions keep working.
     [V3FeedController("calendar")]
+    [Authorize(AuthenticationSchemes = "Calendar")]
     public class MusicCalendarFeedController : Controller
     {
         private readonly IAlbumService _albumService;

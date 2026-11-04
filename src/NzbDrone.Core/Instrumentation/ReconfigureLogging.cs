@@ -3,7 +3,6 @@ using System.Linq;
 using NLog;
 using NLog.Config;
 using NLog.Targets;
-using NLog.Targets.Syslog;
 using NLog.Targets.Syslog.Settings;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
@@ -126,7 +125,7 @@ namespace NzbDrone.Core.Instrumentation
 
         private void SetSyslogParameters(string syslogServer, int syslogPort, LogLevel minimumLogLevel)
         {
-            var syslogTarget = new SyslogTarget();
+            var syslogTarget = new CleansingSyslogTarget();
 
             syslogTarget.Name = "syslogTarget";
             syslogTarget.MessageSend.Protocol = ProtocolType.Udp;
