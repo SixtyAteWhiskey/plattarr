@@ -1308,3 +1308,15 @@ pulled in Webpack 4 declarations despite the project using Webpack 5; removing
 it pruned those lockfile entries. The touch backend stays because the active
 multi-backend drag-and-drop configuration imports it. The production frontend
 asset hashes were unchanged by this dependency cleanup.
+
+The next tracked-tree review at `49efc3cd4` covered 7,195 paths and checked
+empty files, draft and backup names, exact duplicate contents, direct package
+references, and build inputs. It found no disposable draft or empty tracked
+file. Matching media styles and packaged assets have distinct callers or build
+roles, so matching bytes alone do not justify removing them. The Download
+Clients, Import Lists, and Indexers bulk-tag dialogs did contain three copies
+of the same presentation and preview logic. They now use one shared content
+component while their wrappers select their own records and help text. The
+change also removes unused style rules from those dialogs. Typecheck, targeted
+lint, stylelint, and a production frontend build passed. Release-readiness
+items take priority over further cosmetic deduplication.
