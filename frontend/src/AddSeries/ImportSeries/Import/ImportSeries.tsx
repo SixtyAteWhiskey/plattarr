@@ -77,9 +77,19 @@ function ImportSeries() {
     if (
       qualityProfiles.length &&
       (!defaultQualityProfileId ||
-        !qualityProfiles.some((p) => p.id === defaultQualityProfileId))
+        !qualityProfiles.some(
+          (p) =>
+            p.id === defaultQualityProfileId &&
+            (!p.appliesTo?.length || p.appliesTo.includes('tv'))
+        ))
     ) {
-      setAddSeriesOption('qualityProfileId', qualityProfiles[0].id);
+      const firstTvProfile = qualityProfiles.find(
+        (p) => !p.appliesTo?.length || p.appliesTo.includes('tv')
+      );
+
+      if (firstTvProfile) {
+        setAddSeriesOption('qualityProfileId', firstTvProfile.id);
+      }
     }
   }, [defaultQualityProfileId, qualityProfiles, dispatch]);
 
