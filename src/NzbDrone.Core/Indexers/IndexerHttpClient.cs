@@ -40,7 +40,9 @@ namespace NzbDrone.Core.Indexers
 
             if (request.PublicDestinationOnly)
             {
-                await PublicDestinationPolicy.ValidateAsync((Uri)request.Url, selectedProxies.Any(p => p is not FlareSolverr));
+                // Reject unsafe literal destinations before a proxy can rewrite the request.
+                // The dispatcher resolves and checks hostnames when the request is direct.
+                await PublicDestinationPolicy.ValidateAsync((Uri)request.Url, trustedProxy: true);
             }
 
             request = PreRequest(request, selectedProxies);
@@ -54,7 +56,7 @@ namespace NzbDrone.Core.Indexers
 
             if (request.PublicDestinationOnly)
             {
-                PublicDestinationPolicy.ValidateAsync((Uri)request.Url, selectedProxies.Any(p => p is not FlareSolverr)).GetAwaiter().GetResult();
+                PublicDestinationPolicy.ValidateAsync((Uri)request.Url, trustedProxy: true).GetAwaiter().GetResult();
             }
 
             request = PreRequest(request, selectedProxies);
