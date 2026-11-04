@@ -101,6 +101,7 @@ function ImportSeriesRow({ id }: ImportSeriesRowProps) {
       <VirtualTableRowCell className={styles.qualityProfile}>
         <FormInputGroup
           type={inputTypes.QUALITY_PROFILE_SELECT}
+          mediaKind="tv"
           name="qualityProfileId"
           value={qualityProfileId}
           onChange={handleInputChange}

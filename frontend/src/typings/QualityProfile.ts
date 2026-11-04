@@ -1,5 +1,6 @@
 import Quality from 'Quality/Quality';
 import { QualityProfileFormatItem } from './CustomFormat';
+import MediaKind from './MediaKind';
 
 export interface QualityProfileQualityItem {
   id?: number;
@@ -11,6 +12,7 @@ export interface QualityProfileQualityItem {
 
 interface QualityProfile {
   name: string;
+  appliesTo?: MediaKind[];
   upgradeAllowed: boolean;
   cutoff: number;
   items: QualityProfileQualityItem[];

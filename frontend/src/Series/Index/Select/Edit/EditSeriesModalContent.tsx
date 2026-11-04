@@ -229,6 +229,7 @@ function EditSeriesModalContent(props: EditSeriesModalContentProps) {
 
           <FormInputGroup
             type={inputTypes.QUALITY_PROFILE_SELECT}
+            mediaKind="tv"
             name="qualityProfileId"
             value={qualityProfileId}
             includeNoChange={true}

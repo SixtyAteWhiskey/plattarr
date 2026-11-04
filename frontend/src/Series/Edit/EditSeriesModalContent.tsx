@@ -215,6 +215,7 @@ function EditSeriesModalContent({
 
             <FormInputGroup
               type={inputTypes.QUALITY_PROFILE_SELECT}
+              mediaKind="tv"
               name="qualityProfileId"
               {...settings.qualityProfileId}
               onChange={handleInputChange}

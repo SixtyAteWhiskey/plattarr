@@ -8,6 +8,7 @@ import {
 } from 'AddSeries/addSeriesOptionsStore';
 import SeriesMonitoringOptionsPopoverContent from 'AddSeries/SeriesMonitoringOptionsPopoverContent';
 import SeriesTypePopoverContent from 'AddSeries/SeriesTypePopoverContent';
+import Alert from 'Components/Alert';
 import CheckInput from 'Components/Form/CheckInput';
 import Form from 'Components/Form/Form';
 import FormGroup from 'Components/Form/FormGroup';
@@ -131,6 +132,12 @@ function AddNewSeriesModalContent({
       </ModalHeader>
 
       <ModalBody>
+        {addError ? (
+          <Alert kind={kinds.DANGER}>
+            {translate('UnableToAddSeriesPleaseTryAgain')}
+          </Alert>
+        ) : null}
+
         <div className={styles.container}>
           {isSmallScreen ? null : (
             <div className={styles.poster}>
@@ -201,6 +208,7 @@ function AddNewSeriesModalContent({
 
                 <FormInputGroup
                   type={inputTypes.QUALITY_PROFILE_SELECT}
+                  mediaKind="tv"
                   name="qualityProfileId"
                   onChange={handleQualityProfileIdChange}
                   {...qualityProfileId}

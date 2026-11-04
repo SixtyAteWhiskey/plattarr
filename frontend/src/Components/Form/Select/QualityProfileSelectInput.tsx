@@ -4,6 +4,7 @@ import { createSelector } from 'reselect';
 import { QualityProfilesAppState } from 'App/State/SettingsAppState';
 import createSortedSectionSelector from 'Store/Selectors/createSortedSectionSelector';
 import { EnhancedSelectInputChanged } from 'typings/inputs';
+import MediaKind from 'typings/MediaKind';
 import QualityProfile from 'typings/QualityProfile';
 import sortByProp from 'Utilities/Array/sortByProp';
 import translate from 'Utilities/String/translate';
@@ -15,7 +16,8 @@ import EnhancedSelectInput, {
 function createQualityProfilesSelector(
   includeNoChange: boolean,
   includeNoChangeDisabled: boolean,
-  includeMixed: boolean
+  includeMixed: boolean,
+  mediaKind?: MediaKind
 ) {
   return createSelector(
     createSortedSectionSelector<QualityProfile, QualityProfilesAppState>(
@@ -24,12 +26,17 @@ function createQualityProfilesSelector(
     ),
     (qualityProfiles: QualityProfilesAppState) => {
       const values: EnhancedSelectInputValue<number | string>[] =
-        qualityProfiles.items.map((qualityProfile) => {
-          return {
+        qualityProfiles.items
+          .filter(
+            (qualityProfile) =>
+              !mediaKind ||
+              !qualityProfile.appliesTo?.length ||
+              qualityProfile.appliesTo.includes(mediaKind)
+          )
+          .map((qualityProfile) => ({
             key: qualityProfile.id,
             value: qualityProfile.name,
-          };
-        });
+          }));
 
       if (includeNoChange) {
         values.unshift({
@@ -68,6 +75,7 @@ export interface QualityProfileSelectInputProps
   includeNoChange?: boolean;
   includeNoChangeDisabled?: boolean;
   includeMixed?: boolean;
+  mediaKind?: MediaKind;
 }
 
 function QualityProfileSelectInput({
@@ -76,6 +84,7 @@ function QualityProfileSelectInput({
   includeNoChange = false,
   includeNoChangeDisabled = true,
   includeMixed = false,
+  mediaKind,
   onChange,
   ...otherProps
 }: QualityProfileSelectInputProps) {
@@ -83,7 +92,8 @@ function QualityProfileSelectInput({
     createQualityProfilesSelector(
       includeNoChange,
       includeNoChangeDisabled,
-      includeMixed
+      includeMixed,
+      mediaKind
     )
   );
 
@@ -95,10 +105,7 @@ function QualityProfileSelectInput({
   );
 
   useEffect(() => {
-    if (
-      !value ||
-      !values.some((option) => option.key === value || option.key === value)
-    ) {
+    if (!value || !values.some((option) => option.key === value)) {
       const firstValue = values.find(
         (option) => typeof option.key === 'number'
       );

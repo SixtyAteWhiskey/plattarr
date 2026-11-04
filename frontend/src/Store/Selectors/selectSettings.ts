@@ -10,6 +10,7 @@ import {
   ValidationFailure,
   ValidationWarning,
 } from 'typings/pending';
+import { ApiError } from 'Utilities/Fetch/fetchJson';
 import isEmpty from 'Utilities/Object/isEmpty';
 
 interface ValidationFailures {
@@ -17,15 +18,24 @@ interface ValidationFailures {
   warnings: ValidationWarning[];
 }
 
-function getValidationFailures(saveError?: Error): ValidationFailures {
-  if (!saveError || saveError.status !== 400) {
+function getValidationFailures(
+  saveError?: Error | ApiError
+): ValidationFailures {
+  const status =
+    saveError instanceof ApiError ? saveError.statusCode : saveError?.status;
+  const response =
+    saveError instanceof ApiError
+      ? saveError.statusBody
+      : saveError?.responseJSON;
+
+  if (status !== 400 || !Array.isArray(response)) {
     return {
       errors: [],
       warnings: [],
     };
   }
 
-  return cloneDeep(saveError.responseJSON as ValidationFailure[]).reduce(
+  return cloneDeep(response as ValidationFailure[]).reduce(
     (acc: ValidationFailures, failure: ValidationFailure) => {
       if (failure.isWarning) {
         acc.warnings.push(failure as ValidationWarning);
@@ -77,7 +87,7 @@ export interface ModelBaseSetting {
 function selectSettings<T extends ModelBaseSetting>(
   item: T,
   pendingChanges?: Partial<ModelBaseSetting>,
-  saveError?: Error
+  saveError?: Error | ApiError
 ) {
   const { errors, warnings } = getValidationFailures(saveError);
 
