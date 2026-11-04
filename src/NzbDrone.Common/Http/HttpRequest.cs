@@ -62,6 +62,8 @@ namespace NzbDrone.Common.Http
         public TimeSpan RateLimit { get; set; }
         public string RateLimitKey { get; set; }
         public Stream ResponseStream { get; set; }
+        public long? MaximumResponseBytes { get; set; }
+        public bool PublicDestinationOnly { get; set; }
 
         public override string ToString()
         {

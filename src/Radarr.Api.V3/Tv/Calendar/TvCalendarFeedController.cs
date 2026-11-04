@@ -5,6 +5,7 @@ using Ical.Net;
 using Ical.Net.CalendarComponents;
 using Ical.Net.DataTypes;
 using Ical.Net.Serialization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -18,6 +19,7 @@ namespace Radarr.Api.V3.Tv.Calendar
     // Sonarr's iCal feed. Radarr's feed is Radarr.ics; this one keeps Sonarr's file name so existing
     // calendar subscriptions keep working.
     [V3FeedController("calendar")]
+    [Authorize(AuthenticationSchemes = "Calendar")]
     public class TvCalendarFeedController : Controller
     {
         private readonly IEpisodeService _episodeService;

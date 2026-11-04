@@ -67,6 +67,8 @@ public class MTeamTp : TorrentIndexerBase<MTeamTpSettings>
             .Build();
 
         request.Headers.UserAgent = UserAgent;
+        request.PublicDestinationOnly = true;
+        request.MaximumResponseBytes = 16L * 1024 * 1024;
 
         var response = await _httpClient.ExecuteProxiedAsync(request, Definition);
 

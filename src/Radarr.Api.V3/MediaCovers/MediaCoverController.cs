@@ -30,31 +30,41 @@ namespace Radarr.Api.V3.MediaCovers
         [HttpGet(@"{movieId:int}/{filename:regex((.+)\.(jpg|png|gif))}")]
         public Results<PhysicalFileHttpResult, NotFound> GetMediaCover(int movieId, string filename)
         {
-            return GetCover(Path.Combine(_appFolderInfo.GetAppDataPath(), "MediaCover", movieId.ToString(), filename));
+            return GetCover(Path.Combine(_appFolderInfo.GetAppDataPath(), "MediaCover", movieId.ToString()), filename);
         }
 
         // Series keep their covers in MediaCover/Series/{id}, so a series id never collides with a movie id.
         [HttpGet(@"Series/{seriesId:int}/{filename:regex((.+)\.(jpg|png|gif))}")]
         public Results<PhysicalFileHttpResult, NotFound> GetSeriesMediaCover(int seriesId, string filename)
         {
-            return GetCover(Path.Combine(_appFolderInfo.GetAppDataPath(), "MediaCover", "Series", seriesId.ToString(), filename));
+            return GetCover(Path.Combine(_appFolderInfo.GetAppDataPath(), "MediaCover", "Series", seriesId.ToString()), filename);
         }
 
         // Music keeps its covers in their own folders: MediaCover/Artists/{id} and MediaCover/Albums/{id}.
         [HttpGet(@"Artists/{artistId:int}/{filename:regex((.+)\.(jpg|png|gif))}")]
         public Results<PhysicalFileHttpResult, NotFound> GetArtistMediaCover(int artistId, string filename)
         {
-            return GetCover(Path.Combine(_appFolderInfo.GetAppDataPath(), "MediaCover", "Artists", artistId.ToString(), filename));
+            return GetCover(Path.Combine(_appFolderInfo.GetAppDataPath(), "MediaCover", "Artists", artistId.ToString()), filename);
         }
 
         [HttpGet(@"Albums/{albumId:int}/{filename:regex((.+)\.(jpg|png|gif))}")]
         public Results<PhysicalFileHttpResult, NotFound> GetAlbumMediaCover(int albumId, string filename)
         {
-            return GetCover(Path.Combine(_appFolderInfo.GetAppDataPath(), "MediaCover", "Albums", albumId.ToString(), filename));
+            return GetCover(Path.Combine(_appFolderInfo.GetAppDataPath(), "MediaCover", "Albums", albumId.ToString()), filename);
         }
 
-        private Results<PhysicalFileHttpResult, NotFound> GetCover(string filePath)
+        private Results<PhysicalFileHttpResult, NotFound> GetCover(string folderPath, string filename)
         {
+            // ASP.NET has already decoded the route segment. Check Windows separators and
+            // drive syntax explicitly because Path.GetFileName uses the host OS rules.
+            if (string.IsNullOrWhiteSpace(filename) || filename == "." || filename == ".." ||
+                filename.IndexOfAny(new[] { '/', '\\', ':' }) >= 0)
+            {
+                return TypedResults.NotFound();
+            }
+
+            var filePath = Path.Combine(folderPath, filename);
+
             if (!_diskProvider.FileExists(filePath) || _diskProvider.GetFileSize(filePath) == 0)
             {
                 // Return the full sized image if someone requests a non-existing resized one.

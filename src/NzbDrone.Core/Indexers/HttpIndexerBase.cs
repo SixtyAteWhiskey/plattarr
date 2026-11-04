@@ -29,6 +29,8 @@ namespace NzbDrone.Core.Indexers
     {
         protected const int MaxNumResultsPerQuery = 1000;
         private const int MaxRedirects = 5;
+        private const long MaximumFeedResponseBytes = 16L * 1024 * 1024;
+        private const long MaximumDownloadResponseBytes = 32L * 1024 * 1024;
 
         protected readonly IIndexerHttpClient _httpClient;
         protected readonly IEventAggregator _eventAggregator;
@@ -242,6 +244,8 @@ namespace NzbDrone.Core.Indexers
             }
 
             request.AllowAutoRedirect = false;
+            request.MaximumResponseBytes = MaximumDownloadResponseBytes;
+            request.PublicDestinationOnly = true;
 
             byte[] fileData;
             long elapsedTime;
@@ -664,6 +668,7 @@ namespace NzbDrone.Core.Indexers
             }
 
             request.HttpRequest.SuppressHttpError = true;
+            request.HttpRequest.MaximumResponseBytes = MaximumFeedResponseBytes;
             request.HttpRequest.Encoding ??= Encoding;
 
             var response = await RetryStrategy
@@ -715,6 +720,7 @@ namespace NzbDrone.Core.Indexers
         protected async Task<HttpResponse> ExecuteAuth(HttpRequest request)
         {
             request.Encoding = Encoding;
+            request.MaximumResponseBytes = MaximumFeedResponseBytes;
 
             if (request.RequestTimeout == TimeSpan.Zero)
             {
