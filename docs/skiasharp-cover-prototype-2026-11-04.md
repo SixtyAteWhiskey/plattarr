@@ -1,9 +1,8 @@
 # SkiaSharp cover prototype — 2026-11-04
 
-Status: isolated prototype based on `origin/develop` at `403cdd639`. It has not
-been merged, deployed, or used for a production image. The follow-up below
-adds a native runtime CI gate and an explicit animation fallback; CI results
-are required before treating this as release ready.
+Status: reviewable PR prototype based on `origin/develop` at `403cdd639`.
+The PR CI builds and runs the Alpine image on native amd64 and arm64, with
+Windows and macOS loading checks. It has not been merged or deployed.
 
 ## Scope
 
@@ -101,19 +100,29 @@ fallback rather than reconstructed.
 
 ## Follow-up: runtime and appearance gates
 
-The PR workflow now builds and **loads** the completed Alpine image on native
+The PR workflow builds and **loads** the completed Alpine image on native
 amd64 and arm64 GitHub runners, starts its server, and runs a dedicated smoke
 target derived from that image. The smoke program performs 270 mixed
 JPEG/PNG/WebP cover resizes in one process, checking format and dimensions
-after each. This catches the observed arm64 failure, which happened on resize
-8 or 9 under QEMU 8.2.2. All three prior QEMU traces show a .NET stack
-overflow during a SkiaSharp handle lookup after the initial resizes; each
-isolated resize had passed. That evidence does not distinguish an emulation
-fault from a native arm64 fault. The native runner result is decisive for this
-gate. The workflow also tests native loading on Windows and macOS, scans the
-completed Alpine image, and compares a gzip-compressed image archive with the
-same base commit's image on amd64. CI must complete before these claims can
-be reported as passed.
+after each. The prior arm64 failure happened on resize 8 or 9 under QEMU
+8.2.2. All three QEMU traces show a .NET stack overflow during a SkiaSharp
+handle lookup after the initial resizes; each isolated resize had passed.
+Native arm64 completed 270 resizes in 4.4 s with a 65 MiB peak working set.
+Native amd64 completed them in 6.5 s with a 64 MiB peak. This establishes
+that the failure does not recur in the tested native arm64 environment; the
+specific QEMU/runtime interaction remains unproven. Windows and Intel macOS
+native-loading tests passed.
+
+Both completed Alpine images started successfully. A fresh instance binds to
+loopback by design until authentication is configured, so startup CI checks
+`/ping` inside the container. Trivy scanned each exact completed image's OS
+packages and .NET dependencies and found zero high or critical vulnerabilities
+on both architectures. The scanner does not prove the absence of other native
+code vulnerabilities. The amd64 image's gzip-compressed Docker archive was
+154,724,745 bytes, versus 149,975,424 bytes for the base image: an increase of
+4,749,321 bytes (3.17%). This is a same-method comparison of completed image
+archives; registry layer compression may differ. The arm64 archive was
+148,321,012 bytes; the workflow does not build an arm64 base image for a delta.
 
 On local Linux x64, the smoke program completed 270 resizes in 4.2 s with a
 65 MiB peak working set. A disposable ImageSharp 3.1.12 baseline ran the same
@@ -146,4 +155,4 @@ removal is covered by the existing tests. The synthetic music logo's WebP
 looks visibly different: ImageSharp paints a green background while Skia
 retains transparency. JPEG/PNG edges also differ because the samplers differ,
 as quantified above. The image-size table measures derivative files; the
-completed compressed container-image impact remains a CI gate.
+container-image impact is reported above.
