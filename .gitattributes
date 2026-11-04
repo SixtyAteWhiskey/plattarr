@@ -8,3 +8,6 @@ distribution/osx/Radarr text eol=lf
 # Custom for Visual Studio
 *.cs     diff=csharp
 *.sln    merge=union
+
+# Preserve upstream legal notices verbatim, including their original spacing.
+distribution/licenses/SkiaSharp-*.txt -text whitespace=-blank-at-eol
