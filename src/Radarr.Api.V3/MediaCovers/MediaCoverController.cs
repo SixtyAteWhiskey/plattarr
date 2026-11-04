@@ -14,7 +14,7 @@ namespace Radarr.Api.V3.MediaCovers
     [V3ApiController]
     public class MediaCoverController : Controller
     {
-        private static readonly Regex RegexResizedImage = new Regex(@"-\d+\.jpg$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex RegexResizedImage = new Regex(@"-\d+(\.(?:jpg|png|webp))$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private readonly IAppFolderInfo _appFolderInfo;
         private readonly IDiskProvider _diskProvider;
@@ -27,27 +27,27 @@ namespace Radarr.Api.V3.MediaCovers
             _mimeTypeProvider = new FileExtensionContentTypeProvider();
         }
 
-        [HttpGet(@"{movieId:int}/{filename:regex((.+)\.(jpg|png|gif))}")]
+        [HttpGet(@"{movieId:int}/{filename:regex((.+)\.(jpg|png|gif|webp))}")]
         public Results<PhysicalFileHttpResult, NotFound> GetMediaCover(int movieId, string filename)
         {
             return GetCover(Path.Combine(_appFolderInfo.GetAppDataPath(), "MediaCover", movieId.ToString()), filename);
         }
 
         // Series keep their covers in MediaCover/Series/{id}, so a series id never collides with a movie id.
-        [HttpGet(@"Series/{seriesId:int}/{filename:regex((.+)\.(jpg|png|gif))}")]
+        [HttpGet(@"Series/{seriesId:int}/{filename:regex((.+)\.(jpg|png|gif|webp))}")]
         public Results<PhysicalFileHttpResult, NotFound> GetSeriesMediaCover(int seriesId, string filename)
         {
             return GetCover(Path.Combine(_appFolderInfo.GetAppDataPath(), "MediaCover", "Series", seriesId.ToString()), filename);
         }
 
         // Music keeps its covers in their own folders: MediaCover/Artists/{id} and MediaCover/Albums/{id}.
-        [HttpGet(@"Artists/{artistId:int}/{filename:regex((.+)\.(jpg|png|gif))}")]
+        [HttpGet(@"Artists/{artistId:int}/{filename:regex((.+)\.(jpg|png|gif|webp))}")]
         public Results<PhysicalFileHttpResult, NotFound> GetArtistMediaCover(int artistId, string filename)
         {
             return GetCover(Path.Combine(_appFolderInfo.GetAppDataPath(), "MediaCover", "Artists", artistId.ToString()), filename);
         }
 
-        [HttpGet(@"Albums/{albumId:int}/{filename:regex((.+)\.(jpg|png|gif))}")]
+        [HttpGet(@"Albums/{albumId:int}/{filename:regex((.+)\.(jpg|png|gif|webp))}")]
         public Results<PhysicalFileHttpResult, NotFound> GetAlbumMediaCover(int albumId, string filename)
         {
             return GetCover(Path.Combine(_appFolderInfo.GetAppDataPath(), "MediaCover", "Albums", albumId.ToString()), filename);
@@ -69,7 +69,7 @@ namespace Radarr.Api.V3.MediaCovers
             {
                 // Return the full sized image if someone requests a non-existing resized one.
                 // TODO: This code can be removed later once everyone had the update for a while.
-                var basefilePath = RegexResizedImage.Replace(filePath, ".jpg");
+                var basefilePath = RegexResizedImage.Replace(filePath, "$1");
                 if (basefilePath == filePath || !_diskProvider.FileExists(basefilePath))
                 {
                     return TypedResults.NotFound();

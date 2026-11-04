@@ -115,6 +115,8 @@ PackageFiles()
 
     echo "Adding LICENSE"
     cp LICENSE $folder
+    mkdir -p $folder/licenses
+    cp distribution/licenses/SkiaSharp-*.txt $folder/licenses/
 }
 
 PackageLinux()
