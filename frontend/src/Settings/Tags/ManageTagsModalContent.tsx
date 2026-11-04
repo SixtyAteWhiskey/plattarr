@@ -1,8 +1,6 @@
 import { uniq } from 'lodash';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
-import AppState from 'App/State/AppState';
-import { DownloadClientAppState } from 'App/State/SettingsAppState';
 import { Tag } from 'App/State/TagsAppState';
 import Form from 'Components/Form/Form';
 import FormGroup from 'Components/Form/FormGroup';
@@ -16,32 +14,27 @@ import ModalFooter from 'Components/Modal/ModalFooter';
 import ModalHeader from 'Components/Modal/ModalHeader';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
 import createTagsSelector from 'Store/Selectors/createTagsSelector';
-import DownloadClient from 'typings/DownloadClient';
 import translate from 'Utilities/String/translate';
-import styles from './TagsModalContent.css';
+import styles from './ManageTagsModalContent.css';
 
-interface TagsModalContentProps {
+interface ManageTagsModalContentProps {
+  items: { id: number; tags: number[] }[];
+  helpTextKey: string;
   ids: number[];
   onApplyTagsPress: (tags: number[], applyTags: string) => void;
   onModalClose: () => void;
 }
 
-function TagsModalContent(props: TagsModalContentProps) {
-  const { ids, onModalClose, onApplyTagsPress } = props;
-
-  const allDownloadClients: DownloadClientAppState = useSelector(
-    (state: AppState) => state.settings.downloadClients
-  );
+function ManageTagsModalContent(props: ManageTagsModalContentProps) {
+  const { ids, items, helpTextKey, onModalClose, onApplyTagsPress } = props;
   const tagList: Tag[] = useSelector(createTagsSelector());
 
   const [tags, setTags] = useState<number[]>([]);
   const [applyTags, setApplyTags] = useState('add');
 
-  const downloadClientsTags = useMemo(() => {
+  const existingTags = useMemo(() => {
     const tags = ids.reduce((acc: number[], id) => {
-      const s = allDownloadClients.items.find(
-        (s: DownloadClient) => s.id === id
-      );
+      const s = items.find((s) => s.id === id);
 
       if (s) {
         acc.push(...s.tags);
@@ -51,7 +44,7 @@ function TagsModalContent(props: TagsModalContentProps) {
     }, []);
 
     return uniq(tags);
-  }, [ids, allDownloadClients]);
+  }, [ids, items]);
 
   const onTagsChange = useCallback(
     ({ value }: { value: number[] }) => {
@@ -119,7 +112,7 @@ function TagsModalContent(props: TagsModalContentProps) {
               value={applyTags}
               values={applyTagsOptions}
               helpTexts={[
-                translate('ApplyTagsHelpTextHowToApplyDownloadClients'),
+                translate(helpTextKey),
                 translate('ApplyTagsHelpTextAdd'),
                 translate('ApplyTagsHelpTextRemove'),
                 translate('ApplyTagsHelpTextReplace'),
@@ -133,7 +126,7 @@ function TagsModalContent(props: TagsModalContentProps) {
             <FormLabel component="div">{translate('Result')}</FormLabel>
 
             <div className={styles.result}>
-              {downloadClientsTags.map((id) => {
+              {existingTags.map((id) => {
                 const tag = tagList.find((t) => t.id === id);
 
                 if (!tag) {
@@ -168,7 +161,7 @@ function TagsModalContent(props: TagsModalContentProps) {
                     return null;
                   }
 
-                  if (downloadClientsTags.indexOf(id) > -1) {
+                  if (existingTags.indexOf(id) > -1) {
                     return null;
                   }
 
@@ -199,4 +192,4 @@ function TagsModalContent(props: TagsModalContentProps) {
   );
 }
 
-export default TagsModalContent;
+export default ManageTagsModalContent;
