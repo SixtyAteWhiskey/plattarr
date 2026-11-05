@@ -48,6 +48,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
         private IQBittorrentProxy Proxy => _proxySelector.GetProxy(Settings);
         private Version ProxyApiVersion => _proxySelector.GetApiVersion(Settings);
         public bool CanSkipHygieneFiles => ProxyApiVersion.Major >= 2;
+        public bool CanUseHygieneAllowlist => true;
 
         public List<string> GetHygieneFileNames(string hash)
         {

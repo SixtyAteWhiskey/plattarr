@@ -74,7 +74,13 @@ namespace NzbDrone.Core.Hygiene
                     {
                         assessment = HygieneContentPolicy.Inspect(client.GetHygieneFileNames(item.DownloadId), patterns,
                             _config.HygieneContentListType, _config.HygieneContentDeleteIfAnyFileBlocked);
-                        if (assessment.Status == "skip-blocked-files" && !client.CanSkipHygieneFiles)
+                        if (_config.HygieneContentListType == "allowlist" && !client.CanUseHygieneAllowlist)
+                        {
+                            assessment.Status = "unsupported-allowlist";
+                            assessment.Explanation = "This client lists NZB file entries, which cannot verify unpacked content against an allowlist.";
+                            assessment.WouldRemoveDownload = false;
+                        }
+                        else if (assessment.Status == "skip-blocked-files" && !client.CanSkipHygieneFiles)
                         {
                             assessment.Status = "unsupported-file-skip";
                             assessment.Explanation = "The client can list files but cannot mark individual files as skipped.";
@@ -103,7 +109,8 @@ namespace NzbDrone.Core.Hygiene
         {
             if (assessment.Status is not ("remove-download" or "skip-blocked-files"))
             {
-                return "No content action is available for this item.";
+                return assessment.Status == "unsupported-allowlist" ? assessment.Explanation :
+                    "No content action is available for this item.";
             }
 
             if (!_config.HygieneActionsEnabled || !_config.HygieneContentActionsEnabled)

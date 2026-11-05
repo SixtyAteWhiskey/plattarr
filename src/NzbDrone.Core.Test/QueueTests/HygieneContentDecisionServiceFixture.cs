@@ -41,6 +41,7 @@ namespace NzbDrone.Core.Test.QueueTests
             _client.As<IHygieneFileClient>().Setup(x => x.GetHygieneFileNames("hash"))
                 .Returns(new List<string> { "Movie/movie.mkv", "Movie/setup.exe" });
             _client.As<IHygieneFileClient>().SetupGet(x => x.CanSkipHygieneFiles).Returns(true);
+            _client.As<IHygieneFileClient>().SetupGet(x => x.CanUseHygieneAllowlist).Returns(true);
             _clients.Setup(x => x.Get(4)).Returns(_client.Object);
             _service = new HygieneContentDecisionService(_config.Object, _clients.Object,
                 _sources.Object, _actions.Object, _history.Object);
@@ -63,6 +64,20 @@ namespace NzbDrone.Core.Test.QueueTests
 
             assessment.WouldAct.Should().BeFalse();
             assessment.ActionExplanation.Should().Contain("Private or unverified");
+        }
+
+        [Test]
+        public void client_without_unpackaged_file_names_cannot_apply_an_allowlist()
+        {
+            _config.SetupGet(x => x.HygieneContentListType).Returns("allowlist");
+            _client.As<IHygieneFileClient>().SetupGet(x => x.CanUseHygieneAllowlist).Returns(false);
+            _sources.Setup(x => x.Load(It.IsAny<string>(), It.IsAny<string>())).Returns("*.mkv");
+
+            var assessment = _service.Evaluate(new[] { Item(IndexerPrivacy.Public) }).Should().ContainSingle().Which;
+
+            assessment.Status.Should().Be("unsupported-allowlist");
+            assessment.WouldAct.Should().BeFalse();
+            assessment.WouldRemoveDownload.Should().BeFalse();
         }
 
         [Test]

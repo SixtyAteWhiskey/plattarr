@@ -78,7 +78,9 @@ For mixed SABnzbd jobs, Hygiene removes matched NZB file entries. Both read
 the file list again to verify the result. A changed list or unverified result
 leaves a failed journal entry for retry. Web API v1 can list files but cannot
 skip individual files through Hygiene. SABnzbd's NZB file entries can differ
-from the names of unpacked contents. Whole-download
+from the names of unpacked contents, so its allowlist mode is previewed as
+unsupported and cannot act. Its blocklist mode can act on the listed entries.
+Whole-download
 content removal uses the existing failed-download blocklist and replacement
 search path. Its source-file deletion switch is separate and off by default.
 Private or unverified torrents are held for content actions.
