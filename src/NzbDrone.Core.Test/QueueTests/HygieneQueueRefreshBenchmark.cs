@@ -209,7 +209,7 @@ namespace NzbDrone.Core.Test.QueueTests
                 }
             }
 
-            public List<HygieneAction> Recent(int limit = 100) => _inner.Recent(limit);
+            public List<HygieneAction> Recent(int limit = 100, int offset = 0) => _inner.Recent(limit, offset);
         }
 
         private static double Median(IEnumerable<double> values)

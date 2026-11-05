@@ -50,6 +50,20 @@ namespace NzbDrone.Core.Test.QueueTests
             Subject.FindRecent(5).Should().HaveCount(3);
         }
 
+        [Test]
+        public void recent_actions_can_page_past_the_newest_entries()
+        {
+            var oldest = Insert(7, "oldest", "client-failed");
+            var middle = Insert(7, "middle", "client-failed");
+            var newest = Insert(7, "newest", "client-failed");
+
+            Subject.FindRecent(2, 0).Select(action => action.Id)
+                .Should().Equal(newest.Id, middle.Id);
+            Subject.FindRecent(2, 2).Select(action => action.Id)
+                .Should().Equal(oldest.Id);
+            Subject.FindRecent(2, 3).Should().BeEmpty();
+        }
+
         private HygieneAction Insert(int clientId, string downloadId, string reasonCode, string status = "completed")
         {
             return Subject.Insert(new HygieneAction
