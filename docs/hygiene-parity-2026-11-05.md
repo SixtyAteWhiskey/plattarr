@@ -14,8 +14,8 @@ side-by-side run.
 | Failed-import reasons | Include/exclude plain case-insensitive substrings now filter queue messages before strikes and actions. Cleanuparr's force-import rescue and retry workflow remains open. |
 | Slow and stalled safety | Completion range and minimum/maximum torrent size now hold out-of-scope or unknown-size items. Slow rules can use elapsed hours as an alternate signal. qBittorrent alternate-speed mode holds slow strikes by default, including when the mode request fails. Per-rule privacy scopes and configurable progress-reset amounts remain open. |
 | Private torrents and category change | Hygiene still holds private or unverified torrents from automatic removal. Cleanuparr offers separate ignore/delete-private choices and a post-import category-change path. Those need an explicit journaled branch before enabling. |
-| File-list content policy | A read-only qBittorrent preview now evaluates inline blocklist or allowlist patterns and the mixed-content choice. It does not yet skip individual files or remove a blocked download; no content action enters the Hygiene journal. |
-| qBittorrent excluded names | Explicit sync compares and updates Web API v2's `excluded_file_names` without changing its enable switch. Source file/URL loading and automatic hourly sync remain open. |
+| File-list content policy | A read-only qBittorrent preview evaluates inline or file/URL blocklist or allowlist patterns and the mixed-content choice. It does not yet skip individual files or remove a blocked download; no content action enters the Hygiene journal. |
+| qBittorrent excluded names | Explicit or opt-in hourly sync loads an inline or file/URL list, compares and updates Web API v2's `excluded_file_names`, and leaves its enable switch unchanged. Missing or invalid source content stops sync before any client update. |
 
 The new features are opt-in. Migration 23 gives existing rules neutral values.
-The content preview starts disabled. Production was not changed or exercised.
+The content preview and hourly sync start disabled. Production was not changed or exercised.

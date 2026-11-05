@@ -12,9 +12,12 @@ interface ContentConfig {
   id: number;
   inspectionEnabled: boolean;
   patterns: string;
+  patternSource: string;
   listType: string;
   deleteIfAnyFileBlocked: boolean;
   excludedFileNames: string;
+  excludedFileNamesSource: string;
+  excludedFileNamesSyncEnabled: boolean;
 }
 
 interface ContentAssessment {
@@ -79,6 +82,15 @@ function HygieneContent() {
     []
   );
 
+  const handlePatternSourceChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) =>
+        current ? { ...current, patternSource: event.target.value } : current
+      );
+    },
+    []
+  );
+
   const handleMixedChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       setDraft((current) =>
@@ -95,6 +107,28 @@ function HygieneContent() {
       setDraft((current) =>
         current
           ? { ...current, excludedFileNames: event.target.value }
+          : current
+      );
+    },
+    []
+  );
+
+  const handleExcludedSourceChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) =>
+        current
+          ? { ...current, excludedFileNamesSource: event.target.value }
+          : current
+      );
+    },
+    []
+  );
+
+  const handleAutomaticSyncChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) =>
+        current
+          ? { ...current, excludedFileNamesSyncEnabled: event.target.checked }
           : current
       );
     },
@@ -198,6 +232,17 @@ function HygieneContent() {
                 onChange={handlePatternsChange}
               />
             </label>
+            <label className={styles.formField}>
+              <span>
+                Pattern file path or HTTP/HTTPS URL (overrides inline patterns)
+              </span>
+              <input
+                className={styles.formControl}
+                type="text"
+                value={draft.patternSource ?? ''}
+                onChange={handlePatternSourceChange}
+              />
+            </label>
             <label className={styles.checkboxField}>
               <input
                 className={styles.checkbox}
@@ -215,6 +260,28 @@ function HygieneContent() {
                 onChange={handleExcludedChange}
               />
             </label>
+            <label className={styles.formField}>
+              <span>
+                Exclusion file path or HTTP/HTTPS URL (overrides inline list)
+              </span>
+              <input
+                className={styles.formControl}
+                type="text"
+                value={draft.excludedFileNamesSource ?? ''}
+                onChange={handleExcludedSourceChange}
+              />
+            </label>
+            <label className={styles.checkboxField}>
+              <input
+                className={styles.checkbox}
+                type="checkbox"
+                checked={draft.excludedFileNamesSyncEnabled}
+                onChange={handleAutomaticSyncChange}
+              />
+              <span>
+                Sync exclusions to enabled qBittorrent clients every hour
+              </span>
+            </label>
             <Cluster gap="small">
               <Button type="submit" kind="primary" isDisabled={isSaving}>
                 Save content settings
@@ -223,8 +290,12 @@ function HygieneContent() {
                 type="button"
                 isDisabled={
                   isSaving ||
-                  !configQuery.data?.excludedFileNames ||
-                  draft.excludedFileNames !== configQuery.data.excludedFileNames
+                  (!configQuery.data?.excludedFileNames &&
+                    !configQuery.data?.excludedFileNamesSource) ||
+                  draft.excludedFileNames !==
+                    configQuery.data.excludedFileNames ||
+                  draft.excludedFileNamesSource !==
+                    configQuery.data.excludedFileNamesSource
                 }
                 onPress={handleSync}
               >
@@ -237,6 +308,7 @@ function HygieneContent() {
         <Text size="small" tone="secondary">
           Sync updates the excluded file names list on enabled qBittorrent Web
           API v2 clients. It leaves each client’s enable switch as configured.
+          Source URLs must be public, and lists are limited to 100 KB.
         </Text>
 
         {syncResults?.map((result) => (

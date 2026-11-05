@@ -10,6 +10,7 @@ using NzbDrone.Core.Configuration.Events;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.Housekeeping;
+using NzbDrone.Core.Hygiene;
 using NzbDrone.Core.IndexerHistory;
 using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.IndexerVersions;
@@ -107,6 +108,12 @@ namespace NzbDrone.Core.Jobs
                     {
                         Interval = 24 * 60,
                         TypeName = typeof(HousekeepingCommand).FullName
+                    },
+
+                    new ScheduledTask
+                    {
+                        Interval = 60,
+                        TypeName = typeof(HygieneBlacklistSyncCommand).FullName
                     },
 
                     new ScheduledTask

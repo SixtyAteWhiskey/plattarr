@@ -207,6 +207,12 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("HygieneContentPatterns", value); }
         }
 
+        public string HygieneContentPatternSource
+        {
+            get { return GetValue("HygieneContentPatternSource", ""); }
+            set { SetValue("HygieneContentPatternSource", value); }
+        }
+
         public string HygieneContentListType
         {
             get { return GetValue("HygieneContentListType", "blocklist"); }
@@ -223,6 +229,18 @@ namespace NzbDrone.Core.Configuration
         {
             get { return GetValue("HygieneExcludedFileNames", ""); }
             set { SetValue("HygieneExcludedFileNames", value); }
+        }
+
+        public string HygieneExcludedFileNamesSource
+        {
+            get { return GetValue("HygieneExcludedFileNamesSource", ""); }
+            set { SetValue("HygieneExcludedFileNamesSource", value); }
+        }
+
+        public bool HygieneExcludedFileNamesSyncEnabled
+        {
+            get { return GetValueBoolean("HygieneExcludedFileNamesSyncEnabled", false); }
+            set { SetValue("HygieneExcludedFileNamesSyncEnabled", value); }
         }
 
         public bool PreferIndexerFlags
