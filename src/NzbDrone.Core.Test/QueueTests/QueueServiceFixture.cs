@@ -144,6 +144,24 @@ namespace NzbDrone.Core.Test.QueueTests
         }
 
         [Test]
+        public void import_blocked_cleanup_waits_for_processed_rescue_pass()
+        {
+            var processed = new List<TrackedDownloadState?>();
+            Mocker.GetMock<IHygieneQueueActionService>()
+                .Setup(x => x.Process(It.IsAny<IEnumerable<NzbDrone.Core.Queue.Queue>>()))
+                .Callback<IEnumerable<NzbDrone.Core.Queue.Queue>>(items =>
+                    processed.AddRange(items.Select(x => x.TrackedDownloadState)));
+            _trackedDownloads[0].State = TrackedDownloadState.ImportBlocked;
+
+            Subject.Handle(new TrackedDownloadRefreshedEvent(_trackedDownloads));
+            processed.Should().BeEmpty();
+            Subject.Handle(new TrackedDownloadRefreshedEvent(_trackedDownloads, processingComplete: true));
+
+            processed.Should().Equal(TrackedDownloadState.ImportBlocked);
+            Mocker.GetMock<IHygieneImportRescueService>().Verify(x => x.Process(It.IsAny<IReadOnlyCollection<NzbDrone.Core.Queue.Queue>>()), Times.Once);
+        }
+
+        [Test]
         public void blocked_strikes_survive_intermediate_pending_and_reset_after_processed_recovery()
         {
             var tracked = _trackedDownloads[0];
