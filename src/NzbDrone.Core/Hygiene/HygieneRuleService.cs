@@ -52,6 +52,7 @@ namespace NzbDrone.Core.Hygiene
             if (rule != null)
             {
                 rule.FailedImportPatternMode ??= "all";
+                rule.PrivateTorrentAction ??= "hold";
             }
 
             if (rule == null || !SupportedReasons.Contains(rule.ReasonCode) ||
@@ -70,7 +71,8 @@ namespace NzbDrone.Core.Hygiene
                 (rule.FailedImportPatternMode is not (null or "all" or "include" or "exclude")) ||
                 (rule.ReasonCode != "import-blocked" &&
                  (rule.FailedImportPatternMode is not (null or "all") || !string.IsNullOrWhiteSpace(rule.FailedImportPatterns))) ||
-                (rule.FailedImportPatternMode is "include" or "exclude" && string.IsNullOrWhiteSpace(rule.FailedImportPatterns)))
+                (rule.FailedImportPatternMode is "include" or "exclude" && string.IsNullOrWhiteSpace(rule.FailedImportPatterns)) ||
+                rule.PrivateTorrentAction is not ("hold" or "remove" or "category"))
             {
                 throw new ArgumentException("Invalid Hygiene rule scope, reason, or strike threshold.");
             }

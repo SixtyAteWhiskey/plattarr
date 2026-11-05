@@ -11,6 +11,8 @@ import styles from './Hygiene.css';
 interface ContentConfig {
   id: number;
   inspectionEnabled: boolean;
+  actionsEnabled: boolean;
+  deleteSourceFiles: boolean;
   patterns: string;
   patternSource: string;
   listType: string;
@@ -27,6 +29,8 @@ interface ContentAssessment {
   blockedFiles: string[];
   allowedFiles: string[];
   wouldRemoveDownload: boolean;
+  wouldAct: boolean;
+  actionExplanation: string;
   explanation: string;
 }
 
@@ -57,7 +61,31 @@ function HygieneContent() {
     (event: React.ChangeEvent<HTMLInputElement>) => {
       setDraft((current) =>
         current
-          ? { ...current, inspectionEnabled: event.target.checked }
+          ? {
+              ...current,
+              inspectionEnabled: event.target.checked,
+              actionsEnabled: event.target.checked && current.actionsEnabled,
+            }
+          : current
+      );
+    },
+    []
+  );
+
+  const handleActionsChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) =>
+        current ? { ...current, actionsEnabled: event.target.checked } : current
+      );
+    },
+    []
+  );
+
+  const handleDeleteSourceChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) =>
+        current
+          ? { ...current, deleteSourceFiles: event.target.checked }
           : current
       );
     },
@@ -194,8 +222,8 @@ function HygieneContent() {
           Content inspection
         </Heading>
         <Text tone="secondary">
-          Inspect qBittorrent file lists against file-name patterns. The result
-          is a preview; it does not remove downloads or change file priorities.
+          Inspect qBittorrent file lists against file-name patterns. Content
+          actions require both the global Hygiene gate and a separate opt-in.
         </Text>
 
         {configQuery.isError ? (
@@ -212,6 +240,27 @@ function HygieneContent() {
                 onChange={handleEnabledChange}
               />
               <span>Enable read-only content inspection</span>
+            </label>
+            <label className={styles.checkboxField}>
+              <input
+                className={styles.checkbox}
+                type="checkbox"
+                checked={draft.actionsEnabled}
+                disabled={!draft.inspectionEnabled}
+                onChange={handleActionsChange}
+              />
+              <span>Allow automatic content actions</span>
+            </label>
+            <label className={styles.checkboxField}>
+              <input
+                className={styles.checkbox}
+                type="checkbox"
+                checked={draft.deleteSourceFiles}
+                onChange={handleDeleteSourceChange}
+              />
+              <span>
+                Delete source files when a blocked download is removed
+              </span>
             </label>
             <label className={styles.formField}>
               <span>List type</span>
@@ -250,7 +299,7 @@ function HygieneContent() {
                 checked={draft.deleteIfAnyFileBlocked}
                 onChange={handleMixedChange}
               />
-              <span>Preview whole-download removal if any file is blocked</span>
+              <span>Remove the whole download if any file is blocked</span>
             </label>
             <label className={styles.formField}>
               <span>qBittorrent excluded file names, one per line</span>
@@ -329,6 +378,9 @@ function HygieneContent() {
               <Text size="small" tone="secondary">
                 {item.blockedFiles.length} blocked, {item.allowedFiles.length}{' '}
                 allowed · {item.status}
+              </Text>
+              <Text size="small" tone="secondary">
+                {item.actionExplanation}
               </Text>
               {item.blockedFiles.length > 0 ? (
                 <Text size="small">

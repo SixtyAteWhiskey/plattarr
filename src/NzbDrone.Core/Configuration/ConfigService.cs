@@ -201,6 +201,18 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("HygieneContentInspectionEnabled", value); }
         }
 
+        public bool HygieneContentActionsEnabled
+        {
+            get { return GetValueBoolean("HygieneContentActionsEnabled", false); }
+            set { SetValue("HygieneContentActionsEnabled", value); }
+        }
+
+        public bool HygieneContentDeleteSourceFiles
+        {
+            get { return GetValueBoolean("HygieneContentDeleteSourceFiles", false); }
+            set { SetValue("HygieneContentDeleteSourceFiles", value); }
+        }
+
         public string HygieneContentPatterns
         {
             get { return GetValue("HygieneContentPatterns", ""); }

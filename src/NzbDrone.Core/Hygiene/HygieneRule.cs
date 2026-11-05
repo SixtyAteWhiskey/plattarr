@@ -30,5 +30,7 @@ namespace NzbDrone.Core.Hygiene
         public long MaximumTorrentSizeBytes { get; set; }
         public int MaximumDownloadHours { get; set; }
         public bool IgnoreWhileAlternateSpeedActive { get; set; } = true;
+        public string PrivateTorrentAction { get; set; } = "hold";
+        public bool ChangeCategoryInsteadOfRemoval { get; set; }
     }
 }

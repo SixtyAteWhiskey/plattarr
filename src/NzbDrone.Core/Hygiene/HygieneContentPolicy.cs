@@ -13,6 +13,8 @@ namespace NzbDrone.Core.Hygiene
         public List<string> BlockedFiles { get; set; } = new();
         public List<string> AllowedFiles { get; set; } = new();
         public bool WouldRemoveDownload { get; set; }
+        public bool WouldAct { get; set; }
+        public string ActionExplanation { get; set; }
         public string Explanation { get; set; }
     }
 

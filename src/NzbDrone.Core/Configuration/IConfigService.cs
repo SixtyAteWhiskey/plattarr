@@ -24,6 +24,8 @@ namespace NzbDrone.Core.Configuration
         // Hygiene's action executor is globally disabled until an administrator opts in.
         bool HygieneActionsEnabled { get; set; }
         bool HygieneContentInspectionEnabled { get; set; }
+        bool HygieneContentActionsEnabled { get; set; }
+        bool HygieneContentDeleteSourceFiles { get; set; }
         string HygieneContentPatterns { get; set; }
         string HygieneContentPatternSource { get; set; }
         string HygieneContentListType { get; set; }

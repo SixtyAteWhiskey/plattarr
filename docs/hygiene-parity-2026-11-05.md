@@ -13,9 +13,13 @@ side-by-side run.
 | Ignored downloads | Rule-scoped exact ID/hash, category, tag, tracker domain, and client-name values now suppress strikes and actions. qBittorrent exposes tag and tracker data; other clients provide only fields they already report. Cleanuparr uses a global ignore list across its features. |
 | Failed-import reasons | Include/exclude plain case-insensitive substrings now filter queue messages before strikes and actions. Cleanuparr's force-import rescue and retry workflow remains open. |
 | Slow and stalled safety | Completion range and minimum/maximum torrent size now hold out-of-scope or unknown-size items. Slow rules can use elapsed hours as an alternate signal. qBittorrent alternate-speed mode holds slow strikes by default, including when the mode request fails. Per-rule privacy scopes and configurable progress-reset amounts remain open. |
-| Private torrents and category change | Hygiene still holds private or unverified torrents from automatic removal. Cleanuparr offers separate ignore/delete-private choices and a post-import category-change path. Those need an explicit journaled branch before enabling. |
-| File-list content policy | A read-only qBittorrent preview evaluates inline or file/URL blocklist or allowlist patterns and the mixed-content choice. It does not yet skip individual files or remove a blocked download; no content action enters the Hygiene journal. |
+| Private torrents and category change | Rules hold private torrents by default and can explicitly select removal or a qBittorrent post-import category change. Unverified releases always stay held. Public torrents can also select category change. The client category is checked after the request; the journal records this branch without blocklisting or searching. This differs from Cleanuparr's per-feature choices and supports only qBittorrent's configured category. |
+| File-list content policy | qBittorrent file lists feed both preview and executor. A separate action switch starts off, also requires the global gate, and journals mixed-file skipping or whole-download removal. Web API v2 marks blocked files priority 0 and verifies the resulting file list. Whole-download removal uses the existing failed-download blocklist and replacement-search path. Private or unverified torrents are held. Web API v1 lacks file skipping, and SABnzbd has no supported per-job file list in this checkout. |
 | qBittorrent excluded names | Explicit or opt-in hourly sync loads an inline or file/URL list, compares and updates Web API v2's `excluded_file_names`, and leaves its enable switch unchanged. Missing or invalid source content stops sync before any client update. |
 
-The new features are opt-in. Migration 23 gives existing rules neutral values.
-The content preview and hourly sync start disabled. Production was not changed or exercised.
+The new features are opt-in. Migrations 23–25 give existing rules neutral values
+and keep old journal entries outside the new content and category branches.
+Content inspection, content actions, and hourly sync start disabled. Force-import
+rescue remains open: the checkout has manual-import commands, but Hygiene has
+no guarded retry and import-history confirmation path yet. Production was not
+changed or exercised.

@@ -143,6 +143,16 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             return response;
         }
 
+        public void SetTorrentFilePriority(string hash, IReadOnlyCollection<int> fileIds, int priority, QBittorrentSettings settings)
+        {
+            var request = BuildRequest(settings).Resource("/api/v2/torrents/filePrio")
+                                                .Post()
+                                                .AddFormParameter("hash", hash)
+                                                .AddFormParameter("id", string.Join("|", fileIds))
+                                                .AddFormParameter("priority", priority.ToString());
+            ProcessRequest(request, settings);
+        }
+
         public void SetExcludedFileNames(string fileNames, QBittorrentSettings settings)
         {
             var preferences = JsonConvert.SerializeObject(new { excluded_file_names = fileNames });

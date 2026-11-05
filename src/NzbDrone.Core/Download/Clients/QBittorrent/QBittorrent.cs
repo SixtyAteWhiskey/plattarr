@@ -17,7 +17,7 @@ using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Download.Clients.QBittorrent
 {
-    public class QBittorrent : TorrentClientBase<QBittorrentSettings>, IReportDownloadRemovalEvidence
+    public class QBittorrent : TorrentClientBase<QBittorrentSettings>, IReportDownloadRemovalEvidence, IHygieneFileClient, IHygieneCategoryClient
     {
         private readonly IQBittorrentProxySelector _proxySelector;
         private readonly ICached<SeedingTimeCacheEntry> _seedingTimeCache;
@@ -47,10 +47,73 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
         private IQBittorrentProxy Proxy => _proxySelector.GetProxy(Settings);
         private Version ProxyApiVersion => _proxySelector.GetApiVersion(Settings);
+        public bool CanSkipHygieneFiles => ProxyApiVersion.Major >= 2;
 
         public List<string> GetHygieneFileNames(string hash)
         {
             return Proxy.GetTorrentFiles(hash.ToLowerInvariant(), Settings).Select(file => file.Name).ToList();
+        }
+
+        public string SkipHygieneFiles(string hash, IReadOnlyCollection<string> blockedFiles,
+                                       IReadOnlyCollection<string> allowedFiles)
+        {
+            if (ProxyApiVersion.Major < 2 || string.IsNullOrWhiteSpace(hash) ||
+                blockedFiles == null || blockedFiles.Count == 0 || allowedFiles == null || allowedFiles.Count == 0)
+            {
+                return "unsupported";
+            }
+
+            var files = Proxy.GetTorrentFiles(hash.ToLowerInvariant(), Settings);
+            var requested = new HashSet<string>(blockedFiles, StringComparer.Ordinal);
+            var expected = new HashSet<string>(blockedFiles.Concat(allowedFiles), StringComparer.Ordinal);
+            if (files == null || files.Count == 0 ||
+                requested.Count != blockedFiles.Count || expected.Count != files.Count ||
+                files.Any(file => !expected.Contains(file.Name)) ||
+                expected.Any(name => files.Count(file => file.Name == name) != 1))
+            {
+                return "files-changed";
+            }
+
+            var ids = files.Select((file, position) => new { file, position })
+                .Where(entry => requested.Contains(entry.file.Name) && entry.file.Priority != 0)
+                .Select(entry => entry.file.Index ?? entry.position)
+                .ToList();
+            if (ids.Count > 0)
+            {
+                Proxy.SetTorrentFilePriority(hash.ToLowerInvariant(), ids, 0, Settings);
+            }
+
+            var after = Proxy.GetTorrentFiles(hash.ToLowerInvariant(), Settings);
+            return after != null && requested.All(name => after.Count(file => file.Name == name && file.Priority == 0) == 1)
+                ? "observed-skipped"
+                : "unverified";
+        }
+
+        public string ChangeToPostImportCategory(string hash, MediaKind kind)
+        {
+            var module = Settings.For(kind);
+            if (string.IsNullOrWhiteSpace(module.ImportedCategory) || module.ImportedCategory == module.Category)
+            {
+                return "unconfigured";
+            }
+
+            var torrent = Proxy.GetTorrents(null, Settings)
+                .FirstOrDefault(item => string.Equals(item.Hash, hash, StringComparison.OrdinalIgnoreCase));
+            if (torrent == null)
+            {
+                return "not-found";
+            }
+
+            if (torrent.Label != module.ImportedCategory)
+            {
+                Proxy.SetTorrentLabel(hash.ToLowerInvariant(), module.ImportedCategory, Settings);
+            }
+
+            return Proxy.GetTorrents(null, Settings)
+                .Any(item => string.Equals(item.Hash, hash, StringComparison.OrdinalIgnoreCase) &&
+                             item.Label == module.ImportedCategory)
+                ? "observed-category"
+                : "unverified";
         }
 
         // Change only the list; the owner's native enable switch is untouched.

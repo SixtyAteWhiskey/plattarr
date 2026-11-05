@@ -1,12 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download;
-using NzbDrone.Core.Download.Clients.QBittorrent;
 using NzbDrone.Core.Hygiene;
 using NzbDrone.Core.Queue;
 using Radarr.Http;
@@ -17,6 +15,8 @@ namespace Radarr.Api.V3.Hygiene
     public class HygieneContentConfigResource : RestResource
     {
         public bool InspectionEnabled { get; set; }
+        public bool ActionsEnabled { get; set; }
+        public bool DeleteSourceFiles { get; set; }
         public string Patterns { get; set; }
         public string PatternSource { get; set; }
         public string ListType { get; set; }
@@ -34,18 +34,21 @@ namespace Radarr.Api.V3.Hygiene
         private readonly IProvideDownloadClient _clients;
         private readonly IHygieneListSource _sources;
         private readonly IHygieneBlacklistSyncService _sync;
+        private readonly IHygieneContentDecisionService _decisions;
 
         public HygieneContentController(IConfigService config,
                                         IQueueService queue,
                                         IProvideDownloadClient clients,
                                         IHygieneListSource sources,
-                                        IHygieneBlacklistSyncService sync)
+                                        IHygieneBlacklistSyncService sync,
+                                        IHygieneContentDecisionService decisions)
         {
             _config = config;
             _queue = queue;
             _clients = clients;
             _sources = sources;
             _sync = sync;
+            _decisions = decisions;
         }
 
         [HttpGet("config")]
@@ -55,6 +58,8 @@ namespace Radarr.Api.V3.Hygiene
             {
                 Id = 1,
                 InspectionEnabled = _config.HygieneContentInspectionEnabled,
+                ActionsEnabled = _config.HygieneContentActionsEnabled,
+                DeleteSourceFiles = _config.HygieneContentDeleteSourceFiles,
                 Patterns = _config.HygieneContentPatterns,
                 PatternSource = _config.HygieneContentPatternSource,
                 ListType = _config.HygieneContentListType,
@@ -69,6 +74,7 @@ namespace Radarr.Api.V3.Hygiene
         public Ok<HygieneContentConfigResource> UpdateConfig(int id, [FromBody] HygieneContentConfigResource resource)
         {
             if (id != 1 || resource == null || resource.Patterns?.Length > 100000 ||
+                (resource.ActionsEnabled && !resource.InspectionEnabled) ||
                 resource.ExcludedFileNames?.Length > 100000 ||
                 (resource.InspectionEnabled && string.IsNullOrWhiteSpace(resource.Patterns) && string.IsNullOrWhiteSpace(resource.PatternSource)) ||
                 (resource.ExcludedFileNamesSyncEnabled && string.IsNullOrWhiteSpace(resource.ExcludedFileNames) &&
@@ -94,6 +100,8 @@ namespace Radarr.Api.V3.Hygiene
             _config.HygieneContentPatternSource = resource.PatternSource ?? string.Empty;
             _config.HygieneContentListType = resource.ListType;
             _config.HygieneContentDeleteIfAnyFileBlocked = resource.DeleteIfAnyFileBlocked;
+            _config.HygieneContentActionsEnabled = resource.ActionsEnabled;
+            _config.HygieneContentDeleteSourceFiles = resource.DeleteSourceFiles;
             _config.HygieneExcludedFileNames = resource.ExcludedFileNames ?? string.Empty;
             _config.HygieneExcludedFileNamesSource = resource.ExcludedFileNamesSource ?? string.Empty;
             _config.HygieneExcludedFileNamesSyncEnabled = resource.ExcludedFileNamesSyncEnabled;
@@ -127,63 +135,12 @@ namespace Radarr.Api.V3.Hygiene
         [HttpGet("preview")]
         public Ok<List<HygieneContentAssessment>> GetPreview()
         {
-            var results = new List<HygieneContentAssessment>();
             if (!_config.HygieneContentInspectionEnabled)
             {
-                return TypedResults.Ok(results);
+                return TypedResults.Ok(new List<HygieneContentAssessment>());
             }
 
-            string patterns;
-            try
-            {
-                patterns = _sources.Load(_config.HygieneContentPatterns, _config.HygieneContentPatternSource);
-                HygieneContentPolicy.Validate(patterns, _config.HygieneContentListType, true);
-            }
-            catch (Exception)
-            {
-                return TypedResults.Ok(_queue.GetQueue()
-                    .Where(x => x.DownloadClientId > 0 && !string.IsNullOrWhiteSpace(x.DownloadId))
-                    .Select(x => new HygieneContentAssessment
-                    {
-                        QueueId = x.Id,
-                        Title = x.Title,
-                        Status = "patterns-unavailable",
-                        Explanation = "The content pattern list could not be loaded or is invalid."
-                    }).ToList());
-            }
-
-            foreach (var item in _queue.GetQueue().Where(x => x.DownloadClientId > 0 && !string.IsNullOrWhiteSpace(x.DownloadId)))
-            {
-                var assessment = new HygieneContentAssessment { QueueId = item.Id, Title = item.Title };
-
-                try
-                {
-                    if (_clients.Get(item.DownloadClientId) is not QBittorrent client)
-                    {
-                        assessment.Status = "unsupported-client";
-                        assessment.Explanation = "File-list inspection is available for qBittorrent downloads.";
-                    }
-                    else
-                    {
-                        assessment = HygieneContentPolicy.Inspect(
-                            client.GetHygieneFileNames(item.DownloadId),
-                            patterns,
-                            _config.HygieneContentListType,
-                            _config.HygieneContentDeleteIfAnyFileBlocked);
-                        assessment.QueueId = item.Id;
-                        assessment.Title = item.Title;
-                    }
-                }
-                catch (Exception)
-                {
-                    assessment.Status = "inspection-unavailable";
-                    assessment.Explanation = "The download client file list could not be read.";
-                }
-
-                results.Add(assessment);
-            }
-
-            return TypedResults.Ok(results);
+            return TypedResults.Ok(_decisions.Evaluate(_queue.GetQueue()));
         }
     }
 }

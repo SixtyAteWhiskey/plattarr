@@ -15,6 +15,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
         bool IsTorrentLoaded(string hash, QBittorrentSettings settings);
         QBittorrentTorrentProperties GetTorrentProperties(string hash, QBittorrentSettings settings);
         List<QBittorrentTorrentFile> GetTorrentFiles(string hash, QBittorrentSettings settings);
+        void SetTorrentFilePriority(string hash, IReadOnlyCollection<int> fileIds, int priority, QBittorrentSettings settings);
         bool IsAlternativeSpeedActive(QBittorrentSettings settings);
         void SetExcludedFileNames(string fileNames, QBittorrentSettings settings);
 

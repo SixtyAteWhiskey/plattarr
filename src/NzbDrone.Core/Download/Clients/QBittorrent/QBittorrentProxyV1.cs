@@ -130,6 +130,11 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             return response;
         }
 
+        public void SetTorrentFilePriority(string hash, IReadOnlyCollection<int> fileIds, int priority, QBittorrentSettings settings)
+        {
+            throw new NotSupportedException("Hygiene file skipping requires qBittorrent Web API v2.");
+        }
+
         public void SetExcludedFileNames(string fileNames, QBittorrentSettings settings)
         {
             throw new NotSupportedException("Excluded file names require qBittorrent Web API v2.");
