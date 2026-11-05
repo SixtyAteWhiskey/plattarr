@@ -123,7 +123,11 @@ namespace NzbDrone.Core.Queue
                 }
 
                 _hygieneQueueStrikeService.Observe(observed);
-                _hygieneQueueActionService.Process(_queue);
+                // Let the processed snapshot run rescue before cleanup can act on
+                // an import block carried over from an earlier refresh.
+                var actionable = message.ProcessingComplete ? _queue :
+                    _queue.Where(item => item.TrackedDownloadState != TrackedDownloadState.ImportBlocked).ToList();
+                _hygieneQueueActionService.Process(actionable);
             }
             catch (Exception ex)
             {
