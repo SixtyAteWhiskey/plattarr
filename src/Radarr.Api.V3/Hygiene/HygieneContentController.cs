@@ -18,15 +18,12 @@ namespace Radarr.Api.V3.Hygiene
     {
         public bool InspectionEnabled { get; set; }
         public string Patterns { get; set; }
+        public string PatternSource { get; set; }
         public string ListType { get; set; }
         public bool DeleteIfAnyFileBlocked { get; set; }
         public string ExcludedFileNames { get; set; }
-    }
-
-    public class HygieneBlacklistSyncResult
-    {
-        public int DownloadClientId { get; set; }
-        public string Status { get; set; }
+        public string ExcludedFileNamesSource { get; set; }
+        public bool ExcludedFileNamesSyncEnabled { get; set; }
     }
 
     [V3ApiController("hygiene/content")]
@@ -35,12 +32,20 @@ namespace Radarr.Api.V3.Hygiene
         private readonly IConfigService _config;
         private readonly IQueueService _queue;
         private readonly IProvideDownloadClient _clients;
+        private readonly IHygieneListSource _sources;
+        private readonly IHygieneBlacklistSyncService _sync;
 
-        public HygieneContentController(IConfigService config, IQueueService queue, IProvideDownloadClient clients)
+        public HygieneContentController(IConfigService config,
+                                        IQueueService queue,
+                                        IProvideDownloadClient clients,
+                                        IHygieneListSource sources,
+                                        IHygieneBlacklistSyncService sync)
         {
             _config = config;
             _queue = queue;
             _clients = clients;
+            _sources = sources;
+            _sync = sync;
         }
 
         [HttpGet("config")]
@@ -51,9 +56,12 @@ namespace Radarr.Api.V3.Hygiene
                 Id = 1,
                 InspectionEnabled = _config.HygieneContentInspectionEnabled,
                 Patterns = _config.HygieneContentPatterns,
+                PatternSource = _config.HygieneContentPatternSource,
                 ListType = _config.HygieneContentListType,
                 DeleteIfAnyFileBlocked = _config.HygieneContentDeleteIfAnyFileBlocked,
-                ExcludedFileNames = _config.HygieneExcludedFileNames
+                ExcludedFileNames = _config.HygieneExcludedFileNames,
+                ExcludedFileNamesSource = _config.HygieneExcludedFileNamesSource,
+                ExcludedFileNamesSyncEnabled = _config.HygieneExcludedFileNamesSyncEnabled
             });
         }
 
@@ -62,14 +70,20 @@ namespace Radarr.Api.V3.Hygiene
         {
             if (id != 1 || resource == null || resource.Patterns?.Length > 100000 ||
                 resource.ExcludedFileNames?.Length > 100000 ||
-                (resource.InspectionEnabled && string.IsNullOrWhiteSpace(resource.Patterns)))
+                (resource.InspectionEnabled && string.IsNullOrWhiteSpace(resource.Patterns) && string.IsNullOrWhiteSpace(resource.PatternSource)) ||
+                (resource.ExcludedFileNamesSyncEnabled && string.IsNullOrWhiteSpace(resource.ExcludedFileNames) &&
+                 string.IsNullOrWhiteSpace(resource.ExcludedFileNamesSource)))
             {
                 throw new BadRequestException("A valid content inspection configuration is required.");
             }
 
             try
             {
-                HygieneContentPolicy.Validate(resource.Patterns, resource.ListType, resource.InspectionEnabled);
+                HygieneListSource.Validate(resource.PatternSource);
+                HygieneListSource.Validate(resource.ExcludedFileNamesSource);
+                HygieneContentPolicy.Validate(resource.Patterns,
+                                              resource.ListType,
+                                              resource.InspectionEnabled && string.IsNullOrWhiteSpace(resource.PatternSource));
             }
             catch (ArgumentException)
             {
@@ -77,9 +91,12 @@ namespace Radarr.Api.V3.Hygiene
             }
 
             _config.HygieneContentPatterns = resource.Patterns ?? string.Empty;
+            _config.HygieneContentPatternSource = resource.PatternSource ?? string.Empty;
             _config.HygieneContentListType = resource.ListType;
             _config.HygieneContentDeleteIfAnyFileBlocked = resource.DeleteIfAnyFileBlocked;
             _config.HygieneExcludedFileNames = resource.ExcludedFileNames ?? string.Empty;
+            _config.HygieneExcludedFileNamesSource = resource.ExcludedFileNamesSource ?? string.Empty;
+            _config.HygieneExcludedFileNamesSyncEnabled = resource.ExcludedFileNamesSyncEnabled;
             _config.HygieneContentInspectionEnabled = resource.InspectionEnabled;
             return GetConfig();
         }
@@ -87,29 +104,24 @@ namespace Radarr.Api.V3.Hygiene
         [HttpPost("sync")]
         public Ok<List<HygieneBlacklistSyncResult>> SyncExcludedFileNames()
         {
-            var fileNames = _config.HygieneExcludedFileNames;
-            if (string.IsNullOrWhiteSpace(fileNames))
+            if (string.IsNullOrWhiteSpace(_config.HygieneExcludedFileNames) &&
+                string.IsNullOrWhiteSpace(_config.HygieneExcludedFileNamesSource))
             {
                 throw new BadRequestException("Excluded file names must be configured before synchronization.");
             }
 
-            var results = new List<HygieneBlacklistSyncResult>();
-            foreach (var client in _clients.GetDownloadClients().OfType<QBittorrent>())
+            try
             {
-                var result = new HygieneBlacklistSyncResult { DownloadClientId = client.Definition.Id };
-                try
-                {
-                    result.Status = client.SyncExcludedFileNames(fileNames);
-                }
-                catch (Exception)
-                {
-                    result.Status = "client-unavailable";
-                }
-
-                results.Add(result);
+                return TypedResults.Ok(_sync.Sync());
             }
-
-            return TypedResults.Ok(results);
+            catch (ArgumentException)
+            {
+                throw new BadRequestException("Excluded file names must be configured before synchronization.");
+            }
+            catch (Exception)
+            {
+                throw new BadRequestException("The exclusion list could not be loaded or synchronized.");
+            }
         }
 
         [HttpGet("preview")]
@@ -119,6 +131,25 @@ namespace Radarr.Api.V3.Hygiene
             if (!_config.HygieneContentInspectionEnabled)
             {
                 return TypedResults.Ok(results);
+            }
+
+            string patterns;
+            try
+            {
+                patterns = _sources.Load(_config.HygieneContentPatterns, _config.HygieneContentPatternSource);
+                HygieneContentPolicy.Validate(patterns, _config.HygieneContentListType, true);
+            }
+            catch (Exception)
+            {
+                return TypedResults.Ok(_queue.GetQueue()
+                    .Where(x => x.DownloadClientId > 0 && !string.IsNullOrWhiteSpace(x.DownloadId))
+                    .Select(x => new HygieneContentAssessment
+                    {
+                        QueueId = x.Id,
+                        Title = x.Title,
+                        Status = "patterns-unavailable",
+                        Explanation = "The content pattern list could not be loaded or is invalid."
+                    }).ToList());
             }
 
             foreach (var item in _queue.GetQueue().Where(x => x.DownloadClientId > 0 && !string.IsNullOrWhiteSpace(x.DownloadId)))
@@ -136,7 +167,7 @@ namespace Radarr.Api.V3.Hygiene
                     {
                         assessment = HygieneContentPolicy.Inspect(
                             client.GetHygieneFileNames(item.DownloadId),
-                            _config.HygieneContentPatterns,
+                            patterns,
                             _config.HygieneContentListType,
                             _config.HygieneContentDeleteIfAnyFileBlocked);
                         assessment.QueueId = item.Id;

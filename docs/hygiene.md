@@ -58,8 +58,12 @@ qBittorrent's alternate speed mode is active; an unreadable mode is held safe.
 
 ## Content inspection and qBittorrent exclusions
 
-The Content inspection section saves inline file-name patterns and shows a
-read-only qBittorrent file-list preview. Blocklist mode blocks matching files;
+The Content inspection section saves inline file-name patterns or an absolute
+file path or HTTP/HTTPS URL and shows a read-only qBittorrent file-list preview.
+When a source is set, its contents override the inline list. Source URLs must
+resolve to public destinations; source files and responses are limited to
+100 KB. An unavailable, empty, oversized, or invalid source holds every
+preview item as `patterns-unavailable`. Blocklist mode blocks matching files;
 allowlist mode blocks everything that does not match. Patterns support exact
 names, `*` wildcards, and `regex:` entries. The preview reports blocked and
 allowed files and applies the mixed-content choice: remove the whole download
@@ -68,13 +72,15 @@ it identifies only the files that would be skipped. Missing file lists and
 unsupported clients never produce a removal decision. Inspection is off by
 default and does not change a download or file priority.
 
-An administrator can save a separate qBittorrent excluded-file list and press
-**Sync exclusions now**. This uses Web API v2, compares the live setting, and
+An administrator can save a separate qBittorrent excluded-file list, select a
+file or URL source, and press **Sync exclusions now**. A source overrides the
+inline list. If loading fails, no client is updated. This uses Web API v2,
+compares the live setting, and
 requests an update to only `excluded_file_names` when needed. A successful
 request does not by itself verify that qBittorrent persisted the new value;
-the next sync compares it again. It never enables
-`excluded_file_names_enabled`. The saved list is inline text; URL/file loading
-and hourly synchronization are not implemented. qBittorrent itself must have
+the next sync compares it again. Optional hourly sync starts off and uses the
+same source and comparison path as manual sync. It never enables
+`excluded_file_names_enabled`. qBittorrent itself must have
 the excluded-file setting enabled for the list to affect downloads.
 
 Each queue refresh observes active downloads. A strike starts at one for a

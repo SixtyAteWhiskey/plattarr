@@ -25,9 +25,12 @@ namespace NzbDrone.Core.Configuration
         bool HygieneActionsEnabled { get; set; }
         bool HygieneContentInspectionEnabled { get; set; }
         string HygieneContentPatterns { get; set; }
+        string HygieneContentPatternSource { get; set; }
         string HygieneContentListType { get; set; }
         bool HygieneContentDeleteIfAnyFileBlocked { get; set; }
         string HygieneExcludedFileNames { get; set; }
+        string HygieneExcludedFileNamesSource { get; set; }
+        bool HygieneExcludedFileNamesSyncEnabled { get; set; }
 
         bool AutoRedownloadFailed { get; set; }
         bool AutoRedownloadFailedFromInteractiveSearch { get; set; }
