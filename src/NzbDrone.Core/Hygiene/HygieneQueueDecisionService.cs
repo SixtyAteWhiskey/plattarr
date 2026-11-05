@@ -92,7 +92,9 @@ namespace NzbDrone.Core.Hygiene
                 assessment.SearchForReplacement = rule?.SearchForReplacement == true;
                 assessment.ActionMode = ActionMode(item, rule);
                 assessment.IgnoredDownloads = rule?.IgnoredDownloads;
-                var holdReason = signalHoldReason ?? HygieneRuleSafeguards.HoldReason(item, rule, assessment.ReasonCode);
+                var holdReason = !string.IsNullOrWhiteSpace(item.HygieneImportRescueStatus)
+                    ? $"Force-import rescue is {item.HygieneImportRescueStatus}; cleanup and strikes are held."
+                    : signalHoldReason ?? HygieneRuleSafeguards.HoldReason(item, rule, assessment.ReasonCode);
                 assessment.Eligible = holdReason == null && assessment.RuleEnabled && assessment.Strikes >= rule.StrikeLimit;
                 assessment.RuleExplanation = rule == null ? "No monitoring rule is configured for this reason and scope."
                     : !rule.Enabled ? "The matching monitoring rule is disabled."
@@ -118,7 +120,7 @@ namespace NzbDrone.Core.Hygiene
                     : TorrentHold(item, rule)
                         ? "Automatic actions are held for private or unverified torrent releases."
                     : assessment.ActionMode == "category" &&
-                      (item.Protocol != DownloadProtocol.Torrent || !item.DownloadClientHasPostImportCategory)
+                      !item.DownloadClientHasPostImportCategory
                         ? "The download client has no configured post-import category."
                     : SetWouldAct(assessment));
 
@@ -171,7 +173,7 @@ namespace NzbDrone.Core.Hygiene
             assessment.WouldAct = true;
             if (assessment.ActionMode == "category")
             {
-                assessment.ActionExplanation = "The scoped rule is eligible; the executor will change the torrent to its configured post-import category and keep it in the client.";
+                assessment.ActionExplanation = "The scoped rule is eligible; the executor will change the client job to its configured post-import category and keep it in the client.";
                 return assessment.ActionExplanation;
             }
             var fileAction = assessment.DeleteFilesOnFailure

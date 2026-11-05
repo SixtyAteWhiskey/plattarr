@@ -45,6 +45,17 @@ interface HygieneAction {
   replacementOutcome: HygieneReplacementOutcome;
 }
 
+interface HygieneImportRescue {
+  id: number;
+  downloadClientId: number;
+  downloadId: string;
+  mediaKind: number;
+  status: string;
+  attempts: number;
+  commandId?: number;
+  updatedAt: string;
+}
+
 interface HygieneReplacementOutcome {
   searchState: string;
   evidence: string;
@@ -321,6 +332,10 @@ function Hygiene() {
     path: `/hygiene/action?limit=${journalPageSize + 1}&offset=${
       journalPage * journalPageSize
     }`,
+    queryOptions: { refetchInterval: 15000 },
+  });
+  const rescuesQuery = useApiQuery<HygieneImportRescue[]>({
+    path: '/hygiene/import-rescue?limit=25&offset=0',
     queryOptions: { refetchInterval: 15000 },
   });
   const journalActions = actionsQuery.data?.slice(0, journalPageSize);
@@ -882,6 +897,46 @@ function Hygiene() {
                         </Cluster>
                       </nav>
                     ) : null}
+                  </Stack>
+                </Surface>
+                <Surface elevation="low" padding="large">
+                  <Stack gap="medium">
+                    <Heading level={2}>Force-import rescue journal</Heading>
+                    <Text tone="secondary">
+                      A requested command is not proof of import. Only a later
+                      matching import history entry confirms it. An ambiguous
+                      request needs manual review before cleanup resumes.
+                    </Text>
+                    {rescuesQuery.isError ? (
+                      <Alert kind="danger">
+                        Unable to load the force-import rescue journal.
+                      </Alert>
+                    ) : null}
+                    {rescuesQuery.data?.length === 0 ? (
+                      <Text tone="secondary">
+                        No force-import attempts recorded.
+                      </Text>
+                    ) : null}
+                    {rescuesQuery.data?.map((rescue) => (
+                      <Surface
+                        key={rescue.id}
+                        padding="medium"
+                        variant="subtle"
+                      >
+                        <Stack gap="xSmall">
+                          <Text weight="semibold">
+                            Client {rescue.downloadClientId} ·{' '}
+                            {rescue.downloadId}
+                          </Text>
+                          <Text size="small" tone="secondary">
+                            {rescue.status} · {rescue.attempts} attempt(s)
+                            {rescue.commandId
+                              ? ` · command ${rescue.commandId}`
+                              : ''}
+                          </Text>
+                        </Stack>
+                      </Surface>
+                    ))}
                   </Stack>
                 </Surface>
               </Stack>

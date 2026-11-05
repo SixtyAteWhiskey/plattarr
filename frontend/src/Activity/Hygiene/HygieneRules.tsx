@@ -32,6 +32,8 @@ export interface HygieneRule {
   ignoreWhileAlternateSpeedActive: boolean;
   privateTorrentAction: string;
   changeCategoryInsteadOfRemoval: boolean;
+  forceImportEnabled: boolean;
+  forceImportMaxTries: number;
 }
 
 export interface DownloadClient {
@@ -154,6 +156,26 @@ function HygieneRuleEditor({
       setDraft((current) => ({
         ...current,
         changeCategoryInsteadOfRemoval: event.target.checked,
+      }));
+    },
+    []
+  );
+
+  const handleForceImportChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        forceImportEnabled: event.target.checked,
+      }));
+    },
+    []
+  );
+
+  const handleForceImportTriesChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        forceImportMaxTries: Number(event.target.value),
       }));
     },
     []
@@ -539,6 +561,34 @@ function HygieneRuleEditor({
 
           {draft.reasonCode === 'import-blocked' ? (
             <>
+              <label className={styles.checkboxField}>
+                <input
+                  className={styles.checkbox}
+                  type="checkbox"
+                  checked={draft.forceImportEnabled}
+                  onChange={handleForceImportChange}
+                />
+                <span>Try guarded force import before collecting strikes</span>
+              </label>
+              {draft.forceImportEnabled ? (
+                <label className={styles.formField}>
+                  <span>Maximum force-import attempts</span>
+                  <input
+                    className={styles.formControl}
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={draft.forceImportMaxTries}
+                    onChange={handleForceImportTriesChange}
+                  />
+                </label>
+              ) : null}
+              <Text size="small" tone="secondary">
+                Supports tracked Movie and TV downloads with only the known
+                ID-match or uncertain-sample reasons. Every file must match the
+                resolved media and have no other rejection. A queued import is
+                recorded separately from a confirmed import.
+              </Text>
               <label className={styles.formField}>
                 <span>Failed-import reason filter</span>
                 <select
@@ -810,6 +860,8 @@ function HygieneRules({
           ignoreWhileAlternateSpeedActive: true,
           privateTorrentAction: 'hold',
           changeCategoryInsteadOfRemoval: false,
+          forceImportEnabled: false,
+          forceImportMaxTries: 3,
         });
         rulesQuery.refetch();
         setCreatedRuleId(createdRule.id);

@@ -72,7 +72,9 @@ namespace NzbDrone.Core.Hygiene
                 (rule.ReasonCode != "import-blocked" &&
                  (rule.FailedImportPatternMode is not (null or "all") || !string.IsNullOrWhiteSpace(rule.FailedImportPatterns))) ||
                 (rule.FailedImportPatternMode is "include" or "exclude" && string.IsNullOrWhiteSpace(rule.FailedImportPatterns)) ||
-                rule.PrivateTorrentAction is not ("hold" or "remove" or "category"))
+                rule.PrivateTorrentAction is not ("hold" or "remove" or "category") ||
+                rule.ForceImportMaxTries < 1 || rule.ForceImportMaxTries > 20 ||
+                (rule.ReasonCode != "import-blocked" && rule.ForceImportEnabled))
             {
                 throw new ArgumentException("Invalid Hygiene rule scope, reason, or strike threshold.");
             }

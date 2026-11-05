@@ -483,6 +483,19 @@ namespace NzbDrone.Core.Test.QueueTests
             assessment.WouldAct.Should().BeTrue();
             assessment.ActionMode.Should().Be("remove");
 
+            item.Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Usenet;
+            rule.ChangeCategoryInsteadOfRemoval = true;
+            assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.WouldAct.Should().BeTrue();
+            assessment.ActionMode.Should().Be("category");
+
+            item.HygieneImportRescueStatus = "requested";
+            assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.WouldAct.Should().BeFalse();
+            assessment.ActionExplanation.Should().Contain("Force-import rescue");
+            item.HygieneImportRescueStatus = null;
+
+            item.Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Torrent;
             item.RemoteRelease.Release = null;
             assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
             assessment.WouldAct.Should().BeFalse();

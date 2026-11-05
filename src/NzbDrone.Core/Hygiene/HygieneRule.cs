@@ -32,5 +32,7 @@ namespace NzbDrone.Core.Hygiene
         public bool IgnoreWhileAlternateSpeedActive { get; set; } = true;
         public string PrivateTorrentAction { get; set; } = "hold";
         public bool ChangeCategoryInsteadOfRemoval { get; set; }
+        public bool ForceImportEnabled { get; set; }
+        public int ForceImportMaxTries { get; set; } = 3;
     }
 }
