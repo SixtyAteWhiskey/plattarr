@@ -471,6 +471,21 @@ namespace NzbDrone.Core.Test.QueueTests
             assessment.Eligible.Should().BeTrue();
             assessment.WouldAct.Should().BeFalse();
             assessment.ActionExplanation.Should().Contain("private");
+
+            rule.PrivateTorrentAction = "category";
+            item.DownloadClientHasPostImportCategory = true;
+            assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.WouldAct.Should().BeTrue();
+            assessment.ActionMode.Should().Be("category");
+
+            rule.PrivateTorrentAction = "remove";
+            assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.WouldAct.Should().BeTrue();
+            assessment.ActionMode.Should().Be("remove");
+
+            item.RemoteRelease.Release = null;
+            assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.WouldAct.Should().BeFalse();
         }
 
         [TestCase("download-stalled", true, true, true, false, true)]

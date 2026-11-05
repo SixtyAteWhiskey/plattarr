@@ -30,6 +30,8 @@ export interface HygieneRule {
   maximumTorrentSizeBytes: number;
   maximumDownloadHours: number;
   ignoreWhileAlternateSpeedActive: boolean;
+  privateTorrentAction: string;
+  changeCategoryInsteadOfRemoval: boolean;
 }
 
 export interface DownloadClient {
@@ -132,6 +134,26 @@ function HygieneRuleEditor({
       setDraft((current) => ({
         ...current,
         searchForReplacement: checked,
+      }));
+    },
+    []
+  );
+
+  const handlePrivateActionChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      setDraft((current) => ({
+        ...current,
+        privateTorrentAction: event.target.value,
+      }));
+    },
+    []
+  );
+
+  const handleCategoryChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        changeCategoryInsteadOfRemoval: event.target.checked,
       }));
     },
     []
@@ -416,6 +438,36 @@ function HygieneRuleEditor({
                 When on, existing failed-download settings also need to allow
                 the search.
               </span>
+            </span>
+          </label>
+
+          <label className={styles.formField}>
+            <span>Private torrent action</span>
+            <select
+              className={styles.formControl}
+              value={draft.privateTorrentAction ?? 'hold'}
+              onChange={handlePrivateActionChange}
+            >
+              <option value="hold">Hold for manual review</option>
+              <option value="category">Change to post-import category</option>
+              <option value="remove">Remove from client</option>
+            </select>
+          </label>
+          <Text size="small" tone="secondary">
+            An unverified torrent is always held. Removing a private torrent may
+            affect tracker seeding requirements. Category change requires a
+            configured qBittorrent post-import category.
+          </Text>
+          <label className={styles.checkboxField}>
+            <input
+              className={styles.checkbox}
+              type="checkbox"
+              checked={draft.changeCategoryInsteadOfRemoval}
+              onChange={handleCategoryChange}
+            />
+            <span>
+              Change public torrents to the post-import category instead of
+              removing
             </span>
           </label>
 
@@ -756,6 +808,8 @@ function HygieneRules({
           maximumTorrentSizeBytes: 0,
           maximumDownloadHours: 0,
           ignoreWhileAlternateSpeedActive: true,
+          privateTorrentAction: 'hold',
+          changeCategoryInsteadOfRemoval: false,
         });
         rulesQuery.refetch();
         setCreatedRuleId(createdRule.id);

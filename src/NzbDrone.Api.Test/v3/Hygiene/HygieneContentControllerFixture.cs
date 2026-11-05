@@ -40,6 +40,9 @@ namespace NzbDrone.Api.Test.v3.Hygiene
                 {
                     new() { Id = 9, Title = "Test", DownloadId = "HASH", DownloadClientId = 4 }
                 });
+            Mocker.GetMock<IHygieneContentDecisionService>()
+                .Setup(x => x.Evaluate(It.IsAny<IEnumerable<NzbDrone.Core.Queue.Queue>>()))
+                .Returns(new List<HygieneContentAssessment> { new() { QueueId = 9, Status = "unsupported-client" } });
 
             Subject.GetPreview().Value.Should().ContainSingle().Which.Status.Should().Be("unsupported-client");
             Mocker.GetMock<IQueueService>().Verify(x => x.Remove(It.IsAny<int>()), Times.Never);
@@ -123,6 +126,9 @@ namespace NzbDrone.Api.Test.v3.Hygiene
                 {
                     new() { Id = 9, Title = "Test", DownloadId = "HASH", DownloadClientId = 4 }
                 });
+            Mocker.GetMock<IHygieneContentDecisionService>()
+                .Setup(x => x.Evaluate(It.IsAny<IEnumerable<NzbDrone.Core.Queue.Queue>>()))
+                .Returns(new List<HygieneContentAssessment> { new() { QueueId = 9, Status = "patterns-unavailable" } });
 
             Subject.GetPreview().Value.Should().ContainSingle().Which.Status.Should().Be("patterns-unavailable");
             Mocker.GetMock<IProvideDownloadClient>()

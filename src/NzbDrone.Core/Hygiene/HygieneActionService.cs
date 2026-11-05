@@ -22,6 +22,8 @@ namespace NzbDrone.Core.Hygiene
         public int RuleId { get; set; }
         public bool DeleteFilesOnFailure { get; set; }
         public bool SearchForReplacement { get; set; } = true;
+        public string ContentActionMode { get; set; }
+        public string QueueActionMode { get; set; }
         public string ClientRemovalStatus { get; set; }
         public string SourceDeletionStatus { get; set; }
         public string Title { get; set; }
@@ -72,6 +74,7 @@ namespace NzbDrone.Core.Hygiene
 
         private readonly object _processLock = new();
         private readonly IHygieneQueueDecisionService _decisions;
+        private readonly IHygieneContentDecisionService _contentDecisions;
         private readonly IHygieneActionRepository _actions;
         private readonly IConfigService _config;
         private readonly ITrackedDownloadService _trackedDownloads;
@@ -83,6 +86,7 @@ namespace NzbDrone.Core.Hygiene
 
         public HygieneQueueActionService(
             IHygieneQueueDecisionService decisions,
+            IHygieneContentDecisionService contentDecisions,
             IHygieneActionRepository actions,
             IConfigService config,
             ITrackedDownloadService trackedDownloads,
@@ -93,6 +97,7 @@ namespace NzbDrone.Core.Hygiene
             Logger logger)
         {
             _decisions = decisions;
+            _contentDecisions = contentDecisions;
             _actions = actions;
             _config = config;
             _trackedDownloads = trackedDownloads;
@@ -118,9 +123,21 @@ namespace NzbDrone.Core.Hygiene
                     return;
                 }
 
-                foreach (var assessment in _decisions.Evaluate(queueItems).Where(x => x.WouldAct))
+                var queueActions = _decisions.Evaluate(queueItems).Where(x => x.WouldAct).ToList();
+                foreach (var assessment in queueActions)
                 {
                     Execute(assessment, queueItems, resumed);
+                }
+
+                if (!_config.HygieneContentActionsEnabled)
+                {
+                    return;
+                }
+
+                foreach (var assessment in _contentDecisions.Evaluate(queueItems)
+                             .Where(x => x.WouldAct && queueActions.All(y => y.QueueId != x.QueueId)))
+                {
+                    ExecuteContent(assessment, queueItems, resumed);
                 }
             }
         }
@@ -202,12 +219,16 @@ namespace NzbDrone.Core.Hygiene
                 MediaKind = (int)assessment.Kind.Value,
                 ReasonCode = assessment.ReasonCode,
                 RuleId = assessment.RuleId ?? 0,
-                DeleteFilesOnFailure = currentAssessment.DeleteFilesOnFailure,
-                SearchForReplacement = currentAssessment.SearchForReplacement && !repeatGrab,
+                DeleteFilesOnFailure = currentAssessment.ActionMode != "category" && currentAssessment.DeleteFilesOnFailure,
+                SearchForReplacement = currentAssessment.ActionMode != "category" && currentAssessment.SearchForReplacement && !repeatGrab,
+                QueueActionMode = currentAssessment.ActionMode,
+                ReplacementSearchStatus = currentAssessment.ActionMode == "category" ? "skipped" : null,
                 Title = assessment.Title,
                 Status = Processing,
                 Checkpoint = Prepared,
-                RecoveryPath = repeatGrab
+                RecoveryPath = currentAssessment.ActionMode == "category"
+                    ? "Confirm the client job's category. If it is not in the configured post-import category, review the rule and client settings before retrying."
+                    : repeatGrab
                     ? "The same torrent hash was grabbed again after an earlier cleanup. Another replacement search was skipped to prevent a repeat loop. Review the indexer's blocked-hash setting before searching again."
                     : Recovery,
                 CreatedAt = DateTime.UtcNow,
@@ -228,6 +249,64 @@ namespace NzbDrone.Core.Hygiene
                 }
 
                 Continue(action, tracked, assessment.Kind, queueItem);
+            }
+            catch (Exception ex)
+            {
+                RecordFailure(action, ex);
+            }
+        }
+
+        private void ExecuteContent(HygieneContentAssessment assessment, IReadOnlyCollection<QueueItem> queue, ISet<int> alreadyResumed)
+        {
+            var queueItem = queue.SingleOrDefault(x => x.Id == assessment.QueueId);
+            if (queueItem?.RemoteRelease?.Kind == null)
+            {
+                return;
+            }
+
+            var existing = _actions.FindLatest(queueItem.DownloadClientId, queueItem.DownloadId, "content-blocked");
+            var repeatGrab = existing?.Status == Completed &&
+                             HygieneActionOccurrence.WasGrabbedAgain(existing, _history.GetLatestGrab(queueItem.DownloadId));
+            if (existing?.Status == Completed && !repeatGrab || existing != null && alreadyResumed.Contains(existing.Id) || IsRetryDelayed(existing))
+            {
+                return;
+            }
+
+            var current = CurrentEligibleContent(queueItem, assessment.Status);
+            if (current == null)
+            {
+                return;
+            }
+
+            var action = existing != null && !repeatGrab ? existing : _actions.Insert(new HygieneAction
+            {
+                DownloadClientId = queueItem.DownloadClientId,
+                DownloadId = queueItem.DownloadId,
+                MediaKind = (int)queueItem.RemoteRelease.Kind,
+                ReasonCode = "content-blocked",
+                RuleId = 0,
+                ContentActionMode = current.WouldRemoveDownload ? "remove" : "skip",
+                DeleteFilesOnFailure = current.WouldRemoveDownload && _config.HygieneContentDeleteSourceFiles,
+                SearchForReplacement = current.WouldRemoveDownload && !repeatGrab,
+                ReplacementSearchStatus = current.WouldRemoveDownload ? null : "skipped",
+                Title = queueItem.Title,
+                Status = Processing,
+                Checkpoint = Prepared,
+                RecoveryPath = current.WouldRemoveDownload ? Recovery :
+                    "Review the client file priorities and the Hygiene content list before retrying.",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+
+            try
+            {
+                var tracked = _trackedDownloads.Find(queueItem.DownloadId);
+                if (!MatchesTrackedIdentity(tracked, queueItem.DownloadClientId, queueItem.DownloadId))
+                {
+                    throw new InvalidOperationException("The tracked download client identity changed.");
+                }
+
+                Continue(action, tracked, queueItem.RemoteRelease.Kind, queueItem);
             }
             catch (Exception ex)
             {
@@ -256,7 +335,9 @@ namespace NzbDrone.Core.Hygiene
                 if (action.Checkpoint == Prepared)
                 {
                     queueItem = queue.FirstOrDefault(x => x.DownloadClientId == action.DownloadClientId && x.DownloadId == action.DownloadId);
-                    if (!CanStart(queueItem, action.ReasonCode, action.RuleId, (MediaKind)action.MediaKind))
+                    if (action.ContentActionMode == null
+                        ? !CanStart(queueItem, action.ReasonCode, action.RuleId, (MediaKind)action.MediaKind)
+                        : CurrentEligibleContent(queueItem, action.ContentActionMode == "remove" ? "remove-download" : "skip-blocked-files") == null)
                     {
                         Pause(action);
                         continue;
@@ -266,7 +347,7 @@ namespace NzbDrone.Core.Hygiene
                 var tracked = _trackedDownloads.Find(action.DownloadId);
                 if (tracked != null && !MatchesTrackedIdentity(tracked, action.DownloadClientId, action.DownloadId))
                 {
-                    if (action.Checkpoint is ReplacementRequested or ReplacementSkipped)
+                    if (action.Checkpoint is ReplacementRequested or ReplacementSkipped or "files-skipped" or "category-changed")
                     {
                         action.Status = Completed;
                         action.LastError = null;
@@ -283,7 +364,7 @@ namespace NzbDrone.Core.Hygiene
 
                 if (tracked == null)
                 {
-                    if (action.Checkpoint is ReplacementRequested or ReplacementSkipped)
+                    if (action.Checkpoint is ReplacementRequested or ReplacementSkipped or "files-skipped" or "category-changed")
                     {
                         action.Status = Completed;
                         action.LastError = null;
@@ -319,6 +400,19 @@ namespace NzbDrone.Core.Hygiene
                 return;
             }
 
+            if (action.Checkpoint is "files-skipped" or "category-changed")
+            {
+                if (action.Checkpoint == "category-changed" && tracked?.DownloadItem != null)
+                {
+                    _trackedDownloads.StopTracking(tracked.DownloadItem.DownloadId);
+                }
+
+                action.Status = Completed;
+                action.UpdatedAt = DateTime.UtcNow;
+                _actions.SetFields(action, x => x.Status, x => x.UpdatedAt);
+                return;
+            }
+
             var isStalledOrSlowReason = action.ReasonCode is "download-stalled" or "download-slow" or "download-unstable" or "download-metadata";
             var isStalledOrSlowTorrent = isStalledOrSlowReason &&
                                          tracked?.Protocol == NzbDrone.Core.Indexers.DownloadProtocol.Torrent;
@@ -327,13 +421,22 @@ namespace NzbDrone.Core.Hygiene
 
             if (tracked == null || tracked.Kind != kind || tracked.State == TrackedDownloadState.Ignored ||
                 tracked.DownloadItem == null || (isStalledOrSlowReason && !isStalledOrSlowTorrent) ||
-                (!tracked.DownloadItem.CanBeRemoved && !isStalledOrSlowTorrent && !isWarningTorrent))
+                (!tracked.DownloadItem.CanBeRemoved && !isStalledOrSlowTorrent && !isWarningTorrent &&
+                 action.ContentActionMode == null && action.QueueActionMode != "category"))
             {
                 throw new InvalidOperationException("The tracked download is no longer eligible for removal.");
             }
 
+            var privacy = tracked.RemoteRelease?.Release?.IndexerPrivacy;
             if (tracked.Protocol == NzbDrone.Core.Indexers.DownloadProtocol.Torrent &&
-                tracked.RemoteRelease?.Release?.IndexerPrivacy != NzbDrone.Core.Indexers.IndexerPrivacy.Public)
+                action.Checkpoint == Prepared && queueItem?.RemoteRelease?.Release?.IndexerPrivacy != privacy)
+            {
+                Pause(action);
+                return;
+            }
+            if (tracked.Protocol == NzbDrone.Core.Indexers.DownloadProtocol.Torrent &&
+                (privacy == null || privacy != NzbDrone.Core.Indexers.IndexerPrivacy.Public &&
+                 (action.ContentActionMode != null || action.QueueActionMode == null)))
             {
                 throw new InvalidOperationException("Private or unverified torrent releases require manual review.");
             }
@@ -346,8 +449,14 @@ namespace NzbDrone.Core.Hygiene
                     return;
                 }
 
-                var currentAssessment = CurrentEligibleAssessment(queueItem, action.ReasonCode, action.RuleId, kind);
-                if (currentAssessment == null)
+                var currentAssessment = action.ContentActionMode == null
+                    ? CurrentEligibleAssessment(queueItem, action.ReasonCode, action.RuleId, kind)
+                    : null;
+                var contentAssessment = action.ContentActionMode == null
+                    ? null
+                    : CurrentEligibleContent(queueItem, action.ContentActionMode == "remove" ? "remove-download" : "skip-blocked-files");
+                if (currentAssessment == null && contentAssessment == null ||
+                    currentAssessment != null && currentAssessment.ActionMode != (action.QueueActionMode ?? "remove"))
                 {
                     Pause(action);
                     return;
@@ -355,13 +464,14 @@ namespace NzbDrone.Core.Hygiene
 
                 // An edited rule may turn deletion off before a retry. Never turn it on
                 // for an action that was originally prepared to keep source files.
-                if (action.DeleteFilesOnFailure && !currentAssessment.DeleteFilesOnFailure)
+                if (action.DeleteFilesOnFailure &&
+                    (action.ContentActionMode == null ? !currentAssessment.DeleteFilesOnFailure : !_config.HygieneContentDeleteSourceFiles))
                 {
                     action.DeleteFilesOnFailure = false;
                     _actions.SetFields(action, x => x.DeleteFilesOnFailure);
                 }
 
-                if (action.SearchForReplacement && !currentAssessment.SearchForReplacement)
+                if (action.SearchForReplacement && action.ContentActionMode == null && !currentAssessment.SearchForReplacement)
                 {
                     action.SearchForReplacement = false;
                     _actions.SetFields(action, x => x.SearchForReplacement);
@@ -379,7 +489,7 @@ namespace NzbDrone.Core.Hygiene
 
                 var clientItem = clientItems.FirstOrDefault(x => x.DownloadId == tracked.DownloadItem.DownloadId);
 
-                if (clientItem != null && HygieneRuleSafeguards.Ignored(
+                if (currentAssessment != null && clientItem != null && HygieneRuleSafeguards.Ignored(
                     new QueueItem
                     {
                         DownloadId = clientItem.DownloadId,
@@ -401,6 +511,63 @@ namespace NzbDrone.Core.Hygiene
                      (clientItem == null || (!isWarningTorrent && !clientItem.CanBeRemoved))))
                 {
                     Pause(action);
+                    return;
+                }
+
+                if (action.QueueActionMode == "category")
+                {
+                    if (downloadClient is not IHygieneCategoryClient categoryClient)
+                    {
+                        Pause(action);
+                        return;
+                    }
+
+                    try
+                    {
+                        if (categoryClient.ChangeToPostImportCategory(action.DownloadId, kind.Value) != "observed-category")
+                        {
+                            throw new InvalidOperationException("The post-import category was not verified.");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new ActionStageException("category-change", ex);
+                    }
+
+                    SetCheckpoint(action, "category-changed");
+                    _trackedDownloads.StopTracking(tracked.DownloadItem.DownloadId);
+                    action.Status = Completed;
+                    action.UpdatedAt = DateTime.UtcNow;
+                    _actions.SetFields(action, x => x.Status, x => x.UpdatedAt);
+                    return;
+                }
+
+                if (action.ContentActionMode == "skip")
+                {
+                    if (clientItem == null || downloadClient is not IHygieneFileClient fileClient)
+                    {
+                        Pause(action);
+                        return;
+                    }
+
+                    try
+                    {
+                        var result = fileClient.SkipHygieneFiles(action.DownloadId, contentAssessment.BlockedFiles,
+                            contentAssessment.AllowedFiles);
+                        if (result != "observed-skipped")
+                        {
+                            throw new InvalidOperationException("Blocked file priorities were not verified.");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new ActionStageException("file-skip", ex);
+                    }
+
+                    SetCheckpoint(action, "files-skipped");
+                    action.Status = Completed;
+                    action.UpdatedAt = DateTime.UtcNow;
+                    _actions.SetFields(action, x => x.Status, x => x.UpdatedAt);
                     return;
                 }
 
@@ -557,6 +724,17 @@ namespace NzbDrone.Core.Hygiene
         private bool CanStart(QueueItem queueItem, string reasonCode, int? ruleId, MediaKind? kind)
         {
             return CurrentEligibleAssessment(queueItem, reasonCode, ruleId, kind) != null;
+        }
+
+        private HygieneContentAssessment CurrentEligibleContent(QueueItem queueItem, string expectedStatus)
+        {
+            if (queueItem == null || !_config.HygieneContentActionsEnabled)
+            {
+                return null;
+            }
+
+            var current = _contentDecisions.Evaluate(new[] { queueItem }).SingleOrDefault();
+            return current?.WouldAct == true && current.Status == expectedStatus ? current : null;
         }
 
         private HygieneQueueAssessment CurrentEligibleAssessment(QueueItem queueItem, string reasonCode, int? ruleId, MediaKind? kind)

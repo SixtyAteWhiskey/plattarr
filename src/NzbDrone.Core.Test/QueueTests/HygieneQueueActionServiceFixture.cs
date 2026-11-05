@@ -29,6 +29,84 @@ namespace NzbDrone.Core.Test.QueueTests
     public class HygieneQueueActionServiceFixture : CoreTest
     {
         [Test]
+        public void mixed_content_skips_only_blocked_files_and_completes_a_journal_entry()
+        {
+            var context = new ActionContext(MediaKind.Movies, true);
+            context.UseContentAction(false);
+            context.DownloadClient.As<IHygieneFileClient>()
+                .Setup(x => x.SkipHygieneFiles("test-download", It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<IReadOnlyCollection<string>>()))
+                .Returns("observed-skipped");
+
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.Actions.Should().ContainSingle();
+            context.Actions[0].ContentActionMode.Should().Be("skip");
+            context.Actions[0].Checkpoint.Should().Be("files-skipped");
+            context.Actions[0].Status.Should().Be("completed");
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), It.IsAny<bool>()), Times.Never);
+            context.FailedDownloads.Verify(x => x.MarkAsFailed(It.IsAny<TrackedDownload>(), It.IsAny<bool>()), Times.Never);
+        }
+
+        [Test]
+        public void blocked_content_removal_uses_failed_download_handoff()
+        {
+            var context = new ActionContext(MediaKind.Movies, true);
+            context.UseContentAction(true);
+
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.Actions.Should().ContainSingle();
+            context.Actions[0].ContentActionMode.Should().Be("remove");
+            context.Actions[0].Status.Should().Be("completed");
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), false), Times.Once);
+            context.FailedDownloads.Verify(x => x.MarkAsFailed(context.TrackedDownload, false), Times.Once);
+        }
+
+        [Test]
+        public void content_action_pauses_when_opt_in_is_disabled_before_execution()
+        {
+            var context = new ActionContext(MediaKind.Movies, true);
+            context.UseContentAction(false);
+            context.ContentEnabled = false;
+
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.Actions.Should().BeEmpty();
+            context.DownloadClient.As<IHygieneFileClient>()
+                .Verify(x => x.SkipHygieneFiles(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<IReadOnlyCollection<string>>()), Times.Never);
+        }
+
+        [Test]
+        public void private_torrent_category_action_keeps_client_job_without_blocklisting()
+        {
+            var context = new ActionContext(MediaKind.Movies, true);
+            context.QueueItem.Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Torrent;
+            context.QueueItem.DownloadClientHasPostImportCategory = true;
+            context.QueueItem.RemoteRelease = new NzbDrone.Core.Movies.Parser.Model.RemoteMovie
+            {
+                Release = new NzbDrone.Core.Parser.Model.ReleaseInfo
+                {
+                    IndexerPrivacy = NzbDrone.Core.Indexers.IndexerPrivacy.Private
+                }
+            };
+            context.TrackedDownload.Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Torrent;
+            context.TrackedDownload.RemoteRelease = context.QueueItem.RemoteRelease;
+            context.Assessment.ActionMode = "category";
+            context.DownloadClient.As<IHygieneCategoryClient>()
+                .Setup(x => x.ChangeToPostImportCategory("test-download", MediaKind.Movies))
+                .Returns("observed-category");
+
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.Actions.Should().ContainSingle();
+            context.Actions[0].Status.Should().Be("completed");
+            context.Actions[0].Checkpoint.Should().Be("category-changed");
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), It.IsAny<bool>()), Times.Never);
+            context.FailedDownloads.Verify(x => x.MarkAsFailed(It.IsAny<TrackedDownload>(), It.IsAny<bool>()), Times.Never);
+            context.TrackedDownloads.Verify(x => x.StopTracking("test-download"), Times.Once);
+        }
+
+        [Test]
         public void client_category_change_to_ignored_value_pauses_prepared_removal()
         {
             var context = new ActionContext(MediaKind.Tv, true, "download-stalled");
@@ -947,6 +1025,7 @@ namespace NzbDrone.Core.Test.QueueTests
         {
             public List<HygieneAction> Actions { get; } = new();
             public bool GateEnabled { get; set; }
+            public bool ContentEnabled { get; set; }
             public QueueItem QueueItem { get; }
             public TrackedDownload TrackedDownload { get; }
             public Mock<IDownloadClient> DownloadClient { get; } = new();
@@ -955,8 +1034,41 @@ namespace NzbDrone.Core.Test.QueueTests
             public Mock<IManageCommandQueue> CommandQueue { get; } = new();
             public Mock<IDownloadHistoryService> DownloadHistory { get; } = new();
             public Mock<IHygieneQueueDecisionService> Decisions { get; } = new();
+            public Mock<IHygieneContentDecisionService> ContentDecisions { get; } = new();
             public HygieneQueueAssessment Assessment { get; }
             public IHygieneQueueActionService Service { get; }
+
+            public void UseContentAction(bool remove)
+            {
+                ContentEnabled = true;
+                QueueItem.Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Torrent;
+                QueueItem.RemoteRelease = new NzbDrone.Core.Movies.Parser.Model.RemoteMovie
+                {
+                    Release = new NzbDrone.Core.Parser.Model.ReleaseInfo
+                    {
+                        IndexerPrivacy = NzbDrone.Core.Indexers.IndexerPrivacy.Public
+                    }
+                };
+                TrackedDownload.Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Torrent;
+                TrackedDownload.RemoteRelease = QueueItem.RemoteRelease;
+                Assessment.WouldAct = false;
+                ContentDecisions.Setup(x => x.Evaluate(It.IsAny<IEnumerable<QueueItem>>()))
+                    .Returns((IEnumerable<QueueItem> items) => items.Any()
+                        ? new List<HygieneContentAssessment>
+                        {
+                            new()
+                            {
+                                QueueId = QueueItem.Id,
+                                Title = QueueItem.Title,
+                                Status = remove ? "remove-download" : "skip-blocked-files",
+                                WouldRemoveDownload = remove,
+                                WouldAct = true,
+                                BlockedFiles = new List<string> { "setup.exe" },
+                                AllowedFiles = remove ? new List<string>() : new List<string> { "movie.mkv" }
+                            }
+                        }
+                        : new List<HygieneContentAssessment>());
+            }
 
             public ActionContext(MediaKind kind, bool gateEnabled, string reasonCode = "client-failed", IFailedDownloadService failedDownloadService = null, bool deleteFilesOnFailure = false, bool searchForReplacement = true, DownloadRemovalEvidence removalEvidence = null)
             {
@@ -1012,6 +1124,8 @@ namespace NzbDrone.Core.Test.QueueTests
                         .Returns(removalEvidence);
                 }
 
+                DownloadClient.As<IHygieneFileClient>();
+                DownloadClient.As<IHygieneCategoryClient>();
                 var downloadProvider = new Mock<IProvideDownloadClient>();
                 downloadProvider.Setup(x => x.Get(4)).Returns(DownloadClient.Object);
                 TrackedDownloads.Setup(x => x.Find(clientItem.DownloadId)).Returns(TrackedDownload);
@@ -1035,6 +1149,7 @@ namespace NzbDrone.Core.Test.QueueTests
                         : new List<HygieneQueueAssessment>());
                 var config = new Mock<IConfigService>();
                 config.SetupGet(x => x.HygieneActionsEnabled).Returns(() => GateEnabled);
+                config.SetupGet(x => x.HygieneContentActionsEnabled).Returns(() => ContentEnabled);
                 var actionRepository = new Mock<IHygieneActionRepository>();
                 actionRepository.Setup(x => x.All()).Returns(() => Actions);
                 actionRepository.Setup(x => x.FindIncomplete())
@@ -1054,8 +1169,11 @@ namespace NzbDrone.Core.Test.QueueTests
                 });
                 actionRepository.Setup(x => x.Update(It.IsAny<HygieneAction>())).Returns((HygieneAction action) => action);
 
+                ContentDecisions.Setup(x => x.Evaluate(It.IsAny<IEnumerable<QueueItem>>()))
+                    .Returns(new List<HygieneContentAssessment>());
                 Service = new HygieneQueueActionService(
                     Decisions.Object,
+                    ContentDecisions.Object,
                     actionRepository.Object,
                     config.Object,
                     TrackedDownloads.Object,

@@ -70,7 +70,17 @@ allowed files and applies the mixed-content choice: remove the whole download
 when all files are blocked, or when **any-file removal** is selected; otherwise
 it identifies only the files that would be skipped. Missing file lists and
 unsupported clients never produce a removal decision. Inspection is off by
-default and does not change a download or file priority.
+default. A separate **Allow automatic content actions** switch also defaults
+off and requires the global Hygiene gate. The preview's `wouldAct` and
+explanation use the same decision as the executor. For mixed torrents,
+qBittorrent Web API v2 marks blocked files as "do not download" (priority 0)
+and reads the file list again to verify the result. A changed list or
+unverified priority leaves a failed journal entry for retry. Web API v1 can
+list files but cannot skip individual files through Hygiene. Whole-download
+content removal uses the existing failed-download blocklist and replacement
+search path. Its source-file deletion switch is separate and off by default.
+Private or unverified torrents are held for content actions. SABnzbd does not
+expose a supported per-job file list in this checkout.
 
 An administrator can save a separate qBittorrent excluded-file list, select a
 file or URL source, and press **Sync exclusions now**. A source overrides the
@@ -110,8 +120,10 @@ rate is available from qBittorrent; clients that do not report a rate remain
 eligible for stalled and other assessments, but are not classified as slow.
 Both reasons can be acted on when their matching rule is enabled, its strike
 threshold is reached, the global action gate is on, and the download is tracked
-and safe to remove. Private or unverified torrent releases remain manual-review
-items. Stalled/slow actions keep source files by default, or ask the client to
+and safe to remove. Private torrents remain manual-review items unless the
+matching rule explicitly selects removal or a post-import category change.
+Unverified torrent releases remain held. Stalled/slow removal actions keep
+source files by default, or ask the client to
 delete them when the matching rule opts in, then use the existing failed-download
 path for blocklisting and any configured replacement search.
 
@@ -160,9 +172,14 @@ search runs. Migration 19 keeps search on for existing rules, and new rules
 default to the same behavior while starting disabled for monitoring. The rule's
 search choice is recorded on each action. Turning search off before a prepared
 action retries can suppress it; turning search on cannot escalate an action
-prepared with search off. Private or unverified
-torrent releases remain manual-review items. Pending releases and unmatched
-downloads are never acted on.
+prepared with search off. Private torrent releases remain manual-review items
+by default. Each rule can choose
+private-torrent removal or a qBittorrent post-import category change;
+unverified releases remain held. Public torrents can also use a post-import
+category change instead of removal. Category changes require the client's
+configured post-import category, are verified against its torrent list, and
+are journaled without blocklisting or replacement search. Pending releases
+and unmatched downloads are never acted on.
 
 Each action records its media kind, reason, authorizing rule, source-file deletion
 and replacement-search choices, current checkpoint, status, and recovery
