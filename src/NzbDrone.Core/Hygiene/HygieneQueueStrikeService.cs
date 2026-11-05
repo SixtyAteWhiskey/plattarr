@@ -39,7 +39,18 @@ namespace NzbDrone.Core.Hygiene
                 var key = (item.DownloadClientId, item.DownloadId);
                 states.TryGetValue(key, out var state);
                 var rule = _rules.Match(rules, assessment.ReasonCode, (int?)assessment.Kind ?? 0, item.DownloadClientId);
+                if (HygieneRuleSafeguards.HoldReason(item, rule, assessment.ReasonCode) != null)
+                {
+                    assessment.ReasonCode = "ignored";
+                    assessment.NeedsAttention = false;
+                }
+
                 var unstableRule = _rules.Match(rules, "download-unstable", (int?)assessment.Kind ?? 0, item.DownloadClientId);
+                if (HygieneRuleSafeguards.HoldReason(item, unstableRule, "download-unstable") != null)
+                {
+                    unstableRule = null;
+                }
+
                 var interval = rule?.StrikeIntervalMinutes ?? 5;
                 var isNew = state == null;
                 var previousStrikes = state?.Strikes;

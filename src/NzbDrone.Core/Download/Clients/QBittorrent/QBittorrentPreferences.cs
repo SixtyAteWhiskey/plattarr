@@ -42,5 +42,11 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
         [JsonProperty(PropertyName = "dht")]
         public bool DhtEnabled { get; set; } // DHT enabled (needed for more peers and magnet downloads)
+
+        [JsonProperty(PropertyName = "excluded_file_names")]
+        public string ExcludedFileNames { get; set; }
+
+        [JsonProperty(PropertyName = "excluded_file_names_enabled")]
+        public bool ExcludedFileNamesEnabled { get; set; }
     }
 }

@@ -12,6 +12,8 @@ namespace NzbDrone.Core.Download
         public DownloadClientItemClientInfo DownloadClientInfo { get; set; }
         public string DownloadId { get; set; }
         public string Category { get; set; }
+        public string Tags { get; set; }
+        public string Tracker { get; set; }
         public string Title { get; set; }
 
         public long TotalSize { get; set; }
@@ -19,6 +21,7 @@ namespace NzbDrone.Core.Download
         public long? DownloadRateBytesPerSecond { get; set; }
         public bool DownloadClientStalled { get; set; }
         public bool DownloadClientDownloadingMetadata { get; set; }
+        public bool DownloadClientAlternateSpeedActive { get; set; }
         public TimeSpan? RemainingTime { get; set; }
         public double? SeedRatio { get; set; }
         public OsPath OutputPath { get; set; }

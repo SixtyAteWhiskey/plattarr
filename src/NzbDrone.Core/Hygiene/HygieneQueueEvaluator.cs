@@ -26,6 +26,7 @@ namespace NzbDrone.Core.Hygiene
         public bool RuleEnabled { get; set; }
         public bool DeleteFilesOnFailure { get; set; }
         public bool SearchForReplacement { get; set; }
+        public string IgnoredDownloads { get; set; }
         public bool Eligible { get; set; }
         public string RuleExplanation { get; set; }
         public bool WouldAct { get; set; }

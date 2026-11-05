@@ -379,6 +379,21 @@ namespace NzbDrone.Core.Hygiene
 
                 var clientItem = clientItems.FirstOrDefault(x => x.DownloadId == tracked.DownloadItem.DownloadId);
 
+                if (clientItem != null && HygieneRuleSafeguards.Ignored(
+                    new QueueItem
+                    {
+                        DownloadId = clientItem.DownloadId,
+                        DownloadCategory = clientItem.Category,
+                        DownloadTags = clientItem.Tags,
+                        DownloadTracker = clientItem.Tracker,
+                        DownloadClient = clientItem.DownloadClientInfo?.Name
+                    },
+                    currentAssessment.IgnoredDownloads))
+                {
+                    Pause(action);
+                    return;
+                }
+
                 // A job may disappear, or metadata may complete, after the last
                 // queue refresh. Do not remove without a current client item.
                 if ((action.ReasonCode == "download-metadata" && clientItem?.DownloadClientDownloadingMetadata != true) ||

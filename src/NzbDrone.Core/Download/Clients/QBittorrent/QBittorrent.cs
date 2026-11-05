@@ -48,6 +48,34 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
         private IQBittorrentProxy Proxy => _proxySelector.GetProxy(Settings);
         private Version ProxyApiVersion => _proxySelector.GetApiVersion(Settings);
 
+        public List<string> GetHygieneFileNames(string hash)
+        {
+            return Proxy.GetTorrentFiles(hash.ToLowerInvariant(), Settings).Select(file => file.Name).ToList();
+        }
+
+        // Change only the list; the owner's native enable switch is untouched.
+        public string SyncExcludedFileNames(string fileNames)
+        {
+            if (ProxyApiVersion.Major < 2)
+            {
+                return "unsupported";
+            }
+
+            var existing = Proxy.GetConfig(Settings).ExcludedFileNames;
+            if (existing == null)
+            {
+                return "unsupported";
+            }
+
+            if (string.Equals(existing, fileNames, StringComparison.Ordinal))
+            {
+                return "unchanged";
+            }
+
+            Proxy.SetExcludedFileNames(fileNames, Settings);
+            return "request-returned";
+        }
+
         public override void MarkItemAsImported(DownloadClientItem downloadClientItem)
         {
             var module = Settings.ForItem(downloadClientItem);
@@ -241,6 +269,18 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             var config = Proxy.GetConfig(Settings);
             var torrents = GetMonitoredTorrents();
 
+            // If the mode cannot be checked, slow cleanup waits rather than
+            // treating an intentionally throttled client as unhealthy.
+            var alternativeSpeedActive = true;
+            try
+            {
+                alternativeSpeedActive = Proxy.IsAlternativeSpeedActive(Settings);
+            }
+            catch (Exception)
+            {
+                _logger.Debug("Unable to check qBittorrent alternate speed mode; holding slow Hygiene cleanup.");
+            }
+
             var queueItems = new List<DownloadClientItem>();
 
             foreach (var torrent in torrents)
@@ -251,11 +291,14 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
                 {
                     DownloadId = torrent.Hash.ToUpper(),
                     Category = category,
+                    Tags = torrent.Tags,
+                    Tracker = torrent.Tracker,
                     Title = torrent.Name,
                     TotalSize = torrent.Size,
                     DownloadRateBytesPerSecond = torrent.DownloadSpeed,
                     DownloadClientStalled = torrent.State == "stalledDL",
                     DownloadClientDownloadingMetadata = torrent.State is "metaDL" or "forcedMetaDL",
+                    DownloadClientAlternateSpeedActive = alternativeSpeedActive,
                     DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, Settings.ForCategory(category).ImportedCategory.IsNotNullOrWhiteSpace()),
                     RemainingSize = (long)(torrent.Size * (1.0 - torrent.Progress)),
                     RemainingTime = GetRemainingTime(torrent),

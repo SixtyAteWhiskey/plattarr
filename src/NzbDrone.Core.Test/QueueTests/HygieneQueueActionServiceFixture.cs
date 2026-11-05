@@ -29,6 +29,20 @@ namespace NzbDrone.Core.Test.QueueTests
     public class HygieneQueueActionServiceFixture : CoreTest
     {
         [Test]
+        public void client_category_change_to_ignored_value_pauses_prepared_removal()
+        {
+            var context = new ActionContext(MediaKind.Tv, true, "download-stalled");
+            context.Assessment.IgnoredDownloads = "keep";
+            context.TrackedDownload.DownloadItem.Category = "keep";
+
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.Actions.Should().ContainSingle().Which.Status.Should().Be("paused");
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), It.IsAny<bool>()), Times.Never);
+            context.FailedDownloads.Verify(x => x.MarkAsFailed(It.IsAny<TrackedDownload>(), It.IsAny<bool>()), Times.Never);
+        }
+
+        [Test]
         public void completed_metadata_action_does_not_repeat_without_a_new_grab()
         {
             var context = new ActionContext(MediaKind.Tv, true, "download-metadata");

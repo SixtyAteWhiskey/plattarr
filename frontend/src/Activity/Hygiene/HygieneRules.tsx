@@ -21,6 +21,15 @@ export interface HygieneRule {
   strikeLimit: number;
   strikeIntervalMinutes: number;
   minimumDownloadRateKiBps: number;
+  ignoredDownloads: string | null;
+  failedImportPatternMode: string;
+  failedImportPatterns: string | null;
+  minimumCompletionPercent: number;
+  maximumCompletionPercent: number;
+  minimumTorrentSizeBytes: number;
+  maximumTorrentSizeBytes: number;
+  maximumDownloadHours: number;
+  ignoreWhileAlternateSpeedActive: boolean;
 }
 
 export interface DownloadClient {
@@ -153,6 +162,96 @@ function HygieneRuleEditor({
       setDraft((current) => ({
         ...current,
         minimumDownloadRateKiBps: Number(event.target.value),
+      }));
+    },
+    []
+  );
+
+  const handleMaximumHoursChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        maximumDownloadHours: Number(event.target.value),
+      }));
+    },
+    []
+  );
+
+  const handleIgnoredDownloadsChange = useCallback(
+    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setDraft((current) => ({
+        ...current,
+        ignoredDownloads: event.target.value,
+      }));
+    },
+    []
+  );
+
+  const handlePatternModeChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      setDraft((current) => ({
+        ...current,
+        failedImportPatternMode: event.target.value,
+      }));
+    },
+    []
+  );
+
+  const handlePatternsChange = useCallback(
+    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setDraft((current) => ({
+        ...current,
+        failedImportPatterns: event.target.value,
+      }));
+    },
+    []
+  );
+
+  const handleMinimumCompletionChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        minimumCompletionPercent: Number(event.target.value),
+      }));
+    },
+    []
+  );
+
+  const handleMaximumCompletionChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        maximumCompletionPercent: Number(event.target.value),
+      }));
+    },
+    []
+  );
+
+  const handleMinimumSizeChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        minimumTorrentSizeBytes: Number(event.target.value),
+      }));
+    },
+    []
+  );
+
+  const handleMaximumSizeChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        maximumTorrentSizeBytes: Number(event.target.value),
+      }));
+    },
+    []
+  );
+
+  const handleAlternateSpeedChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        ignoreWhileAlternateSpeedActive: event.target.checked,
       }));
     },
     []
@@ -347,19 +446,137 @@ function HygieneRuleEditor({
           </label>
 
           {draft.reasonCode === 'download-slow' ? (
-            <label className={styles.formField}>
-              <span>Treat speeds below (KiB/s) as slow</span>
-              <input
-                id={`hygiene-rule-${draft.id}-minimum-rate`}
-                className={styles.formControl}
-                type="number"
-                min="1"
-                max="1048576"
-                required={true}
-                value={draft.minimumDownloadRateKiBps}
-                onChange={handleMinimumRateChange}
-              />
-            </label>
+            <>
+              <label className={styles.formField}>
+                <span>Treat speeds below (KiB/s) as slow</span>
+                <input
+                  id={`hygiene-rule-${draft.id}-minimum-rate`}
+                  className={styles.formControl}
+                  type="number"
+                  min="0"
+                  max="1048576"
+                  value={draft.minimumDownloadRateKiBps}
+                  onChange={handleMinimumRateChange}
+                />
+              </label>
+              <label className={styles.formField}>
+                <span>Or after this many hours (0 disables)</span>
+                <input
+                  className={styles.formControl}
+                  type="number"
+                  min="0"
+                  max="8760"
+                  value={draft.maximumDownloadHours}
+                  onChange={handleMaximumHoursChange}
+                />
+              </label>
+            </>
+          ) : null}
+
+          <label className={styles.formField}>
+            <span>
+              Ignored downloads (one hash, category, tag, tracker domain, or
+              client name per line)
+            </span>
+            <textarea
+              className={styles.formControl}
+              value={draft.ignoredDownloads ?? ''}
+              onChange={handleIgnoredDownloadsChange}
+            />
+          </label>
+
+          {draft.reasonCode === 'import-blocked' ? (
+            <>
+              <label className={styles.formField}>
+                <span>Failed-import reason filter</span>
+                <select
+                  className={styles.formControl}
+                  value={draft.failedImportPatternMode ?? 'all'}
+                  onChange={handlePatternModeChange}
+                >
+                  <option value="all">All reasons</option>
+                  <option value="include">Only matching reasons</option>
+                  <option value="exclude">Except matching reasons</option>
+                </select>
+              </label>
+              {draft.failedImportPatternMode === 'include' ||
+              draft.failedImportPatternMode === 'exclude' ? (
+                <label className={styles.formField}>
+                  <span>
+                    Reason phrases (one case-insensitive phrase per line)
+                  </span>
+                  <textarea
+                    className={styles.formControl}
+                    required={true}
+                    value={draft.failedImportPatterns ?? ''}
+                    onChange={handlePatternsChange}
+                  />
+                </label>
+              ) : null}
+            </>
+          ) : null}
+
+          {['download-stalled', 'download-slow', 'download-unstable'].includes(
+            draft.reasonCode
+          ) ? (
+            <>
+              <label className={styles.formField}>
+                <span>Minimum completion (%)</span>
+                <input
+                  className={styles.formControl}
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={draft.minimumCompletionPercent}
+                  onChange={handleMinimumCompletionChange}
+                />
+              </label>
+              <label className={styles.formField}>
+                <span>Maximum completion (%)</span>
+                <input
+                  className={styles.formControl}
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={draft.maximumCompletionPercent}
+                  onChange={handleMaximumCompletionChange}
+                />
+              </label>
+              <label className={styles.formField}>
+                <span>Minimum torrent size (bytes, 0 disables)</span>
+                <input
+                  className={styles.formControl}
+                  type="number"
+                  min="0"
+                  value={draft.minimumTorrentSizeBytes}
+                  onChange={handleMinimumSizeChange}
+                />
+              </label>
+              <label className={styles.formField}>
+                <span>Maximum torrent size (bytes, 0 disables)</span>
+                <input
+                  className={styles.formControl}
+                  type="number"
+                  min="0"
+                  value={draft.maximumTorrentSizeBytes}
+                  onChange={handleMaximumSizeChange}
+                />
+              </label>
+              {draft.reasonCode === 'download-slow' ||
+              draft.reasonCode === 'download-unstable' ? (
+                <label className={styles.checkboxField}>
+                  <input
+                    className={styles.checkbox}
+                    type="checkbox"
+                    checked={draft.ignoreWhileAlternateSpeedActive}
+                    onChange={handleAlternateSpeedChange}
+                  />
+                  <span>
+                    Ignore slow signals while alternate speed limits are active
+                  </span>
+                </label>
+              ) : null}
+            </>
           ) : null}
 
           <Cluster
@@ -530,6 +747,15 @@ function HygieneRules({
           strikeIntervalMinutes: 5,
           minimumDownloadRateKiBps:
             reasonCode === 'download-slow' ? minimumDownloadRateKiBps : 0,
+          ignoredDownloads: null,
+          failedImportPatternMode: 'all',
+          failedImportPatterns: null,
+          minimumCompletionPercent: 0,
+          maximumCompletionPercent: 100,
+          minimumTorrentSizeBytes: 0,
+          maximumTorrentSizeBytes: 0,
+          maximumDownloadHours: 0,
+          ignoreWhileAlternateSpeedActive: true,
         });
         rulesQuery.refetch();
         setCreatedRuleId(createdRule.id);

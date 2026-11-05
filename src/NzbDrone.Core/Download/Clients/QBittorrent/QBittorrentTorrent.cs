@@ -23,6 +23,8 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
         public string Label { get; set; } // Label of the torrent
         public string Category { get; set; } // Category of the torrent (3.3.5+)
+        public string Tags { get; set; }
+        public string Tracker { get; set; }
 
         [JsonProperty(PropertyName = "save_path")]
         public string SavePath { get; set; } // Torrent save path

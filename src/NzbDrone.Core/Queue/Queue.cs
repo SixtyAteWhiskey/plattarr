@@ -19,6 +19,7 @@ namespace NzbDrone.Core.Queue
         public long? DownloadRateBytesPerSecond { get; set; }
         public bool DownloadClientStalled { get; set; }
         public bool DownloadClientDownloadingMetadata { get; set; }
+        public bool DownloadClientAlternateSpeedActive { get; set; }
         public bool DownloadClientCanBeRemoved { get; set; }
         public TimeSpan? TimeLeft { get; set; }
         public DateTime? EstimatedCompletionTime { get; set; }
@@ -28,6 +29,9 @@ namespace NzbDrone.Core.Queue
         public TrackedDownloadState? TrackedDownloadState { get; set; }
         public List<TrackedDownloadStatusMessage> StatusMessages { get; set; }
         public string DownloadId { get; set; }
+        public string DownloadCategory { get; set; }
+        public string DownloadTags { get; set; }
+        public string DownloadTracker { get; set; }
 
         // Routing survives even when the module cannot match this download to media.
         public MediaKind? Kind { get; set; }
