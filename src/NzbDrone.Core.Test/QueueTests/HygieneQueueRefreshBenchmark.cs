@@ -80,7 +80,8 @@ namespace NzbDrone.Core.Test.QueueTests
                 TestLogger);
             var timedStrikes = new TimedStrikes(strikes);
             var timedActions = new TimedActions(actionService);
-            var queueService = new QueueService(Mocker.GetMock<IEventAggregator>().Object, timedStrikes, timedActions, TestLogger);
+            var queueService = new QueueService(Mocker.GetMock<IEventAggregator>().Object, timedStrikes, timedActions,
+                Mocker.GetMock<IHygieneImportRescueService>().Object, TestLogger);
             var downloads = Enumerable.Range(0, QueueSize).Select(i => new TrackedDownload
             {
                 DownloadClient = (i % 4) + 1,

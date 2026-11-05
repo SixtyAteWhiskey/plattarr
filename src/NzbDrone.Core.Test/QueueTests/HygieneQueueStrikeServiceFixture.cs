@@ -14,6 +14,30 @@ namespace NzbDrone.Core.Test.QueueTests
     public class HygieneQueueStrikeServiceFixture
     {
         [Test]
+        public void force_import_request_holds_existing_strikes_without_updating_state()
+        {
+            var states = new Mock<IHygieneQueueStateRepository>();
+            var rules = new Mock<IHygieneRuleRepository>();
+            rules.Setup(x => x.All()).Returns(new List<HygieneRule>
+            {
+                new() { ReasonCode = "import-blocked", Enabled = true, StrikeLimit = 3, StrikeIntervalMinutes = 5 }
+            });
+            var service = new HygieneQueueStrikeService(states.Object,
+                new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()),
+                new HygieneQueueEvaluator());
+
+            service.Observe(new[]
+            {
+                new QueueItem { DownloadClientId = 4, DownloadId = "hash", Status = QueueStatus.Completed,
+                    HygieneImportRescueStatus = "requested" }
+            });
+
+            states.Verify(x => x.FindByIdentities(It.Is<IEnumerable<(int, string)>>(ids => !ids.Any())), Times.Once);
+            states.Verify(x => x.Insert(It.IsAny<HygieneQueueState>()), Times.Never);
+            states.Verify(x => x.Update(It.IsAny<HygieneQueueState>()), Times.Never);
+        }
+
+        [Test]
         public void ignored_download_does_not_gain_a_strike()
         {
             var states = new Mock<IHygieneQueueStateRepository>();
