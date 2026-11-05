@@ -43,7 +43,7 @@ namespace NzbDrone.Core.Hygiene
     public interface IHygieneQueueActionService
     {
         void Process(IEnumerable<QueueItem> queue);
-        List<HygieneAction> Recent(int limit = 100);
+        List<HygieneAction> Recent(int limit = 100, int offset = 0);
     }
 
     public class HygieneQueueActionService : IHygieneQueueActionService, IHandle<CommandExecutedEvent>
@@ -125,9 +125,9 @@ namespace NzbDrone.Core.Hygiene
             }
         }
 
-        public List<HygieneAction> Recent(int limit = 100)
+        public List<HygieneAction> Recent(int limit = 100, int offset = 0)
         {
-            return _actions.FindRecent(Math.Clamp(limit, 1, 500));
+            return _actions.FindRecent(Math.Clamp(limit, 1, 500), Math.Max(offset, 0));
         }
 
         public void Handle(CommandExecutedEvent message)

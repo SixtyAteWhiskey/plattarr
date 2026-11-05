@@ -1,4 +1,4 @@
-import React, { FormEvent, useCallback, useState } from 'react';
+import React, { ChangeEvent, FormEvent, useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
 import Alert from 'Components/Alert';
@@ -302,14 +302,20 @@ function Hygiene() {
   const [selectedTab, setSelectedTab] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>();
+  const [journalPage, setJournalPage] = useState(0);
+  const [journalPageSize, setJournalPageSize] = useState(25);
   const { data, isLoading, isError, refetch } = useHygienePreview({
     poll: false,
   });
   const configQuery = useApiQuery<HygieneConfig>({ path: '/hygiene/config' });
   const actionsQuery = useApiQuery<HygieneAction[]>({
-    path: '/hygiene/action?limit=50',
+    path: `/hygiene/action?limit=${journalPageSize + 1}&offset=${
+      journalPage * journalPageSize
+    }`,
     queryOptions: { refetchInterval: 15000 },
   });
+  const journalActions = actionsQuery.data?.slice(0, journalPageSize);
+  const hasOlderActions = (actionsQuery.data?.length ?? 0) > journalPageSize;
   const reasonCounts = data ? getReasonCounts(data) : {};
   const attentionCount = data ? getHygieneAttention(data).count : 0;
   const reasonCountEntries = Object.entries(reasonCounts).sort(
@@ -328,6 +334,22 @@ function Hygiene() {
   const handleRefresh = useCallback(() => {
     refetch();
   }, [refetch]);
+
+  const handleJournalPageSizeChange = useCallback(
+    (event: ChangeEvent<HTMLSelectElement>) => {
+      setJournalPageSize(Number(event.target.value));
+      setJournalPage(0);
+    },
+    []
+  );
+
+  const handlePreviousJournalPage = useCallback(() => {
+    setJournalPage((page) => page - 1);
+  }, []);
+
+  const handleNextJournalPage = useCallback(() => {
+    setJournalPage((page) => page + 1);
+  }, []);
 
   const handleManageRules = useCallback(() => {
     setSelectedTab(1);
@@ -613,6 +635,21 @@ function Hygiene() {
                       </Text>
                     </Stack>
 
+                    <label className={styles.journalPageSize}>
+                      Actions per page
+                      <select
+                        className={styles.formControl}
+                        value={journalPageSize}
+                        onChange={handleJournalPageSizeChange}
+                      >
+                        {[10, 25, 50, 100].map((size) => (
+                          <option key={size} value={size}>
+                            {size}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
                     {actionsQuery.isLoading ? <LoadingIndicator /> : null}
 
                     {actionsQuery.isError ? (
@@ -621,13 +658,17 @@ function Hygiene() {
                       </Alert>
                     ) : null}
 
-                    {actionsQuery.data?.length === 0 ? (
-                      <Alert>No automatic actions recorded.</Alert>
+                    {journalActions?.length === 0 ? (
+                      <Alert>
+                        {journalPage === 0
+                          ? 'No automatic actions recorded.'
+                          : 'No actions on this page.'}
+                      </Alert>
                     ) : null}
 
-                    {actionsQuery.data && actionsQuery.data.length > 0 ? (
+                    {journalActions && journalActions.length > 0 ? (
                       <Stack gap="small">
-                        {actionsQuery.data.map((action) => {
+                        {journalActions.map((action) => {
                           const statusPresentation =
                             getActionStatusPresentation(action.status);
                           const reasonPresentation = getReasonPresentation(
@@ -780,6 +821,36 @@ function Hygiene() {
                           );
                         })}
                       </Stack>
+                    ) : null}
+
+                    {actionsQuery.data &&
+                    (journalPage > 0 || journalActions?.length) ? (
+                      <nav
+                        className={styles.journalPagination}
+                        aria-label="Action journal pages"
+                      >
+                        <Text size="small" tone="secondary">
+                          Page {journalPage + 1}
+                        </Text>
+                        <Cluster gap="small">
+                          <Button
+                            isDisabled={
+                              journalPage === 0 || actionsQuery.isFetching
+                            }
+                            onPress={handlePreviousJournalPage}
+                          >
+                            Previous
+                          </Button>
+                          <Button
+                            isDisabled={
+                              !hasOlderActions || actionsQuery.isFetching
+                            }
+                            onPress={handleNextJournalPage}
+                          >
+                            Next
+                          </Button>
+                        </Cluster>
+                      </nav>
                     ) : null}
                   </Stack>
                 </Surface>
