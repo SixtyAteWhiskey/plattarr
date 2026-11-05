@@ -6,6 +6,7 @@ namespace NzbDrone.Core.Download
     public interface IHygieneFileClient
     {
         bool CanSkipHygieneFiles { get; }
+        bool CanUseHygieneAllowlist { get; }
         List<string> GetHygieneFileNames(string downloadId);
         string SkipHygieneFiles(string downloadId, IReadOnlyCollection<string> blockedFiles,
                                 IReadOnlyCollection<string> allowedFiles);

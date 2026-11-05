@@ -186,6 +186,7 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
         public override string Name => "SABnzbd";
 
         public bool CanSkipHygieneFiles => true;
+        public bool CanUseHygieneAllowlist => false;
 
         public List<string> GetHygieneFileNames(string downloadId)
         {
