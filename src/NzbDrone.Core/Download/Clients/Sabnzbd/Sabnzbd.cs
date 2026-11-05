@@ -17,7 +17,7 @@ using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Download.Clients.Sabnzbd
 {
-    public class Sabnzbd : UsenetClientBase<SabnzbdSettings>
+    public class Sabnzbd : UsenetClientBase<SabnzbdSettings>, IHygieneFileClient, IHygieneCategoryClient
     {
         private readonly ISabnzbdProxy _proxy;
 
@@ -65,7 +65,8 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
                 }
 
                 var queueItem = new DownloadClientItem();
-                queueItem.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, false);
+                queueItem.DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this,
+                    Settings.ForCategory(sabQueueItem.Category).ImportedCategory.IsNotNullOrWhiteSpace());
                 queueItem.DownloadId = sabQueueItem.Id;
                 queueItem.Category = sabQueueItem.Category;
                 queueItem.Title = sabQueueItem.Title;
@@ -120,7 +121,8 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
 
                 var historyItem = new DownloadClientItem
                 {
-                    DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, false),
+                    DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this,
+                        Settings.ForCategory(sabHistoryItem.Category).ImportedCategory.IsNotNullOrWhiteSpace()),
                     DownloadId = sabHistoryItem.Id,
                     Category = sabHistoryItem.Category,
                     Title = sabHistoryItem.Title,
@@ -182,6 +184,65 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
         }
 
         public override string Name => "SABnzbd";
+
+        public bool CanSkipHygieneFiles => true;
+
+        public List<string> GetHygieneFileNames(string downloadId)
+        {
+            return _proxy.GetJobFiles(downloadId, Settings).Select(file => file.Name).ToList();
+        }
+
+        public string SkipHygieneFiles(string downloadId, IReadOnlyCollection<string> blockedFiles,
+                                       IReadOnlyCollection<string> allowedFiles)
+        {
+            if (string.IsNullOrWhiteSpace(downloadId) || blockedFiles?.Count < 1 || allowedFiles?.Count < 1 ||
+                _proxy.GetJob(downloadId, Settings) == null)
+            {
+                return "unsupported";
+            }
+
+            var files = _proxy.GetJobFiles(downloadId, Settings);
+            var blocked = new HashSet<string>(blockedFiles, StringComparer.Ordinal);
+            var expected = new HashSet<string>(blockedFiles.Concat(allowedFiles), StringComparer.Ordinal);
+            if (files.Count != expected.Count || blocked.Count != blockedFiles.Count ||
+                files.Any(file => string.IsNullOrWhiteSpace(file.Name) || string.IsNullOrWhiteSpace(file.Id) ||
+                                  !expected.Contains(file.Name)) ||
+                expected.Any(name => files.Count(file => file.Name == name) != 1) ||
+                files.Select(file => file.Id).Distinct(StringComparer.Ordinal).Count() != files.Count)
+            {
+                return "files-changed";
+            }
+
+            _proxy.RemoveJobFiles(downloadId, files.Where(file => blocked.Contains(file.Name))
+                .Select(file => file.Id).ToList(), Settings);
+            var after = _proxy.GetJobFiles(downloadId, Settings);
+            return after != null && after.All(file => !blocked.Contains(file.Name)) &&
+                   allowedFiles.All(name => after.Count(file => file.Name == name) == 1)
+                ? "observed-skipped" : "unverified";
+        }
+
+        public string ChangeToPostImportCategory(string downloadId, MediaKind kind)
+        {
+            var module = Settings.For(kind);
+            if (string.IsNullOrWhiteSpace(module.ImportedCategory) || module.ImportedCategory == module.Category)
+            {
+                return "unconfigured";
+            }
+
+            var job = _proxy.GetJob(downloadId, Settings);
+            if (job == null)
+            {
+                return "not-found";
+            }
+
+            if (job.Category != module.ImportedCategory)
+            {
+                _proxy.ChangeJobCategory(downloadId, module.ImportedCategory, Settings);
+            }
+
+            return _proxy.GetJob(downloadId, Settings)?.Category == module.ImportedCategory
+                ? "observed-category" : "unverified";
+        }
 
         public override IEnumerable<DownloadClientItem> GetItems()
         {
