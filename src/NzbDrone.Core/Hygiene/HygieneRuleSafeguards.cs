@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Download.TrackedDownloads;
 using QueueItem = NzbDrone.Core.Queue.Queue;
 
@@ -8,6 +9,23 @@ namespace NzbDrone.Core.Hygiene
 {
     public static class HygieneRuleSafeguards
     {
+        public static HygieneRule MatchForItem(IEnumerable<HygieneRule> rules, IHygieneRuleService ruleService, string reasonCode, int mediaKind, QueueItem item)
+        {
+            var privacy = item.Protocol == DownloadProtocol.Torrent ? item.RemoteRelease?.Release?.IndexerPrivacy : null;
+            var scope = privacy switch
+            {
+                IndexerPrivacy.Public => "public",
+                IndexerPrivacy.Private or IndexerPrivacy.SemiPrivate => "private",
+                _ => null
+            };
+            // Match keeps its media/client specificity order. LINQ's stable sort
+            // lets an exact privacy scope win when those scopes are equal.
+            var applicable = rules.Where(rule => rule.TorrentPrivacyScope is null or "all" ||
+                                                 scope != null && rule.TorrentPrivacyScope == scope)
+                .OrderByDescending(rule => scope != null && rule.TorrentPrivacyScope == scope);
+            return ruleService.Match(applicable, reasonCode, mediaKind, item.DownloadClientId);
+        }
+
         public static string HoldReason(QueueItem item, HygieneRule rule, string reasonCode)
         {
             if (rule == null)
@@ -18,6 +36,21 @@ namespace NzbDrone.Core.Hygiene
             if (Ignored(item, rule.IgnoredDownloads))
             {
                 return "This download matches an ignore value on the rule.";
+            }
+
+            if (item.Protocol == DownloadProtocol.Torrent && rule.TorrentPrivacyScope != "all")
+            {
+                var privacy = item.RemoteRelease?.Release?.IndexerPrivacy;
+                if (privacy == null)
+                {
+                    return "Torrent privacy is unverified for this rule's privacy scope.";
+                }
+
+                var isPrivate = privacy is IndexerPrivacy.Private or IndexerPrivacy.SemiPrivate;
+                if ((rule.TorrentPrivacyScope == "private") != isPrivate)
+                {
+                    return "Torrent privacy is outside this rule's scope.";
+                }
             }
 
             if (reasonCode == "import-blocked" && !FailedImportMatches(item.StatusMessages, rule))

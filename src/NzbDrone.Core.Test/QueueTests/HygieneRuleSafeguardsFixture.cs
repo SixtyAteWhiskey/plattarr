@@ -1,8 +1,11 @@
 using System.Collections.Generic;
+using System.Linq;
+using Moq;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Hygiene;
+using NzbDrone.Core.Indexers;
 using QueueItem = NzbDrone.Core.Queue.Queue;
 
 namespace NzbDrone.Core.Test.QueueTests
@@ -78,6 +81,35 @@ namespace NzbDrone.Core.Test.QueueTests
             HygieneRuleSafeguards.HoldReason(item, rule, "download-slow").Should().Contain("alternate speed");
             rule.IgnoreWhileAlternateSpeedActive = false;
             HygieneRuleSafeguards.HoldReason(item, rule, "download-slow").Should().BeNull();
+        }
+
+        [Test]
+        public void privacy_specific_rule_wins_within_the_same_media_and_client_scope()
+        {
+            var rules = new[]
+            {
+                new HygieneRule { Id = 1, ReasonCode = "download-stalled", TorrentPrivacyScope = "all" },
+                new HygieneRule { Id = 2, ReasonCode = "download-stalled", TorrentPrivacyScope = "private" },
+                new HygieneRule { Id = 3, ReasonCode = "download-stalled", TorrentPrivacyScope = "public" }
+            };
+            var service = new HygieneRuleService(new Mock<IHygieneRuleRepository>().Object, NLog.LogManager.GetCurrentClassLogger());
+            var item = new QueueItem
+            {
+                Protocol = DownloadProtocol.Torrent,
+                RemoteRelease = new NzbDrone.Core.Movies.Parser.Model.RemoteMovie
+                {
+                    Release = new NzbDrone.Core.Parser.Model.ReleaseInfo { IndexerPrivacy = IndexerPrivacy.Private }
+                }
+            };
+
+            HygieneRuleSafeguards.MatchForItem(rules, service, "download-stalled", 0, item).Id.Should().Be(2);
+            item.RemoteRelease.Release.IndexerPrivacy = IndexerPrivacy.SemiPrivate;
+            HygieneRuleSafeguards.MatchForItem(rules, service, "download-stalled", 0, item).Id.Should().Be(2);
+            item.RemoteRelease.Release.IndexerPrivacy = IndexerPrivacy.Public;
+            HygieneRuleSafeguards.MatchForItem(rules, service, "download-stalled", 0, item).Id.Should().Be(3);
+            item.RemoteRelease.Release = null;
+            HygieneRuleSafeguards.MatchForItem(rules, service, "download-stalled", 0, item).Id.Should().Be(1);
+            HygieneRuleSafeguards.HoldReason(item, rules.First(), "download-stalled").Should().BeNull();
         }
     }
 }

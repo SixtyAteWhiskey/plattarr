@@ -9,8 +9,10 @@ namespace NzbDrone.Core.Hygiene
         public string DownloadId { get; set; }
         public int MediaKind { get; set; }
         public string ReasonCode { get; set; }
+        public int? ConsecutiveRuleId { get; set; }
         public int Strikes { get; set; }
         public long RemainingSize { get; set; }
+        public long? ProgressBaselineRemainingSize { get; set; }
         public DateTime LastSeenAt { get; set; }
         public DateTime? LastStrikeAt { get; set; }
         public int UnstableStrikes { get; set; }

@@ -43,7 +43,7 @@ namespace NzbDrone.Core.Hygiene
                 return;
             }
 
-            var rule = ruleService.Match(rules, "download-slow", (int?)assessment.Kind ?? 0, item.DownloadClientId);
+            var rule = HygieneRuleSafeguards.MatchForItem(rules, ruleService, "download-slow", (int?)assessment.Kind ?? 0, item);
             var rate = item.DownloadRateBytesPerSecond;
 
             var slowRate = rule?.MinimumDownloadRateKiBps > 0 && rate is >= 0 &&

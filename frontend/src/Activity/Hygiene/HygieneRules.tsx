@@ -30,6 +30,9 @@ export interface HygieneRule {
   maximumTorrentSizeBytes: number;
   maximumDownloadHours: number;
   ignoreWhileAlternateSpeedActive: boolean;
+  torrentPrivacyScope: string;
+  resetStrikesOnProgress: boolean;
+  minimumProgressToResetBytes: number;
   privateTorrentAction: string;
   changeCategoryInsteadOfRemoval: boolean;
   forceImportEnabled: boolean;
@@ -146,6 +149,36 @@ function HygieneRuleEditor({
       setDraft((current) => ({
         ...current,
         privateTorrentAction: event.target.value,
+      }));
+    },
+    []
+  );
+
+  const handlePrivacyScopeChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      setDraft((current) => ({
+        ...current,
+        torrentPrivacyScope: event.target.value,
+      }));
+    },
+    []
+  );
+
+  const handleResetOnProgressChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        resetStrikesOnProgress: event.target.checked,
+      }));
+    },
+    []
+  );
+
+  const handleMinimumProgressChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        minimumProgressToResetBytes: Number(event.target.value),
       }));
     },
     []
@@ -478,7 +511,7 @@ function HygieneRuleEditor({
           <Text size="small" tone="secondary">
             An unverified torrent is always held. Removing a private torrent may
             affect tracker seeding requirements. Category change requires a
-            configured qBittorrent post-import category.
+            configured post-import category on the download client.
           </Text>
           <label className={styles.checkboxField}>
             <input
@@ -623,6 +656,23 @@ function HygieneRuleEditor({
           ) ? (
             <>
               <label className={styles.formField}>
+                <span>Torrent privacy scope</span>
+                <select
+                  className={styles.formControl}
+                  value={draft.torrentPrivacyScope ?? 'all'}
+                  onChange={handlePrivacyScopeChange}
+                >
+                  <option value="all">Public and private torrents</option>
+                  <option value="public">Public torrents only</option>
+                  <option value="private">
+                    Private and semi-private torrents only
+                  </option>
+                </select>
+              </label>
+              <Text size="small" tone="secondary">
+                Privacy scoped rules do not match unverified torrents.
+              </Text>
+              <label className={styles.formField}>
                 <span>Minimum completion (%)</span>
                 <input
                   className={styles.formControl}
@@ -664,6 +714,34 @@ function HygieneRuleEditor({
                   onChange={handleMaximumSizeChange}
                 />
               </label>
+              {draft.reasonCode === 'download-stalled' ||
+              draft.reasonCode === 'download-slow' ? (
+                <>
+                  <label className={styles.checkboxField}>
+                    <input
+                      className={styles.checkbox}
+                      type="checkbox"
+                      checked={draft.resetStrikesOnProgress}
+                      onChange={handleResetOnProgressChange}
+                    />
+                    <span>Reset strikes when the download makes progress</span>
+                  </label>
+                  {draft.resetStrikesOnProgress ? (
+                    <label className={styles.formField}>
+                      <span>
+                        Minimum progress to reset (bytes, 0 means any)
+                      </span>
+                      <input
+                        className={styles.formControl}
+                        type="number"
+                        min="0"
+                        value={draft.minimumProgressToResetBytes}
+                        onChange={handleMinimumProgressChange}
+                      />
+                    </label>
+                  ) : null}
+                </>
+              ) : null}
               {draft.reasonCode === 'download-slow' ||
               draft.reasonCode === 'download-unstable' ? (
                 <label className={styles.checkboxField}>
@@ -753,6 +831,7 @@ function HygieneRules({
   const [warningCleanupEnabled, setWarningCleanupEnabled] = useState(false);
   const [searchForReplacement, setSearchForReplacement] = useState(true);
   const [minimumDownloadRateKiBps, setMinimumDownloadRateKiBps] = useState(100);
+  const [torrentPrivacyScope, setTorrentPrivacyScope] = useState('all');
   const [mediaKind, setMediaKind] = useState(0);
   const [downloadClientId, setDownloadClientId] = useState(0);
   const [error, setError] = useState<string>();
@@ -781,6 +860,7 @@ function HygieneRules({
       setReasonCode(event.target.value);
       setDeleteFilesOnFailure(false);
       setWarningCleanupEnabled(false);
+      setTorrentPrivacyScope('all');
     },
     []
   );
@@ -788,6 +868,13 @@ function HygieneRules({
   const handleMinimumRateChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       setMinimumDownloadRateKiBps(Number(event.target.value));
+    },
+    []
+  );
+
+  const handleNewPrivacyScopeChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      setTorrentPrivacyScope(event.target.value);
     },
     []
   );
@@ -858,6 +945,9 @@ function HygieneRules({
           maximumTorrentSizeBytes: 0,
           maximumDownloadHours: 0,
           ignoreWhileAlternateSpeedActive: true,
+          torrentPrivacyScope,
+          resetStrikesOnProgress: reasonCode !== 'download-slow',
+          minimumProgressToResetBytes: 0,
           privateTorrentAction: 'hold',
           changeCategoryInsteadOfRemoval: false,
           forceImportEnabled: false,
@@ -883,6 +973,7 @@ function HygieneRules({
       mediaKind,
       downloadClientId,
       minimumDownloadRateKiBps,
+      torrentPrivacyScope,
       rulesQuery,
       onChanged,
     ]
@@ -995,6 +1086,27 @@ function HygieneRules({
                         value={minimumDownloadRateKiBps}
                         onChange={handleMinimumRateChange}
                       />
+                    </label>
+                  ) : null}
+
+                  {[
+                    'download-stalled',
+                    'download-slow',
+                    'download-unstable',
+                  ].includes(reasonCode) ? (
+                    <label className={styles.formField}>
+                      <span>Torrent privacy scope</span>
+                      <select
+                        className={styles.formControl}
+                        value={torrentPrivacyScope}
+                        onChange={handleNewPrivacyScopeChange}
+                      >
+                        <option value="all">Public and private torrents</option>
+                        <option value="public">Public torrents only</option>
+                        <option value="private">
+                          Private and semi-private torrents only
+                        </option>
+                      </select>
                     </label>
                   ) : null}
 

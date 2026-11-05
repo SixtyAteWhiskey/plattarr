@@ -55,6 +55,12 @@ the download is held. Slow rules may also strike after an elapsed-hour limit;
 either a speed threshold or an hour limit is required. Existing rules retain
 their prior defaults after migration 23. Slow signals can be ignored while
 qBittorrent's alternate speed mode is active; an unreadable mode is held safe.
+These three rule types can target public, private/semi-private, or all torrents.
+Rules with the same problem, media, and client can coexist when their privacy
+scopes differ. A privacy-specific rule takes priority over an all-torrents
+rule at the same media and client scope. A private-scoped rule still needs an
+explicit private torrent action before automatic cleanup. Unverified privacy
+never permits an automatic torrent action.
 
 ## Content inspection and qBittorrent exclusions
 
@@ -98,10 +104,13 @@ the excluded-file setting enabled for the list to affect downloads.
 
 Each queue refresh observes active downloads. A strike starts at one for a
 matching problem and increases only after the configured interval with the
-same problem. Progress resets strikes for failures and stalled downloads. For
-a slow-download rule, progress does not reset strikes while the measured rate
-remains below its threshold; a recovered rate or different reason resets the
-count. Disabling the matching rule also resets it. Strike state is stored by
+same problem. Progress resets strikes for failures. Stalled and slow rules can
+choose whether downloaded progress resets their consecutive strikes, and how
+many bytes must be downloaded since the first strike or last reset before
+doing so. Zero means any progress. Existing stalled rules reset on any
+progress; existing slow rules keep counting while still slow. A recovered
+rate or different reason resets the consecutive count. Disabling the matching
+rule also resets it. Strike state is stored by
 download-client ID and download ID; records not seen for 30 days are removed.
 Pending releases have no client download ID and do not accumulate strikes.
 
