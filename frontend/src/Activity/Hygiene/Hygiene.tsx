@@ -17,6 +17,7 @@ import fetchJson, { apiRoot } from 'Utilities/Fetch/fetchJson';
 import HygieneAttentionBadge, {
   getHygieneAttention,
 } from './HygieneAttentionBadge';
+import HygieneContent from './HygieneContent';
 import HygieneRules, { reasonOptions } from './HygieneRules';
 import HygieneRuleSummary from './HygieneRuleSummary';
 import useHygienePreview, { type HygieneAssessment } from './useHygienePreview';
@@ -965,6 +966,7 @@ function Hygiene() {
                   previewLoading={isLoading}
                   onChanged={handleRefresh}
                 />
+                <HygieneContent />
               </Stack>
             </TabPanel>
           </Tabs>

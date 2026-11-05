@@ -14,6 +14,34 @@ namespace NzbDrone.Core.Test.QueueTests
     public class HygieneQueueStrikeServiceFixture
     {
         [Test]
+        public void ignored_download_does_not_gain_a_strike()
+        {
+            var states = new Mock<IHygieneQueueStateRepository>();
+            HygieneQueueState saved = null;
+            states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>()))
+                .Returns(Array.Empty<HygieneQueueState>());
+            states.Setup(x => x.Insert(It.IsAny<HygieneQueueState>()))
+                .Returns((HygieneQueueState state) => saved = state);
+            var rules = new Mock<IHygieneRuleRepository>();
+            rules.Setup(x => x.All()).Returns(new List<HygieneRule>
+            {
+                new() { ReasonCode = "client-failed", Enabled = true, StrikeLimit = 3, StrikeIntervalMinutes = 5, IgnoredDownloads = "safe-client" }
+            });
+            var service = new HygieneQueueStrikeService(
+                states.Object,
+                new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()),
+                new HygieneQueueEvaluator());
+
+            service.Observe(new[]
+            {
+                new QueueItem { DownloadClientId = 4, DownloadId = "hash", DownloadClient = "safe-client", Status = QueueStatus.Failed }
+            });
+
+            saved.Strikes.Should().Be(0);
+            saved.ReasonCode.Should().Be("ignored");
+        }
+
+        [Test]
         public void should_not_accumulate_strikes_until_a_matching_rule_is_enabled()
         {
             var savedStates = new List<HygieneQueueState>();

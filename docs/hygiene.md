@@ -12,7 +12,7 @@ the current queue assessment, and the action journal. **Manage automation**
 opens the **Automation settings** tab, which contains the global action gate
 and the full rule editors. The tabs do not change monitoring or cleanup state.
 
-The [Cleanuparr parity verification](hygiene-parity-2026-10-26.md) records
+The [current Cleanuparr parity review](hygiene-parity-2026-11-05.md) records
 which behaviors are proven on the current checkout and which feature areas
 remain different or unimplemented.
 
@@ -42,6 +42,40 @@ Each saved rule card shows how many current queue assessments select that
 specific rule and, when enabled, how many have reached its strike threshold.
 This read-only preview uses the same matched rule ID and eligibility decision
 as the queue preview; edits do not change the summary until saved.
+
+Rules can now ignore exact download IDs, categories, qBittorrent tags, tracker
+domains, or configured client names, with one value per line. Tracker-domain
+entries match that host and its subdomains. An ignored download neither gains
+strikes nor becomes eligible for cleanup. `import-blocked` rules can include or
+exclude plain, case-insensitive substrings from the queue's failed-import
+messages. An include filter with no matching message holds the download.
+Stalled, slow, and cumulative rules can limit the completion range and minimum
+or maximum torrent size. When a configured size or completion safeguard cannot be checked,
+the download is held. Slow rules may also strike after an elapsed-hour limit;
+either a speed threshold or an hour limit is required. Existing rules retain
+their prior defaults after migration 23. Slow signals can be ignored while
+qBittorrent's alternate speed mode is active; an unreadable mode is held safe.
+
+## Content inspection and qBittorrent exclusions
+
+The Content inspection section saves inline file-name patterns and shows a
+read-only qBittorrent file-list preview. Blocklist mode blocks matching files;
+allowlist mode blocks everything that does not match. Patterns support exact
+names, `*` wildcards, and `regex:` entries. The preview reports blocked and
+allowed files and applies the mixed-content choice: remove the whole download
+when all files are blocked, or when **any-file removal** is selected; otherwise
+it identifies only the files that would be skipped. Missing file lists and
+unsupported clients never produce a removal decision. Inspection is off by
+default and does not change a download or file priority.
+
+An administrator can save a separate qBittorrent excluded-file list and press
+**Sync exclusions now**. This uses Web API v2, compares the live setting, and
+requests an update to only `excluded_file_names` when needed. A successful
+request does not by itself verify that qBittorrent persisted the new value;
+the next sync compares it again. It never enables
+`excluded_file_names_enabled`. The saved list is inline text; URL/file loading
+and hourly synchronization are not implemented. qBittorrent itself must have
+the excluded-file setting enabled for the list to affect downloads.
 
 Each queue refresh observes active downloads. A strike starts at one for a
 matching problem and increases only after the configured interval with the

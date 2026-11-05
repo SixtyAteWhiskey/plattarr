@@ -195,6 +195,36 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("HygieneActionsEnabled", value); }
         }
 
+        public bool HygieneContentInspectionEnabled
+        {
+            get { return GetValueBoolean("HygieneContentInspectionEnabled", false); }
+            set { SetValue("HygieneContentInspectionEnabled", value); }
+        }
+
+        public string HygieneContentPatterns
+        {
+            get { return GetValue("HygieneContentPatterns", ""); }
+            set { SetValue("HygieneContentPatterns", value); }
+        }
+
+        public string HygieneContentListType
+        {
+            get { return GetValue("HygieneContentListType", "blocklist"); }
+            set { SetValue("HygieneContentListType", value); }
+        }
+
+        public bool HygieneContentDeleteIfAnyFileBlocked
+        {
+            get { return GetValueBoolean("HygieneContentDeleteIfAnyFileBlocked", false); }
+            set { SetValue("HygieneContentDeleteIfAnyFileBlocked", value); }
+        }
+
+        public string HygieneExcludedFileNames
+        {
+            get { return GetValue("HygieneExcludedFileNames", ""); }
+            set { SetValue("HygieneExcludedFileNames", value); }
+        }
+
         public bool PreferIndexerFlags
         {
             get { return GetValueBoolean("PreferIndexerFlags", false); }

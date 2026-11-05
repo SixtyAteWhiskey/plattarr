@@ -51,6 +51,7 @@ namespace NzbDrone.Core.Hygiene
                 var assessment = assessments[i];
                 HygieneQueueSignalClassifier.Apply(item, assessment, rules, _rules);
                 var rule = _rules.Match(rules, assessment.ReasonCode, (int?)assessment.Kind ?? 0, item.DownloadClientId);
+                var signalHoldReason = HygieneRuleSafeguards.HoldReason(item, rule, assessment.ReasonCode);
                 states.TryGetValue((item.DownloadClientId, item.DownloadId), out var state);
                 var isSlowOrStalled = assessment.ReasonCode is "download-stalled" or "download-slow";
                 var unstableRule = item.DownloadClientId > 0 && !string.IsNullOrWhiteSpace(item.DownloadId) &&
@@ -70,7 +71,7 @@ namespace NzbDrone.Core.Hygiene
 
                 // A specific stalled/slow rule wins when it reaches its own limit.
                 // Otherwise the cumulative rule can authorize the same download.
-                if (isSlowOrStalled &&
+                if (isSlowOrStalled && signalHoldReason == null &&
                     !(rule?.Enabled == true && state?.ReasonCode == assessment.ReasonCode && state.Strikes >= rule.StrikeLimit))
                 {
                     if (unstableRule?.Enabled == true && unstableStrikes >= unstableRule.StrikeLimit)
@@ -89,14 +90,17 @@ namespace NzbDrone.Core.Hygiene
                 assessment.RuleEnabled = rule?.Enabled == true;
                 assessment.DeleteFilesOnFailure = rule?.DeleteFilesOnFailure == true;
                 assessment.SearchForReplacement = rule?.SearchForReplacement == true;
-                assessment.Eligible = assessment.RuleEnabled && assessment.Strikes >= rule.StrikeLimit;
+                assessment.IgnoredDownloads = rule?.IgnoredDownloads;
+                var holdReason = signalHoldReason ?? HygieneRuleSafeguards.HoldReason(item, rule, assessment.ReasonCode);
+                assessment.Eligible = holdReason == null && assessment.RuleEnabled && assessment.Strikes >= rule.StrikeLimit;
                 assessment.RuleExplanation = rule == null ? "No monitoring rule is configured for this reason and scope."
                     : !rule.Enabled ? "The matching monitoring rule is disabled."
+                    : holdReason != null ? holdReason
                     : assessment.Eligible ? "The strike threshold is reached."
                     : $"{assessment.Strikes} of {rule.StrikeLimit} strikes recorded.";
 
                 assessment.WouldAct = false;
-                assessment.ActionExplanation = !assessment.Eligible ? "The rule threshold has not been reached."
+                assessment.ActionExplanation = holdReason ?? (!assessment.Eligible ? "The rule threshold has not been reached."
                     : !_config.HygieneActionsEnabled ? "Automatic actions are disabled by the global Hygiene gate."
                     : assessment.ReasonCode == "download-warning" && rule?.WarningCleanupEnabled != true
                         ? "Automatic cleanup for download warnings is not enabled on this rule."
@@ -112,7 +116,7 @@ namespace NzbDrone.Core.Hygiene
                         ? "The media kind is unknown, so automatic actions are held."
                     : IsPrivateTorrent(item)
                         ? "Automatic actions are held for private or unverified torrent releases."
-                    : SetWouldAct(assessment);
+                    : SetWouldAct(assessment));
 
                 if (assessment.WouldAct)
                 {
