@@ -21,6 +21,8 @@ interface CssExports {
   'journalCheckpoint': string;
   'journalEntry': string;
   'journalHeader': string;
+  'journalPageSize': string;
+  'journalPagination': string;
   'pageHeader': string;
   'previewOverview': string;
   'reasonCount': string;

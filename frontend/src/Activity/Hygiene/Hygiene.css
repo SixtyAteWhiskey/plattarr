@@ -177,6 +177,29 @@
   width: 100%;
 }
 
+.journalPageSize {
+  display: flex;
+  align-items: center;
+  gap: $spaceSmall;
+
+  font-weight: $semiboldFontWeight;
+}
+
+.journalPageSize select {
+  width: auto;
+}
+
+.journalPagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: $spaceSmall;
+
+  padding-top: $spaceMedium;
+  border-top: 1px solid var(--surfaceBorderColor);
+}
+
 .journalHeader {
   align-items: flex-start;
 }

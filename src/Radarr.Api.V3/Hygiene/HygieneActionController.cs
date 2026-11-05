@@ -25,10 +25,10 @@ namespace Radarr.Api.V3.Hygiene
         }
 
         [HttpGet]
-        public Ok<List<HygieneActionResource>> Get([FromQuery] int limit = 100)
+        public Ok<List<HygieneActionResource>> Get([FromQuery] int limit = 100, [FromQuery] int offset = 0)
         {
             var outcomes = new HygieneReplacementOutcomeBuilder(_tvHistory, _commands.All().ToList());
-            return TypedResults.Ok(_actions.Recent(limit)
+            return TypedResults.Ok(_actions.Recent(limit, offset)
                 .Select(action => new HygieneActionResource(action, outcomes.Build(action)))
                 .ToList());
         }
