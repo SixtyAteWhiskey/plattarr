@@ -59,7 +59,7 @@ qBittorrent's alternate speed mode is active; an unreadable mode is held safe.
 ## Content inspection and qBittorrent exclusions
 
 The Content inspection section saves inline file-name patterns or an absolute
-file path or HTTP/HTTPS URL and shows a read-only qBittorrent file-list preview.
+file path or HTTP/HTTPS URL and shows a read-only client file-list preview.
 When a source is set, its contents override the inline list. Source URLs must
 resolve to public destinations; source files and responses are limited to
 100 KB. An unavailable, empty, oversized, or invalid source holds every
@@ -73,14 +73,15 @@ unsupported clients never produce a removal decision. Inspection is off by
 default. A separate **Allow automatic content actions** switch also defaults
 off and requires the global Hygiene gate. The preview's `wouldAct` and
 explanation use the same decision as the executor. For mixed torrents,
-qBittorrent Web API v2 marks blocked files as "do not download" (priority 0)
-and reads the file list again to verify the result. A changed list or
-unverified priority leaves a failed journal entry for retry. Web API v1 can
-list files but cannot skip individual files through Hygiene. Whole-download
+qBittorrent Web API v2 marks blocked files as "do not download" (priority 0).
+For mixed SABnzbd jobs, Hygiene removes matched NZB file entries. Both read
+the file list again to verify the result. A changed list or unverified result
+leaves a failed journal entry for retry. Web API v1 can list files but cannot
+skip individual files through Hygiene. SABnzbd's NZB file entries can differ
+from the names of unpacked contents. Whole-download
 content removal uses the existing failed-download blocklist and replacement
 search path. Its source-file deletion switch is separate and off by default.
-Private or unverified torrents are held for content actions. SABnzbd does not
-expose a supported per-job file list in this checkout.
+Private or unverified torrents are held for content actions.
 
 An administrator can save a separate qBittorrent excluded-file list, select a
 file or URL source, and press **Sync exclusions now**. A source overrides the
@@ -136,6 +137,35 @@ global gate checks apply as for stalled downloads. The client state is checked
 again immediately before removal, and cleanup pauses if metadata completed or
 the torrent disappeared. Source-file deletion defaults off.
 
+## Guarded force-import rescue
+
+An `import-blocked` rule can opt in to force-import rescue. It starts off for
+existing and new rules, requires the global action gate and enabled rule, and
+does not require the strike threshold. After a processed queue refresh,
+Hygiene considers only tracked Movie or TV downloads whose every reported
+failure reason contains one of `matched to movie by ID`, `matched to series by
+ID`, or `Unable to determine if file is a sample`. Public torrents and Usenet
+downloads are supported; private or unverified torrents stay on the normal
+rule path. The resolved Movie or Series must be known. Plattarr's manual-import
+probe must find files, map every file to that media, map TV files to at least
+one expected episode, and report no rejection beyond an uncertain sample.
+If no safe file set exists, ordinary strikes continue on the same refresh.
+An eligible file set must be seen on two processed refreshes before the first
+request; the first observation holds strikes while the import block settles.
+
+While an import or scan command is running, rescue waits without adding a
+strike. A successful probe records an attempt before queuing a manual-import
+command. An ambiguous request is held for manual review rather than blindly
+repeated. A requested command is not proof of import: only a matching Movie or
+episode import-history entry after the command was queued confirms it. A
+failed command waits five minutes before a new attempt; a completed command
+without matching history waits up to six hours. The rule defaults to three
+tries and allows one to twenty. After exhaustion, normal strikes resume for
+six hours before a new rescue cycle. The queue preview explains holds, and
+`GET /api/v3/hygiene/import-rescue` exposes the latest attempt records without
+file paths. To return an ambiguous download to normal strike processing,
+disable force import on its rule and review the client job and import history.
+
 After a completed cleanup, an eligible job with the same client and download ID
 is held rather than removed repeatedly. The preview explains that hold. If a
 new grab of the same torrent hash is recorded after that action began, the next
@@ -175,9 +205,9 @@ action retries can suppress it; turning search on cannot escalate an action
 prepared with search off. Private torrent releases remain manual-review items
 by default. Each rule can choose
 private-torrent removal or a qBittorrent post-import category change;
-unverified releases remain held. Public torrents can also use a post-import
-category change instead of removal. Category changes require the client's
-configured post-import category, are verified against its torrent list, and
+unverified releases remain held. Public torrents and SABnzbd jobs can also use
+a post-import category change instead of removal. Category changes require
+the client's configured post-import category, are verified against its job list, and
 are journaled without blocklisting or replacement search. Pending releases
 and unmatched downloads are never acted on.
 
