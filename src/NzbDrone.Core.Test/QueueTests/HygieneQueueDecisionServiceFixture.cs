@@ -454,11 +454,9 @@ namespace NzbDrone.Core.Test.QueueTests
                     }
                 }
             };
+            var existingState = new HygieneQueueState { DownloadClientId = 7, DownloadId = "private-test-hash", ReasonCode = "client-failed", Strikes = 3 };
             var states = new Mock<IHygieneQueueStateRepository>();
-            states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>())).Returns(new[]
-            {
-                new HygieneQueueState { DownloadClientId = 7, DownloadId = "private-test-hash", ReasonCode = "client-failed", Strikes = 3 }
-            });
+            states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>())).Returns(new[] { existingState });
             var rule = new HygieneRule { Id = 8, ReasonCode = "client-failed", Enabled = true, StrikeLimit = 3, StrikeIntervalMinutes = 5 };
             var rules = new Mock<IHygieneRuleRepository>();
             rules.Setup(x => x.All()).Returns(new List<HygieneRule> { rule });
@@ -482,6 +480,29 @@ namespace NzbDrone.Core.Test.QueueTests
             assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
             assessment.WouldAct.Should().BeTrue();
             assessment.ActionMode.Should().Be("remove");
+
+            existingState.ConsecutiveRuleId = 99;
+            assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.Strikes.Should().Be(0);
+            assessment.WouldAct.Should().BeFalse();
+            existingState.ConsecutiveRuleId = rule.Id;
+
+            rule.TorrentPrivacyScope = "public";
+            assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.WouldAct.Should().BeFalse();
+            assessment.RuleId.Should().BeNull();
+
+            rule.TorrentPrivacyScope = "private";
+            assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.WouldAct.Should().BeTrue();
+
+            item.RemoteRelease.Release.IndexerPrivacy = NzbDrone.Core.Indexers.IndexerPrivacy.SemiPrivate;
+            decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject.WouldAct.Should().BeTrue();
+            item.RemoteRelease.Release.IndexerPrivacy = NzbDrone.Core.Indexers.IndexerPrivacy.Public;
+            assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.RuleId.Should().BeNull();
+            assessment.WouldAct.Should().BeFalse();
+            rule.TorrentPrivacyScope = "all";
 
             item.Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Usenet;
             rule.ChangeCategoryInsteadOfRemoval = true;

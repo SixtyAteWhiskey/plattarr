@@ -30,6 +30,10 @@ namespace NzbDrone.Core.Hygiene
         public long MaximumTorrentSizeBytes { get; set; }
         public int MaximumDownloadHours { get; set; }
         public bool IgnoreWhileAlternateSpeedActive { get; set; } = true;
+        // "all", "public", or "private". Semi-private belongs to private.
+        public string TorrentPrivacyScope { get; set; } = "all";
+        public bool ResetStrikesOnProgress { get; set; } = true;
+        public long MinimumProgressToResetBytes { get; set; }
         public string PrivateTorrentAction { get; set; } = "hold";
         public bool ChangeCategoryInsteadOfRemoval { get; set; }
         public bool ForceImportEnabled { get; set; }

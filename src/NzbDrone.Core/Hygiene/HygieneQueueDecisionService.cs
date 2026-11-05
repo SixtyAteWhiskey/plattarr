@@ -50,17 +50,18 @@ namespace NzbDrone.Core.Hygiene
                 var item = items[i];
                 var assessment = assessments[i];
                 HygieneQueueSignalClassifier.Apply(item, assessment, rules, _rules);
-                var rule = _rules.Match(rules, assessment.ReasonCode, (int?)assessment.Kind ?? 0, item.DownloadClientId);
+                var rule = HygieneRuleSafeguards.MatchForItem(rules, _rules, assessment.ReasonCode, (int?)assessment.Kind ?? 0, item);
                 var signalHoldReason = HygieneRuleSafeguards.HoldReason(item, rule, assessment.ReasonCode);
                 states.TryGetValue((item.DownloadClientId, item.DownloadId), out var state);
                 var isSlowOrStalled = assessment.ReasonCode is "download-stalled" or "download-slow";
                 var unstableRule = item.DownloadClientId > 0 && !string.IsNullOrWhiteSpace(item.DownloadId) &&
                                    (isSlowOrStalled || state?.UnstableStrikes > 0)
-                    ? _rules.Match(rules, "download-unstable", (int?)assessment.Kind ?? 0, item.DownloadClientId)
+                    ? HygieneRuleSafeguards.MatchForItem(rules, _rules, "download-unstable", (int?)assessment.Kind ?? 0, item)
                     : null;
                 var unstableStrikes = unstableRule != null && state?.UnstableRuleId == unstableRule.Id
                     ? state.UnstableStrikes
                     : 0;
+                var unstableHoldReason = HygieneRuleSafeguards.HoldReason(item, unstableRule, "download-unstable");
 
                 if (unstableRule?.Enabled == true)
                 {
@@ -71,8 +72,9 @@ namespace NzbDrone.Core.Hygiene
 
                 // A specific stalled/slow rule wins when it reaches its own limit.
                 // Otherwise the cumulative rule can authorize the same download.
-                if (isSlowOrStalled && signalHoldReason == null &&
-                    !(rule?.Enabled == true && state?.ReasonCode == assessment.ReasonCode && state.Strikes >= rule.StrikeLimit))
+                var consecutiveRuleMatches = state?.ConsecutiveRuleId == null || state.ConsecutiveRuleId == rule?.Id;
+                if (isSlowOrStalled && unstableHoldReason == null && signalHoldReason == null &&
+                    !(rule?.Enabled == true && consecutiveRuleMatches && state?.ReasonCode == assessment.ReasonCode && state.Strikes >= rule.StrikeLimit))
                 {
                     if (unstableRule?.Enabled == true && unstableStrikes >= unstableRule.StrikeLimit)
                     {
@@ -84,7 +86,7 @@ namespace NzbDrone.Core.Hygiene
                 }
 
                 assessment.Strikes = assessment.ReasonCode == "download-unstable" ? unstableStrikes
-                    : state?.ReasonCode == assessment.ReasonCode ? state.Strikes : 0;
+                    : consecutiveRuleMatches && state?.ReasonCode == assessment.ReasonCode ? state.Strikes : 0;
                 assessment.StrikeLimit = rule?.StrikeLimit;
                 assessment.RuleId = rule?.Id;
                 assessment.RuleEnabled = rule?.Enabled == true;

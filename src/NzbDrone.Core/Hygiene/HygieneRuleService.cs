@@ -53,6 +53,7 @@ namespace NzbDrone.Core.Hygiene
             {
                 rule.FailedImportPatternMode ??= "all";
                 rule.PrivateTorrentAction ??= "hold";
+                rule.TorrentPrivacyScope ??= "all";
             }
 
             if (rule == null || !SupportedReasons.Contains(rule.ReasonCode) ||
@@ -73,6 +74,12 @@ namespace NzbDrone.Core.Hygiene
                  (rule.FailedImportPatternMode is not (null or "all") || !string.IsNullOrWhiteSpace(rule.FailedImportPatterns))) ||
                 (rule.FailedImportPatternMode is "include" or "exclude" && string.IsNullOrWhiteSpace(rule.FailedImportPatterns)) ||
                 rule.PrivateTorrentAction is not ("hold" or "remove" or "category") ||
+                rule.TorrentPrivacyScope is not ("all" or "public" or "private") ||
+                (rule.ReasonCode is not ("download-stalled" or "download-slow" or "download-unstable") &&
+                 rule.TorrentPrivacyScope != "all") ||
+                rule.MinimumProgressToResetBytes < 0 ||
+                (rule.ReasonCode is not ("download-stalled" or "download-slow") &&
+                 rule.MinimumProgressToResetBytes != 0) ||
                 rule.ForceImportMaxTries < 1 || rule.ForceImportMaxTries > 20 ||
                 (rule.ReasonCode != "import-blocked" && rule.ForceImportEnabled))
             {
@@ -83,9 +90,10 @@ namespace NzbDrone.Core.Hygiene
             var existingRule = isNewRule ? null : _repository.Find(rule.Id);
 
             if (_repository.All().Any(x => x.Id != rule.Id && x.ReasonCode == rule.ReasonCode &&
-                                           x.MediaKind == rule.MediaKind && x.DownloadClientId == rule.DownloadClientId))
+                                           x.MediaKind == rule.MediaKind && x.DownloadClientId == rule.DownloadClientId &&
+                                           x.TorrentPrivacyScope == rule.TorrentPrivacyScope))
             {
-                throw new ArgumentException("A Hygiene rule already exists for this reason, media kind, and client.");
+                throw new ArgumentException("A Hygiene rule already exists for this reason, media kind, client, and torrent privacy scope.");
             }
 
             var savedRule = isNewRule ? _repository.Insert(rule) : _repository.Update(rule);
