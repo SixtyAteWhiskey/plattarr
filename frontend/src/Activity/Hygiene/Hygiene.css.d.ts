@@ -31,7 +31,12 @@ interface CssExports {
   'replacementGrabs': string;
   'replacementOutcome': string;
   'ruleActions': string;
+  'ruleAdvanced': string;
+  'ruleDetails': string;
+  'ruleEditorForm': string;
+  'ruleFieldGrid': string;
   'ruleForm': string;
+  'ruleGroup': string;
   'ruleSummaryList': string;
   'sectionHeader': string;
   'sectionIntro': string;

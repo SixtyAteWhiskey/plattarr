@@ -235,6 +235,71 @@
   );
 }
 
+.ruleEditorForm {
+  display: flex;
+  flex-direction: column;
+  gap: $spaceLarge;
+
+  padding-top: $spaceMedium;
+  border-top: 1px solid var(--surfaceBorderColor);
+}
+
+.ruleGroup {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: $spaceMedium;
+}
+
+.ruleGroup h4 {
+  margin: 0;
+}
+
+.ruleFieldGrid {
+  display: grid;
+  gap: $spaceMedium;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  width: min(100%, 560px);
+}
+
+.ruleDetails {
+  max-width: 680px;
+  width: 100%;
+}
+
+.ruleDetails summary {
+  color: var(--primaryColor);
+  font-weight: $semiboldFontWeight;
+  cursor: pointer;
+}
+
+.ruleDetails summary:focus-visible {
+  outline: 2px solid var(--primaryColor);
+  outline-offset: 2px;
+}
+
+.ruleAdvanced {
+  display: flex;
+  flex-direction: column;
+  gap: $spaceMedium;
+
+  padding: $spaceMedium 0 0 $spaceLarge;
+}
+
+.ruleEditorForm .formField {
+  width: min(100%, 560px);
+}
+
+.ruleEditorForm .formControl {
+  width: 100%;
+}
+
+.ruleEditorForm .ruleActions {
+  padding-top: $spaceMedium;
+  border-top: 1px solid var(--surfaceBorderColor);
+}
+
 .formField {
   display: flex;
   flex-direction: column;
@@ -265,6 +330,10 @@ select.formControl {
   }
 
   .ruleForm {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ruleFieldGrid {
     grid-template-columns: minmax(0, 1fr);
   }
 
