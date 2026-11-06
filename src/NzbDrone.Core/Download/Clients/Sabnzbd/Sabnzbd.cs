@@ -193,8 +193,10 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
             return _proxy.GetJobFiles(downloadId, Settings).Select(file => file.Name).ToList();
         }
 
-        public string SkipHygieneFiles(string downloadId, IReadOnlyCollection<string> blockedFiles,
-                                       IReadOnlyCollection<string> allowedFiles)
+        public string SkipHygieneFiles(
+            string downloadId,
+            IReadOnlyCollection<string> blockedFiles,
+            IReadOnlyCollection<string> allowedFiles)
         {
             if (string.IsNullOrWhiteSpace(downloadId) || blockedFiles?.Count < 1 || allowedFiles?.Count < 1 ||
                 _proxy.GetJob(downloadId, Settings) == null)
@@ -214,8 +216,10 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
                 return "files-changed";
             }
 
-            _proxy.RemoveJobFiles(downloadId, files.Where(file => blocked.Contains(file.Name))
-                .Select(file => file.Id).ToList(), Settings);
+            _proxy.RemoveJobFiles(
+                downloadId,
+                files.Where(file => blocked.Contains(file.Name)).Select(file => file.Id).ToList(),
+                Settings);
             var after = _proxy.GetJobFiles(downloadId, Settings);
             return after != null && after.All(file => !blocked.Contains(file.Name)) &&
                    allowedFiles.All(name => after.Count(file => file.Name == name) == 1)

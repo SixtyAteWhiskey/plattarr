@@ -28,8 +28,13 @@ namespace NzbDrone.Core.Test.QueueTests
 
             service.Observe(new[]
             {
-                new QueueItem { DownloadClientId = 4, DownloadId = "hash", Status = QueueStatus.Completed,
-                    HygieneImportRescueStatus = "requested" }
+                new QueueItem
+                {
+                    DownloadClientId = 4,
+                    DownloadId = "hash",
+                    Status = QueueStatus.Completed,
+                    HygieneImportRescueStatus = "requested"
+                }
             });
 
             states.Verify(x => x.FindByIdentities(It.Is<IEnumerable<(int, string)>>(ids => !ids.Any())), Times.Once);

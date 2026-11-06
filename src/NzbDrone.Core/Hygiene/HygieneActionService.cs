@@ -267,7 +267,9 @@ namespace NzbDrone.Core.Hygiene
             var existing = _actions.FindLatest(queueItem.DownloadClientId, queueItem.DownloadId, "content-blocked");
             var repeatGrab = existing?.Status == Completed &&
                              HygieneActionOccurrence.WasGrabbedAgain(existing, _history.GetLatestGrab(queueItem.DownloadId));
-            if (existing?.Status == Completed && !repeatGrab || existing != null && alreadyResumed.Contains(existing.Id) || IsRetryDelayed(existing))
+            if ((existing?.Status == Completed && !repeatGrab) ||
+                (existing != null && alreadyResumed.Contains(existing.Id)) ||
+                IsRetryDelayed(existing))
             {
                 return;
             }
@@ -434,9 +436,11 @@ namespace NzbDrone.Core.Hygiene
                 Pause(action);
                 return;
             }
+
             if (tracked.Protocol == NzbDrone.Core.Indexers.DownloadProtocol.Torrent &&
-                (privacy == null || privacy != NzbDrone.Core.Indexers.IndexerPrivacy.Public &&
-                 (action.ContentActionMode != null || action.QueueActionMode == null)))
+                (privacy == null ||
+                 (privacy != NzbDrone.Core.Indexers.IndexerPrivacy.Public &&
+                  (action.ContentActionMode != null || action.QueueActionMode == null))))
             {
                 throw new InvalidOperationException("Private or unverified torrent releases require manual review.");
             }
@@ -455,8 +459,8 @@ namespace NzbDrone.Core.Hygiene
                 var contentAssessment = action.ContentActionMode == null
                     ? null
                     : CurrentEligibleContent(queueItem, action.ContentActionMode == "remove" ? "remove-download" : "skip-blocked-files");
-                if (currentAssessment == null && contentAssessment == null ||
-                    currentAssessment != null && currentAssessment.ActionMode != (action.QueueActionMode ?? "remove"))
+                if ((currentAssessment == null && contentAssessment == null) ||
+                    (currentAssessment != null && currentAssessment.ActionMode != (action.QueueActionMode ?? "remove")))
                 {
                     Pause(action);
                     return;
@@ -552,7 +556,9 @@ namespace NzbDrone.Core.Hygiene
 
                     try
                     {
-                        var result = fileClient.SkipHygieneFiles(action.DownloadId, contentAssessment.BlockedFiles,
+                        var result = fileClient.SkipHygieneFiles(
+                            action.DownloadId,
+                            contentAssessment.BlockedFiles,
                             contentAssessment.AllowedFiles);
                         if (result != "observed-skipped")
                         {

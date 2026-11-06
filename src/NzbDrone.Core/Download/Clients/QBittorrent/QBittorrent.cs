@@ -55,8 +55,10 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             return Proxy.GetTorrentFiles(hash.ToLowerInvariant(), Settings).Select(file => file.Name).ToList();
         }
 
-        public string SkipHygieneFiles(string hash, IReadOnlyCollection<string> blockedFiles,
-                                       IReadOnlyCollection<string> allowedFiles)
+        public string SkipHygieneFiles(
+            string hash,
+            IReadOnlyCollection<string> blockedFiles,
+            IReadOnlyCollection<string> allowedFiles)
         {
             if (ProxyApiVersion.Major < 2 || string.IsNullOrWhiteSpace(hash) ||
                 blockedFiles == null || blockedFiles.Count == 0 || allowedFiles == null || allowedFiles.Count == 0)

@@ -103,9 +103,14 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
                 .Callback<HttpRequest>(request => capturedRequest = request)
                 .Returns<HttpRequest>(request => new HttpResponse(request, new HttpHeader(), string.Empty));
 
-            var proxy = new QBittorrentProxyV2(Mocker.GetMock<IHttpClient>().Object,
-                Mocker.Resolve<NzbDrone.Common.Cache.CacheManager>(), TestLogger);
-            proxy.SetTorrentFilePriority("test-hash", new[] { 5, 9 }, 0,
+            var proxy = new QBittorrentProxyV2(
+                Mocker.GetMock<IHttpClient>().Object,
+                Mocker.Resolve<NzbDrone.Common.Cache.CacheManager>(),
+                TestLogger);
+            proxy.SetTorrentFilePriority(
+                "test-hash",
+                new[] { 5, 9 },
+                0,
                 new QBittorrentSettings { Host = "127.0.0.1", Port = 8080, ApiKey = "test-api-key" });
 
             capturedRequest.Should().NotBeNull();
@@ -136,9 +141,13 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
 
             Subject.SkipHygieneFiles("HASH", new[] { "Movie/setup.exe" }, new[] { "Movie/movie.mkv" })
                 .Should().Be("observed-skipped");
-            Mocker.GetMock<IQBittorrentProxy>().Verify(x => x.SetTorrentFilePriority("hash",
-                It.Is<IReadOnlyCollection<int>>(ids => ids.Count == 1 && ids.Contains(9)), 0,
-                It.IsAny<QBittorrentSettings>()), Times.Once);
+            Mocker.GetMock<IQBittorrentProxy>().Verify(
+                x => x.SetTorrentFilePriority(
+                "hash",
+                It.Is<IReadOnlyCollection<int>>(ids => ids.Count == 1 && ids.Contains(9)),
+                0,
+                It.IsAny<QBittorrentSettings>()),
+                Times.Once);
         }
 
         [Test]
@@ -158,8 +167,13 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
 
             Subject.SkipHygieneFiles("HASH", new[] { "Movie/setup.exe" }, new[] { "Movie/movie.mkv" })
                 .Should().Be("files-changed");
-            Mocker.GetMock<IQBittorrentProxy>().Verify(x => x.SetTorrentFilePriority(
-                It.IsAny<string>(), It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<int>(), It.IsAny<QBittorrentSettings>()), Times.Never);
+            Mocker.GetMock<IQBittorrentProxy>().Verify(
+                x => x.SetTorrentFilePriority(
+                It.IsAny<string>(),
+                It.IsAny<IReadOnlyCollection<int>>(),
+                It.IsAny<int>(),
+                It.IsAny<QBittorrentSettings>()),
+                Times.Never);
         }
 
         [Test]
@@ -176,8 +190,12 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
 
             Subject.ChangeToPostImportCategory("HASH", MediaKind.Movies).Should().Be("observed-category");
             Subject.ChangeToPostImportCategory("HASH", MediaKind.Movies).Should().Be("observed-category");
-            Mocker.GetMock<IQBittorrentProxy>().Verify(x => x.SetTorrentLabel("hash", "movies-done",
-                It.IsAny<QBittorrentSettings>()), Times.Once);
+            Mocker.GetMock<IQBittorrentProxy>().Verify(
+                x => x.SetTorrentLabel(
+                "hash",
+                "movies-done",
+                It.IsAny<QBittorrentSettings>()),
+                Times.Once);
         }
 
         [Test]

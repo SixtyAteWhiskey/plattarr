@@ -8,7 +8,9 @@ namespace NzbDrone.Core.Download
         bool CanSkipHygieneFiles { get; }
         bool CanUseHygieneAllowlist { get; }
         List<string> GetHygieneFileNames(string downloadId);
-        string SkipHygieneFiles(string downloadId, IReadOnlyCollection<string> blockedFiles,
-                                IReadOnlyCollection<string> allowedFiles);
+        string SkipHygieneFiles(
+            string downloadId,
+            IReadOnlyCollection<string> blockedFiles,
+            IReadOnlyCollection<string> allowedFiles);
     }
 }
