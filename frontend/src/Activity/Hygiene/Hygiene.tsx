@@ -1028,12 +1028,7 @@ function Hygiene() {
                   </Stack>
                 </Surface>
 
-                <HygieneRules
-                  assessments={data}
-                  previewError={isError}
-                  previewLoading={isLoading}
-                  onChanged={handleRefresh}
-                />
+                <HygieneRules assessments={data} onChanged={handleRefresh} />
                 <HygieneContent />
               </Stack>
             </TabPanel>
