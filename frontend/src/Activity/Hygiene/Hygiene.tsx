@@ -17,6 +17,7 @@ import fetchJson, { apiRoot } from 'Utilities/Fetch/fetchJson';
 import HygieneAttentionBadge, {
   getHygieneAttention,
 } from './HygieneAttentionBadge';
+import HygieneContent from './HygieneContent';
 import HygieneRules, { reasonOptions } from './HygieneRules';
 import HygieneRuleSummary from './HygieneRuleSummary';
 import useHygienePreview, { type HygieneAssessment } from './useHygienePreview';
@@ -31,6 +32,8 @@ interface HygieneAction {
   id: number;
   title: string;
   reasonCode: string;
+  contentActionMode?: string;
+  queueActionMode?: string;
   deleteFilesOnFailure: boolean;
   clientRemovalStatus?: string;
   sourceDeletionStatus?: string;
@@ -40,6 +43,17 @@ interface HygieneAction {
   lastError?: string;
   updatedAt: string;
   replacementOutcome: HygieneReplacementOutcome;
+}
+
+interface HygieneImportRescue {
+  id: number;
+  downloadClientId: number;
+  downloadId: string;
+  mediaKind: number;
+  status: string;
+  attempts: number;
+  commandId?: number;
+  updatedAt: string;
 }
 
 interface HygieneReplacementOutcome {
@@ -68,6 +82,7 @@ const reasonLabels = reasonOptions.reduce<Record<string, string>>(
   },
   {
     'client-unavailable': 'Client unavailable',
+    'content-blocked': 'Blocked content',
     healthy: 'Healthy',
     ignored: 'Ignored',
     pending: 'Pending',
@@ -95,6 +110,11 @@ const reasonPresentations: Record<string, HygienePresentation> = {
     cue: 'Error',
     icon: icons.DANGER,
     tone: 'danger',
+  },
+  'content-blocked': {
+    cue: 'Content',
+    icon: icons.WARNING,
+    tone: 'warning',
   },
   'client-unavailable': {
     cue: 'Warning',
@@ -312,6 +332,10 @@ function Hygiene() {
     path: `/hygiene/action?limit=${journalPageSize + 1}&offset=${
       journalPage * journalPageSize
     }`,
+    queryOptions: { refetchInterval: 15000 },
+  });
+  const rescuesQuery = useApiQuery<HygieneImportRescue[]>({
+    path: '/hygiene/import-rescue?limit=25&offset=0',
     queryOptions: { refetchInterval: 15000 },
   });
   const journalActions = actionsQuery.data?.slice(0, journalPageSize);
@@ -716,25 +740,46 @@ function Hygiene() {
                               >
                                 Checkpoint: {action.checkpoint}
                               </Text>
-                              <Text size="small" tone="secondary">
-                                Source-file policy:{' '}
-                                {action.deleteFilesOnFailure
-                                  ? 'delete source files'
-                                  : 'keep source files'}
-                              </Text>
-                              <Text size="small" tone="secondary">
-                                Client removal evidence:{' '}
-                                {getClientRemovalEvidence(
-                                  action.clientRemovalStatus
+                              {action.contentActionMode === 'skip' && (
+                                <Text size="small" tone="secondary">
+                                  {action.checkpoint === 'files-skipped'
+                                    ? 'Blocked file priorities were observed as skipped; the download was kept.'
+                                    : 'File skipping has not been verified. The download was kept.'}
+                                </Text>
+                              )}
+                              {action.queueActionMode === 'category' && (
+                                <Text size="small" tone="secondary">
+                                  {action.checkpoint === 'category-changed'
+                                    ? 'The client showed the configured post-import category. The download was kept; no blocklist or replacement search was requested.'
+                                    : 'The post-import category change has not been verified. The download was kept.'}
+                                </Text>
+                              )}
+                              {action.contentActionMode !== 'skip' &&
+                                action.queueActionMode !== 'category' && (
+                                  <>
+                                    <Text size="small" tone="secondary">
+                                      Source-file policy:{' '}
+                                      {action.deleteFilesOnFailure
+                                        ? 'delete source files'
+                                        : 'keep source files'}
+                                    </Text>
+                                    <Text size="small" tone="secondary">
+                                      Client removal evidence:{' '}
+                                      {getClientRemovalEvidence(
+                                        action.clientRemovalStatus
+                                      )}
+                                    </Text>
+                                    <Text size="small" tone="secondary">
+                                      Source-file evidence:{' '}
+                                      {getSourceDeletionEvidence(
+                                        action.sourceDeletionStatus
+                                      )}
+                                    </Text>
+                                  </>
                                 )}
-                              </Text>
-                              <Text size="small" tone="secondary">
-                                Source-file evidence:{' '}
-                                {getSourceDeletionEvidence(
-                                  action.sourceDeletionStatus
-                                )}
-                              </Text>
-                              {action.replacementOutcome ? (
+                              {action.contentActionMode !== 'skip' &&
+                              action.queueActionMode !== 'category' &&
+                              action.replacementOutcome ? (
                                 <div className={styles.replacementOutcome}>
                                   <Text weight="semibold">
                                     Replacement outcome
@@ -854,6 +899,46 @@ function Hygiene() {
                     ) : null}
                   </Stack>
                 </Surface>
+                <Surface elevation="low" padding="large">
+                  <Stack gap="medium">
+                    <Heading level={2}>Force-import rescue journal</Heading>
+                    <Text tone="secondary">
+                      A requested command is not proof of import. Only a later
+                      matching import history entry confirms it. An ambiguous
+                      request needs manual review before cleanup resumes.
+                    </Text>
+                    {rescuesQuery.isError ? (
+                      <Alert kind="danger">
+                        Unable to load the force-import rescue journal.
+                      </Alert>
+                    ) : null}
+                    {rescuesQuery.data?.length === 0 ? (
+                      <Text tone="secondary">
+                        No force-import attempts recorded.
+                      </Text>
+                    ) : null}
+                    {rescuesQuery.data?.map((rescue) => (
+                      <Surface
+                        key={rescue.id}
+                        padding="medium"
+                        variant="subtle"
+                      >
+                        <Stack gap="xSmall">
+                          <Text weight="semibold">
+                            Client {rescue.downloadClientId} ·{' '}
+                            {rescue.downloadId}
+                          </Text>
+                          <Text size="small" tone="secondary">
+                            {rescue.status} · {rescue.attempts} attempt(s)
+                            {rescue.commandId
+                              ? ` · command ${rescue.commandId}`
+                              : ''}
+                          </Text>
+                        </Stack>
+                      </Surface>
+                    ))}
+                  </Stack>
+                </Surface>
               </Stack>
             </TabPanel>
 
@@ -944,11 +1029,12 @@ function Hygiene() {
                       stalled, slow, and metadata downloads, repeated problems,
                       and opted-in download warnings can remove eligible tracked
                       jobs after their strike threshold. Private or unverified
-                      torrent releases remain monitor only. Source files are
-                      kept unless the matching rule explicitly enables file
-                      deletion. Each rule can skip replacement search;
-                      otherwise, the existing failed-download settings still
-                      apply.
+                      torrent releases are held unless a rule explicitly selects
+                      a private-torrent action; unverified releases remain held.
+                      Source files are kept unless the matching rule explicitly
+                      enables file deletion. Each rule can skip replacement
+                      search; otherwise, the existing failed-download settings
+                      still apply.
                     </Text>
 
                     {saveError ? (
@@ -965,6 +1051,7 @@ function Hygiene() {
                   previewLoading={isLoading}
                   onChanged={handleRefresh}
                 />
+                <HygieneContent />
               </Stack>
             </TabPanel>
           </Tabs>

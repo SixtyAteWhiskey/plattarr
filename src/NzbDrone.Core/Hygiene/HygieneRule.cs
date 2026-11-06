@@ -16,5 +16,28 @@ namespace NzbDrone.Core.Hygiene
         public int StrikeLimit { get; set; }
         public int StrikeIntervalMinutes { get; set; }
         public int MinimumDownloadRateKiBps { get; set; }
+
+        // One literal value per line. Matches the download ID, category, tag,
+        // tracker host, or configured download-client name.
+        public string IgnoredDownloads { get; set; }
+
+        // "all", "include", or "exclude"; patterns are case-insensitive substrings.
+        public string FailedImportPatternMode { get; set; } = "all";
+        public string FailedImportPatterns { get; set; }
+        public int MinimumCompletionPercent { get; set; }
+        public int MaximumCompletionPercent { get; set; } = 100;
+        public long MinimumTorrentSizeBytes { get; set; }
+        public long MaximumTorrentSizeBytes { get; set; }
+        public int MaximumDownloadHours { get; set; }
+        public bool IgnoreWhileAlternateSpeedActive { get; set; } = true;
+
+        // "all", "public", or "private". Semi-private belongs to private.
+        public string TorrentPrivacyScope { get; set; } = "all";
+        public bool ResetStrikesOnProgress { get; set; } = true;
+        public long MinimumProgressToResetBytes { get; set; }
+        public string PrivateTorrentAction { get; set; } = "hold";
+        public bool ChangeCategoryInsteadOfRemoval { get; set; }
+        public bool ForceImportEnabled { get; set; }
+        public int ForceImportMaxTries { get; set; } = 3;
     }
 }

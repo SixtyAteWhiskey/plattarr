@@ -15,6 +15,50 @@ namespace NzbDrone.Core.Test.QueueTests
     public class HygieneQueueDecisionServiceFixture
     {
         [Test]
+        public void ignored_category_holds_an_otherwise_eligible_cleanup()
+        {
+            var item = new QueueItem
+            {
+                DownloadClientId = 7,
+                DownloadId = "held-hash",
+                DownloadCategory = "keep-seeding",
+                Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Torrent,
+                Status = QueueStatus.Failed,
+                RemoteRelease = new NzbDrone.Core.Movies.Parser.Model.RemoteMovie
+                {
+                    Release = new NzbDrone.Core.Parser.Model.ReleaseInfo
+                    {
+                        IndexerPrivacy = NzbDrone.Core.Indexers.IndexerPrivacy.Public
+                    }
+                }
+            };
+            var states = new Mock<IHygieneQueueStateRepository>();
+            states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>())).Returns(new[]
+            {
+                new HygieneQueueState { DownloadClientId = 7, DownloadId = item.DownloadId, ReasonCode = "client-failed", Strikes = 3 }
+            });
+            var rules = new Mock<IHygieneRuleRepository>();
+            rules.Setup(x => x.All()).Returns(new List<HygieneRule>
+            {
+                new() { Id = 11, ReasonCode = "client-failed", Enabled = true, StrikeLimit = 3, IgnoredDownloads = "keep-seeding" }
+            });
+            var config = new Mock<IConfigService>();
+            config.SetupGet(x => x.HygieneActionsEnabled).Returns(true);
+            var decisions = new HygieneQueueDecisionService(
+                new HygieneQueueEvaluator(),
+                states.Object,
+                new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()),
+                config.Object,
+                new Mock<IHygieneActionRepository>().Object,
+                new Mock<IDownloadHistoryService>().Object);
+
+            var assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.Eligible.Should().BeFalse();
+            assessment.WouldAct.Should().BeFalse();
+            assessment.ActionExplanation.Should().Contain("ignore value");
+        }
+
+        [Test]
         public void completed_metadata_action_is_held_until_the_same_hash_is_grabbed_again()
         {
             var item = new QueueItem
@@ -257,6 +301,53 @@ namespace NzbDrone.Core.Test.QueueTests
         }
 
         [Test]
+        public void cumulative_rule_cannot_bypass_an_ignored_slow_signal()
+        {
+            var item = new QueueItem
+            {
+                DownloadClientId = 7,
+                DownloadId = "ignored-slow-hash",
+                DownloadCategory = "keep",
+                Status = QueueStatus.Downloading,
+                SizeLeft = 1000,
+                DownloadRateBytesPerSecond = 1024,
+                Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Torrent,
+                RemoteRelease = new NzbDrone.Core.Movies.Parser.Model.RemoteMovie
+                {
+                    Release = new NzbDrone.Core.Parser.Model.ReleaseInfo
+                    {
+                        IndexerPrivacy = NzbDrone.Core.Indexers.IndexerPrivacy.Public
+                    }
+                }
+            };
+            var states = new Mock<IHygieneQueueStateRepository>();
+            states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>())).Returns(new[]
+            {
+                new HygieneQueueState { DownloadClientId = 7, DownloadId = item.DownloadId, UnstableRuleId = 8, UnstableStrikes = 12 }
+            });
+            var rules = new Mock<IHygieneRuleRepository>();
+            rules.Setup(x => x.All()).Returns(new List<HygieneRule>
+            {
+                new() { Id = 8, ReasonCode = "download-unstable", Enabled = true, StrikeLimit = 12 },
+                new() { Id = 9, ReasonCode = "download-slow", Enabled = true, StrikeLimit = 3, MinimumDownloadRateKiBps = 100, IgnoredDownloads = "keep" }
+            });
+            var config = new Mock<IConfigService>();
+            config.SetupGet(x => x.HygieneActionsEnabled).Returns(true);
+            var decisions = new HygieneQueueDecisionService(
+                new HygieneQueueEvaluator(),
+                states.Object,
+                new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()),
+                config.Object,
+                new Mock<IHygieneActionRepository>().Object,
+                new Mock<IDownloadHistoryService>().Object);
+
+            var assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.ReasonCode.Should().Be("download-slow");
+            assessment.WouldAct.Should().BeFalse();
+            assessment.ActionExplanation.Should().Contain("ignore value");
+        }
+
+        [Test]
         public void cumulative_limit_does_not_act_after_the_download_recovers()
         {
             var item = new QueueItem
@@ -363,11 +454,9 @@ namespace NzbDrone.Core.Test.QueueTests
                     }
                 }
             };
+            var existingState = new HygieneQueueState { DownloadClientId = 7, DownloadId = "private-test-hash", ReasonCode = "client-failed", Strikes = 3 };
             var states = new Mock<IHygieneQueueStateRepository>();
-            states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>())).Returns(new[]
-            {
-                new HygieneQueueState { DownloadClientId = 7, DownloadId = "private-test-hash", ReasonCode = "client-failed", Strikes = 3 }
-            });
+            states.Setup(x => x.FindByIdentities(It.IsAny<IEnumerable<(int, string)>>())).Returns(new[] { existingState });
             var rule = new HygieneRule { Id = 8, ReasonCode = "client-failed", Enabled = true, StrikeLimit = 3, StrikeIntervalMinutes = 5 };
             var rules = new Mock<IHygieneRuleRepository>();
             rules.Setup(x => x.All()).Returns(new List<HygieneRule> { rule });
@@ -380,6 +469,57 @@ namespace NzbDrone.Core.Test.QueueTests
             assessment.Eligible.Should().BeTrue();
             assessment.WouldAct.Should().BeFalse();
             assessment.ActionExplanation.Should().Contain("private");
+
+            rule.PrivateTorrentAction = "category";
+            item.DownloadClientHasPostImportCategory = true;
+            assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.WouldAct.Should().BeTrue();
+            assessment.ActionMode.Should().Be("category");
+
+            rule.PrivateTorrentAction = "remove";
+            assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.WouldAct.Should().BeTrue();
+            assessment.ActionMode.Should().Be("remove");
+
+            existingState.ConsecutiveRuleId = 99;
+            assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.Strikes.Should().Be(0);
+            assessment.WouldAct.Should().BeFalse();
+            existingState.ConsecutiveRuleId = rule.Id;
+
+            rule.TorrentPrivacyScope = "public";
+            assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.WouldAct.Should().BeFalse();
+            assessment.RuleId.Should().BeNull();
+
+            rule.TorrentPrivacyScope = "private";
+            assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.WouldAct.Should().BeTrue();
+
+            item.RemoteRelease.Release.IndexerPrivacy = NzbDrone.Core.Indexers.IndexerPrivacy.SemiPrivate;
+            decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject.WouldAct.Should().BeTrue();
+            item.RemoteRelease.Release.IndexerPrivacy = NzbDrone.Core.Indexers.IndexerPrivacy.Public;
+            assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.RuleId.Should().BeNull();
+            assessment.WouldAct.Should().BeFalse();
+            rule.TorrentPrivacyScope = "all";
+
+            item.Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Usenet;
+            rule.ChangeCategoryInsteadOfRemoval = true;
+            assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.WouldAct.Should().BeTrue();
+            assessment.ActionMode.Should().Be("category");
+
+            item.HygieneImportRescueStatus = "requested";
+            assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.WouldAct.Should().BeFalse();
+            assessment.ActionExplanation.Should().Contain("Force-import rescue");
+            item.HygieneImportRescueStatus = null;
+
+            item.Protocol = NzbDrone.Core.Indexers.DownloadProtocol.Torrent;
+            item.RemoteRelease.Release = null;
+            assessment = decisions.Evaluate(new[] { item }).Should().ContainSingle().Subject;
+            assessment.WouldAct.Should().BeFalse();
         }
 
         [TestCase("download-stalled", true, true, true, false, true)]

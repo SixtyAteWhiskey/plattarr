@@ -49,12 +49,39 @@ namespace NzbDrone.Core.Hygiene
 
         public HygieneRule Upsert(HygieneRule rule)
         {
+            if (rule != null)
+            {
+                rule.FailedImportPatternMode ??= "all";
+                rule.PrivateTorrentAction ??= "hold";
+                rule.TorrentPrivacyScope ??= "all";
+            }
+
             if (rule == null || !SupportedReasons.Contains(rule.ReasonCode) ||
                 (rule.MediaKind != 0 && !Enum.IsDefined((MediaKind)rule.MediaKind)) ||
                 rule.DownloadClientId < 0 || rule.StrikeLimit < 3 || rule.StrikeLimit > 100 ||
                 rule.StrikeIntervalMinutes < 1 || rule.StrikeIntervalMinutes > 1440 ||
-                (rule.ReasonCode == "download-slow" && (rule.MinimumDownloadRateKiBps < 1 || rule.MinimumDownloadRateKiBps > 1048576)) ||
-                (rule.ReasonCode != "download-slow" && rule.MinimumDownloadRateKiBps != 0))
+                (rule.ReasonCode == "download-slow" &&
+                 (rule.MinimumDownloadRateKiBps < 0 || rule.MinimumDownloadRateKiBps > 1048576 ||
+                  (rule.MinimumDownloadRateKiBps == 0 && rule.MaximumDownloadHours == 0))) ||
+                (rule.ReasonCode != "download-slow" && (rule.MinimumDownloadRateKiBps != 0 || rule.MaximumDownloadHours != 0)) ||
+                rule.MaximumDownloadHours < 0 || rule.MaximumDownloadHours > 8760 ||
+                rule.MinimumCompletionPercent < 0 || rule.MaximumCompletionPercent > 100 ||
+                rule.MinimumCompletionPercent > rule.MaximumCompletionPercent ||
+                rule.MinimumTorrentSizeBytes < 0 || rule.MaximumTorrentSizeBytes < 0 ||
+                (rule.MaximumTorrentSizeBytes > 0 && rule.MinimumTorrentSizeBytes > rule.MaximumTorrentSizeBytes) ||
+                (rule.FailedImportPatternMode is not (null or "all" or "include" or "exclude")) ||
+                (rule.ReasonCode != "import-blocked" &&
+                 (rule.FailedImportPatternMode is not (null or "all") || !string.IsNullOrWhiteSpace(rule.FailedImportPatterns))) ||
+                (rule.FailedImportPatternMode is "include" or "exclude" && string.IsNullOrWhiteSpace(rule.FailedImportPatterns)) ||
+                rule.PrivateTorrentAction is not ("hold" or "remove" or "category") ||
+                rule.TorrentPrivacyScope is not ("all" or "public" or "private") ||
+                (rule.ReasonCode is not ("download-stalled" or "download-slow" or "download-unstable") &&
+                 rule.TorrentPrivacyScope != "all") ||
+                rule.MinimumProgressToResetBytes < 0 ||
+                (rule.ReasonCode is not ("download-stalled" or "download-slow") &&
+                 rule.MinimumProgressToResetBytes != 0) ||
+                rule.ForceImportMaxTries < 1 || rule.ForceImportMaxTries > 20 ||
+                (rule.ReasonCode != "import-blocked" && rule.ForceImportEnabled))
             {
                 throw new ArgumentException("Invalid Hygiene rule scope, reason, or strike threshold.");
             }
@@ -63,9 +90,10 @@ namespace NzbDrone.Core.Hygiene
             var existingRule = isNewRule ? null : _repository.Find(rule.Id);
 
             if (_repository.All().Any(x => x.Id != rule.Id && x.ReasonCode == rule.ReasonCode &&
-                                           x.MediaKind == rule.MediaKind && x.DownloadClientId == rule.DownloadClientId))
+                                           x.MediaKind == rule.MediaKind && x.DownloadClientId == rule.DownloadClientId &&
+                                           x.TorrentPrivacyScope == rule.TorrentPrivacyScope))
             {
-                throw new ArgumentException("A Hygiene rule already exists for this reason, media kind, and client.");
+                throw new ArgumentException("A Hygiene rule already exists for this reason, media kind, client, and torrent privacy scope.");
             }
 
             var savedRule = isNewRule ? _repository.Insert(rule) : _repository.Update(rule);

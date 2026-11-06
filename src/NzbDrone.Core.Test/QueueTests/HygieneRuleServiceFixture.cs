@@ -61,6 +61,57 @@ namespace NzbDrone.Core.Test.QueueTests
         }
 
         [Test]
+        public void invalid_privacy_scope_and_progress_amount_are_rejected()
+        {
+            var rule = new HygieneRule
+            {
+                ReasonCode = "download-stalled",
+                StrikeLimit = 3,
+                StrikeIntervalMinutes = 5,
+                TorrentPrivacyScope = "unknown"
+            };
+
+            Action save = () => Subject.Upsert(rule);
+            save.Should().Throw<ArgumentException>();
+
+            rule.TorrentPrivacyScope = "private";
+            rule.MinimumProgressToResetBytes = -1;
+            save.Should().Throw<ArgumentException>();
+
+            rule.MinimumProgressToResetBytes = 1024;
+            rule.ReasonCode = "import-blocked";
+            save.Should().Throw<ArgumentException>();
+        }
+
+        [Test]
+        public void stalled_rules_with_different_privacy_scopes_can_coexist()
+        {
+            var existing = new HygieneRule
+            {
+                Id = 1,
+                ReasonCode = "download-stalled",
+                StrikeLimit = 3,
+                StrikeIntervalMinutes = 5,
+                TorrentPrivacyScope = "public"
+            };
+            var privateRule = new HygieneRule
+            {
+                ReasonCode = "download-stalled",
+                StrikeLimit = 4,
+                StrikeIntervalMinutes = 5,
+                TorrentPrivacyScope = "private"
+            };
+            var repository = Mocker.GetMock<IHygieneRuleRepository>();
+            repository.Setup(x => x.All()).Returns(new List<HygieneRule> { existing });
+            repository.Setup(x => x.Insert(privateRule)).Returns(privateRule);
+
+            Subject.Upsert(privateRule).Should().BeSameAs(privateRule);
+            privateRule.TorrentPrivacyScope = "public";
+            Action duplicate = () => Subject.Upsert(privateRule);
+            duplicate.Should().Throw<ArgumentException>();
+        }
+
+        [Test]
         public void strike_threshold_below_three_is_rejected()
         {
             var rule = new HygieneRule

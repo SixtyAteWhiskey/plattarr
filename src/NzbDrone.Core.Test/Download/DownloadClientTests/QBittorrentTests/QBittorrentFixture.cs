@@ -95,6 +95,159 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
         }
 
         [Test]
+        public void hygiene_file_skip_posts_only_selected_file_ids()
+        {
+            HttpRequest capturedRequest = null;
+            Mocker.GetMock<IHttpClient>()
+                .Setup(x => x.Execute(It.IsAny<HttpRequest>()))
+                .Callback<HttpRequest>(request => capturedRequest = request)
+                .Returns<HttpRequest>(request => new HttpResponse(request, new HttpHeader(), string.Empty));
+
+            var proxy = new QBittorrentProxyV2(
+                Mocker.GetMock<IHttpClient>().Object,
+                Mocker.Resolve<NzbDrone.Common.Cache.CacheManager>(),
+                TestLogger);
+            proxy.SetTorrentFilePriority(
+                "test-hash",
+                new[] { 5, 9 },
+                0,
+                new QBittorrentSettings { Host = "127.0.0.1", Port = 8080, ApiKey = "test-api-key" });
+
+            capturedRequest.Should().NotBeNull();
+            capturedRequest.Method.Should().Be(System.Net.Http.HttpMethod.Post);
+            capturedRequest.Url.Path.Should().Be("/api/v2/torrents/filePrio");
+            capturedRequest.GetContent().Should().Contain("hash=test-hash");
+            capturedRequest.GetContent().Should().Contain("id=5%7C9");
+            capturedRequest.GetContent().Should().Contain("priority=0");
+        }
+
+        [Test]
+        public void hygiene_skip_uses_file_index_and_verifies_priority()
+        {
+            Mocker.GetMock<IQBittorrentProxySelector>()
+                .Setup(x => x.GetApiVersion(It.IsAny<QBittorrentSettings>(), It.IsAny<bool>()))
+                .Returns(new Version(2, 8, 2));
+            var files = new List<QBittorrentTorrentFile>
+            {
+                new() { Name = "Movie/movie.mkv", Index = 5, Priority = 1 },
+                new() { Name = "Movie/setup.exe", Index = 9, Priority = 1 }
+            };
+            Mocker.GetMock<IQBittorrentProxy>()
+                .Setup(x => x.GetTorrentFiles("hash", It.IsAny<QBittorrentSettings>()))
+                .Returns(() => files);
+            Mocker.GetMock<IQBittorrentProxy>()
+                .Setup(x => x.SetTorrentFilePriority("hash", It.IsAny<IReadOnlyCollection<int>>(), 0, It.IsAny<QBittorrentSettings>()))
+                .Callback(() => files[1].Priority = 0);
+
+            Subject.SkipHygieneFiles("HASH", new[] { "Movie/setup.exe" }, new[] { "Movie/movie.mkv" })
+                .Should().Be("observed-skipped");
+            Mocker.GetMock<IQBittorrentProxy>().Verify(
+                x => x.SetTorrentFilePriority(
+                "hash",
+                It.Is<IReadOnlyCollection<int>>(ids => ids.Count == 1 && ids.Contains(9)),
+                0,
+                It.IsAny<QBittorrentSettings>()),
+                Times.Once);
+        }
+
+        [Test]
+        public void hygiene_skip_holds_if_file_list_changed()
+        {
+            Mocker.GetMock<IQBittorrentProxySelector>()
+                .Setup(x => x.GetApiVersion(It.IsAny<QBittorrentSettings>(), It.IsAny<bool>()))
+                .Returns(new Version(2, 8, 2));
+            Mocker.GetMock<IQBittorrentProxy>()
+                .Setup(x => x.GetTorrentFiles("hash", It.IsAny<QBittorrentSettings>()))
+                .Returns(new List<QBittorrentTorrentFile>
+                {
+                    new() { Name = "Movie/movie.mkv", Index = 5 },
+                    new() { Name = "Movie/setup.exe", Index = 9 },
+                    new() { Name = "Movie/another.exe", Index = 10 }
+                });
+
+            Subject.SkipHygieneFiles("HASH", new[] { "Movie/setup.exe" }, new[] { "Movie/movie.mkv" })
+                .Should().Be("files-changed");
+            Mocker.GetMock<IQBittorrentProxy>().Verify(
+                x => x.SetTorrentFilePriority(
+                It.IsAny<string>(),
+                It.IsAny<IReadOnlyCollection<int>>(),
+                It.IsAny<int>(),
+                It.IsAny<QBittorrentSettings>()),
+                Times.Never);
+        }
+
+        [Test]
+        public void hygiene_category_change_is_verified_and_idempotent()
+        {
+            Subject.Definition.Settings.Movies().ImportedCategory = "movies-done";
+            var torrent = new QBittorrentTorrent { Hash = "HASH", Label = "movies-radarr" };
+            Mocker.GetMock<IQBittorrentProxy>()
+                .Setup(x => x.GetTorrents(null, It.IsAny<QBittorrentSettings>()))
+                .Returns(() => new List<QBittorrentTorrent> { torrent });
+            Mocker.GetMock<IQBittorrentProxy>()
+                .Setup(x => x.SetTorrentLabel("hash", "movies-done", It.IsAny<QBittorrentSettings>()))
+                .Callback(() => torrent.Label = "movies-done");
+
+            Subject.ChangeToPostImportCategory("HASH", MediaKind.Movies).Should().Be("observed-category");
+            Subject.ChangeToPostImportCategory("HASH", MediaKind.Movies).Should().Be("observed-category");
+            Mocker.GetMock<IQBittorrentProxy>().Verify(
+                x => x.SetTorrentLabel(
+                "hash",
+                "movies-done",
+                It.IsAny<QBittorrentSettings>()),
+                Times.Once);
+        }
+
+        [Test]
+        public void excluded_file_sync_changes_only_the_list_when_content_differs()
+        {
+            Mocker.GetMock<IQBittorrentProxySelector>()
+                .Setup(x => x.GetApiVersion(It.IsAny<QBittorrentSettings>(), It.IsAny<bool>()))
+                .Returns(new Version(2, 0));
+            Mocker.GetMock<IQBittorrentProxy>()
+                .Setup(x => x.GetConfig(It.IsAny<QBittorrentSettings>()))
+                .Returns(new QBittorrentPreferences { ExcludedFileNames = "*.txt", ExcludedFileNamesEnabled = false });
+
+            Subject.SyncExcludedFileNames("*.exe").Should().Be("request-returned");
+            Mocker.GetMock<IQBittorrentProxy>().Verify(
+                x => x.SetExcludedFileNames("*.exe", It.IsAny<QBittorrentSettings>()), Times.Once);
+
+            Subject.SyncExcludedFileNames("*.txt").Should().Be("unchanged");
+            Mocker.GetMock<IQBittorrentProxy>().Verify(
+                x => x.SetExcludedFileNames("*.txt", It.IsAny<QBittorrentSettings>()), Times.Never);
+
+            Mocker.GetMock<IQBittorrentProxy>()
+                .Setup(x => x.GetConfig(It.IsAny<QBittorrentSettings>()))
+                .Returns(new QBittorrentPreferences());
+            Subject.SyncExcludedFileNames("*.exe").Should().Be("unsupported");
+        }
+
+        [Test]
+        public void excluded_file_sync_uses_only_the_qbittorrent_preference_key()
+        {
+            HttpRequest capturedRequest = null;
+            Mocker.GetMock<IHttpClient>()
+                .Setup(x => x.Execute(It.IsAny<HttpRequest>()))
+                .Callback<HttpRequest>(request => capturedRequest = request)
+                .Returns<HttpRequest>(request => new HttpResponse(request, new HttpHeader(), string.Empty));
+            var proxy = new QBittorrentProxyV2(
+                Mocker.GetMock<IHttpClient>().Object,
+                Mocker.Resolve<NzbDrone.Common.Cache.CacheManager>(),
+                TestLogger);
+
+            proxy.SetExcludedFileNames("*.exe", new QBittorrentSettings
+            {
+                Host = "127.0.0.1",
+                Port = 8080,
+                ApiKey = "test-api-key"
+            });
+
+            capturedRequest.Url.Path.Should().Be("/api/v2/app/setPreferences");
+            capturedRequest.GetContent().Should().Contain("excluded_file_names")
+                .And.NotContain("excluded_file_names_enabled");
+        }
+
+        [Test]
         public void hygiene_removal_observes_job_and_source_path_absent()
         {
             var torrent = new QBittorrentTorrent
@@ -406,6 +559,47 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
             GivenTorrents(new List<QBittorrentTorrent> { torrent });
 
             Subject.GetItems().Single().DownloadClientDownloadingMetadata.Should().Be(expected);
+        }
+
+        [Test]
+        public void hygiene_receives_qbittorrent_ignore_fields_and_alternate_speed_state()
+        {
+            GivenTorrents(new List<QBittorrentTorrent>
+            {
+                new()
+                {
+                    Hash = "HASH",
+                    Name = _title,
+                    State = "downloading",
+                    Category = "movies-radarr",
+                    Tags = "keep, other",
+                    Tracker = "https://tracker.example.org/announce"
+                }
+            });
+            Mocker.GetMock<IQBittorrentProxy>()
+                .Setup(x => x.IsAlternativeSpeedActive(It.IsAny<QBittorrentSettings>()))
+                .Returns(true);
+
+            var item = Subject.GetItems().Single();
+
+            item.Category.Should().Be("movies-radarr");
+            item.Tags.Should().Be("keep, other");
+            item.Tracker.Should().Be("https://tracker.example.org/announce");
+            item.DownloadClientAlternateSpeedActive.Should().BeTrue();
+        }
+
+        [Test]
+        public void hygiene_holds_slow_cleanup_when_alternate_speed_state_is_unavailable()
+        {
+            GivenTorrents(new List<QBittorrentTorrent>
+            {
+                new() { Hash = "HASH", Name = _title, State = "downloading" }
+            });
+            Mocker.GetMock<IQBittorrentProxy>()
+                .Setup(x => x.IsAlternativeSpeedActive(It.IsAny<QBittorrentSettings>()))
+                .Throws(new DownloadClientException("No response"));
+
+            Subject.GetItems().Single().DownloadClientAlternateSpeedActive.Should().BeTrue();
         }
 
         [Test]

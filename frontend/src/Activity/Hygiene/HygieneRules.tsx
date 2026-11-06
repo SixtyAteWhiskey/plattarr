@@ -21,6 +21,22 @@ export interface HygieneRule {
   strikeLimit: number;
   strikeIntervalMinutes: number;
   minimumDownloadRateKiBps: number;
+  ignoredDownloads: string | null;
+  failedImportPatternMode: string;
+  failedImportPatterns: string | null;
+  minimumCompletionPercent: number;
+  maximumCompletionPercent: number;
+  minimumTorrentSizeBytes: number;
+  maximumTorrentSizeBytes: number;
+  maximumDownloadHours: number;
+  ignoreWhileAlternateSpeedActive: boolean;
+  torrentPrivacyScope: string;
+  resetStrikesOnProgress: boolean;
+  minimumProgressToResetBytes: number;
+  privateTorrentAction: string;
+  changeCategoryInsteadOfRemoval: boolean;
+  forceImportEnabled: boolean;
+  forceImportMaxTries: number;
 }
 
 export interface DownloadClient {
@@ -128,6 +144,76 @@ function HygieneRuleEditor({
     []
   );
 
+  const handlePrivateActionChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      setDraft((current) => ({
+        ...current,
+        privateTorrentAction: event.target.value,
+      }));
+    },
+    []
+  );
+
+  const handlePrivacyScopeChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      setDraft((current) => ({
+        ...current,
+        torrentPrivacyScope: event.target.value,
+      }));
+    },
+    []
+  );
+
+  const handleResetOnProgressChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        resetStrikesOnProgress: event.target.checked,
+      }));
+    },
+    []
+  );
+
+  const handleMinimumProgressChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        minimumProgressToResetBytes: Number(event.target.value),
+      }));
+    },
+    []
+  );
+
+  const handleCategoryChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        changeCategoryInsteadOfRemoval: event.target.checked,
+      }));
+    },
+    []
+  );
+
+  const handleForceImportChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        forceImportEnabled: event.target.checked,
+      }));
+    },
+    []
+  );
+
+  const handleForceImportTriesChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        forceImportMaxTries: Number(event.target.value),
+      }));
+    },
+    []
+  );
+
   const handleLimitChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       setDraft((current) => ({
@@ -153,6 +239,96 @@ function HygieneRuleEditor({
       setDraft((current) => ({
         ...current,
         minimumDownloadRateKiBps: Number(event.target.value),
+      }));
+    },
+    []
+  );
+
+  const handleMaximumHoursChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        maximumDownloadHours: Number(event.target.value),
+      }));
+    },
+    []
+  );
+
+  const handleIgnoredDownloadsChange = useCallback(
+    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setDraft((current) => ({
+        ...current,
+        ignoredDownloads: event.target.value,
+      }));
+    },
+    []
+  );
+
+  const handlePatternModeChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      setDraft((current) => ({
+        ...current,
+        failedImportPatternMode: event.target.value,
+      }));
+    },
+    []
+  );
+
+  const handlePatternsChange = useCallback(
+    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setDraft((current) => ({
+        ...current,
+        failedImportPatterns: event.target.value,
+      }));
+    },
+    []
+  );
+
+  const handleMinimumCompletionChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        minimumCompletionPercent: Number(event.target.value),
+      }));
+    },
+    []
+  );
+
+  const handleMaximumCompletionChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        maximumCompletionPercent: Number(event.target.value),
+      }));
+    },
+    []
+  );
+
+  const handleMinimumSizeChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        minimumTorrentSizeBytes: Number(event.target.value),
+      }));
+    },
+    []
+  );
+
+  const handleMaximumSizeChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        maximumTorrentSizeBytes: Number(event.target.value),
+      }));
+    },
+    []
+  );
+
+  const handleAlternateSpeedChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) => ({
+        ...current,
+        ignoreWhileAlternateSpeedActive: event.target.checked,
       }));
     },
     []
@@ -321,6 +497,36 @@ function HygieneRuleEditor({
           </label>
 
           <label className={styles.formField}>
+            <span>Private torrent action</span>
+            <select
+              className={styles.formControl}
+              value={draft.privateTorrentAction ?? 'hold'}
+              onChange={handlePrivateActionChange}
+            >
+              <option value="hold">Hold for manual review</option>
+              <option value="category">Change to post-import category</option>
+              <option value="remove">Remove from client</option>
+            </select>
+          </label>
+          <Text size="small" tone="secondary">
+            An unverified torrent is always held. Removing a private torrent may
+            affect tracker seeding requirements. Category change requires a
+            configured post-import category on the download client.
+          </Text>
+          <label className={styles.checkboxField}>
+            <input
+              className={styles.checkbox}
+              type="checkbox"
+              checked={draft.changeCategoryInsteadOfRemoval}
+              onChange={handleCategoryChange}
+            />
+            <span>
+              Change public torrents to the post-import category instead of
+              removing
+            </span>
+          </label>
+
+          <label className={styles.formField}>
             <span>Strikes required</span>
             <input
               id={`hygiene-rule-${draft.id}-strike-limit`}
@@ -347,19 +553,210 @@ function HygieneRuleEditor({
           </label>
 
           {draft.reasonCode === 'download-slow' ? (
-            <label className={styles.formField}>
-              <span>Treat speeds below (KiB/s) as slow</span>
-              <input
-                id={`hygiene-rule-${draft.id}-minimum-rate`}
-                className={styles.formControl}
-                type="number"
-                min="1"
-                max="1048576"
-                required={true}
-                value={draft.minimumDownloadRateKiBps}
-                onChange={handleMinimumRateChange}
-              />
-            </label>
+            <>
+              <label className={styles.formField}>
+                <span>Treat speeds below (KiB/s) as slow</span>
+                <input
+                  id={`hygiene-rule-${draft.id}-minimum-rate`}
+                  className={styles.formControl}
+                  type="number"
+                  min="0"
+                  max="1048576"
+                  value={draft.minimumDownloadRateKiBps}
+                  onChange={handleMinimumRateChange}
+                />
+              </label>
+              <label className={styles.formField}>
+                <span>Or after this many hours (0 disables)</span>
+                <input
+                  className={styles.formControl}
+                  type="number"
+                  min="0"
+                  max="8760"
+                  value={draft.maximumDownloadHours}
+                  onChange={handleMaximumHoursChange}
+                />
+              </label>
+            </>
+          ) : null}
+
+          <label className={styles.formField}>
+            <span>
+              Ignored downloads (one hash, category, tag, tracker domain, or
+              client name per line)
+            </span>
+            <textarea
+              className={styles.formControl}
+              value={draft.ignoredDownloads ?? ''}
+              onChange={handleIgnoredDownloadsChange}
+            />
+          </label>
+
+          {draft.reasonCode === 'import-blocked' ? (
+            <>
+              <label className={styles.checkboxField}>
+                <input
+                  className={styles.checkbox}
+                  type="checkbox"
+                  checked={draft.forceImportEnabled}
+                  onChange={handleForceImportChange}
+                />
+                <span>Try guarded force import before collecting strikes</span>
+              </label>
+              {draft.forceImportEnabled ? (
+                <label className={styles.formField}>
+                  <span>Maximum force-import attempts</span>
+                  <input
+                    className={styles.formControl}
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={draft.forceImportMaxTries}
+                    onChange={handleForceImportTriesChange}
+                  />
+                </label>
+              ) : null}
+              <Text size="small" tone="secondary">
+                Supports tracked Movie and TV downloads with only the known
+                ID-match or uncertain-sample reasons. Every file must match the
+                resolved media and have no other rejection. A queued import is
+                recorded separately from a confirmed import.
+              </Text>
+              <label className={styles.formField}>
+                <span>Failed-import reason filter</span>
+                <select
+                  className={styles.formControl}
+                  value={draft.failedImportPatternMode ?? 'all'}
+                  onChange={handlePatternModeChange}
+                >
+                  <option value="all">All reasons</option>
+                  <option value="include">Only matching reasons</option>
+                  <option value="exclude">Except matching reasons</option>
+                </select>
+              </label>
+              {draft.failedImportPatternMode === 'include' ||
+              draft.failedImportPatternMode === 'exclude' ? (
+                <label className={styles.formField}>
+                  <span>
+                    Reason phrases (one case-insensitive phrase per line)
+                  </span>
+                  <textarea
+                    className={styles.formControl}
+                    required={true}
+                    value={draft.failedImportPatterns ?? ''}
+                    onChange={handlePatternsChange}
+                  />
+                </label>
+              ) : null}
+            </>
+          ) : null}
+
+          {['download-stalled', 'download-slow', 'download-unstable'].includes(
+            draft.reasonCode
+          ) ? (
+            <>
+              <label className={styles.formField}>
+                <span>Torrent privacy scope</span>
+                <select
+                  className={styles.formControl}
+                  value={draft.torrentPrivacyScope ?? 'all'}
+                  onChange={handlePrivacyScopeChange}
+                >
+                  <option value="all">Public and private torrents</option>
+                  <option value="public">Public torrents only</option>
+                  <option value="private">
+                    Private and semi-private torrents only
+                  </option>
+                </select>
+              </label>
+              <Text size="small" tone="secondary">
+                Privacy scoped rules do not match unverified torrents.
+              </Text>
+              <label className={styles.formField}>
+                <span>Minimum completion (%)</span>
+                <input
+                  className={styles.formControl}
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={draft.minimumCompletionPercent}
+                  onChange={handleMinimumCompletionChange}
+                />
+              </label>
+              <label className={styles.formField}>
+                <span>Maximum completion (%)</span>
+                <input
+                  className={styles.formControl}
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={draft.maximumCompletionPercent}
+                  onChange={handleMaximumCompletionChange}
+                />
+              </label>
+              <label className={styles.formField}>
+                <span>Minimum torrent size (bytes, 0 disables)</span>
+                <input
+                  className={styles.formControl}
+                  type="number"
+                  min="0"
+                  value={draft.minimumTorrentSizeBytes}
+                  onChange={handleMinimumSizeChange}
+                />
+              </label>
+              <label className={styles.formField}>
+                <span>Maximum torrent size (bytes, 0 disables)</span>
+                <input
+                  className={styles.formControl}
+                  type="number"
+                  min="0"
+                  value={draft.maximumTorrentSizeBytes}
+                  onChange={handleMaximumSizeChange}
+                />
+              </label>
+              {draft.reasonCode === 'download-stalled' ||
+              draft.reasonCode === 'download-slow' ? (
+                <>
+                  <label className={styles.checkboxField}>
+                    <input
+                      className={styles.checkbox}
+                      type="checkbox"
+                      checked={draft.resetStrikesOnProgress}
+                      onChange={handleResetOnProgressChange}
+                    />
+                    <span>Reset strikes when the download makes progress</span>
+                  </label>
+                  {draft.resetStrikesOnProgress ? (
+                    <label className={styles.formField}>
+                      <span>
+                        Minimum progress to reset (bytes, 0 means any)
+                      </span>
+                      <input
+                        className={styles.formControl}
+                        type="number"
+                        min="0"
+                        value={draft.minimumProgressToResetBytes}
+                        onChange={handleMinimumProgressChange}
+                      />
+                    </label>
+                  ) : null}
+                </>
+              ) : null}
+              {draft.reasonCode === 'download-slow' ||
+              draft.reasonCode === 'download-unstable' ? (
+                <label className={styles.checkboxField}>
+                  <input
+                    className={styles.checkbox}
+                    type="checkbox"
+                    checked={draft.ignoreWhileAlternateSpeedActive}
+                    onChange={handleAlternateSpeedChange}
+                  />
+                  <span>
+                    Ignore slow signals while alternate speed limits are active
+                  </span>
+                </label>
+              ) : null}
+            </>
           ) : null}
 
           <Cluster
@@ -434,6 +831,7 @@ function HygieneRules({
   const [warningCleanupEnabled, setWarningCleanupEnabled] = useState(false);
   const [searchForReplacement, setSearchForReplacement] = useState(true);
   const [minimumDownloadRateKiBps, setMinimumDownloadRateKiBps] = useState(100);
+  const [torrentPrivacyScope, setTorrentPrivacyScope] = useState('all');
   const [mediaKind, setMediaKind] = useState(0);
   const [downloadClientId, setDownloadClientId] = useState(0);
   const [error, setError] = useState<string>();
@@ -462,6 +860,7 @@ function HygieneRules({
       setReasonCode(event.target.value);
       setDeleteFilesOnFailure(false);
       setWarningCleanupEnabled(false);
+      setTorrentPrivacyScope('all');
     },
     []
   );
@@ -469,6 +868,13 @@ function HygieneRules({
   const handleMinimumRateChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       setMinimumDownloadRateKiBps(Number(event.target.value));
+    },
+    []
+  );
+
+  const handleNewPrivacyScopeChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      setTorrentPrivacyScope(event.target.value);
     },
     []
   );
@@ -530,6 +936,22 @@ function HygieneRules({
           strikeIntervalMinutes: 5,
           minimumDownloadRateKiBps:
             reasonCode === 'download-slow' ? minimumDownloadRateKiBps : 0,
+          ignoredDownloads: null,
+          failedImportPatternMode: 'all',
+          failedImportPatterns: null,
+          minimumCompletionPercent: 0,
+          maximumCompletionPercent: 100,
+          minimumTorrentSizeBytes: 0,
+          maximumTorrentSizeBytes: 0,
+          maximumDownloadHours: 0,
+          ignoreWhileAlternateSpeedActive: true,
+          torrentPrivacyScope,
+          resetStrikesOnProgress: reasonCode !== 'download-slow',
+          minimumProgressToResetBytes: 0,
+          privateTorrentAction: 'hold',
+          changeCategoryInsteadOfRemoval: false,
+          forceImportEnabled: false,
+          forceImportMaxTries: 3,
         });
         rulesQuery.refetch();
         setCreatedRuleId(createdRule.id);
@@ -551,6 +973,7 @@ function HygieneRules({
       mediaKind,
       downloadClientId,
       minimumDownloadRateKiBps,
+      torrentPrivacyScope,
       rulesQuery,
       onChanged,
     ]
@@ -663,6 +1086,27 @@ function HygieneRules({
                         value={minimumDownloadRateKiBps}
                         onChange={handleMinimumRateChange}
                       />
+                    </label>
+                  ) : null}
+
+                  {[
+                    'download-stalled',
+                    'download-slow',
+                    'download-unstable',
+                  ].includes(reasonCode) ? (
+                    <label className={styles.formField}>
+                      <span>Torrent privacy scope</span>
+                      <select
+                        className={styles.formControl}
+                        value={torrentPrivacyScope}
+                        onChange={handleNewPrivacyScopeChange}
+                      >
+                        <option value="all">Public and private torrents</option>
+                        <option value="public">Public torrents only</option>
+                        <option value="private">
+                          Private and semi-private torrents only
+                        </option>
+                      </select>
                     </label>
                   ) : null}
 

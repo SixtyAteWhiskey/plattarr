@@ -195,6 +195,66 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("HygieneActionsEnabled", value); }
         }
 
+        public bool HygieneContentInspectionEnabled
+        {
+            get { return GetValueBoolean("HygieneContentInspectionEnabled", false); }
+            set { SetValue("HygieneContentInspectionEnabled", value); }
+        }
+
+        public bool HygieneContentActionsEnabled
+        {
+            get { return GetValueBoolean("HygieneContentActionsEnabled", false); }
+            set { SetValue("HygieneContentActionsEnabled", value); }
+        }
+
+        public bool HygieneContentDeleteSourceFiles
+        {
+            get { return GetValueBoolean("HygieneContentDeleteSourceFiles", false); }
+            set { SetValue("HygieneContentDeleteSourceFiles", value); }
+        }
+
+        public string HygieneContentPatterns
+        {
+            get { return GetValue("HygieneContentPatterns", ""); }
+            set { SetValue("HygieneContentPatterns", value); }
+        }
+
+        public string HygieneContentPatternSource
+        {
+            get { return GetValue("HygieneContentPatternSource", ""); }
+            set { SetValue("HygieneContentPatternSource", value); }
+        }
+
+        public string HygieneContentListType
+        {
+            get { return GetValue("HygieneContentListType", "blocklist"); }
+            set { SetValue("HygieneContentListType", value); }
+        }
+
+        public bool HygieneContentDeleteIfAnyFileBlocked
+        {
+            get { return GetValueBoolean("HygieneContentDeleteIfAnyFileBlocked", false); }
+            set { SetValue("HygieneContentDeleteIfAnyFileBlocked", value); }
+        }
+
+        public string HygieneExcludedFileNames
+        {
+            get { return GetValue("HygieneExcludedFileNames", ""); }
+            set { SetValue("HygieneExcludedFileNames", value); }
+        }
+
+        public string HygieneExcludedFileNamesSource
+        {
+            get { return GetValue("HygieneExcludedFileNamesSource", ""); }
+            set { SetValue("HygieneExcludedFileNamesSource", value); }
+        }
+
+        public bool HygieneExcludedFileNamesSyncEnabled
+        {
+            get { return GetValueBoolean("HygieneExcludedFileNamesSyncEnabled", false); }
+            set { SetValue("HygieneExcludedFileNamesSyncEnabled", value); }
+        }
+
         public bool PreferIndexerFlags
         {
             get { return GetValueBoolean("PreferIndexerFlags", false); }

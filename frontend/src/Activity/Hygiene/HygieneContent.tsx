@@ -1,0 +1,400 @@
+import React, { FormEvent, useCallback, useEffect, useState } from 'react';
+import Alert from 'Components/Alert';
+import { Cluster, Stack } from 'Components/Layout';
+import Button from 'Components/Link/Button';
+import Surface from 'Components/Surface';
+import { Heading, Text } from 'Components/Typography';
+import useApiQuery from 'Helpers/Hooks/useApiQuery';
+import fetchJson, { apiRoot } from 'Utilities/Fetch/fetchJson';
+import styles from './Hygiene.css';
+
+interface ContentConfig {
+  id: number;
+  inspectionEnabled: boolean;
+  actionsEnabled: boolean;
+  deleteSourceFiles: boolean;
+  patterns: string;
+  patternSource: string;
+  listType: string;
+  deleteIfAnyFileBlocked: boolean;
+  excludedFileNames: string;
+  excludedFileNamesSource: string;
+  excludedFileNamesSyncEnabled: boolean;
+}
+
+interface ContentAssessment {
+  queueId: number;
+  title: string;
+  status: string;
+  blockedFiles: string[];
+  allowedFiles: string[];
+  wouldRemoveDownload: boolean;
+  wouldAct: boolean;
+  actionExplanation: string;
+  explanation: string;
+}
+
+interface SyncResult {
+  downloadClientId: number;
+  status: string;
+}
+
+function HygieneContent() {
+  const configQuery = useApiQuery<ContentConfig>({
+    path: '/hygiene/content/config',
+  });
+  const previewQuery = useApiQuery<ContentAssessment[]>({
+    path: '/hygiene/content/preview',
+  });
+  const [draft, setDraft] = useState<ContentConfig>();
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string>();
+  const [syncResults, setSyncResults] = useState<SyncResult[]>();
+
+  useEffect(() => {
+    if (configQuery.data) {
+      setDraft(configQuery.data);
+    }
+  }, [configQuery.data]);
+
+  const handleEnabledChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) =>
+        current
+          ? {
+              ...current,
+              inspectionEnabled: event.target.checked,
+              actionsEnabled: event.target.checked && current.actionsEnabled,
+            }
+          : current
+      );
+    },
+    []
+  );
+
+  const handleActionsChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) =>
+        current ? { ...current, actionsEnabled: event.target.checked } : current
+      );
+    },
+    []
+  );
+
+  const handleDeleteSourceChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) =>
+        current
+          ? { ...current, deleteSourceFiles: event.target.checked }
+          : current
+      );
+    },
+    []
+  );
+
+  const handleListTypeChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      setDraft((current) =>
+        current ? { ...current, listType: event.target.value } : current
+      );
+    },
+    []
+  );
+
+  const handlePatternsChange = useCallback(
+    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setDraft((current) =>
+        current ? { ...current, patterns: event.target.value } : current
+      );
+    },
+    []
+  );
+
+  const handlePatternSourceChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) =>
+        current ? { ...current, patternSource: event.target.value } : current
+      );
+    },
+    []
+  );
+
+  const handleMixedChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) =>
+        current
+          ? { ...current, deleteIfAnyFileBlocked: event.target.checked }
+          : current
+      );
+    },
+    []
+  );
+
+  const handleExcludedChange = useCallback(
+    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setDraft((current) =>
+        current
+          ? { ...current, excludedFileNames: event.target.value }
+          : current
+      );
+    },
+    []
+  );
+
+  const handleExcludedSourceChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) =>
+        current
+          ? { ...current, excludedFileNamesSource: event.target.value }
+          : current
+      );
+    },
+    []
+  );
+
+  const handleAutomaticSyncChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setDraft((current) =>
+        current
+          ? { ...current, excludedFileNamesSyncEnabled: event.target.checked }
+          : current
+      );
+    },
+    []
+  );
+
+  const handleSave = useCallback(
+    async (event: FormEvent) => {
+      event.preventDefault();
+      if (!draft) {
+        return;
+      }
+
+      setIsSaving(true);
+      setError(undefined);
+      try {
+        await fetchJson<ContentConfig, ContentConfig>({
+          method: 'PUT',
+          path: `${apiRoot}/hygiene/content/config/1`,
+          headers: { 'X-Api-Key': window.Radarr.apiKey },
+          body: draft,
+        });
+        await configQuery.refetch();
+        await previewQuery.refetch();
+      } catch {
+        setError('Unable to save content settings. Check the patterns.');
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [draft, configQuery, previewQuery]
+  );
+
+  const handleSync = useCallback(async () => {
+    setIsSaving(true);
+    setError(undefined);
+    try {
+      const results = await fetchJson<SyncResult[], undefined>({
+        method: 'POST',
+        path: `${apiRoot}/hygiene/content/sync`,
+        headers: { 'X-Api-Key': window.Radarr.apiKey },
+      });
+      setSyncResults(results);
+    } catch {
+      setError('Unable to synchronize qBittorrent excluded file names.');
+    } finally {
+      setIsSaving(false);
+    }
+  }, []);
+
+  const handlePreview = useCallback(() => {
+    previewQuery.refetch();
+  }, [previewQuery]);
+
+  return (
+    <Surface elevation="low" padding="large">
+      <Stack
+        component="section"
+        gap="medium"
+        aria-labelledby="hygiene-content-heading"
+      >
+        <Heading id="hygiene-content-heading" level={2}>
+          Content inspection
+        </Heading>
+        <Text tone="secondary">
+          Inspect qBittorrent file lists against file-name patterns. Content
+          actions require both the global Hygiene gate and a separate opt-in.
+        </Text>
+
+        {configQuery.isError ? (
+          <Alert kind="danger">Unable to load content settings.</Alert>
+        ) : null}
+
+        {draft ? (
+          <form className={styles.ruleForm} onSubmit={handleSave}>
+            <label className={styles.checkboxField}>
+              <input
+                className={styles.checkbox}
+                type="checkbox"
+                checked={draft.inspectionEnabled}
+                onChange={handleEnabledChange}
+              />
+              <span>Enable read-only content inspection</span>
+            </label>
+            <label className={styles.checkboxField}>
+              <input
+                className={styles.checkbox}
+                type="checkbox"
+                checked={draft.actionsEnabled}
+                disabled={!draft.inspectionEnabled}
+                onChange={handleActionsChange}
+              />
+              <span>Allow automatic content actions</span>
+            </label>
+            <label className={styles.checkboxField}>
+              <input
+                className={styles.checkbox}
+                type="checkbox"
+                checked={draft.deleteSourceFiles}
+                onChange={handleDeleteSourceChange}
+              />
+              <span>
+                Delete source files when a blocked download is removed
+              </span>
+            </label>
+            <label className={styles.formField}>
+              <span>List type</span>
+              <select
+                className={styles.formControl}
+                value={draft.listType}
+                onChange={handleListTypeChange}
+              >
+                <option value="blocklist">Block matching files</option>
+                <option value="allowlist">Allow matching files</option>
+              </select>
+            </label>
+            <label className={styles.formField}>
+              <span>Patterns, one per line (exact, * wildcard, or regex:)</span>
+              <textarea
+                className={styles.formControl}
+                value={draft.patterns ?? ''}
+                onChange={handlePatternsChange}
+              />
+            </label>
+            <label className={styles.formField}>
+              <span>
+                Pattern file path or HTTP/HTTPS URL (overrides inline patterns)
+              </span>
+              <input
+                className={styles.formControl}
+                type="text"
+                value={draft.patternSource ?? ''}
+                onChange={handlePatternSourceChange}
+              />
+            </label>
+            <label className={styles.checkboxField}>
+              <input
+                className={styles.checkbox}
+                type="checkbox"
+                checked={draft.deleteIfAnyFileBlocked}
+                onChange={handleMixedChange}
+              />
+              <span>Remove the whole download if any file is blocked</span>
+            </label>
+            <label className={styles.formField}>
+              <span>qBittorrent excluded file names, one per line</span>
+              <textarea
+                className={styles.formControl}
+                value={draft.excludedFileNames ?? ''}
+                onChange={handleExcludedChange}
+              />
+            </label>
+            <label className={styles.formField}>
+              <span>
+                Exclusion file path or HTTP/HTTPS URL (overrides inline list)
+              </span>
+              <input
+                className={styles.formControl}
+                type="text"
+                value={draft.excludedFileNamesSource ?? ''}
+                onChange={handleExcludedSourceChange}
+              />
+            </label>
+            <label className={styles.checkboxField}>
+              <input
+                className={styles.checkbox}
+                type="checkbox"
+                checked={draft.excludedFileNamesSyncEnabled}
+                onChange={handleAutomaticSyncChange}
+              />
+              <span>
+                Sync exclusions to enabled qBittorrent clients every hour
+              </span>
+            </label>
+            <Cluster gap="small">
+              <Button type="submit" kind="primary" isDisabled={isSaving}>
+                Save content settings
+              </Button>
+              <Button
+                type="button"
+                isDisabled={
+                  isSaving ||
+                  (!configQuery.data?.excludedFileNames &&
+                    !configQuery.data?.excludedFileNamesSource) ||
+                  draft.excludedFileNames !==
+                    configQuery.data.excludedFileNames ||
+                  draft.excludedFileNamesSource !==
+                    configQuery.data.excludedFileNamesSource
+                }
+                onPress={handleSync}
+              >
+                Sync exclusions now
+              </Button>
+            </Cluster>
+          </form>
+        ) : null}
+
+        <Text size="small" tone="secondary">
+          Sync updates the excluded file names list on enabled qBittorrent Web
+          API v2 clients. It leaves each client’s enable switch as configured.
+          Source URLs must be public, and lists are limited to 100 KB.
+        </Text>
+
+        {syncResults?.map((result) => (
+          <Text key={result.downloadClientId} size="small">
+            Client {result.downloadClientId}: {result.status}
+          </Text>
+        ))}
+
+        <Button onPress={handlePreview}>Refresh file-list preview</Button>
+        {previewQuery.isError ? (
+          <Alert kind="danger">Unable to load the content preview.</Alert>
+        ) : null}
+        {previewQuery.data?.map((item) => (
+          <Surface key={item.queueId} padding="medium" variant="subtle">
+            <Stack gap="xSmall">
+              <Heading level={3}>{item.title}</Heading>
+              <Text>{item.explanation}</Text>
+              <Text size="small" tone="secondary">
+                {item.blockedFiles.length} blocked, {item.allowedFiles.length}{' '}
+                allowed · {item.status}
+              </Text>
+              <Text size="small" tone="secondary">
+                {item.actionExplanation}
+              </Text>
+              {item.blockedFiles.length > 0 ? (
+                <Text size="small">
+                  Blocked: {item.blockedFiles.join(', ')}
+                </Text>
+              ) : null}
+            </Stack>
+          </Surface>
+        ))}
+
+        {error ? <Alert kind="danger">{error}</Alert> : null}
+      </Stack>
+    </Surface>
+  );
+}
+
+export default HygieneContent;

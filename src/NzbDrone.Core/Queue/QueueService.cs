@@ -22,6 +22,7 @@ namespace NzbDrone.Core.Queue
         private readonly IEventAggregator _eventAggregator;
         private readonly NzbDrone.Core.Hygiene.IHygieneQueueStrikeService _hygieneQueueStrikeService;
         private readonly NzbDrone.Core.Hygiene.IHygieneQueueActionService _hygieneQueueActionService;
+        private readonly NzbDrone.Core.Hygiene.IHygieneImportRescueService _hygieneImportRescueService;
         private readonly Logger _logger;
         private static List<Queue> _queue = new();
 
@@ -29,11 +30,13 @@ namespace NzbDrone.Core.Queue
             IEventAggregator eventAggregator,
             NzbDrone.Core.Hygiene.IHygieneQueueStrikeService hygieneQueueStrikeService,
             NzbDrone.Core.Hygiene.IHygieneQueueActionService hygieneQueueActionService,
+            NzbDrone.Core.Hygiene.IHygieneImportRescueService hygieneImportRescueService,
             Logger logger)
         {
             _eventAggregator = eventAggregator;
             _hygieneQueueStrikeService = hygieneQueueStrikeService;
             _hygieneQueueActionService = hygieneQueueActionService;
+            _hygieneImportRescueService = hygieneImportRescueService;
             _logger = logger;
         }
 
@@ -66,6 +69,7 @@ namespace NzbDrone.Core.Queue
                 DownloadRateBytesPerSecond = trackedDownload.DownloadItem.DownloadRateBytesPerSecond,
                 DownloadClientStalled = trackedDownload.DownloadItem.DownloadClientStalled,
                 DownloadClientDownloadingMetadata = trackedDownload.DownloadItem.DownloadClientDownloadingMetadata,
+                DownloadClientAlternateSpeedActive = trackedDownload.DownloadItem.DownloadClientAlternateSpeedActive,
                 DownloadClientCanBeRemoved = trackedDownload.DownloadItem.CanBeRemoved,
                 TimeLeft = trackedDownload.DownloadItem.RemainingTime,
                 Status = Enum.TryParse(trackedDownload.DownloadItem.Status.ToString(), out QueueStatus outValue) ? outValue : QueueStatus.Unknown,
@@ -76,6 +80,9 @@ namespace NzbDrone.Core.Queue
                 Kind = trackedDownload.Kind,
                 RemoteRelease = remoteRelease,
                 DownloadId = trackedDownload.DownloadItem.DownloadId,
+                DownloadCategory = trackedDownload.DownloadItem.Category,
+                DownloadTags = trackedDownload.DownloadItem.Tags,
+                DownloadTracker = trackedDownload.DownloadItem.Tracker,
                 Protocol = trackedDownload.Protocol,
                 DownloadClient = trackedDownload.DownloadItem.DownloadClientInfo.Name,
                 DownloadClientId = trackedDownload.DownloadClient,
@@ -110,8 +117,18 @@ namespace NzbDrone.Core.Queue
                 // snapshot before clearing its strikes.
                 var observed = message.ProcessingComplete ? _queue : _queue.Where(item =>
                     item.TrackedDownloadState is not (TrackedDownloadState.ImportPending or TrackedDownloadState.Importing));
+                if (message.ProcessingComplete)
+                {
+                    _hygieneImportRescueService.Process(_queue);
+                }
+
                 _hygieneQueueStrikeService.Observe(observed);
-                _hygieneQueueActionService.Process(_queue);
+
+                // Let the processed snapshot run rescue before cleanup can act on
+                // an import block carried over from an earlier refresh.
+                var actionable = message.ProcessingComplete ? _queue :
+                    _queue.Where(item => item.TrackedDownloadState != TrackedDownloadState.ImportBlocked).ToList();
+                _hygieneQueueActionService.Process(actionable);
             }
             catch (Exception ex)
             {
