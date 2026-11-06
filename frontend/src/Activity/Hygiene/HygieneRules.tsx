@@ -88,8 +88,6 @@ interface EditorProps {
   rule: HygieneRule;
   clients: DownloadClient[];
   assessments?: HygieneRuleAssessment[];
-  previewError: boolean;
-  previewLoading: boolean;
   isEditing: boolean;
   onEdit: (id: number) => void;
   onClose: () => void;
@@ -100,8 +98,6 @@ function HygieneRuleEditor({
   rule,
   clients,
   assessments,
-  previewError,
-  previewLoading,
   isEditing,
   onEdit,
   onClose,
@@ -438,11 +434,13 @@ function HygieneRuleEditor({
               </Text>
             </Stack>
             <Cluster align="center" gap="small">
-              <StatusBadge
-                icon={rule.enabled ? icons.CHECK_CIRCLE : icons.BAN}
-                label={rule.enabled ? 'Monitoring' : 'Off'}
-                tone={rule.enabled ? 'monitor' : 'neutral'}
-              />
+              {isEditing ? null : (
+                <StatusBadge
+                  icon={rule.enabled ? icons.CHECK_CIRCLE : icons.BAN}
+                  label={rule.enabled ? 'Monitoring' : 'Off'}
+                  tone={rule.enabled ? 'monitor' : 'neutral'}
+                />
+              )}
               <Button
                 type="button"
                 isDisabled={isSaving}
@@ -452,14 +450,17 @@ function HygieneRuleEditor({
               </Button>
             </Cluster>
           </Cluster>
-          <Text size="small" tone="secondary">
-            {rule.strikeLimit} strikes · {rule.strikeIntervalMinutes} min apart
-            {' · '}
-            {cleanupSummary}
-            {cleanupSummary === 'Monitor only'
-              ? ''
-              : ` · ${replacementSummary}`}
-          </Text>
+          {isEditing ? null : (
+            <Text size="small" tone="secondary">
+              {rule.strikeLimit} strikes · {rule.strikeIntervalMinutes} min
+              apart
+              {' · '}
+              {cleanupSummary}
+              {cleanupSummary === 'Monitor only'
+                ? ''
+                : ` · ${replacementSummary}`}
+            </Text>
+          )}
         </Stack>
 
         {isEditing ? (
@@ -469,26 +470,16 @@ function HygieneRuleEditor({
               <label className={styles.checkboxField}>
                 <input
                   id={`hygiene-rule-${draft.id}-enabled`}
-                  aria-describedby={`hygiene-rule-${draft.id}-enabled-description`}
                   className={styles.checkbox}
                   type="checkbox"
                   checked={draft.enabled}
                   onChange={handleEnabledChange}
                 />
-                <span className={styles.checkboxCopy}>
-                  <span>Monitor this scope</span>
-                  <span
-                    id={`hygiene-rule-${draft.id}-enabled-description`}
-                    className={styles.fieldHint}
-                  >
-                    Counts eligible checks. Cleanup also needs the global
-                    switch.
-                  </span>
-                </span>
+                <span>Monitor matching downloads</span>
               </label>
             </section>
             <section className={styles.ruleGroup}>
-              <Heading level={4}>When cleanup acts</Heading>
+              <Heading level={4}>Cleanup options</Heading>
 
               {draft.reasonCode === 'download-warning' ? (
                 <label className={styles.checkboxField}>
@@ -498,56 +489,53 @@ function HygieneRuleEditor({
                     checked={draft.warningCleanupEnabled}
                     onChange={handleWarningCleanupChange}
                   />
-                  <span className={styles.checkboxCopy}>
-                    <span>Allow automatic cleanup for download warnings</span>
-                    <span className={styles.fieldHint}>
-                      Existing strikes count immediately. Turning this on may
-                      act at the next refresh.
-                    </span>
-                  </span>
+                  <span>Allow cleanup for warnings</span>
                 </label>
               ) : null}
               <label className={styles.checkboxField}>
                 <input
                   id={`hygiene-rule-${draft.id}-delete-files`}
-                  aria-describedby={`hygiene-rule-${draft.id}-delete-files-description`}
                   className={styles.checkbox}
                   type="checkbox"
                   checked={draft.deleteFilesOnFailure}
                   onChange={handleDeleteFilesChange}
                 />
-                <span className={styles.checkboxCopy}>
-                  <span>Delete source files when this rule acts</span>
-                  <span
-                    id={`hygiene-rule-${draft.id}-delete-files-description`}
-                    className={styles.fieldHint}
-                  >
-                    Removes the job and its files from the download client. This
-                    cannot be undone.
-                  </span>
-                </span>
+                <span>Delete downloaded files during cleanup</span>
               </label>
               <label className={styles.checkboxField}>
                 <input
                   id={`hygiene-rule-${draft.id}-search`}
-                  aria-describedby={`hygiene-rule-${draft.id}-search-description`}
                   className={styles.checkbox}
                   type="checkbox"
                   checked={draft.searchForReplacement}
                   onChange={handleSearchChange}
                 />
-                <span className={styles.checkboxCopy}>
-                  <span>
-                    Automatically search for a replacement after cleanup
-                  </span>
-                  <span
-                    id={`hygiene-rule-${draft.id}-search-description`}
-                    className={styles.fieldHint}
-                  >
-                    Uses your failed-download search settings.
-                  </span>
-                </span>
+                <span>Search for a replacement after cleanup</span>
               </label>
+
+              {draft.reasonCode === 'download-warning' &&
+              draft.warningCleanupEnabled ? (
+                <Text size="small" tone="secondary">
+                  Existing strikes count. Cleanup could run on the next refresh.
+                </Text>
+              ) : null}
+
+              {draft.deleteFilesOnFailure ? (
+                <Text size="small" tone="secondary">
+                  Files deleted by cleanup cannot be recovered.
+                </Text>
+              ) : null}
+
+              <details className={styles.ruleDetails}>
+                <summary>How cleanup works</summary>
+                <div className={styles.ruleAdvanced}>
+                  <Text size="small" tone="secondary">
+                    Cleanup removes the download from the client. It also needs
+                    Automatic actions enabled above. Replacement searches use
+                    your failed-download settings.
+                  </Text>
+                </div>
+              </details>
 
               <details className={styles.ruleDetails}>
                 <summary>Torrent actions</summary>
@@ -586,7 +574,7 @@ function HygieneRuleEditor({
               </details>
             </section>
             <section className={styles.ruleGroup}>
-              <Heading level={4}>Strike threshold</Heading>
+              <Heading level={4}>When to act</Heading>
               <div className={styles.ruleFieldGrid}>
                 <label className={styles.formField}>
                   <span>Strikes required</span>
@@ -602,7 +590,7 @@ function HygieneRuleEditor({
                 </label>
 
                 <label className={styles.formField}>
-                  <span>Minimum minutes apart</span>
+                  <span>Minutes between strikes</span>
                   <input
                     id={`hygiene-rule-${draft.id}-strike-interval`}
                     className={styles.formControl}
@@ -859,24 +847,11 @@ function HygieneRuleEditor({
           </form>
         ) : null}
 
-        {matchingAssessments &&
-        (isEditing || matchingAssessments.length > 0) ? (
+        {!isEditing && matchingAssessments && matchingAssessments.length > 0 ? (
           <Text size="small" tone="secondary">
             {matchingAssessments.length} matching download
             {matchingAssessments.length === 1 ? '' : 's'}
             {rule.enabled && `; ${atThresholdCount} at the strike threshold`}.
-          </Text>
-        ) : null}
-
-        {isEditing && !matchingAssessments && previewLoading ? (
-          <Text size="small" tone="secondary">
-            Loading the current queue preview.
-          </Text>
-        ) : null}
-
-        {isEditing && !matchingAssessments && previewError ? (
-          <Text size="small" tone="secondary">
-            Current queue preview is unavailable.
           </Text>
         ) : null}
 
@@ -892,17 +867,10 @@ function HygieneRuleEditor({
 
 interface HygieneRulesProps {
   assessments?: HygieneRuleAssessment[];
-  previewError: boolean;
-  previewLoading: boolean;
   onChanged: () => void;
 }
 
-function HygieneRules({
-  assessments,
-  previewError,
-  previewLoading,
-  onChanged,
-}: HygieneRulesProps) {
+function HygieneRules({ assessments, onChanged }: HygieneRulesProps) {
   const rulesQuery = useApiQuery<HygieneRule[]>({ path: '/hygiene/rule' });
   const clientsQuery = useApiQuery<DownloadClient[]>({
     path: '/downloadclient',
@@ -923,6 +891,7 @@ function HygieneRules({
 
   const handleCloseEditor = useCallback(() => {
     setEditingRuleId(undefined);
+    setCreatedRuleId(undefined);
   }, []);
 
   const handleSaved = useCallback(() => {
@@ -1091,13 +1060,19 @@ function HygieneRules({
             )}
           </Cluster>
           <Text tone="secondary">
-            Rules match a problem, media, and client. Monitoring counts strikes;
-            cleanup also needs the global switch.
+            Rules watch matching downloads. Cleanup can act after enough strikes
+            when Automatic actions are on.
           </Text>
-          <Text size="small" tone="secondary">
-            Stalled and slow signals come from qBittorrent. Failed downloads are
-            blocklisted when cleanup acts.
-          </Text>
+          <details className={styles.ruleDetails}>
+            <summary>How rules work</summary>
+            <div className={styles.ruleAdvanced}>
+              <Text size="small" tone="secondary">
+                Each rule matches a problem, media type, and download client.
+                Stalled and slow signals come from qBittorrent. Failed downloads
+                are blocklisted when cleanup acts.
+              </Text>
+            </div>
+          </details>
         </Stack>
 
         {rulesQuery.isLoading || clientsQuery.isLoading ? (
@@ -1141,22 +1116,29 @@ function HygieneRules({
                   </label>
 
                   {reasonCode === 'download-unstable' ? (
-                    <Text size="small" tone="secondary">
-                      Counts slow and stalled observations for each download,
-                      even when the reason changes or the speed briefly
-                      recovers. The default is 12 strikes, at least 5 minutes
-                      apart. Slow detection uses a matching Slow download rule’s
-                      speed threshold.
-                    </Text>
+                    <details className={styles.ruleDetails}>
+                      <summary>About repeated slow or stalled</summary>
+                      <div className={styles.ruleAdvanced}>
+                        <Text size="small" tone="secondary">
+                          Counts slow and stalled signals together, even if
+                          speed briefly recovers. Slow detection uses a matching
+                          Slow download rule’s speed threshold.
+                        </Text>
+                      </div>
+                    </details>
                   ) : null}
 
                   {reasonCode === 'download-metadata' ? (
-                    <Text size="small" tone="secondary">
-                      Counts consecutive observations while qBittorrent fetches
-                      metadata. The count resets when metadata finishes. Cleanup
-                      requires an enabled rule and the global action gate;
-                      private or unverified torrents remain held for review.
-                    </Text>
+                    <details className={styles.ruleDetails}>
+                      <summary>About metadata downloads</summary>
+                      <div className={styles.ruleAdvanced}>
+                        <Text size="small" tone="secondary">
+                          Counts checks while qBittorrent fetches metadata. The
+                          count resets when metadata arrives. Private and
+                          unverified torrents remain held for review.
+                        </Text>
+                      </div>
+                    </details>
                   ) : null}
 
                   {reasonCode === 'download-slow' ? (
@@ -1237,61 +1219,35 @@ function HygieneRules({
                         checked={warningCleanupEnabled}
                         onChange={handleNewWarningCleanupChange}
                       />
-                      <span className={styles.checkboxCopy}>
-                        <span>
-                          Allow automatic cleanup for download warnings
-                        </span>
-                        <span className={styles.fieldHint}>
-                          Warnings can include import, file, or client problems.
-                          Cleanup follows the choices below after the strike
-                          limit.
-                        </span>
-                      </span>
+                      <span>Allow cleanup for warnings</span>
                     </label>
                   ) : null}
                   <label className={styles.checkboxField}>
                     <input
                       id="hygiene-new-rule-delete-files"
-                      aria-describedby="hygiene-new-rule-delete-files-description"
                       className={styles.checkbox}
                       type="checkbox"
                       checked={deleteFilesOnFailure}
                       onChange={handleDeleteFilesChange}
                     />
-                    <span className={styles.checkboxCopy}>
-                      <span>Delete source files when this rule acts</span>
-                      <span
-                        id="hygiene-new-rule-delete-files-description"
-                        className={styles.fieldHint}
-                      >
-                        Permanently removes the download client job and its
-                        files. New rules remain disabled until you turn on
-                        monitoring; automatic cleanup has a separate gate.
-                      </span>
-                    </span>
+                    <span>Delete downloaded files during cleanup</span>
                   </label>
                   <label className={styles.checkboxField}>
                     <input
                       id="hygiene-new-rule-search"
-                      aria-describedby="hygiene-new-rule-search-description"
                       className={styles.checkbox}
                       type="checkbox"
                       checked={searchForReplacement}
                       onChange={handleSearchChange}
                     />
-                    <span className={styles.checkboxCopy}>
-                      <span>
-                        Automatically search for a replacement after cleanup
-                      </span>
-                      <span
-                        id="hygiene-new-rule-search-description"
-                        className={styles.fieldHint}
-                      >
-                        On by default for existing behavior. The failed-download
-                        settings must also allow the search.
-                      </span>
-                    </span>
+                    <span>Search for a replacement after cleanup</span>
                   </label>
+
+                  {deleteFilesOnFailure ? (
+                    <Text size="small" tone="secondary">
+                      Files deleted by cleanup cannot be recovered.
+                    </Text>
+                  ) : null}
 
                   <Cluster
                     className={styles.ruleActions}
@@ -1322,8 +1278,7 @@ function HygieneRules({
 
           {createdRuleId ? (
             <Alert role="status">
-              Rule added at the top of the list. It starts disabled; review its
-              settings before enabling it.
+              Rule added. Monitoring starts off; enable it below when ready.
             </Alert>
           ) : null}
 
@@ -1340,8 +1295,6 @@ function HygieneRules({
                 rule={rule}
                 clients={clientsQuery.data || []}
                 assessments={assessments}
-                previewError={previewError}
-                previewLoading={previewLoading}
                 isEditing={editingRuleId === rule.id}
                 onEdit={setEditingRuleId}
                 onClose={handleCloseEditor}
