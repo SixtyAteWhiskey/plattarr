@@ -1,5 +1,4 @@
 import React, { ChangeEvent, FormEvent, useCallback, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
 import Alert from 'Components/Alert';
 import Icon, { IconName } from 'Components/Icon';
@@ -958,16 +957,6 @@ function Hygiene() {
                   </Alert>
                 ) : null}
 
-                {configQuery.data ? (
-                  <Alert>
-                    {configQuery.data.actionsEnabled
-                      ? 'Automatic Hygiene actions are enabled. Eligible tracked downloads can be removed from the client. Each rule controls whether source files are kept or deleted and whether to request a replacement search.'
-                      : 'The global Hygiene action gate is off. Queue preview and monitoring remain read only.'}{' '}
-                    Review items in the <Link to="/activity/queue">queue</Link>{' '}
-                    before enabling automatic actions.
-                  </Alert>
-                ) : null}
-
                 <Surface elevation="low" padding="large">
                   <Stack
                     component="section"
@@ -1025,16 +1014,10 @@ function Hygiene() {
                       className={styles.sectionIntro}
                       tone="secondary"
                     >
-                      Enabled rules for client failures, blocked imports,
-                      stalled, slow, and metadata downloads, repeated problems,
-                      and opted-in download warnings can remove eligible tracked
-                      jobs after their strike threshold. Private or unverified
-                      torrent releases are held unless a rule explicitly selects
-                      a private-torrent action; unverified releases remain held.
-                      Source files are kept unless the matching rule explicitly
-                      enables file deletion. Each rule can skip replacement
-                      search; otherwise, the existing failed-download settings
-                      still apply.
+                      The global switch lets enabled rules remove tracked
+                      downloads after their strike threshold. Each rule controls
+                      file deletion and replacement search. Private torrents
+                      need an explicit action; unverified torrents remain held.
                     </Text>
 
                     {saveError ? (
