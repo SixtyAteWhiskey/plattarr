@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using Newtonsoft.Json.Linq;
@@ -22,6 +24,10 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
         SabnzbdQueue GetQueue(int start, int limit, SabnzbdSettings settings);
         SabnzbdHistory GetHistory(int start, int limit, SabnzbdSettings settings);
         string RetryDownload(string id, SabnzbdSettings settings);
+        List<SabnzbdJobFile> GetJobFiles(string id, SabnzbdSettings settings);
+        void RemoveJobFiles(string id, IReadOnlyCollection<string> fileIds, SabnzbdSettings settings);
+        SabnzbdQueueItem GetJob(string id, SabnzbdSettings settings);
+        void ChangeJobCategory(string id, string category, SabnzbdSettings settings);
     }
 
     public class SabnzbdProxy : ISabnzbdProxy
@@ -163,6 +169,39 @@ namespace NzbDrone.Core.Download.Clients.Sabnzbd
             }
 
             return response.Id;
+        }
+
+        public List<SabnzbdJobFile> GetJobFiles(string id, SabnzbdSettings settings)
+        {
+            var request = BuildRequest("get_files", settings);
+            request.AddQueryParam("value", id);
+            var files = JObject.Parse(ProcessRequest(request, settings)).SelectToken("files");
+            return files?.ToObject<List<SabnzbdJobFile>>() ?? new List<SabnzbdJobFile>();
+        }
+
+        public void RemoveJobFiles(string id, IReadOnlyCollection<string> fileIds, SabnzbdSettings settings)
+        {
+            var request = BuildRequest("queue", settings);
+            request.AddQueryParam("name", "delete_nzf");
+            request.AddQueryParam("value", id);
+            request.AddQueryParam("value2", string.Join(",", fileIds));
+            ProcessRequest(request, settings);
+        }
+
+        public SabnzbdQueueItem GetJob(string id, SabnzbdSettings settings)
+        {
+            var request = BuildRequest("queue", settings);
+            request.AddQueryParam("nzo_ids", id);
+            var queue = JObject.Parse(ProcessRequest(request, settings)).SelectToken("queue.slots");
+            return queue?.ToObject<List<SabnzbdQueueItem>>()?.SingleOrDefault(item => item.Id == id);
+        }
+
+        public void ChangeJobCategory(string id, string category, SabnzbdSettings settings)
+        {
+            var request = BuildRequest("change_cat", settings);
+            request.AddQueryParam("value", id);
+            request.AddQueryParam("value2", category);
+            ProcessRequest(request, settings);
         }
 
         private HttpRequestBuilder BuildRequest(string mode, SabnzbdSettings settings)

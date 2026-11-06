@@ -23,6 +23,16 @@ namespace NzbDrone.Core.Configuration
 
         // Hygiene's action executor is globally disabled until an administrator opts in.
         bool HygieneActionsEnabled { get; set; }
+        bool HygieneContentInspectionEnabled { get; set; }
+        bool HygieneContentActionsEnabled { get; set; }
+        bool HygieneContentDeleteSourceFiles { get; set; }
+        string HygieneContentPatterns { get; set; }
+        string HygieneContentPatternSource { get; set; }
+        string HygieneContentListType { get; set; }
+        bool HygieneContentDeleteIfAnyFileBlocked { get; set; }
+        string HygieneExcludedFileNames { get; set; }
+        string HygieneExcludedFileNamesSource { get; set; }
+        bool HygieneExcludedFileNamesSyncEnabled { get; set; }
 
         bool AutoRedownloadFailed { get; set; }
         bool AutoRedownloadFailedFromInteractiveSearch { get; set; }

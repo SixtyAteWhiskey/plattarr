@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using Dapper;
 using FluentAssertions;
+using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Datastore;
@@ -62,9 +63,13 @@ namespace NzbDrone.Core.Test.QueueTests
             var ruleService = new HygieneRuleService(rules, TestLogger);
             var downloadHistory = Mocker.GetMock<IDownloadHistoryService>().Object;
             var decisions = new HygieneQueueDecisionService(evaluator, states, ruleService, config.Object, actions, downloadHistory);
+            var contentDecisions = new Mock<IHygieneContentDecisionService>();
+            contentDecisions.Setup(x => x.Evaluate(It.IsAny<IEnumerable<NzbDrone.Core.Queue.Queue>>()))
+                .Returns(new List<HygieneContentAssessment>());
             var strikes = new HygieneQueueStrikeService(states, ruleService, evaluator);
             var actionService = new HygieneQueueActionService(
                 decisions,
+                contentDecisions.Object,
                 actions,
                 config.Object,
                 Mocker.GetMock<ITrackedDownloadService>().Object,
@@ -75,7 +80,12 @@ namespace NzbDrone.Core.Test.QueueTests
                 TestLogger);
             var timedStrikes = new TimedStrikes(strikes);
             var timedActions = new TimedActions(actionService);
-            var queueService = new QueueService(Mocker.GetMock<IEventAggregator>().Object, timedStrikes, timedActions, TestLogger);
+            var queueService = new QueueService(
+                Mocker.GetMock<IEventAggregator>().Object,
+                timedStrikes,
+                timedActions,
+                Mocker.GetMock<IHygieneImportRescueService>().Object,
+                TestLogger);
             var downloads = Enumerable.Range(0, QueueSize).Select(i => new TrackedDownload
             {
                 DownloadClient = (i % 4) + 1,

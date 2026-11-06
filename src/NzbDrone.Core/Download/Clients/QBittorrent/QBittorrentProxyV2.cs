@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using Newtonsoft.Json;
 using NLog;
 using NzbDrone.Common.Cache;
 using NzbDrone.Common.Extensions;
@@ -140,6 +141,36 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             var response = ProcessRequest<List<QBittorrentTorrentFile>>(request, settings);
 
             return response;
+        }
+
+        public void SetTorrentFilePriority(string hash, IReadOnlyCollection<int> fileIds, int priority, QBittorrentSettings settings)
+        {
+            var request = BuildRequest(settings).Resource("/api/v2/torrents/filePrio")
+                                                .Post()
+                                                .AddFormParameter("hash", hash)
+                                                .AddFormParameter("id", string.Join("|", fileIds))
+                                                .AddFormParameter("priority", priority.ToString());
+            ProcessRequest(request, settings);
+        }
+
+        public void SetExcludedFileNames(string fileNames, QBittorrentSettings settings)
+        {
+            var preferences = JsonConvert.SerializeObject(new { excluded_file_names = fileNames });
+            var request = BuildRequest(settings).Resource("/api/v2/app/setPreferences")
+                                                .Post()
+                                                .AddFormParameter("json", preferences);
+            ProcessRequest(request, settings);
+        }
+
+        public bool IsAlternativeSpeedActive(QBittorrentSettings settings)
+        {
+            var request = BuildRequest(settings).Resource("/api/v2/transfer/speedLimitsMode");
+            return ProcessRequest(request, settings).Trim() switch
+            {
+                "1" => true,
+                "0" => false,
+                _ => throw new DownloadClientException("Unexpected qBittorrent alternate speed mode response.")
+            };
         }
 
         public void AddTorrentFromUrl(string torrentUrl, string category, TorrentSeedConfiguration seedConfiguration, QBittorrentSettings settings)

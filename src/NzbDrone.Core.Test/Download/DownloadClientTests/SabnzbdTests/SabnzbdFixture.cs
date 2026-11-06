@@ -13,6 +13,7 @@ using NzbDrone.Core.Download.Clients.Sabnzbd;
 using NzbDrone.Core.Download.Clients.Sabnzbd.Responses;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Localization;
+using NzbDrone.Core.Modules;
 using NzbDrone.Core.RemotePathMappings;
 using NzbDrone.Core.Validation;
 using NzbDrone.Test.Common;
@@ -180,6 +181,79 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
             Mocker.GetMock<ISabnzbdProxy>()
                 .Setup(s => s.GetHistory(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<SabnzbdSettings>()))
                 .Returns(history);
+        }
+
+        [Test]
+        public void Hygiene_file_removal_requires_observed_absence_and_preserved_allowed_file()
+        {
+            var before = new List<SabnzbdJobFile>
+            {
+                new() { Name = "movie.mkv", Id = "nzf-1" },
+                new() { Name = "blocked.exe", Id = "nzf-2" }
+            };
+            Mocker.GetMock<ISabnzbdProxy>().Setup(x => x.GetJob("job", It.IsAny<SabnzbdSettings>()))
+                .Returns(new SabnzbdQueueItem { Id = "job", Category = "movie" });
+            Mocker.GetMock<ISabnzbdProxy>().SetupSequence(x => x.GetJobFiles("job", It.IsAny<SabnzbdSettings>()))
+                .Returns(before).Returns(new List<SabnzbdJobFile> { before[0] });
+
+            Subject.SkipHygieneFiles("job", new[] { "blocked.exe" }, new[] { "movie.mkv" })
+                .Should().Be("observed-skipped");
+            Mocker.GetMock<ISabnzbdProxy>().Verify(
+                x => x.RemoveJobFiles(
+                "job",
+                It.Is<IReadOnlyCollection<string>>(ids => ids.Count == 1 && ids.Contains("nzf-2")),
+                It.IsAny<SabnzbdSettings>()),
+                Times.Once);
+        }
+
+        [Test]
+        public void Hygiene_file_removal_rejects_duplicate_names_before_deletion()
+        {
+            Mocker.GetMock<ISabnzbdProxy>().Setup(x => x.GetJob("job", It.IsAny<SabnzbdSettings>()))
+                .Returns(new SabnzbdQueueItem { Id = "job", Category = "movie" });
+            Mocker.GetMock<ISabnzbdProxy>().Setup(x => x.GetJobFiles("job", It.IsAny<SabnzbdSettings>()))
+                .Returns(new List<SabnzbdJobFile>
+                {
+                    new() { Name = "movie.mkv", Id = "nzf-1" },
+                    new() { Name = "movie.mkv", Id = "nzf-2" },
+                    new() { Name = "blocked.exe", Id = "nzf-3" }
+                });
+
+            Subject.SkipHygieneFiles("job", new[] { "blocked.exe" }, new[] { "movie.mkv" })
+                .Should().Be("files-changed");
+            Mocker.GetMock<ISabnzbdProxy>().Verify(
+                x => x.RemoveJobFiles(
+                It.IsAny<string>(),
+                It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<SabnzbdSettings>()),
+                Times.Never);
+        }
+
+        [Test]
+        public void Hygiene_category_change_requires_observed_category()
+        {
+            ((SabnzbdSettings)Subject.Definition.Settings).Movies().ImportedCategory = "imported";
+            Mocker.GetMock<ISabnzbdProxy>().SetupSequence(x => x.GetJob("job", It.IsAny<SabnzbdSettings>()))
+                .Returns(new SabnzbdQueueItem { Id = "job", Category = "movie" })
+                .Returns(new SabnzbdQueueItem { Id = "job", Category = "imported" });
+
+            Subject.ChangeToPostImportCategory("job", MediaKind.Movies).Should().Be("observed-category");
+            Mocker.GetMock<ISabnzbdProxy>().Verify(
+                x => x.ChangeJobCategory(
+                "job",
+                "imported",
+                It.IsAny<SabnzbdSettings>()),
+                Times.Once);
+        }
+
+        [Test]
+        public void queued_SABnzbd_job_reports_post_import_category_capability()
+        {
+            ((SabnzbdSettings)Subject.Definition.Settings).Movies().ImportedCategory = "imported";
+            GivenQueue(_queued);
+            GivenHistory(null);
+
+            Subject.GetItems().Single().DownloadClientInfo.HasPostImportCategory.Should().BeTrue();
         }
 
         [Test]

@@ -115,6 +115,7 @@ namespace NzbDrone.Core.Datastore
             Mapper.Entity<HygieneQueueState>("HygieneQueueStates").RegisterModel();
             Mapper.Entity<HygieneRule>("HygieneRules").RegisterModel();
             Mapper.Entity<HygieneAction>("HygieneActions").RegisterModel();
+            Mapper.Entity<HygieneImportRescue>("HygieneImportRescues").RegisterModel();
 
             Mapper.Entity<UpdateHistory>("UpdateHistory").RegisterModel();
 

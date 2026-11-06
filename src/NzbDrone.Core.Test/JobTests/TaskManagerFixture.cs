@@ -6,6 +6,7 @@ using NUnit.Framework;
 using NzbDrone.Common.Cache;
 using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.Housekeeping;
+using NzbDrone.Core.Hygiene;
 using NzbDrone.Core.Jobs;
 using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.Modules;
@@ -58,6 +59,7 @@ namespace NzbDrone.Core.Test.JobTests
             Subject.Handle(new ApplicationStartedEvent());
 
             _upserted.Should().Contain(t => t.TypeName == typeof(HousekeepingCommand).FullName);
+            _upserted.Should().Contain(t => t.TypeName == typeof(HygieneBlacklistSyncCommand).FullName && t.Interval == 60);
             _upserted.Should().Contain(t => t.TypeName == typeof(CheckIndexerStatusHealthCommand).FullName && t.Interval == 5);
         }
 

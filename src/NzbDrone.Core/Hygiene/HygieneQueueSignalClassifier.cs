@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using NzbDrone.Core.Queue;
 using QueueModel = NzbDrone.Core.Queue.Queue;
@@ -42,12 +43,16 @@ namespace NzbDrone.Core.Hygiene
                 return;
             }
 
-            var rule = ruleService.Match(rules, "download-slow", (int?)assessment.Kind ?? 0, item.DownloadClientId);
+            var rule = HygieneRuleSafeguards.MatchForItem(rules, ruleService, "download-slow", (int?)assessment.Kind ?? 0, item);
             var rate = item.DownloadRateBytesPerSecond;
 
-            if (rule == null || rule.MinimumDownloadRateKiBps <= 0 ||
-                item.Status != QueueStatus.Downloading || item.SizeLeft <= 0 ||
-                !rate.HasValue || rate.Value < 0 || rate.Value >= rule.MinimumDownloadRateKiBps * 1024L)
+            var slowRate = rule?.MinimumDownloadRateKiBps > 0 && rate is >= 0 &&
+                           rate.Value < rule.MinimumDownloadRateKiBps * 1024L;
+            var overtime = rule?.MaximumDownloadHours > 0 && item.Added.HasValue &&
+                           DateTime.UtcNow - item.Added.Value >= TimeSpan.FromHours(rule.MaximumDownloadHours);
+
+            if (rule == null || item.Status != QueueStatus.Downloading || item.SizeLeft <= 0 ||
+                (!slowRate && !overtime))
             {
                 return;
             }
@@ -55,7 +60,9 @@ namespace NzbDrone.Core.Hygiene
             Set(
                 assessment,
                 "download-slow",
-                $"The reported download rate is {rate.Value / 1024.0:F1} KiB/s, below this rule's {rule.MinimumDownloadRateKiBps} KiB/s threshold.",
+                slowRate
+                    ? $"The reported download rate is {rate.Value / 1024.0:F1} KiB/s, below this rule's {rule.MinimumDownloadRateKiBps} KiB/s threshold."
+                    : $"This download has exceeded this rule's {rule.MaximumDownloadHours}-hour limit.",
                 "Check seed availability, client connectivity, and the configured speed threshold.");
         }
 

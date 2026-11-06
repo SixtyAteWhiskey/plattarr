@@ -130,6 +130,27 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             return response;
         }
 
+        public void SetTorrentFilePriority(string hash, IReadOnlyCollection<int> fileIds, int priority, QBittorrentSettings settings)
+        {
+            throw new NotSupportedException("Hygiene file skipping requires qBittorrent Web API v2.");
+        }
+
+        public void SetExcludedFileNames(string fileNames, QBittorrentSettings settings)
+        {
+            throw new NotSupportedException("Excluded file names require qBittorrent Web API v2.");
+        }
+
+        public bool IsAlternativeSpeedActive(QBittorrentSettings settings)
+        {
+            var request = BuildRequest(settings).Resource("/command/alternativeSpeedLimitsEnabled").Post();
+            return ProcessRequest(request, settings).Trim() switch
+            {
+                "1" => true,
+                "0" => false,
+                _ => throw new DownloadClientException("Unexpected qBittorrent alternate speed mode response.")
+            };
+        }
+
         public void AddTorrentFromUrl(string torrentUrl, string category, TorrentSeedConfiguration seedConfiguration, QBittorrentSettings settings)
         {
             var request = BuildRequest(settings).Resource("/command/download")

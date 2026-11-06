@@ -24,7 +24,8 @@ namespace NzbDrone.Core.Hygiene
 
         public void Observe(IEnumerable<NzbDrone.Core.Queue.Queue> queue)
         {
-            var items = queue.Where(x => x.DownloadClientId > 0 && !string.IsNullOrWhiteSpace(x.DownloadId)).ToList();
+            var items = queue.Where(x => x.DownloadClientId > 0 && !string.IsNullOrWhiteSpace(x.DownloadId) &&
+                string.IsNullOrWhiteSpace(x.HygieneImportRescueStatus)).ToList();
             var assessments = _evaluator.Evaluate(items);
             var states = _states.FindByIdentities(items.Select(x => (x.DownloadClientId, x.DownloadId)))
                 .ToDictionary(x => (x.DownloadClientId, x.DownloadId));
@@ -38,19 +39,41 @@ namespace NzbDrone.Core.Hygiene
                 HygieneQueueSignalClassifier.Apply(item, assessment, rules, _rules);
                 var key = (item.DownloadClientId, item.DownloadId);
                 states.TryGetValue(key, out var state);
-                var rule = _rules.Match(rules, assessment.ReasonCode, (int?)assessment.Kind ?? 0, item.DownloadClientId);
-                var unstableRule = _rules.Match(rules, "download-unstable", (int?)assessment.Kind ?? 0, item.DownloadClientId);
+                var rule = HygieneRuleSafeguards.MatchForItem(rules, _rules, assessment.ReasonCode, (int?)assessment.Kind ?? 0, item);
+                if (HygieneRuleSafeguards.HoldReason(item, rule, assessment.ReasonCode) != null)
+                {
+                    assessment.ReasonCode = "ignored";
+                    assessment.NeedsAttention = false;
+                }
+
+                var unstableRule = HygieneRuleSafeguards.MatchForItem(rules, _rules, "download-unstable", (int?)assessment.Kind ?? 0, item);
+                if (HygieneRuleSafeguards.HoldReason(item, unstableRule, "download-unstable") != null)
+                {
+                    unstableRule = null;
+                }
+
                 var interval = rule?.StrikeIntervalMinutes ?? 5;
                 var isNew = state == null;
                 var previousStrikes = state?.Strikes;
                 var previousReason = state?.ReasonCode;
+                var previousRuleId = state?.ConsecutiveRuleId;
                 var previousSize = state?.RemainingSize;
+                var previousProgressBaseline = state?.ProgressBaselineRemainingSize;
                 var previousKind = state?.MediaKind;
                 var previousSeenAt = state?.LastSeenAt;
                 var previousUnstableStrikes = state?.UnstableStrikes;
                 var previousUnstableRuleId = state?.UnstableRuleId;
                 var previousUnstableStrikeAt = state?.LastUnstableStrikeAt;
-                state = HygieneStrikeCalculator.Advance(state, assessment.ReasonCode, assessment.NeedsAttention && rule?.Enabled == true, (long)item.SizeLeft, now, interval);
+                state = HygieneStrikeCalculator.Advance(
+                    state,
+                    assessment.ReasonCode,
+                    assessment.NeedsAttention && rule?.Enabled == true,
+                    (long)item.SizeLeft,
+                    now,
+                    interval,
+                    rule?.ReasonCode == "download-slow" ? rule.ResetStrikesOnProgress : rule?.ResetStrikesOnProgress != false,
+                    rule?.MinimumProgressToResetBytes ?? 0,
+                    rule?.Enabled == true ? rule.Id : 0);
                 HygieneUnstableStrikeCalculator.Advance(state, assessment.ReasonCode, unstableRule?.Enabled == true ? unstableRule.Id : 0, now, unstableRule?.StrikeIntervalMinutes ?? 5);
                 state.DownloadClientId = item.DownloadClientId;
                 state.DownloadId = item.DownloadId;
@@ -64,7 +87,8 @@ namespace NzbDrone.Core.Hygiene
                 else if (state.Strikes != previousStrikes || state.UnstableStrikes != previousUnstableStrikes ||
                          state.UnstableRuleId != previousUnstableRuleId ||
                          state.LastUnstableStrikeAt != previousUnstableStrikeAt || state.ReasonCode != previousReason ||
-                         state.RemainingSize != previousSize || state.MediaKind != previousKind ||
+                         state.ConsecutiveRuleId != previousRuleId ||
+                         state.RemainingSize != previousSize || state.ProgressBaselineRemainingSize != previousProgressBaseline || state.MediaKind != previousKind ||
                          now - previousSeenAt >= TimeSpan.FromMinutes(1))
                 {
                     _states.Update(state);
