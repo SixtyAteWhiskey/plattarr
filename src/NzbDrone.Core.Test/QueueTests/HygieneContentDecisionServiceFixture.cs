@@ -9,7 +9,6 @@ using NzbDrone.Core.Hygiene;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Parser.Model;
-using NzbDrone.Core.Queue;
 
 namespace NzbDrone.Core.Test.QueueTests
 {
@@ -43,8 +42,12 @@ namespace NzbDrone.Core.Test.QueueTests
             _client.As<IHygieneFileClient>().SetupGet(x => x.CanSkipHygieneFiles).Returns(true);
             _client.As<IHygieneFileClient>().SetupGet(x => x.CanUseHygieneAllowlist).Returns(true);
             _clients.Setup(x => x.Get(4)).Returns(_client.Object);
-            _service = new HygieneContentDecisionService(_config.Object, _clients.Object,
-                _sources.Object, _actions.Object, _history.Object);
+            _service = new HygieneContentDecisionService(
+                _config.Object,
+                _clients.Object,
+                _sources.Object,
+                _actions.Object,
+                _history.Object);
         }
 
         [Test]

@@ -155,8 +155,8 @@ namespace NzbDrone.Core.Hygiene
             }
 
             var privacy = item.RemoteRelease?.Release?.IndexerPrivacy;
-            return privacy == null || privacy != IndexerPrivacy.Public &&
-                   rule?.PrivateTorrentAction is not ("remove" or "category");
+            return privacy == null || (privacy != IndexerPrivacy.Public &&
+                   rule?.PrivateTorrentAction is not ("remove" or "category"));
         }
 
         private static string ActionMode(NzbDrone.Core.Queue.Queue item, HygieneRule rule)
@@ -178,6 +178,7 @@ namespace NzbDrone.Core.Hygiene
                 assessment.ActionExplanation = "The scoped rule is eligible; the executor will change the client job to its configured post-import category and keep it in the client.";
                 return assessment.ActionExplanation;
             }
+
             var fileAction = assessment.DeleteFilesOnFailure
                 ? "delete its source files"
                 : "keep its source files";

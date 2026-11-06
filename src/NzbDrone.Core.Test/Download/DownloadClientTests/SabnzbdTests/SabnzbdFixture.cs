@@ -198,9 +198,12 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
 
             Subject.SkipHygieneFiles("job", new[] { "blocked.exe" }, new[] { "movie.mkv" })
                 .Should().Be("observed-skipped");
-            Mocker.GetMock<ISabnzbdProxy>().Verify(x => x.RemoveJobFiles("job",
+            Mocker.GetMock<ISabnzbdProxy>().Verify(
+                x => x.RemoveJobFiles(
+                "job",
                 It.Is<IReadOnlyCollection<string>>(ids => ids.Count == 1 && ids.Contains("nzf-2")),
-                It.IsAny<SabnzbdSettings>()), Times.Once);
+                It.IsAny<SabnzbdSettings>()),
+                Times.Once);
         }
 
         [Test]
@@ -218,8 +221,12 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
 
             Subject.SkipHygieneFiles("job", new[] { "blocked.exe" }, new[] { "movie.mkv" })
                 .Should().Be("files-changed");
-            Mocker.GetMock<ISabnzbdProxy>().Verify(x => x.RemoveJobFiles(It.IsAny<string>(),
-                It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<SabnzbdSettings>()), Times.Never);
+            Mocker.GetMock<ISabnzbdProxy>().Verify(
+                x => x.RemoveJobFiles(
+                It.IsAny<string>(),
+                It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<SabnzbdSettings>()),
+                Times.Never);
         }
 
         [Test]
@@ -231,8 +238,12 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
                 .Returns(new SabnzbdQueueItem { Id = "job", Category = "imported" });
 
             Subject.ChangeToPostImportCategory("job", MediaKind.Movies).Should().Be("observed-category");
-            Mocker.GetMock<ISabnzbdProxy>().Verify(x => x.ChangeJobCategory("job", "imported",
-                It.IsAny<SabnzbdSettings>()), Times.Once);
+            Mocker.GetMock<ISabnzbdProxy>().Verify(
+                x => x.ChangeJobCategory(
+                "job",
+                "imported",
+                It.IsAny<SabnzbdSettings>()),
+                Times.Once);
         }
 
         [Test]

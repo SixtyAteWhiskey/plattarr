@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Download.TrackedDownloads;
+using NzbDrone.Core.Indexers;
 using QueueItem = NzbDrone.Core.Queue.Queue;
 
 namespace NzbDrone.Core.Hygiene
@@ -18,10 +18,11 @@ namespace NzbDrone.Core.Hygiene
                 IndexerPrivacy.Private or IndexerPrivacy.SemiPrivate => "private",
                 _ => null
             };
+
             // Match keeps its media/client specificity order. LINQ's stable sort
             // lets an exact privacy scope win when those scopes are equal.
             var applicable = rules.Where(rule => rule.TorrentPrivacyScope is null or "all" ||
-                                                 scope != null && rule.TorrentPrivacyScope == scope)
+                                                 (scope != null && rule.TorrentPrivacyScope == scope))
                 .OrderByDescending(rule => scope != null && rule.TorrentPrivacyScope == scope);
             return ruleService.Match(applicable, reasonCode, mediaKind, item.DownloadClientId);
         }

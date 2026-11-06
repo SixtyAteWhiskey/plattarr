@@ -22,9 +22,12 @@ namespace NzbDrone.Core.Hygiene
         private readonly IHygieneActionRepository _actions;
         private readonly IDownloadHistoryService _history;
 
-        public HygieneContentDecisionService(IConfigService config, IProvideDownloadClient clients,
-                                             IHygieneListSource sources, IHygieneActionRepository actions,
-                                             IDownloadHistoryService history)
+        public HygieneContentDecisionService(
+            IConfigService config,
+            IProvideDownloadClient clients,
+            IHygieneListSource sources,
+            IHygieneActionRepository actions,
+            IDownloadHistoryService history)
         {
             _config = config;
             _clients = clients;
@@ -72,8 +75,11 @@ namespace NzbDrone.Core.Hygiene
                     }
                     else
                     {
-                        assessment = HygieneContentPolicy.Inspect(client.GetHygieneFileNames(item.DownloadId), patterns,
-                            _config.HygieneContentListType, _config.HygieneContentDeleteIfAnyFileBlocked);
+                        assessment = HygieneContentPolicy.Inspect(
+                            client.GetHygieneFileNames(item.DownloadId),
+                            patterns,
+                            _config.HygieneContentListType,
+                            _config.HygieneContentDeleteIfAnyFileBlocked);
                         if (_config.HygieneContentListType == "allowlist" && !client.CanUseHygieneAllowlist)
                         {
                             assessment.Status = "unsupported-allowlist";

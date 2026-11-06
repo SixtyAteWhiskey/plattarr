@@ -10,18 +10,6 @@ using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Modules;
-using NzbDrone.Core.Movies.History;
-using NzbDrone.Core.Movies.MediaFiles.MovieImport.Manual;
-using NzbDrone.Core.Movies.Parser.Model;
-using NzbDrone.Core.Tv.History;
-using NzbDrone.Core.Tv.Parser.Model;
-using MovieImportMode = NzbDrone.Core.Movies.MediaFiles.MovieImport.ImportMode;
-using MovieRejectionReason = NzbDrone.Core.Movies.MediaFiles.MovieImport.ImportRejectionReason;
-using TvImportMode = NzbDrone.Core.Tv.MediaFiles.EpisodeImport.ImportMode;
-using TvManualImportCommand = NzbDrone.Core.Tv.MediaFiles.EpisodeImport.Manual.TvManualImportCommand;
-using TvManualImportFile = NzbDrone.Core.Tv.MediaFiles.EpisodeImport.Manual.ManualImportFile;
-using TvManualImportService = NzbDrone.Core.Tv.MediaFiles.EpisodeImport.Manual.IManualImportService;
-using TvRejectionReason = NzbDrone.Core.Tv.MediaFiles.EpisodeImport.ImportRejectionReason;
 using QueueItem = NzbDrone.Core.Queue.Queue;
 
 namespace NzbDrone.Core.Hygiene
@@ -32,15 +20,28 @@ namespace NzbDrone.Core.Hygiene
         List<HygieneImportRescue> Recent(int limit, int offset);
     }
 
+    public interface IHygieneImportRescueAdapter
+    {
+        MediaKind Kind { get; }
+        HygieneImportRescueCandidate Prepare(RemoteRelease release, string downloadId);
+        bool ImportConfirmed(string downloadId, DateTime requestedAt, IReadOnlyCollection<int> targetIds);
+    }
+
+    public class HygieneImportRescueCandidate
+    {
+        public int[] TargetIds { get; init; }
+        public string Fingerprint { get; init; }
+        public Func<CommandModel> Push { get; init; }
+
+        public static string ComputeFingerprint(IEnumerable<string> paths)
+        {
+            var ordered = paths.OrderBy(path => path, StringComparer.Ordinal);
+            return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join("\n", ordered))));
+        }
+    }
+
     public class HygieneImportRescueService : IHygieneImportRescueService
     {
-        private sealed class Candidate
-        {
-            public int[] TargetIds { get; init; }
-            public string Fingerprint { get; init; }
-            public Func<CommandModel> Push { get; init; }
-        }
-
         private static readonly string[] RescueReasons =
         {
             "matched to series by ID",
@@ -51,29 +52,25 @@ namespace NzbDrone.Core.Hygiene
         private readonly IConfigService _config;
         private readonly IHygieneRuleService _rules;
         private readonly IHygieneImportRescueRepository _rescues;
-        private readonly IManualImportService _movieImport;
-        private readonly TvManualImportService _tvImport;
+        private readonly IReadOnlyDictionary<MediaKind, IHygieneImportRescueAdapter> _adapters;
         private readonly IManageCommandQueue _commands;
-        private readonly NzbDrone.Core.Movies.History.IHistoryService _movieHistory;
-        private readonly NzbDrone.Core.Tv.History.IHistoryService _tvHistory;
         private readonly IDownloadHistoryService _grabHistory;
         private readonly Logger _logger;
 
-        public HygieneImportRescueService(IConfigService config, IHygieneRuleService rules,
-            IHygieneImportRescueRepository rescues, IManualImportService movieImport,
-            TvManualImportService tvImport, IManageCommandQueue commands,
-            NzbDrone.Core.Movies.History.IHistoryService movieHistory,
-            NzbDrone.Core.Tv.History.IHistoryService tvHistory,
-            IDownloadHistoryService grabHistory, Logger logger)
+        public HygieneImportRescueService(
+            IConfigService config,
+            IHygieneRuleService rules,
+            IHygieneImportRescueRepository rescues,
+            IEnumerable<IHygieneImportRescueAdapter> adapters,
+            IManageCommandQueue commands,
+            IDownloadHistoryService grabHistory,
+            Logger logger)
         {
             _config = config;
             _rules = rules;
             _rescues = rescues;
-            _movieImport = movieImport;
-            _tvImport = tvImport;
+            _adapters = adapters.ToDictionary(x => x.Kind);
             _commands = commands;
-            _movieHistory = movieHistory;
-            _tvHistory = tvHistory;
             _grabHistory = grabHistory;
             _logger = logger;
         }
@@ -105,8 +102,8 @@ namespace NzbDrone.Core.Hygiene
                 var rule = _rules.Match(rules, "import-blocked", (int)item.RemoteRelease.Kind, item.DownloadClientId);
                 if (rule?.Enabled != true || !rule.ForceImportEnabled ||
                     HygieneRuleSafeguards.Ignored(item, rule.IgnoredDownloads) ||
-                    item.Protocol == DownloadProtocol.Torrent &&
-                    item.RemoteRelease.Release?.IndexerPrivacy != IndexerPrivacy.Public ||
+                    (item.Protocol == DownloadProtocol.Torrent &&
+                     item.RemoteRelease.Release?.IndexerPrivacy != IndexerPrivacy.Public) ||
                     !HasOnlyRescueReasons(item))
                 {
                     continue;
@@ -120,8 +117,10 @@ namespace NzbDrone.Core.Hygiene
                 {
                     // A probe can contain paths and client data. Never persist its text.
                     item.HygieneImportRescueStatus = "probe-unavailable";
-                    _logger.Warn("Hygiene import rescue probe failed for client {0}; error type {1}",
-                        item.DownloadClientId, ex.GetType().Name);
+                    _logger.Warn(
+                        "Hygiene import rescue probe failed for client {0}; error type {1}",
+                        item.DownloadClientId,
+                        ex.GetType().Name);
                 }
             }
 
@@ -154,7 +153,7 @@ namespace NzbDrone.Core.Hygiene
             }
 
             if (rescue?.Status == "requested" ||
-                rescue?.Status == "failed" && rescue.NextAttemptAt > now)
+                (rescue?.Status == "failed" && rescue.NextAttemptAt > now))
             {
                 item.HygieneImportRescueStatus = rescue.Status;
                 return;
@@ -235,8 +234,13 @@ namespace NzbDrone.Core.Hygiene
                 rescue.CandidateFingerprint = candidate.Fingerprint;
                 rescue.Status = "settling";
                 rescue.UpdatedAt = now;
-                _rescues.SetFields(rescue, x => x.RuleId, x => x.TargetIds,
-                    x => x.CandidateFingerprint, x => x.Status, x => x.UpdatedAt);
+                _rescues.SetFields(
+                    rescue,
+                    x => x.RuleId,
+                    x => x.TargetIds,
+                    x => x.CandidateFingerprint,
+                    x => x.Status,
+                    x => x.UpdatedAt);
                 item.HygieneImportRescueStatus = "settling";
                 return;
             }
@@ -247,8 +251,14 @@ namespace NzbDrone.Core.Hygiene
             rescue.RequestedAt = null;
             rescue.NextAttemptAt = null;
             rescue.UpdatedAt = now;
-            _rescues.SetFields(rescue, x => x.Status, x => x.Attempts, x => x.CommandId,
-                x => x.RequestedAt, x => x.NextAttemptAt, x => x.UpdatedAt);
+            _rescues.SetFields(
+                rescue,
+                x => x.Status,
+                x => x.Attempts,
+                x => x.CommandId,
+                x => x.RequestedAt,
+                x => x.NextAttemptAt,
+                x => x.UpdatedAt);
             item.HygieneImportRescueStatus = "ambiguous";
 
             try
@@ -272,8 +282,10 @@ namespace NzbDrone.Core.Hygiene
                 rescue.Status = "ambiguous";
                 rescue.UpdatedAt = DateTime.UtcNow;
                 _rescues.SetFields(rescue, x => x.Status, x => x.UpdatedAt);
-                _logger.Warn("Hygiene import rescue request is ambiguous for client {0}; error type {1}",
-                    item.DownloadClientId, ex.GetType().Name);
+                _logger.Warn(
+                    "Hygiene import rescue request is ambiguous for client {0}; error type {1}",
+                    item.DownloadClientId,
+                    ex.GetType().Name);
             }
         }
 
@@ -319,23 +331,8 @@ namespace NzbDrone.Core.Hygiene
                 return false;
             }
 
-            if (rescue.MediaKind == (int)MediaKind.Movies)
-            {
-                return _movieHistory.FindByDownloadId(rescue.DownloadId)
-                    .Any(x => x.EventType == MovieHistoryEventType.DownloadFolderImported &&
-                              x.Date > rescue.RequestedAt && targets.Contains(x.ParentId));
-            }
-
-            if (rescue.MediaKind == (int)MediaKind.Tv)
-            {
-                var imported = _tvHistory.FindByDownloadId(rescue.DownloadId)
-                    .Where(x => x.EventType == EpisodeHistoryEventType.DownloadFolderImported &&
-                                x.Date > rescue.RequestedAt)
-                    .Select(x => x.ItemId).ToHashSet();
-                return targets.IsSubsetOf(imported);
-            }
-
-            return false;
+            return _adapters.TryGetValue((MediaKind)rescue.MediaKind, out var adapter) &&
+                   adapter.ImportConfirmed(rescue.DownloadId, rescue.RequestedAt.Value, targets);
         }
 
         private bool ImportsAreRunning()
@@ -345,89 +342,10 @@ namespace NzbDrone.Core.Hygiene
                 command.Name?.Contains("Scan", StringComparison.OrdinalIgnoreCase) == true);
         }
 
-        private Candidate Prepare(QueueItem item)
+        private HygieneImportRescueCandidate Prepare(QueueItem item)
         {
-            if (item.RemoteRelease is RemoteMovie movie && movie.Movie?.Id > 0)
-            {
-                var files = _movieImport.GetMediaFiles(null, item.DownloadId, movie.Movie.Id, false);
-                if (files == null || files.Count == 0 || files.Any(file =>
-                        string.IsNullOrWhiteSpace(file.Path) || file.Movie?.Id != movie.Movie.Id ||
-                        file.Rejections == null || file.Rejections.Any(rejection => rejection.Reason != MovieRejectionReason.SampleIndeterminate)))
-                {
-                    return null;
-                }
-
-                var command = new ManualImportCommand
-                {
-                    ImportMode = MovieImportMode.Auto,
-                    Files = files.Select(file => new ManualImportFile
-                    {
-                        Path = file.Path,
-                        FolderName = file.FolderName,
-                        MovieId = movie.Movie.Id,
-                        DownloadId = item.DownloadId,
-                        Quality = file.Quality,
-                        Languages = file.Languages,
-                        ReleaseGroup = file.ReleaseGroup,
-                        IndexerFlags = file.IndexerFlags
-                    }).ToList()
-                };
-                return new Candidate
-                {
-                    TargetIds = new[] { movie.Movie.Id },
-                    Fingerprint = Fingerprint(files.Select(file => file.Path)),
-                    Push = () => _commands.Push(command)
-                };
-            }
-
-            if (item.RemoteRelease is RemoteEpisode episode && episode.Series?.Id > 0 &&
-                episode.Episodes is { Count: > 0 })
-            {
-                var expected = episode.Episodes.Select(x => x.Id).ToHashSet();
-                var files = _tvImport.GetMediaFiles(null, item.DownloadId, episode.Series.Id, false);
-                if (files == null || files.Count == 0 || files.Any(file =>
-                        string.IsNullOrWhiteSpace(file.Path) || file.Series?.Id != episode.Series.Id ||
-                        file.Episodes == null || file.Episodes.Count == 0 ||
-                        file.Episodes.Any(x => !expected.Contains(x.Id)) ||
-                        file.Rejections == null || file.Rejections.Any(rejection => rejection.Reason != TvRejectionReason.SampleIndeterminate)))
-                {
-                    return null;
-                }
-
-                var targets = files.SelectMany(file => file.Episodes).Select(x => x.Id).Distinct().OrderBy(x => x).ToArray();
-                var command = new TvManualImportCommand
-                {
-                    ImportMode = TvImportMode.Auto,
-                    Files = files.Select(file => new TvManualImportFile
-                    {
-                        Path = file.Path,
-                        FolderName = file.FolderName,
-                        SeriesId = episode.Series.Id,
-                        EpisodeIds = file.Episodes.Select(x => x.Id).ToList(),
-                        DownloadId = item.DownloadId,
-                        Quality = file.Quality,
-                        Languages = file.Languages,
-                        ReleaseGroup = file.ReleaseGroup,
-                        IndexerFlags = file.IndexerFlags,
-                        ReleaseType = file.ReleaseType
-                    }).ToList()
-                };
-                return new Candidate
-                {
-                    TargetIds = targets,
-                    Fingerprint = Fingerprint(files.Select(file => file.Path + "|" +
-                        string.Join(",", file.Episodes.Select(x => x.Id).OrderBy(x => x)))),
-                    Push = () => _commands.Push(command)
-                };
-            }
-
-            return null;
-        }
-
-        private static string Fingerprint(IEnumerable<string> paths)
-        {
-            var ordered = paths.OrderBy(path => path, StringComparer.Ordinal);
-            return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join("\n", ordered))));
+            return _adapters.TryGetValue(item.RemoteRelease.Kind, out var adapter) ?
+                adapter.Prepare(item.RemoteRelease, item.DownloadId) : null;
         }
 
         private static bool HasOnlyRescueReasons(QueueItem item)

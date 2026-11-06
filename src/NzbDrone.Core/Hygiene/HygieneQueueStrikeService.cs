@@ -64,9 +64,16 @@ namespace NzbDrone.Core.Hygiene
                 var previousUnstableStrikes = state?.UnstableStrikes;
                 var previousUnstableRuleId = state?.UnstableRuleId;
                 var previousUnstableStrikeAt = state?.LastUnstableStrikeAt;
-                state = HygieneStrikeCalculator.Advance(state, assessment.ReasonCode, assessment.NeedsAttention && rule?.Enabled == true, (long)item.SizeLeft, now, interval,
+                state = HygieneStrikeCalculator.Advance(
+                    state,
+                    assessment.ReasonCode,
+                    assessment.NeedsAttention && rule?.Enabled == true,
+                    (long)item.SizeLeft,
+                    now,
+                    interval,
                     rule?.ReasonCode == "download-slow" ? rule.ResetStrikesOnProgress : rule?.ResetStrikesOnProgress != false,
-                    rule?.MinimumProgressToResetBytes ?? 0, rule?.Enabled == true ? rule.Id : 0);
+                    rule?.MinimumProgressToResetBytes ?? 0,
+                    rule?.Enabled == true ? rule.Id : 0);
                 HygieneUnstableStrikeCalculator.Advance(state, assessment.ReasonCode, unstableRule?.Enabled == true ? unstableRule.Id : 0, now, unstableRule?.StrikeIntervalMinutes ?? 5);
                 state.DownloadClientId = item.DownloadClientId;
                 state.DownloadId = item.DownloadId;

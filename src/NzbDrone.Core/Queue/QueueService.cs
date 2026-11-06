@@ -123,6 +123,7 @@ namespace NzbDrone.Core.Queue
                 }
 
                 _hygieneQueueStrikeService.Observe(observed);
+
                 // Let the processed snapshot run rescue before cleanup can act on
                 // an import block carried over from an earlier refresh.
                 var actionable = message.ProcessingComplete ? _queue :

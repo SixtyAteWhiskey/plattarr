@@ -10,18 +10,19 @@ using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Hygiene;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Messaging.Commands;
-using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.History;
+using NzbDrone.Core.Movies.Hygiene;
 using NzbDrone.Core.Movies.MediaFiles.MovieImport.Manual;
 using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Tv;
+using NzbDrone.Core.Tv.Hygiene;
 using NzbDrone.Core.Tv.Parser.Model;
-using TvHistory = NzbDrone.Core.Tv.History.IHistoryService;
-using TvManualImport = NzbDrone.Core.Tv.MediaFiles.EpisodeImport.Manual.IManualImportService;
 using MovieManualImport = NzbDrone.Core.Movies.MediaFiles.MovieImport.Manual.IManualImportService;
 using QueueItem = NzbDrone.Core.Queue.Queue;
+using TvHistory = NzbDrone.Core.Tv.History.IHistoryService;
+using TvManualImport = NzbDrone.Core.Tv.MediaFiles.EpisodeImport.Manual.IManualImportService;
 
 namespace NzbDrone.Core.Test.QueueTests
 {
@@ -54,8 +55,16 @@ namespace NzbDrone.Core.Test.QueueTests
             _tvHistory = new Mock<TvHistory>();
             _grabHistory = new Mock<IDownloadHistoryService>();
             _records = new List<HygieneImportRescue>();
-            _rule = new HygieneRule { Id = 7, ReasonCode = "import-blocked", Enabled = true,
-                ForceImportEnabled = true, ForceImportMaxTries = 3, StrikeLimit = 3, StrikeIntervalMinutes = 5 };
+            _rule = new HygieneRule
+            {
+                Id = 7,
+                ReasonCode = "import-blocked",
+                Enabled = true,
+                ForceImportEnabled = true,
+                ForceImportMaxTries = 3,
+                StrikeLimit = 3,
+                StrikeIntervalMinutes = 5
+            };
             _config.SetupGet(x => x.HygieneActionsEnabled).Returns(true);
             _rules.Setup(x => x.All()).Returns(new List<HygieneRule> { _rule });
             _rules.Setup(x => x.Match(It.IsAny<IEnumerable<HygieneRule>>(), "import-blocked", 1, 4)).Returns(_rule);
@@ -78,9 +87,18 @@ namespace NzbDrone.Core.Test.QueueTests
             {
                 new() { Path = "/fixture/movie.mkv", Movie = new Movie { Id = 5 } }
             });
-            _service = new HygieneImportRescueService(_config.Object, _rules.Object, _rescues.Object,
-                _movieImport.Object, _tvImport.Object, _commands.Object, _movieHistory.Object,
-                _tvHistory.Object, _grabHistory.Object, NLog.LogManager.GetCurrentClassLogger());
+            _service = new HygieneImportRescueService(
+                _config.Object,
+                _rules.Object,
+                _rescues.Object,
+                new IHygieneImportRescueAdapter[]
+                {
+                    new MovieHygieneImportRescueAdapter(_movieImport.Object, _commands.Object, _movieHistory.Object),
+                    new TvHygieneImportRescueAdapter(_tvImport.Object, _commands.Object, _tvHistory.Object)
+                },
+                _commands.Object,
+                _grabHistory.Object,
+                NLog.LogManager.GetCurrentClassLogger());
         }
 
         [Test]
@@ -90,17 +108,25 @@ namespace NzbDrone.Core.Test.QueueTests
 
             _service.Process(new[] { item });
             item.HygieneImportRescueStatus.Should().Be("settling");
-            _commands.Verify(x => x.Push(It.IsAny<ManualImportCommand>(), It.IsAny<CommandPriority>(),
-                It.IsAny<CommandTrigger>()), Times.Never);
+            _commands.Verify(
+                x => x.Push(
+                It.IsAny<ManualImportCommand>(),
+                It.IsAny<CommandPriority>(),
+                It.IsAny<CommandTrigger>()),
+                Times.Never);
             _service.Process(new[] { item });
 
             item.HygieneImportRescueStatus.Should().Be("requested");
             _records.Should().ContainSingle();
             _records[0].Attempts.Should().Be(1);
             _records[0].CommandId.Should().Be(99);
-            _commands.Verify(x => x.Push(It.Is<ManualImportCommand>(command =>
-                command.Files.Count == 1 && command.Files[0].MovieId == 5 && command.Files[0].DownloadId == "hash"),
-                It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Once);
+            _commands.Verify(
+                x => x.Push(
+                It.Is<ManualImportCommand>(command =>
+                    command.Files.Count == 1 && command.Files[0].MovieId == 5 && command.Files[0].DownloadId == "hash"),
+                It.IsAny<CommandPriority>(),
+                It.IsAny<CommandTrigger>()),
+                Times.Once);
         }
 
         [Test]
@@ -118,8 +144,12 @@ namespace NzbDrone.Core.Test.QueueTests
 
             _records[0].CandidateFingerprint.Should().NotBe(firstFingerprint);
             item.HygieneImportRescueStatus.Should().Be("settling");
-            _commands.Verify(x => x.Push(It.IsAny<ManualImportCommand>(), It.IsAny<CommandPriority>(),
-                It.IsAny<CommandTrigger>()), Times.Never);
+            _commands.Verify(
+                x => x.Push(
+                It.IsAny<ManualImportCommand>(),
+                It.IsAny<CommandPriority>(),
+                It.IsAny<CommandTrigger>()),
+                Times.Never);
             _service.Process(new[] { item });
             item.HygieneImportRescueStatus.Should().Be("requested");
         }
@@ -139,8 +169,12 @@ namespace NzbDrone.Core.Test.QueueTests
             _service.Process(new[] { item });
 
             item.HygieneImportRescueStatus.Should().Be("settling");
-            _commands.Verify(x => x.Push(It.IsAny<ManualImportCommand>(), It.IsAny<CommandPriority>(),
-                It.IsAny<CommandTrigger>()), Times.Never);
+            _commands.Verify(
+                x => x.Push(
+                It.IsAny<ManualImportCommand>(),
+                It.IsAny<CommandPriority>(),
+                It.IsAny<CommandTrigger>()),
+                Times.Never);
         }
 
         [Test]
@@ -148,9 +182,16 @@ namespace NzbDrone.Core.Test.QueueTests
         {
             _movieImport.Setup(x => x.GetMediaFiles(null, "hash", 5, false)).Returns(new List<ManualImportItem>
             {
-                new() { Path = "/fixture/movie.mkv", Movie = new Movie { Id = 5 },
-                    Rejections = new[] { new NzbDrone.Core.Movies.MediaFiles.MovieImport.ImportRejection(
-                        NzbDrone.Core.Movies.MediaFiles.MovieImport.ImportRejectionReason.MinimumFreeSpace, "Not enough free space") } }
+                new()
+                {
+                    Path = "/fixture/movie.mkv",
+                    Movie = new Movie { Id = 5 },
+                    Rejections = new[]
+                    {
+                        new NzbDrone.Core.Movies.MediaFiles.MovieImport.ImportRejection(
+                            NzbDrone.Core.Movies.MediaFiles.MovieImport.ImportRejectionReason.MinimumFreeSpace, "Not enough free space")
+                    }
+                }
             });
             var item = Item();
 
@@ -158,8 +199,12 @@ namespace NzbDrone.Core.Test.QueueTests
 
             item.HygieneImportRescueStatus.Should().BeNull();
             _records.Should().BeEmpty();
-            _commands.Verify(x => x.Push(It.IsAny<ManualImportCommand>(), It.IsAny<CommandPriority>(),
-                It.IsAny<CommandTrigger>()), Times.Never);
+            _commands.Verify(
+                x => x.Push(
+                It.IsAny<ManualImportCommand>(),
+                It.IsAny<CommandPriority>(),
+                It.IsAny<CommandTrigger>()),
+                Times.Never);
         }
 
         [Test]
@@ -183,16 +228,25 @@ namespace NzbDrone.Core.Test.QueueTests
             _service.Process(new[] { item });
             _movieHistory.Setup(x => x.FindByDownloadId("hash")).Returns(new List<MovieHistory>
             {
-                new() { ParentId = 5, DownloadId = "hash", EventType = MovieHistoryEventType.DownloadFolderImported,
-                    Date = DateTime.UtcNow }
+                new()
+                {
+                    ParentId = 5,
+                    DownloadId = "hash",
+                    EventType = MovieHistoryEventType.DownloadFolderImported,
+                    Date = DateTime.UtcNow
+                }
             });
 
             _service.Process(new[] { item });
 
             _records[0].Status.Should().Be("confirmed");
             item.HygieneImportRescueStatus.Should().Be("confirmed");
-            _commands.Verify(x => x.Push(It.IsAny<ManualImportCommand>(), It.IsAny<CommandPriority>(),
-                It.IsAny<CommandTrigger>()), Times.Once);
+            _commands.Verify(
+                x => x.Push(
+                It.IsAny<ManualImportCommand>(),
+                It.IsAny<CommandPriority>(),
+                It.IsAny<CommandTrigger>()),
+                Times.Once);
         }
 
         [Test]
@@ -208,8 +262,12 @@ namespace NzbDrone.Core.Test.QueueTests
             _records[0].Status.Should().Be("failed");
             _records[0].NextAttemptAt.Should().BeAfter(DateTime.UtcNow);
             item.HygieneImportRescueStatus.Should().Be("failed");
-            _commands.Verify(x => x.Push(It.IsAny<ManualImportCommand>(), It.IsAny<CommandPriority>(),
-                It.IsAny<CommandTrigger>()), Times.Once);
+            _commands.Verify(
+                x => x.Push(
+                It.IsAny<ManualImportCommand>(),
+                It.IsAny<CommandPriority>(),
+                It.IsAny<CommandTrigger>()),
+                Times.Once);
         }
 
         [Test]
@@ -240,8 +298,12 @@ namespace NzbDrone.Core.Test.QueueTests
 
             _records.Should().ContainSingle().Which.Status.Should().Be("ambiguous");
             item.HygieneImportRescueStatus.Should().Be("ambiguous");
-            _commands.Verify(x => x.Push(It.IsAny<ManualImportCommand>(), It.IsAny<CommandPriority>(),
-                It.IsAny<CommandTrigger>()), Times.Once);
+            _commands.Verify(
+                x => x.Push(
+                It.IsAny<ManualImportCommand>(),
+                It.IsAny<CommandPriority>(),
+                It.IsAny<CommandTrigger>()),
+                Times.Once);
         }
 
         [Test]
@@ -253,8 +315,12 @@ namespace NzbDrone.Core.Test.QueueTests
             var requestedAt = _records[0].RequestedAt.Value;
             _movieHistory.Setup(x => x.FindByDownloadId("hash")).Returns(new List<MovieHistory>
             {
-                new() { ParentId = 5, EventType = MovieHistoryEventType.DownloadFolderImported,
-                    Date = requestedAt.AddSeconds(-1) }
+                new()
+                {
+                    ParentId = 5,
+                    EventType = MovieHistoryEventType.DownloadFolderImported,
+                    Date = requestedAt.AddSeconds(-1)
+                }
             });
 
             _service.Process(new[] { item });
@@ -286,11 +352,17 @@ namespace NzbDrone.Core.Test.QueueTests
             _tvImport.Setup(x => x.GetMediaFiles(null, "tv-hash", 8, false))
                 .Returns(new List<NzbDrone.Core.Tv.MediaFiles.EpisodeImport.Manual.ManualImportItem>
                 {
-                    new() { Path = "/fixture/episode.mkv", Series = new Series { Id = 8 },
-                        Episodes = new List<Episode> { new() { Id = 20 } } }
+                    new()
+                    {
+                        Path = "/fixture/episode.mkv",
+                        Series = new Series { Id = 8 },
+                        Episodes = new List<Episode> { new() { Id = 20 } }
+                    }
                 });
-            _commands.Setup(x => x.Push(It.IsAny<NzbDrone.Core.Tv.MediaFiles.EpisodeImport.Manual.TvManualImportCommand>(),
-                    It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()))
+            _commands.Setup(x => x.Push(
+                    It.IsAny<NzbDrone.Core.Tv.MediaFiles.EpisodeImport.Manual.TvManualImportCommand>(),
+                    It.IsAny<CommandPriority>(),
+                    It.IsAny<CommandTrigger>()))
                 .Returns(new CommandModel { Id = 100, QueuedAt = DateTime.UtcNow, Status = CommandStatus.Queued });
             _rescues.Setup(x => x.FindLatest(4, "tv-hash")).Returns(() => _records.LastOrDefault());
 
@@ -300,10 +372,13 @@ namespace NzbDrone.Core.Test.QueueTests
 
             item.HygieneImportRescueStatus.Should().Be("requested");
             _records.Should().ContainSingle().Which.TargetIds.Should().Be("20");
-            _commands.Verify(x => x.Push(
+            _commands.Verify(
+                x => x.Push(
                 It.Is<NzbDrone.Core.Tv.MediaFiles.EpisodeImport.Manual.TvManualImportCommand>(command =>
                     command.Files.Count == 1 && command.Files[0].EpisodeIds.Single() == 20),
-                It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Once);
+                It.IsAny<CommandPriority>(),
+                It.IsAny<CommandTrigger>()),
+                Times.Once);
         }
 
         private static QueueItem Item()
@@ -315,8 +390,11 @@ namespace NzbDrone.Core.Test.QueueTests
                 DownloadId = "hash",
                 Protocol = DownloadProtocol.Usenet,
                 TrackedDownloadState = TrackedDownloadState.ImportBlocked,
-                RemoteRelease = new RemoteMovie { Movie = new Movie { Id = 5 },
-                    Release = new ReleaseInfo { IndexerPrivacy = IndexerPrivacy.Public } },
+                RemoteRelease = new RemoteMovie
+                {
+                    Movie = new Movie { Id = 5 },
+                    Release = new ReleaseInfo { IndexerPrivacy = IndexerPrivacy.Public }
+                },
                 StatusMessages = new List<TrackedDownloadStatusMessage>
                 {
                     new("movie", "Found matching movie via grab history, but release was matched to movie by ID")

@@ -1,8 +1,8 @@
 using System;
-using System.Net;
-using System.Net.Http;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using Newtonsoft.Json.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
