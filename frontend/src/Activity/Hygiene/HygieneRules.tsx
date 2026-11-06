@@ -3,9 +3,11 @@ import Alert from 'Components/Alert';
 import { Cluster, Stack } from 'Components/Layout';
 import Button from 'Components/Link/Button';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import { StatusBadge } from 'Components/Status';
 import Surface from 'Components/Surface';
 import { Heading, Text } from 'Components/Typography';
 import useApiQuery from 'Helpers/Hooks/useApiQuery';
+import { icons } from 'Helpers/Props';
 import fetchJson, { apiRoot } from 'Utilities/Fetch/fetchJson';
 import styles from './Hygiene.css';
 
@@ -86,8 +88,9 @@ interface EditorProps {
   rule: HygieneRule;
   clients: DownloadClient[];
   assessments?: HygieneRuleAssessment[];
-  previewError: boolean;
-  previewLoading: boolean;
+  isEditing: boolean;
+  onEdit: (id: number) => void;
+  onClose: () => void;
   onSaved: () => void;
 }
 
@@ -95,13 +98,20 @@ function HygieneRuleEditor({
   rule,
   clients,
   assessments,
-  previewError,
-  previewLoading,
+  isEditing,
+  onEdit,
+  onClose,
   onSaved,
 }: EditorProps) {
   const [draft, setDraft] = useState(rule);
   const [error, setError] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
+
+  const handleEdit = useCallback(() => {
+    setDraft(rule);
+    setError(undefined);
+    onEdit(rule.id);
+  }, [rule, onEdit]);
 
   const handleEnabledChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -343,6 +353,7 @@ function HygieneRuleEditor({
       try {
         await writeRule('PUT', `/hygiene/rule/${draft.id}`, draft);
         onSaved();
+        onClose();
       } catch {
         setError(
           'Unable to save this rule. Check the thresholds and try again.'
@@ -351,7 +362,7 @@ function HygieneRuleEditor({
         setIsSaving(false);
       }
     },
-    [draft, onSaved]
+    [draft, onSaved, onClose]
   );
 
   const handleDelete = useCallback(async () => {
@@ -361,12 +372,13 @@ function HygieneRuleEditor({
     try {
       await writeRule('DELETE', `/hygiene/rule/${draft.id}`);
       onSaved();
+      onClose();
     } catch {
       setError('Unable to delete this rule.');
     } finally {
       setIsSaving(false);
     }
-  }, [draft.id, onSaved]);
+  }, [draft.id, onSaved, onClose]);
 
   const kind = kindOptions.find(
     (option) => option.value === draft.mediaKind
@@ -386,6 +398,17 @@ function HygieneRuleEditor({
       ? (assessment.unstableStrikes ?? 0) >= rule.strikeLimit
       : assessment.ruleId === draft.id && assessment.eligible
   ).length;
+  let cleanupSummary = rule.deleteFilesOnFailure
+    ? 'Delete files on removal'
+    : 'Keep files on removal';
+
+  if (rule.reasonCode === 'download-warning' && !rule.warningCleanupEnabled) {
+    cleanupSummary = 'Monitor only';
+  }
+
+  const replacementSummary = rule.searchForReplacement
+    ? 'Search for replacement'
+    : 'No replacement search';
 
   return (
     <Surface
@@ -395,407 +418,440 @@ function HygieneRuleEditor({
       aria-labelledby={`hygiene-rule-${draft.id}-heading`}
     >
       <Stack gap="medium">
-        <Stack gap="xSmall">
-          <Heading id={`hygiene-rule-${draft.id}-heading`} level={3}>
-            {reason || draft.reasonCode}
-          </Heading>
-          <Text size="small" tone="secondary">
-            {kind || 'Unknown media'} · {client || 'All clients'}
-          </Text>
-          {draft.reasonCode === 'download-unstable' ? (
+        <Stack gap="small">
+          <Cluster
+            align="start"
+            collapseOnSmall={true}
+            gap="medium"
+            justify="between"
+          >
+            <Stack gap="xSmall">
+              <Heading id={`hygiene-rule-${draft.id}-heading`} level={3}>
+                {reason || draft.reasonCode}
+              </Heading>
+              <Text size="small" tone="secondary">
+                {kind || 'Unknown media'} · {client || 'All clients'}
+              </Text>
+            </Stack>
+            <Cluster align="center" gap="small">
+              {isEditing ? null : (
+                <StatusBadge
+                  icon={rule.enabled ? icons.CHECK_CIRCLE : icons.BAN}
+                  label={rule.enabled ? 'Monitoring' : 'Off'}
+                  tone={rule.enabled ? 'monitor' : 'neutral'}
+                />
+              )}
+              <Button
+                type="button"
+                isDisabled={isSaving}
+                onPress={isEditing ? onClose : handleEdit}
+              >
+                {isEditing ? 'Close' : 'Edit rule'}
+              </Button>
+            </Cluster>
+          </Cluster>
+          {isEditing ? null : (
             <Text size="small" tone="secondary">
-              Counts slow and stalled observations for the same download across
-              reason changes and healthy periods. Each strike needs the
-              configured interval; slow detection uses a matching Slow download
-              rule’s speed threshold.
+              {rule.strikeLimit} strikes · {rule.strikeIntervalMinutes} min
+              apart
+              {' · '}
+              {cleanupSummary}
+              {cleanupSummary === 'Monitor only'
+                ? ''
+                : ` · ${replacementSummary}`}
             </Text>
-          ) : null}
+          )}
         </Stack>
 
-        <form className={styles.ruleForm} onSubmit={handleSave}>
-          <label className={styles.checkboxField}>
-            <input
-              id={`hygiene-rule-${draft.id}-enabled`}
-              aria-describedby={`hygiene-rule-${draft.id}-enabled-description`}
-              className={styles.checkbox}
-              type="checkbox"
-              checked={draft.enabled}
-              onChange={handleEnabledChange}
-            />
-            <span className={styles.checkboxCopy}>
-              <span>Monitor this scope</span>
-              <span
-                id={`hygiene-rule-${draft.id}-enabled-description`}
-                className={styles.fieldHint}
-              >
-                Records strikes only. Automatic cleanup still requires the
-                separate global action gate.
-              </span>
-            </span>
-          </label>
-
-          {draft.reasonCode === 'download-warning' ? (
-            <label className={styles.checkboxField}>
-              <input
-                className={styles.checkbox}
-                type="checkbox"
-                checked={draft.warningCleanupEnabled}
-                onChange={handleWarningCleanupChange}
-              />
-              <span className={styles.checkboxCopy}>
-                <span>Allow automatic cleanup for download warnings</span>
-                <span className={styles.fieldHint}>
-                  Warnings can include import, file, or client problems.
-                  Existing strikes count immediately, so enabling cleanup may
-                  act at the next refresh. The global gate and torrent
-                  safeguards still apply.
-                </span>
-              </span>
-            </label>
-          ) : null}
-          <label className={styles.checkboxField}>
-            <input
-              id={`hygiene-rule-${draft.id}-delete-files`}
-              aria-describedby={`hygiene-rule-${draft.id}-delete-files-description`}
-              className={styles.checkbox}
-              type="checkbox"
-              checked={draft.deleteFilesOnFailure}
-              onChange={handleDeleteFilesChange}
-            />
-            <span className={styles.checkboxCopy}>
-              <span>Delete source files when this rule acts</span>
-              <span
-                id={`hygiene-rule-${draft.id}-delete-files-description`}
-                className={styles.fieldHint}
-              >
-                Permanently removes the download client job and its files.
-                Existing leftover files are unaffected. Requires this rule and
-                automatic cleanup to be enabled.
-              </span>
-            </span>
-          </label>
-          <label className={styles.checkboxField}>
-            <input
-              id={`hygiene-rule-${draft.id}-search`}
-              aria-describedby={`hygiene-rule-${draft.id}-search-description`}
-              className={styles.checkbox}
-              type="checkbox"
-              checked={draft.searchForReplacement}
-              onChange={handleSearchChange}
-            />
-            <span className={styles.checkboxCopy}>
-              <span>Automatically search for a replacement after cleanup</span>
-              <span
-                id={`hygiene-rule-${draft.id}-search-description`}
-                className={styles.fieldHint}
-              >
-                When off, the failed release is still recorded and blocklisted.
-                When on, existing failed-download settings also need to allow
-                the search.
-              </span>
-            </span>
-          </label>
-
-          <label className={styles.formField}>
-            <span>Private torrent action</span>
-            <select
-              className={styles.formControl}
-              value={draft.privateTorrentAction ?? 'hold'}
-              onChange={handlePrivateActionChange}
-            >
-              <option value="hold">Hold for manual review</option>
-              <option value="category">Change to post-import category</option>
-              <option value="remove">Remove from client</option>
-            </select>
-          </label>
-          <Text size="small" tone="secondary">
-            An unverified torrent is always held. Removing a private torrent may
-            affect tracker seeding requirements. Category change requires a
-            configured post-import category on the download client.
-          </Text>
-          <label className={styles.checkboxField}>
-            <input
-              className={styles.checkbox}
-              type="checkbox"
-              checked={draft.changeCategoryInsteadOfRemoval}
-              onChange={handleCategoryChange}
-            />
-            <span>
-              Change public torrents to the post-import category instead of
-              removing
-            </span>
-          </label>
-
-          <label className={styles.formField}>
-            <span>Strikes required</span>
-            <input
-              id={`hygiene-rule-${draft.id}-strike-limit`}
-              className={styles.formControl}
-              type="number"
-              min="3"
-              max="100"
-              value={draft.strikeLimit}
-              onChange={handleLimitChange}
-            />
-          </label>
-
-          <label className={styles.formField}>
-            <span>Minutes between strikes</span>
-            <input
-              id={`hygiene-rule-${draft.id}-strike-interval`}
-              className={styles.formControl}
-              type="number"
-              min="1"
-              max="1440"
-              value={draft.strikeIntervalMinutes}
-              onChange={handleIntervalChange}
-            />
-          </label>
-
-          {draft.reasonCode === 'download-slow' ? (
-            <>
-              <label className={styles.formField}>
-                <span>Treat speeds below (KiB/s) as slow</span>
-                <input
-                  id={`hygiene-rule-${draft.id}-minimum-rate`}
-                  className={styles.formControl}
-                  type="number"
-                  min="0"
-                  max="1048576"
-                  value={draft.minimumDownloadRateKiBps}
-                  onChange={handleMinimumRateChange}
-                />
-              </label>
-              <label className={styles.formField}>
-                <span>Or after this many hours (0 disables)</span>
-                <input
-                  className={styles.formControl}
-                  type="number"
-                  min="0"
-                  max="8760"
-                  value={draft.maximumDownloadHours}
-                  onChange={handleMaximumHoursChange}
-                />
-              </label>
-            </>
-          ) : null}
-
-          <label className={styles.formField}>
-            <span>
-              Ignored downloads (one hash, category, tag, tracker domain, or
-              client name per line)
-            </span>
-            <textarea
-              className={styles.formControl}
-              value={draft.ignoredDownloads ?? ''}
-              onChange={handleIgnoredDownloadsChange}
-            />
-          </label>
-
-          {draft.reasonCode === 'import-blocked' ? (
-            <>
+        {isEditing ? (
+          <form className={styles.ruleEditorForm} onSubmit={handleSave}>
+            <section className={styles.ruleGroup}>
+              <Heading level={4}>Monitoring</Heading>
               <label className={styles.checkboxField}>
                 <input
+                  id={`hygiene-rule-${draft.id}-enabled`}
                   className={styles.checkbox}
                   type="checkbox"
-                  checked={draft.forceImportEnabled}
-                  onChange={handleForceImportChange}
+                  checked={draft.enabled}
+                  onChange={handleEnabledChange}
                 />
-                <span>Try guarded force import before collecting strikes</span>
+                <span>Monitor matching downloads</span>
               </label>
-              {draft.forceImportEnabled ? (
-                <label className={styles.formField}>
-                  <span>Maximum force-import attempts</span>
-                  <input
-                    className={styles.formControl}
-                    type="number"
-                    min="1"
-                    max="20"
-                    value={draft.forceImportMaxTries}
-                    onChange={handleForceImportTriesChange}
-                  />
-                </label>
-              ) : null}
-              <Text size="small" tone="secondary">
-                Supports tracked Movie and TV downloads with only the known
-                ID-match or uncertain-sample reasons. Every file must match the
-                resolved media and have no other rejection. A queued import is
-                recorded separately from a confirmed import.
-              </Text>
-              <label className={styles.formField}>
-                <span>Failed-import reason filter</span>
-                <select
-                  className={styles.formControl}
-                  value={draft.failedImportPatternMode ?? 'all'}
-                  onChange={handlePatternModeChange}
-                >
-                  <option value="all">All reasons</option>
-                  <option value="include">Only matching reasons</option>
-                  <option value="exclude">Except matching reasons</option>
-                </select>
-              </label>
-              {draft.failedImportPatternMode === 'include' ||
-              draft.failedImportPatternMode === 'exclude' ? (
-                <label className={styles.formField}>
-                  <span>
-                    Reason phrases (one case-insensitive phrase per line)
-                  </span>
-                  <textarea
-                    className={styles.formControl}
-                    required={true}
-                    value={draft.failedImportPatterns ?? ''}
-                    onChange={handlePatternsChange}
-                  />
-                </label>
-              ) : null}
-            </>
-          ) : null}
+            </section>
+            <section className={styles.ruleGroup}>
+              <Heading level={4}>Cleanup options</Heading>
 
-          {['download-stalled', 'download-slow', 'download-unstable'].includes(
-            draft.reasonCode
-          ) ? (
-            <>
-              <label className={styles.formField}>
-                <span>Torrent privacy scope</span>
-                <select
-                  className={styles.formControl}
-                  value={draft.torrentPrivacyScope ?? 'all'}
-                  onChange={handlePrivacyScopeChange}
-                >
-                  <option value="all">Public and private torrents</option>
-                  <option value="public">Public torrents only</option>
-                  <option value="private">
-                    Private and semi-private torrents only
-                  </option>
-                </select>
-              </label>
-              <Text size="small" tone="secondary">
-                Privacy scoped rules do not match unverified torrents.
-              </Text>
-              <label className={styles.formField}>
-                <span>Minimum completion (%)</span>
-                <input
-                  className={styles.formControl}
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={draft.minimumCompletionPercent}
-                  onChange={handleMinimumCompletionChange}
-                />
-              </label>
-              <label className={styles.formField}>
-                <span>Maximum completion (%)</span>
-                <input
-                  className={styles.formControl}
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={draft.maximumCompletionPercent}
-                  onChange={handleMaximumCompletionChange}
-                />
-              </label>
-              <label className={styles.formField}>
-                <span>Minimum torrent size (bytes, 0 disables)</span>
-                <input
-                  className={styles.formControl}
-                  type="number"
-                  min="0"
-                  value={draft.minimumTorrentSizeBytes}
-                  onChange={handleMinimumSizeChange}
-                />
-              </label>
-              <label className={styles.formField}>
-                <span>Maximum torrent size (bytes, 0 disables)</span>
-                <input
-                  className={styles.formControl}
-                  type="number"
-                  min="0"
-                  value={draft.maximumTorrentSizeBytes}
-                  onChange={handleMaximumSizeChange}
-                />
-              </label>
-              {draft.reasonCode === 'download-stalled' ||
-              draft.reasonCode === 'download-slow' ? (
-                <>
-                  <label className={styles.checkboxField}>
-                    <input
-                      className={styles.checkbox}
-                      type="checkbox"
-                      checked={draft.resetStrikesOnProgress}
-                      onChange={handleResetOnProgressChange}
-                    />
-                    <span>Reset strikes when the download makes progress</span>
-                  </label>
-                  {draft.resetStrikesOnProgress ? (
-                    <label className={styles.formField}>
-                      <span>
-                        Minimum progress to reset (bytes, 0 means any)
-                      </span>
-                      <input
-                        className={styles.formControl}
-                        type="number"
-                        min="0"
-                        value={draft.minimumProgressToResetBytes}
-                        onChange={handleMinimumProgressChange}
-                      />
-                    </label>
-                  ) : null}
-                </>
-              ) : null}
-              {draft.reasonCode === 'download-slow' ||
-              draft.reasonCode === 'download-unstable' ? (
+              {draft.reasonCode === 'download-warning' ? (
                 <label className={styles.checkboxField}>
                   <input
                     className={styles.checkbox}
                     type="checkbox"
-                    checked={draft.ignoreWhileAlternateSpeedActive}
-                    onChange={handleAlternateSpeedChange}
+                    checked={draft.warningCleanupEnabled}
+                    onChange={handleWarningCleanupChange}
                   />
-                  <span>
-                    Ignore slow signals while alternate speed limits are active
-                  </span>
+                  <span>Allow cleanup for warnings</span>
                 </label>
               ) : null}
-            </>
-          ) : null}
+              <label className={styles.checkboxField}>
+                <input
+                  id={`hygiene-rule-${draft.id}-delete-files`}
+                  className={styles.checkbox}
+                  type="checkbox"
+                  checked={draft.deleteFilesOnFailure}
+                  onChange={handleDeleteFilesChange}
+                />
+                <span>Delete downloaded files during cleanup</span>
+              </label>
+              <label className={styles.checkboxField}>
+                <input
+                  id={`hygiene-rule-${draft.id}-search`}
+                  className={styles.checkbox}
+                  type="checkbox"
+                  checked={draft.searchForReplacement}
+                  onChange={handleSearchChange}
+                />
+                <span>Search for a replacement after cleanup</span>
+              </label>
 
-          <Cluster
-            className={styles.ruleActions}
-            collapseOnSmall={true}
-            gap="small"
-          >
-            <Button type="submit" kind="primary" isDisabled={isSaving}>
-              Save
-            </Button>
-            <Button
-              type="button"
-              kind="danger"
-              isDisabled={isSaving}
-              onPress={handleDelete}
+              {draft.reasonCode === 'download-warning' &&
+              draft.warningCleanupEnabled ? (
+                <Text size="small" tone="secondary">
+                  Existing strikes count. Cleanup could run on the next refresh.
+                </Text>
+              ) : null}
+
+              {draft.deleteFilesOnFailure ? (
+                <Text size="small" tone="secondary">
+                  Files deleted by cleanup cannot be recovered.
+                </Text>
+              ) : null}
+
+              <details className={styles.ruleDetails}>
+                <summary>How cleanup works</summary>
+                <div className={styles.ruleAdvanced}>
+                  <Text size="small" tone="secondary">
+                    Cleanup removes the download from the client. It also needs
+                    Automatic actions enabled above. Replacement searches use
+                    your failed-download settings.
+                  </Text>
+                </div>
+              </details>
+
+              <details className={styles.ruleDetails}>
+                <summary>Torrent actions</summary>
+                <div className={styles.ruleAdvanced}>
+                  <label className={styles.formField}>
+                    <span>Private torrents</span>
+                    <select
+                      className={styles.formControl}
+                      value={draft.privateTorrentAction ?? 'hold'}
+                      onChange={handlePrivateActionChange}
+                    >
+                      <option value="hold">Hold for manual review</option>
+                      <option value="category">
+                        Move to post-import category
+                      </option>
+                      <option value="remove">Remove from client</option>
+                    </select>
+                  </label>
+                  <label className={styles.checkboxField}>
+                    <input
+                      className={styles.checkbox}
+                      type="checkbox"
+                      checked={draft.changeCategoryInsteadOfRemoval}
+                      onChange={handleCategoryChange}
+                    />
+                    <span>
+                      Move public torrents to the post-import category
+                    </span>
+                  </label>
+                  <Text size="small" tone="secondary">
+                    Unverified torrents are always held. Removing private
+                    torrents may affect seeding. Category changes need a
+                    post-import category on the client.
+                  </Text>
+                </div>
+              </details>
+            </section>
+            <section className={styles.ruleGroup}>
+              <Heading level={4}>When to act</Heading>
+              <div className={styles.ruleFieldGrid}>
+                <label className={styles.formField}>
+                  <span>Strikes required</span>
+                  <input
+                    id={`hygiene-rule-${draft.id}-strike-limit`}
+                    className={styles.formControl}
+                    type="number"
+                    min="3"
+                    max="100"
+                    value={draft.strikeLimit}
+                    onChange={handleLimitChange}
+                  />
+                </label>
+
+                <label className={styles.formField}>
+                  <span>Minutes between strikes</span>
+                  <input
+                    id={`hygiene-rule-${draft.id}-strike-interval`}
+                    className={styles.formControl}
+                    type="number"
+                    min="1"
+                    max="1440"
+                    value={draft.strikeIntervalMinutes}
+                    onChange={handleIntervalChange}
+                  />
+                </label>
+
+                {draft.reasonCode === 'download-slow' ? (
+                  <>
+                    <label className={styles.formField}>
+                      <span>Treat speeds below (KiB/s) as slow</span>
+                      <input
+                        id={`hygiene-rule-${draft.id}-minimum-rate`}
+                        className={styles.formControl}
+                        type="number"
+                        min="0"
+                        max="1048576"
+                        value={draft.minimumDownloadRateKiBps}
+                        onChange={handleMinimumRateChange}
+                      />
+                    </label>
+                    <label className={styles.formField}>
+                      <span>Or after this many hours (0 disables)</span>
+                      <input
+                        className={styles.formControl}
+                        type="number"
+                        min="0"
+                        max="8760"
+                        value={draft.maximumDownloadHours}
+                        onChange={handleMaximumHoursChange}
+                      />
+                    </label>
+                  </>
+                ) : null}
+              </div>
+            </section>
+            <details className={styles.ruleDetails}>
+              <summary>Matching and safeguards</summary>
+              <div className={styles.ruleAdvanced}>
+                <label className={styles.formField}>
+                  <span>Ignored downloads</span>
+                  <textarea
+                    className={styles.formControl}
+                    value={draft.ignoredDownloads ?? ''}
+                    onChange={handleIgnoredDownloadsChange}
+                  />
+                  <span className={styles.fieldHint}>
+                    One hash, category, tag, tracker domain, or client name per
+                    line.
+                  </span>
+                </label>
+
+                {draft.reasonCode === 'import-blocked' ? (
+                  <>
+                    <label className={styles.checkboxField}>
+                      <input
+                        className={styles.checkbox}
+                        type="checkbox"
+                        checked={draft.forceImportEnabled}
+                        onChange={handleForceImportChange}
+                      />
+                      <span>
+                        Try guarded force import before collecting strikes
+                      </span>
+                    </label>
+                    {draft.forceImportEnabled ? (
+                      <label className={styles.formField}>
+                        <span>Maximum force-import attempts</span>
+                        <input
+                          className={styles.formControl}
+                          type="number"
+                          min="1"
+                          max="20"
+                          value={draft.forceImportMaxTries}
+                          onChange={handleForceImportTriesChange}
+                        />
+                      </label>
+                    ) : null}
+                    <Text size="small" tone="secondary">
+                      Supports tracked Movie and TV downloads with only the
+                      known ID-match or uncertain-sample reasons. Every file
+                      must match the resolved media and have no other rejection.
+                      A queued import is recorded separately from a confirmed
+                      import.
+                    </Text>
+                    <label className={styles.formField}>
+                      <span>Failed-import reason filter</span>
+                      <select
+                        className={styles.formControl}
+                        value={draft.failedImportPatternMode ?? 'all'}
+                        onChange={handlePatternModeChange}
+                      >
+                        <option value="all">All reasons</option>
+                        <option value="include">Only matching reasons</option>
+                        <option value="exclude">Except matching reasons</option>
+                      </select>
+                    </label>
+                    {draft.failedImportPatternMode === 'include' ||
+                    draft.failedImportPatternMode === 'exclude' ? (
+                      <label className={styles.formField}>
+                        <span>
+                          Reason phrases (one case-insensitive phrase per line)
+                        </span>
+                        <textarea
+                          className={styles.formControl}
+                          required={true}
+                          value={draft.failedImportPatterns ?? ''}
+                          onChange={handlePatternsChange}
+                        />
+                      </label>
+                    ) : null}
+                  </>
+                ) : null}
+
+                {[
+                  'download-stalled',
+                  'download-slow',
+                  'download-unstable',
+                ].includes(draft.reasonCode) ? (
+                  <>
+                    <label className={styles.formField}>
+                      <span>Torrent privacy scope</span>
+                      <select
+                        className={styles.formControl}
+                        value={draft.torrentPrivacyScope ?? 'all'}
+                        onChange={handlePrivacyScopeChange}
+                      >
+                        <option value="all">Public and private torrents</option>
+                        <option value="public">Public torrents only</option>
+                        <option value="private">
+                          Private and semi-private torrents only
+                        </option>
+                      </select>
+                    </label>
+                    <Text size="small" tone="secondary">
+                      Privacy scoped rules do not match unverified torrents.
+                    </Text>
+                    <label className={styles.formField}>
+                      <span>Minimum completion (%)</span>
+                      <input
+                        className={styles.formControl}
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={draft.minimumCompletionPercent}
+                        onChange={handleMinimumCompletionChange}
+                      />
+                    </label>
+                    <label className={styles.formField}>
+                      <span>Maximum completion (%)</span>
+                      <input
+                        className={styles.formControl}
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={draft.maximumCompletionPercent}
+                        onChange={handleMaximumCompletionChange}
+                      />
+                    </label>
+                    <label className={styles.formField}>
+                      <span>Minimum torrent size (bytes, 0 disables)</span>
+                      <input
+                        className={styles.formControl}
+                        type="number"
+                        min="0"
+                        value={draft.minimumTorrentSizeBytes}
+                        onChange={handleMinimumSizeChange}
+                      />
+                    </label>
+                    <label className={styles.formField}>
+                      <span>Maximum torrent size (bytes, 0 disables)</span>
+                      <input
+                        className={styles.formControl}
+                        type="number"
+                        min="0"
+                        value={draft.maximumTorrentSizeBytes}
+                        onChange={handleMaximumSizeChange}
+                      />
+                    </label>
+                    {draft.reasonCode === 'download-stalled' ||
+                    draft.reasonCode === 'download-slow' ? (
+                      <>
+                        <label className={styles.checkboxField}>
+                          <input
+                            className={styles.checkbox}
+                            type="checkbox"
+                            checked={draft.resetStrikesOnProgress}
+                            onChange={handleResetOnProgressChange}
+                          />
+                          <span>
+                            Reset strikes when the download makes progress
+                          </span>
+                        </label>
+                        {draft.resetStrikesOnProgress ? (
+                          <label className={styles.formField}>
+                            <span>
+                              Minimum progress to reset (bytes, 0 means any)
+                            </span>
+                            <input
+                              className={styles.formControl}
+                              type="number"
+                              min="0"
+                              value={draft.minimumProgressToResetBytes}
+                              onChange={handleMinimumProgressChange}
+                            />
+                          </label>
+                        ) : null}
+                      </>
+                    ) : null}
+                    {draft.reasonCode === 'download-slow' ||
+                    draft.reasonCode === 'download-unstable' ? (
+                      <label className={styles.checkboxField}>
+                        <input
+                          className={styles.checkbox}
+                          type="checkbox"
+                          checked={draft.ignoreWhileAlternateSpeedActive}
+                          onChange={handleAlternateSpeedChange}
+                        />
+                        <span>
+                          Ignore slow signals while alternate speed limits are
+                          active
+                        </span>
+                      </label>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
+            </details>
+
+            <Cluster
+              className={styles.ruleActions}
+              collapseOnSmall={true}
+              gap="small"
             >
-              Delete
-            </Button>
-          </Cluster>
-        </form>
+              <Button type="submit" kind="primary" isDisabled={isSaving}>
+                Save
+              </Button>
+              <Button type="button" isDisabled={isSaving} onPress={onClose}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                kind="danger"
+                isDisabled={isSaving}
+                onPress={handleDelete}
+              >
+                Delete rule
+              </Button>
+            </Cluster>
+          </form>
+        ) : null}
 
-        {matchingAssessments ? (
+        {!isEditing && matchingAssessments && matchingAssessments.length > 0 ? (
           <Text size="small" tone="secondary">
-            Saved rule preview: {matchingAssessments.length} matching download
+            {matchingAssessments.length} matching download
             {matchingAssessments.length === 1 ? '' : 's'}
-            {rule.enabled && `; ${atThresholdCount} at the strike threshold`}
-            {!rule.enabled && '; monitoring is disabled'}.
-          </Text>
-        ) : null}
-
-        {!matchingAssessments && previewLoading ? (
-          <Text size="small" tone="secondary">
-            Loading the current queue preview.
-          </Text>
-        ) : null}
-
-        {!matchingAssessments && previewError ? (
-          <Text size="small" tone="secondary">
-            Current queue preview is unavailable.
+            {rule.enabled && `; ${atThresholdCount} at the strike threshold`}.
           </Text>
         ) : null}
 
@@ -811,17 +867,10 @@ function HygieneRuleEditor({
 
 interface HygieneRulesProps {
   assessments?: HygieneRuleAssessment[];
-  previewError: boolean;
-  previewLoading: boolean;
   onChanged: () => void;
 }
 
-function HygieneRules({
-  assessments,
-  previewError,
-  previewLoading,
-  onChanged,
-}: HygieneRulesProps) {
+function HygieneRules({ assessments, onChanged }: HygieneRulesProps) {
   const rulesQuery = useApiQuery<HygieneRule[]>({ path: '/hygiene/rule' });
   const clientsQuery = useApiQuery<DownloadClient[]>({
     path: '/downloadclient',
@@ -837,7 +886,13 @@ function HygieneRules({
   const [error, setError] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
   const [createdRuleId, setCreatedRuleId] = useState<number>();
+  const [editingRuleId, setEditingRuleId] = useState<number>();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  const handleCloseEditor = useCallback(() => {
+    setEditingRuleId(undefined);
+    setCreatedRuleId(undefined);
+  }, []);
 
   const handleSaved = useCallback(() => {
     rulesQuery.refetch();
@@ -847,6 +902,7 @@ function HygieneRules({
   const handleOpenCreate = useCallback(() => {
     setError(undefined);
     setCreatedRuleId(undefined);
+    setEditingRuleId(undefined);
     setIsCreateOpen(true);
   }, []);
 
@@ -955,6 +1011,7 @@ function HygieneRules({
         });
         rulesQuery.refetch();
         setCreatedRuleId(createdRule.id);
+        setEditingRuleId(createdRule.id);
         setIsCreateOpen(false);
         onChanged();
       } catch {
@@ -1003,15 +1060,19 @@ function HygieneRules({
             )}
           </Cluster>
           <Text tone="secondary">
-            Rules monitor downloads by problem, media, and client. Enabled rules
-            can remove matching jobs when automatic cleanup is on. Each rule
-            chooses whether source files are kept or deleted and whether to
-            search for a replacement.
+            Rules watch matching downloads. Cleanup can act after enough strikes
+            when Automatic actions are on.
           </Text>
-          <Text size="small" tone="secondary">
-            Failed downloads are blocklisted when automatic cleanup acts.
-            Stalled and slow detection are available only from qBittorrent.
-          </Text>
+          <details className={styles.ruleDetails}>
+            <summary>How rules work</summary>
+            <div className={styles.ruleAdvanced}>
+              <Text size="small" tone="secondary">
+                Each rule matches a problem, media type, and download client.
+                Stalled and slow signals come from qBittorrent. Failed downloads
+                are blocklisted when cleanup acts.
+              </Text>
+            </div>
+          </details>
         </Stack>
 
         {rulesQuery.isLoading || clientsQuery.isLoading ? (
@@ -1055,22 +1116,29 @@ function HygieneRules({
                   </label>
 
                   {reasonCode === 'download-unstable' ? (
-                    <Text size="small" tone="secondary">
-                      Counts slow and stalled observations for each download,
-                      even when the reason changes or the speed briefly
-                      recovers. The default is 12 strikes, at least 5 minutes
-                      apart. Slow detection uses a matching Slow download rule’s
-                      speed threshold.
-                    </Text>
+                    <details className={styles.ruleDetails}>
+                      <summary>About repeated slow or stalled</summary>
+                      <div className={styles.ruleAdvanced}>
+                        <Text size="small" tone="secondary">
+                          Counts slow and stalled signals together, even if
+                          speed briefly recovers. Slow detection uses a matching
+                          Slow download rule’s speed threshold.
+                        </Text>
+                      </div>
+                    </details>
                   ) : null}
 
                   {reasonCode === 'download-metadata' ? (
-                    <Text size="small" tone="secondary">
-                      Counts consecutive observations while qBittorrent fetches
-                      metadata. The count resets when metadata finishes. Cleanup
-                      requires an enabled rule and the global action gate;
-                      private or unverified torrents remain held for review.
-                    </Text>
+                    <details className={styles.ruleDetails}>
+                      <summary>About metadata downloads</summary>
+                      <div className={styles.ruleAdvanced}>
+                        <Text size="small" tone="secondary">
+                          Counts checks while qBittorrent fetches metadata. The
+                          count resets when metadata arrives. Private and
+                          unverified torrents remain held for review.
+                        </Text>
+                      </div>
+                    </details>
                   ) : null}
 
                   {reasonCode === 'download-slow' ? (
@@ -1151,61 +1219,35 @@ function HygieneRules({
                         checked={warningCleanupEnabled}
                         onChange={handleNewWarningCleanupChange}
                       />
-                      <span className={styles.checkboxCopy}>
-                        <span>
-                          Allow automatic cleanup for download warnings
-                        </span>
-                        <span className={styles.fieldHint}>
-                          Warnings can include import, file, or client problems.
-                          Cleanup follows the choices below after the strike
-                          limit.
-                        </span>
-                      </span>
+                      <span>Allow cleanup for warnings</span>
                     </label>
                   ) : null}
                   <label className={styles.checkboxField}>
                     <input
                       id="hygiene-new-rule-delete-files"
-                      aria-describedby="hygiene-new-rule-delete-files-description"
                       className={styles.checkbox}
                       type="checkbox"
                       checked={deleteFilesOnFailure}
                       onChange={handleDeleteFilesChange}
                     />
-                    <span className={styles.checkboxCopy}>
-                      <span>Delete source files when this rule acts</span>
-                      <span
-                        id="hygiene-new-rule-delete-files-description"
-                        className={styles.fieldHint}
-                      >
-                        Permanently removes the download client job and its
-                        files. New rules remain disabled until you turn on
-                        monitoring; automatic cleanup has a separate gate.
-                      </span>
-                    </span>
+                    <span>Delete downloaded files during cleanup</span>
                   </label>
                   <label className={styles.checkboxField}>
                     <input
                       id="hygiene-new-rule-search"
-                      aria-describedby="hygiene-new-rule-search-description"
                       className={styles.checkbox}
                       type="checkbox"
                       checked={searchForReplacement}
                       onChange={handleSearchChange}
                     />
-                    <span className={styles.checkboxCopy}>
-                      <span>
-                        Automatically search for a replacement after cleanup
-                      </span>
-                      <span
-                        id="hygiene-new-rule-search-description"
-                        className={styles.fieldHint}
-                      >
-                        On by default for existing behavior. The failed-download
-                        settings must also allow the search.
-                      </span>
-                    </span>
+                    <span>Search for a replacement after cleanup</span>
                   </label>
+
+                  {deleteFilesOnFailure ? (
+                    <Text size="small" tone="secondary">
+                      Files deleted by cleanup cannot be recovered.
+                    </Text>
+                  ) : null}
 
                   <Cluster
                     className={styles.ruleActions}
@@ -1236,8 +1278,7 @@ function HygieneRules({
 
           {createdRuleId ? (
             <Alert role="status">
-              Rule added at the top of the list. It starts disabled; review its
-              settings before enabling it.
+              Rule added. Monitoring starts off; enable it below when ready.
             </Alert>
           ) : null}
 
@@ -1254,8 +1295,9 @@ function HygieneRules({
                 rule={rule}
                 clients={clientsQuery.data || []}
                 assessments={assessments}
-                previewError={previewError}
-                previewLoading={previewLoading}
+                isEditing={editingRuleId === rule.id}
+                onEdit={setEditingRuleId}
+                onClose={handleCloseEditor}
                 onSaved={handleSaved}
               />
             ))}
