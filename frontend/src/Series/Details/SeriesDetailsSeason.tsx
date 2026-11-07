@@ -27,6 +27,7 @@ import SeriesOrganizePreviewModal from 'Series/Organize/SeriesOrganizePreviewMod
 import SeasonInteractiveSearchModal from 'Series/Search/SeasonInteractiveSearchModal';
 import { Statistics } from 'Series/Series';
 import useSeries from 'Series/useSeries';
+import { executeCommand } from 'Store/Actions/commandActions';
 import {
   setEpisodesSort,
   setEpisodesTableOption,
@@ -218,11 +219,13 @@ function SeriesDetailsSeason({
   );
 
   const handleSearchPress = useCallback(() => {
-    dispatch({
-      name: commandNames.SEASON_SEARCH,
-      seriesId,
-      seasonNumber,
-    });
+    dispatch(
+      executeCommand({
+        name: commandNames.SEASON_SEARCH,
+        seriesId,
+        seasonNumber,
+      })
+    );
   }, [seriesId, seasonNumber, dispatch]);
 
   const handleOrganizePress = useCallback(() => {
