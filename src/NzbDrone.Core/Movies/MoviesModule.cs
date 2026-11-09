@@ -5,6 +5,7 @@ using NzbDrone.Core.MediaFiles.Commands;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies.Commands;
 using NzbDrone.Core.Movies.ImportLists;
+using NzbDrone.Core.Movies.Search;
 
 namespace NzbDrone.Core.Movies
 {
@@ -21,6 +22,12 @@ namespace NzbDrone.Core.Movies
         // Radarr's intervals.
         public IEnumerable<ScheduledTask> ScheduledTasks => new[]
         {
+            new ScheduledTask
+            {
+                Interval = 60,
+                TypeName = typeof(MissingMoviesSearchCommand).FullName
+            },
+
             new ScheduledTask
             {
                 Interval = 24 * 60,

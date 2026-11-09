@@ -29,6 +29,23 @@ namespace NzbDrone.Core.Test.QueueTests
     public class HygieneQueueActionServiceFixture : CoreTest
     {
         [Test]
+        public void repeated_movie_failures_stop_automatic_replacement_but_record_the_failure()
+        {
+            var context = new ActionContext(MediaKind.Movies, true, "download-slow");
+            var movie = new NzbDrone.Core.Movies.Movie { Id = 107 };
+            ((NzbDrone.Core.Movies.Parser.Model.RemoteMovie)context.TrackedDownload.RemoteRelease).Movie = movie;
+            context.DownloadHistory.Setup(x => x.CountRecentFailedDownloads(MediaKind.Movies, movie.Id, It.IsAny<DateTime>()))
+                .Returns(2);
+
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.Actions.Should().ContainSingle();
+            context.Actions[0].Checkpoint.Should().Be("replacement-skipped");
+            context.Actions[0].SearchForReplacement.Should().BeFalse();
+            context.FailedDownloads.Verify(x => x.MarkAsFailed(context.TrackedDownload, true), Times.Once);
+        }
+
+        [Test]
         public void mixed_content_skips_only_blocked_files_and_completes_a_journal_entry()
         {
             var context = new ActionContext(MediaKind.Movies, true);
