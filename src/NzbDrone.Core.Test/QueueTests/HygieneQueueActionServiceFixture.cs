@@ -29,6 +29,26 @@ namespace NzbDrone.Core.Test.QueueTests
     public class HygieneQueueActionServiceFixture : CoreTest
     {
         [Test]
+        public void repeated_movie_failures_stop_automatic_replacement_but_record_the_failure()
+        {
+            var context = new ActionContext(MediaKind.Movies, true, "download-slow");
+            var movie = new NzbDrone.Core.Movies.Movie { Id = 107 };
+            ((NzbDrone.Core.Movies.Parser.Model.RemoteMovie)context.TrackedDownload.RemoteRelease).Movie = movie;
+            context.MovieHistory.Setup(x => x.FindByMovieId(movie.Id)).Returns(new List<NzbDrone.Core.Movies.History.MovieHistory>
+            {
+                new() { EventType = NzbDrone.Core.Movies.History.MovieHistoryEventType.DownloadFailed, DownloadId = "first", Date = DateTime.UtcNow.AddHours(-2) },
+                new() { EventType = NzbDrone.Core.Movies.History.MovieHistoryEventType.DownloadFailed, DownloadId = "second", Date = DateTime.UtcNow.AddHours(-1) }
+            });
+
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.Actions.Should().ContainSingle();
+            context.Actions[0].Checkpoint.Should().Be("replacement-skipped");
+            context.Actions[0].SearchForReplacement.Should().BeFalse();
+            context.FailedDownloads.Verify(x => x.MarkAsFailed(context.TrackedDownload, true), Times.Once);
+        }
+
+        [Test]
         public void mixed_content_skips_only_blocked_files_and_completes_a_journal_entry()
         {
             var context = new ActionContext(MediaKind.Movies, true);
@@ -1033,6 +1053,7 @@ namespace NzbDrone.Core.Test.QueueTests
             public Mock<IFailedDownloadService> FailedDownloads { get; } = new();
             public Mock<IManageCommandQueue> CommandQueue { get; } = new();
             public Mock<IDownloadHistoryService> DownloadHistory { get; } = new();
+            public Mock<NzbDrone.Core.Movies.History.IHistoryService> MovieHistory { get; } = new();
             public Mock<IHygieneQueueDecisionService> Decisions { get; } = new();
             public Mock<IHygieneContentDecisionService> ContentDecisions { get; } = new();
             public HygieneQueueAssessment Assessment { get; }
@@ -1181,6 +1202,7 @@ namespace NzbDrone.Core.Test.QueueTests
                     failedDownloadService ?? FailedDownloads.Object,
                     CommandQueue.Object,
                     DownloadHistory.Object,
+                    MovieHistory.Object,
                     TestLogger);
             }
         }

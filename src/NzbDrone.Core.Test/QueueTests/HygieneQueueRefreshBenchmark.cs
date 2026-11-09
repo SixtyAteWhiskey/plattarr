@@ -77,6 +77,7 @@ namespace NzbDrone.Core.Test.QueueTests
                 Mocker.GetMock<IFailedDownloadService>().Object,
                 Mocker.GetMock<NzbDrone.Core.Messaging.Commands.IManageCommandQueue>().Object,
                 downloadHistory,
+                Mocker.GetMock<NzbDrone.Core.Movies.History.IHistoryService>().Object,
                 TestLogger);
             var timedStrikes = new TimedStrikes(strikes);
             var timedActions = new TimedActions(actionService);
