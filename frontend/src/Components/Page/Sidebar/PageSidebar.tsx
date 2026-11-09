@@ -112,12 +112,6 @@ const LINKS: SidebarItem[] = [
   },
 
   {
-    iconName: icons.SEARCH,
-    title: 'Proactive Search',
-    to: '/proactive-search',
-  },
-
-  {
     iconName: icons.CALENDAR,
     title: () => translate('Calendar'),
     to: '/calendar',
