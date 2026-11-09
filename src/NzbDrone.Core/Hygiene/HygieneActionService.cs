@@ -9,9 +9,6 @@ using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Modules;
-using NzbDrone.Core.Movies;
-using NzbDrone.Core.Movies.History;
-using NzbDrone.Core.Movies.Search;
 using QueueItem = NzbDrone.Core.Queue.Queue;
 
 namespace NzbDrone.Core.Hygiene
@@ -85,7 +82,6 @@ namespace NzbDrone.Core.Hygiene
         private readonly IFailedDownloadService _failedDownloads;
         private readonly IManageCommandQueue _commandQueue;
         private readonly IDownloadHistoryService _history;
-        private readonly IHistoryService _movieHistory;
         private readonly Logger _logger;
 
         public HygieneQueueActionService(
@@ -98,7 +94,6 @@ namespace NzbDrone.Core.Hygiene
             IFailedDownloadService failedDownloads,
             IManageCommandQueue commandQueue,
             IDownloadHistoryService history,
-            IHistoryService movieHistory,
             Logger logger)
         {
             _decisions = decisions;
@@ -110,7 +105,6 @@ namespace NzbDrone.Core.Hygiene
             _failedDownloads = failedDownloads;
             _commandQueue = commandQueue;
             _history = history;
-            _movieHistory = movieHistory;
             _logger = logger;
         }
 
@@ -637,10 +631,10 @@ namespace NzbDrone.Core.Hygiene
                     return;
                 }
 
-                var movieId = tracked.GetMovie()?.Id;
-                if (action.SearchForReplacement && movieId > 0 &&
-                    MovieSearchSafety.RecentFailureCount(
-                        _movieHistory.FindByMovieId(movieId.Value), DateTime.UtcNow) >= MovieSearchSafety.FailureLimit - 1)
+                var parentId = tracked.RemoteRelease?.Parent?.Id;
+                if (action.SearchForReplacement && kind == MediaKind.Movies && parentId > 0 &&
+                    _history.CountRecentFailedDownloads(MediaKind.Movies, parentId.Value,
+                        DateTime.UtcNow - DownloadRetryPolicy.FailureWindow) >= DownloadRetryPolicy.FailureLimit - 1)
                 {
                     action.SearchForReplacement = false;
                     action.RecoveryPath = "Recent failures reached the automatic replacement limit for this movie. Review the download source and use manual search when ready.";

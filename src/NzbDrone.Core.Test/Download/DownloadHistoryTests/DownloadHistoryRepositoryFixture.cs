@@ -14,6 +14,27 @@ namespace NzbDrone.Core.Test.Download.DownloadHistoryTests
     [TestFixture]
     public class DownloadHistoryRepositoryFixture : DbTest<DownloadHistoryRepository, DownloadHistory>
     {
+        [Test]
+        public void recent_failure_count_is_scoped_by_media_parent_time_and_distinct_download()
+        {
+            var now = DateTime.UtcNow;
+            var rows = new List<DownloadHistory>
+            {
+                new() { MediaKind = MediaKind.Movies, ParentId = 7, EventType = DownloadHistoryEventType.DownloadFailed, DownloadId = "first", Date = now.AddDays(-1) },
+                new() { MediaKind = MediaKind.Movies, ParentId = 7, EventType = DownloadHistoryEventType.DownloadFailed, DownloadId = "FIRST", Date = now.AddHours(-1) },
+                new() { MediaKind = MediaKind.Movies, ParentId = 7, EventType = DownloadHistoryEventType.DownloadFailed, DownloadId = "second", Date = now.AddDays(-2) },
+                new() { MediaKind = MediaKind.Movies, ParentId = 7, EventType = DownloadHistoryEventType.DownloadFailed, DownloadId = "old", Date = now.AddDays(-8) },
+                new() { MediaKind = MediaKind.Tv, ParentId = 7, EventType = DownloadHistoryEventType.DownloadFailed, DownloadId = "tv", Date = now },
+                new() { MediaKind = MediaKind.Movies, ParentId = 8, EventType = DownloadHistoryEventType.DownloadFailed, DownloadId = "other", Date = now },
+                new() { MediaKind = MediaKind.Movies, ParentId = 7, EventType = DownloadHistoryEventType.DownloadGrabbed, DownloadId = "grab", Date = now }
+            };
+
+            rows.ForEach(row => row.SourceTitle = "synthetic");
+            Db.InsertMany(rows);
+
+            Subject.CountRecentFailedDownloads(MediaKind.Movies, 7, now.AddDays(-7)).Should().Be(2);
+        }
+
         private Movie _movie1;
         private Movie _movie2;
 
