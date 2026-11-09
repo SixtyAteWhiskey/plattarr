@@ -65,24 +65,21 @@ namespace NzbDrone.Core.Movies.Search
 
             var movies = _movieService.MoviesWithoutFiles(pagingSpec).Records.ToList();
 
-            var queue = _queueService.GetQueue().Where(q => q.GetMovie() != null).Select(q => q.GetMovie().Id);
+            var queue = _queueService.GetQueue().Where(q => q.GetMovie() != null).Select(q => q.GetMovie().Id).ToHashSet();
             var missing = movies.Where(e => !queue.Contains(e.Id)).ToList();
 
             if (message.Trigger == CommandTrigger.Scheduled)
             {
                 var now = DateTime.UtcNow;
-                var failed = _history.Since(now - MovieSearchSafety.FailureWindow, MovieHistoryEventType.DownloadFailed)
-                    .GroupBy(row => row.ParentId)
-                    .Where(group => MovieSearchSafety.TooManyRecentFailures(group, now))
-                    .Select(group => group.Key)
-                    .ToHashSet();
+                var failures = _history.Since(now - MovieSearchSafety.FailureWindow, MovieHistoryEventType.DownloadFailed);
 
-                // Bound provider requests and rotate through missing movies by last search time.
-                missing = missing.Where(movie => movie.IsAvailable() &&
-                                                 !failed.Contains(movie.Id) &&
-                                                 (!movie.LastSearchTime.HasValue || movie.LastSearchTime < now.AddDays(-1)))
-                    .OrderBy(movie => movie.LastSearchTime ?? DateTime.MinValue)
+                // Use the same reasons as the read-only preview, then make one provider request.
+                missing = MovieProactiveEligibility.Evaluate(movies, queue, failures, now)
+                    .Where(item => item.Eligible)
+                    .OrderBy(item => item.Movie.LastSearchTime ?? DateTime.MinValue)
+                    .ThenBy(item => item.Movie.Id)
                     .Take(1)
+                    .Select(item => item.Movie)
                     .ToList();
             }
 

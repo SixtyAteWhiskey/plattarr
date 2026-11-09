@@ -31,6 +31,7 @@ import Switch from 'Components/Router/Switch';
 import DiscoverMovieConnector from 'DiscoverMovie/DiscoverMovieConnector';
 import MovieDetailsPage from 'Movie/Details/MovieDetailsPage';
 import MovieIndex from 'Movie/Index/MovieIndex';
+import ProactiveSearch from 'ProactiveSearch/ProactiveSearch';
 import SeriesDetailsPage from 'Series/Details/SeriesDetailsPage';
 import SeriesIndex from 'Series/Index/SeriesIndex';
 import BackupsConnector from 'System/Backup/BackupsConnector';
@@ -188,6 +189,8 @@ function AppRoutes() {
       */}
 
       <Route path="/calendar" component={CalendarRoutePage} />
+
+      <Route path="/proactive-search" component={ProactiveSearch} />
 
       {/*
         Activity
