@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Modules;
 
 namespace NzbDrone.Core.Download.History
 {
@@ -10,6 +11,7 @@ namespace NzbDrone.Core.Download.History
         bool DownloadAlreadyImported(string downloadId);
         DownloadHistory GetLatestDownloadHistoryItem(string downloadId);
         DownloadHistory GetLatestGrab(string downloadId);
+        int CountRecentFailedDownloads(MediaKind kind, int parentId, DateTime since);
     }
 
     public class DownloadHistoryService : IDownloadHistoryService,
@@ -82,6 +84,11 @@ namespace NzbDrone.Core.Download.History
         {
             return _repository.FindByDownloadId(downloadId)
                               .FirstOrDefault(d => d.EventType == DownloadHistoryEventType.DownloadGrabbed);
+        }
+
+        public int CountRecentFailedDownloads(MediaKind kind, int parentId, DateTime since)
+        {
+            return _repository.CountRecentFailedDownloads(kind, parentId, since);
         }
 
         public void Handle(ReleaseGrabbedEvent message)

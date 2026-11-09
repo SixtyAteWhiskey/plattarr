@@ -10,6 +10,7 @@ namespace NzbDrone.Core.Download.History
     public interface IDownloadHistoryRepository : IBasicRepository<DownloadHistory>
     {
         List<DownloadHistory> FindByDownloadId(string downloadId);
+        int CountRecentFailedDownloads(MediaKind kind, int parentId, DateTime since);
         void DeleteByParentIds(MediaKind kind, List<int> parentIds);
     }
 
@@ -26,6 +27,16 @@ namespace NzbDrone.Core.Download.History
         public List<DownloadHistory> FindByDownloadId(string downloadId)
         {
             return Query(x => x.DownloadId == downloadId).OrderByDescending(h => h.Date).ToList();
+        }
+
+        public int CountRecentFailedDownloads(MediaKind kind, int parentId, DateTime since)
+        {
+            return Query(row => row.MediaKind == kind && row.ParentId == parentId &&
+                                row.EventType == DownloadHistoryEventType.DownloadFailed && row.Date >= since)
+                .Select(row => string.IsNullOrWhiteSpace(row.DownloadId) ? row.Id.ToString() : row.DownloadId)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(DownloadRetryPolicy.FailureLimit)
+                .Count();
         }
 
         public void DeleteByParentIds(MediaKind kind, List<int> parentIds)

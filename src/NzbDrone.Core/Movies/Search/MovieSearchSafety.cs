@@ -2,13 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Core.Movies.History;
+using NzbDrone.Core.Download.History;
 
 namespace NzbDrone.Core.Movies.Search
 {
     public static class MovieSearchSafety
     {
-        public const int FailureLimit = 3;
-        public static readonly TimeSpan FailureWindow = TimeSpan.FromDays(7);
+        public const int FailureLimit = DownloadRetryPolicy.FailureLimit;
+        public static readonly TimeSpan FailureWindow = DownloadRetryPolicy.FailureWindow;
 
         public static bool TooManyRecentFailures(IEnumerable<MovieHistory> history, DateTime now)
         {

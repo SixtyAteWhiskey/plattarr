@@ -34,11 +34,8 @@ namespace NzbDrone.Core.Test.QueueTests
             var context = new ActionContext(MediaKind.Movies, true, "download-slow");
             var movie = new NzbDrone.Core.Movies.Movie { Id = 107 };
             ((NzbDrone.Core.Movies.Parser.Model.RemoteMovie)context.TrackedDownload.RemoteRelease).Movie = movie;
-            context.MovieHistory.Setup(x => x.FindByMovieId(movie.Id)).Returns(new List<NzbDrone.Core.Movies.History.MovieHistory>
-            {
-                new() { EventType = NzbDrone.Core.Movies.History.MovieHistoryEventType.DownloadFailed, DownloadId = "first", Date = DateTime.UtcNow.AddHours(-2) },
-                new() { EventType = NzbDrone.Core.Movies.History.MovieHistoryEventType.DownloadFailed, DownloadId = "second", Date = DateTime.UtcNow.AddHours(-1) }
-            });
+            context.DownloadHistory.Setup(x => x.CountRecentFailedDownloads(MediaKind.Movies, movie.Id, It.IsAny<DateTime>()))
+                .Returns(2);
 
             context.Service.Process(new[] { context.QueueItem });
 
@@ -1053,7 +1050,6 @@ namespace NzbDrone.Core.Test.QueueTests
             public Mock<IFailedDownloadService> FailedDownloads { get; } = new();
             public Mock<IManageCommandQueue> CommandQueue { get; } = new();
             public Mock<IDownloadHistoryService> DownloadHistory { get; } = new();
-            public Mock<NzbDrone.Core.Movies.History.IHistoryService> MovieHistory { get; } = new();
             public Mock<IHygieneQueueDecisionService> Decisions { get; } = new();
             public Mock<IHygieneContentDecisionService> ContentDecisions { get; } = new();
             public HygieneQueueAssessment Assessment { get; }
@@ -1202,7 +1198,6 @@ namespace NzbDrone.Core.Test.QueueTests
                     failedDownloadService ?? FailedDownloads.Object,
                     CommandQueue.Object,
                     DownloadHistory.Object,
-                    MovieHistory.Object,
                     TestLogger);
             }
         }
