@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Datastore;
@@ -52,8 +51,14 @@ namespace NzbDrone.Core.Test.MovieTests.SearchTests
             var decisions = new Mock<IProcessDownloadDecisions>();
             decisions.Setup(x => x.ProcessDecisions(It.IsAny<List<DownloadDecision>>()))
                 .ReturnsAsync(new ProcessedDecisions(new List<DownloadDecision>(), new List<DownloadDecision>(), new List<DownloadDecision>()));
-            var service = new MovieSearchService(movieService.Object, new Mock<IMovieCutoffService>().Object,
-                search.Object, decisions.Object, queue.Object, history.Object, NLog.LogManager.GetCurrentClassLogger());
+            var service = new MovieSearchService(
+                movieService.Object,
+                new Mock<IMovieCutoffService>().Object,
+                search.Object,
+                decisions.Object,
+                queue.Object,
+                history.Object,
+                NLog.LogManager.GetCurrentClassLogger());
 
             service.Execute(new MissingMoviesSearchCommand { Trigger = CommandTrigger.Scheduled });
 
