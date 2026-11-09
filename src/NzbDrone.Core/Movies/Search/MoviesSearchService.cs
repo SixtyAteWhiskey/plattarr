@@ -8,6 +8,7 @@ using NzbDrone.Core.Datastore;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Messaging.Commands;
+using NzbDrone.Core.Movies.History;
 using NzbDrone.Core.Queue;
 
 namespace NzbDrone.Core.Movies.Search
@@ -19,6 +20,7 @@ namespace NzbDrone.Core.Movies.Search
         private readonly ISearchForReleases _releaseSearchService;
         private readonly IProcessDownloadDecisions _processDownloadDecisions;
         private readonly IQueueService _queueService;
+        private readonly IHistoryService _history;
         private readonly Logger _logger;
 
         public MovieSearchService(IMovieService movieService,
@@ -26,6 +28,7 @@ namespace NzbDrone.Core.Movies.Search
                                    ISearchForReleases releaseSearchService,
                                    IProcessDownloadDecisions processDownloadDecisions,
                                    IQueueService queueService,
+                                   IHistoryService history,
                                    Logger logger)
         {
             _movieService = movieService;
@@ -33,6 +36,7 @@ namespace NzbDrone.Core.Movies.Search
             _releaseSearchService = releaseSearchService;
             _processDownloadDecisions = processDownloadDecisions;
             _queueService = queueService;
+            _history = history;
             _logger = logger;
         }
 
@@ -64,7 +68,25 @@ namespace NzbDrone.Core.Movies.Search
             var queue = _queueService.GetQueue().Where(q => q.GetMovie() != null).Select(q => q.GetMovie().Id);
             var missing = movies.Where(e => !queue.Contains(e.Id)).ToList();
 
-            SearchForBulkMovies(missing, message.Trigger == CommandTrigger.Manual).GetAwaiter().GetResult();
+            if (message.Trigger == CommandTrigger.Scheduled)
+            {
+                var now = DateTime.UtcNow;
+                var failed = _history.Since(now - MovieSearchSafety.FailureWindow, MovieHistoryEventType.DownloadFailed)
+                    .GroupBy(row => row.ParentId)
+                    .Where(group => MovieSearchSafety.TooManyRecentFailures(group, now))
+                    .Select(group => group.Key)
+                    .ToHashSet();
+
+                // Bound provider requests and rotate through missing movies by last search time.
+                missing = missing.Where(movie => movie.IsAvailable() &&
+                                                 !failed.Contains(movie.Id) &&
+                                                 (!movie.LastSearchTime.HasValue || movie.LastSearchTime < now.AddDays(-1)))
+                    .OrderBy(movie => movie.LastSearchTime ?? DateTime.MinValue)
+                    .Take(1)
+                    .ToList();
+            }
+
+            message.GrabbedCount = SearchForBulkMovies(missing, message.Trigger == CommandTrigger.Manual).GetAwaiter().GetResult();
         }
 
         public void Execute(CutoffUnmetMoviesSearchCommand message)

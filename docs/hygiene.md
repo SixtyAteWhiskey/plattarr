@@ -148,6 +148,21 @@ global gate checks apply as for stalled downloads. The client state is checked
 again immediately before removal, and cleanup pauses if metadata completed or
 the torrent disappeared. Source-file deletion defaults off.
 
+## Missing Movie search and repeat failures
+
+The scheduled missing-Movie search checks once per hour and searches at most
+one monitored, available Movie without a file or queue item. It chooses the
+Movie with the oldest last-search time and waits at least a day before trying
+that Movie again. Three distinct failed downloads within seven days hold a
+Movie from scheduled search until the failures age out. Manual searches remain
+available.
+
+Hygiene still removes and records a failed download when a rule authorizes it.
+After two distinct recent failed downloads for the same Movie, it skips the
+third automatic replacement search. The journal records the skipped search and
+points to manual review. This caps a chain at three failed downloads in seven
+days even when each new torrent receives its own strike count.
+
 ## Guarded force-import rescue
 
 An `import-blocked` rule can opt in to force-import rescue. It starts off for

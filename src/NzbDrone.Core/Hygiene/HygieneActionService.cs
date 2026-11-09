@@ -631,6 +631,18 @@ namespace NzbDrone.Core.Hygiene
                     return;
                 }
 
+                var parentId = tracked.RemoteRelease?.Parent?.Id;
+                if (action.SearchForReplacement && kind == MediaKind.Movies && parentId > 0 &&
+                    _history.CountRecentFailedDownloads(
+                        MediaKind.Movies,
+                        parentId.Value,
+                        DateTime.UtcNow - DownloadRetryPolicy.FailureWindow) >= DownloadRetryPolicy.FailureLimit - 1)
+                {
+                    action.SearchForReplacement = false;
+                    action.RecoveryPath = "Recent failures reached the automatic replacement limit for this movie. Review the download source and use manual search when ready.";
+                    _actions.SetFields(action, x => x.SearchForReplacement, x => x.RecoveryPath);
+                }
+
                 var failure = _failedDownloads.MarkAsFailed(tracked, !action.SearchForReplacement);
                 if (failure != null)
                 {
