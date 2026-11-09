@@ -2,6 +2,36 @@
   max-width: 1100px;
 }
 
+.tabList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spaceSmall;
+
+  margin: 0 0 $spaceLarge;
+  padding: 0 0 $spaceSmall;
+  border-bottom: 1px solid var(--surfaceBorderColor);
+  list-style: none;
+}
+
+.tab {
+  padding: $spaceSmall $spaceMedium;
+  color: var(--statusText);
+  cursor: pointer;
+}
+
+.selectedTab {
+  border-bottom: 2px solid var(--primaryColor);
+  color: var(--primaryColor);
+}
+
+.tabPanel {
+  display: none;
+}
+
+.selectedPanel {
+  display: block;
+}
+
 .counts {
   display: grid;
   gap: $spaceSmall;
@@ -23,6 +53,24 @@
 .list span {
   margin-left: $spaceSmall;
   color: var(--statusText);
+}
+
+.skippedItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: $spaceSmall;
+}
+
+.itemDetails {
+  display: flex;
+  flex-direction: column;
+  gap: $spaceXSmall;
+}
+
+.itemDetails span {
+  margin-left: 0;
 }
 
 .filter,

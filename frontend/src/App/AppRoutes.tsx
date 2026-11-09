@@ -31,7 +31,6 @@ import Switch from 'Components/Router/Switch';
 import DiscoverMovieConnector from 'DiscoverMovie/DiscoverMovieConnector';
 import MovieDetailsPage from 'Movie/Details/MovieDetailsPage';
 import MovieIndex from 'Movie/Index/MovieIndex';
-import ProactiveSearch from 'ProactiveSearch/ProactiveSearch';
 import SeriesDetailsPage from 'Series/Details/SeriesDetailsPage';
 import SeriesIndex from 'Series/Index/SeriesIndex';
 import BackupsConnector from 'System/Backup/BackupsConnector';
@@ -53,6 +52,10 @@ import MusicMissing from 'Wanted/Music/Missing/MissingConnector';
 
 function RedirectWithUrlBase() {
   return <Redirect to={getPathWithUrlBase('/')} />;
+}
+
+function RedirectProactiveSearch() {
+  return <Redirect to={getPathWithUrlBase('/activity/hygiene?tab=search')} />;
 }
 
 const GettingStarted = React.lazy(
@@ -190,7 +193,7 @@ function AppRoutes() {
 
       <Route path="/calendar" component={CalendarRoutePage} />
 
-      <Route path="/proactive-search" component={ProactiveSearch} />
+      <Route path="/proactive-search" component={RedirectProactiveSearch} />
 
       {/*
         Activity

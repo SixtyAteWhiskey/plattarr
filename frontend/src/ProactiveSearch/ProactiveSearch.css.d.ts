@@ -4,8 +4,15 @@ interface CssExports {
   'content': string;
   'counts': string;
   'filter': string;
+  'itemDetails': string;
   'list': string;
   'pager': string;
+  'selectedPanel': string;
+  'selectedTab': string;
+  'skippedItem': string;
+  'tab': string;
+  'tabList': string;
+  'tabPanel': string;
 }
 export const cssExports: CssExports;
 export default cssExports;

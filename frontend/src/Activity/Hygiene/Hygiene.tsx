@@ -1,4 +1,5 @@
 import React, { ChangeEvent, FormEvent, useCallback, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
 import Alert from 'Components/Alert';
 import Icon, { IconName } from 'Components/Icon';
@@ -12,6 +13,7 @@ import Surface from 'Components/Surface';
 import { Heading, Text } from 'Components/Typography';
 import useApiQuery from 'Helpers/Hooks/useApiQuery';
 import { icons } from 'Helpers/Props';
+import ProactiveSearch from 'ProactiveSearch/ProactiveSearch';
 import fetchJson, { apiRoot } from 'Utilities/Fetch/fetchJson';
 import HygieneAttentionBadge, {
   getHygieneAttention,
@@ -318,7 +320,10 @@ function getOutcomeEvidence(outcome: HygieneReplacementOutcome) {
 }
 
 function Hygiene() {
-  const [selectedTab, setSelectedTab] = useState(0);
+  const location = useLocation();
+  const [selectedTab, setSelectedTab] = useState(() =>
+    new URLSearchParams(location.search).get('tab') === 'search' ? 2 : 0
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>();
   const [journalPage, setJournalPage] = useState(0);
@@ -431,6 +436,12 @@ function Hygiene() {
                 selectedClassName={styles.selectedTab}
               >
                 Automation settings
+              </Tab>
+              <Tab
+                className={styles.tab}
+                selectedClassName={styles.selectedTab}
+              >
+                Proactive search
               </Tab>
             </TabList>
 
@@ -1031,6 +1042,12 @@ function Hygiene() {
                 <HygieneRules assessments={data} onChanged={handleRefresh} />
                 <HygieneContent />
               </Stack>
+            </TabPanel>
+            <TabPanel
+              className={styles.tabPanel}
+              selectedClassName={styles.selectedPanel}
+            >
+              <ProactiveSearch />
             </TabPanel>
           </Tabs>
         </Stack>
