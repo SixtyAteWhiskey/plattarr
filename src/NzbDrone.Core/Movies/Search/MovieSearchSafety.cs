@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using NzbDrone.Core.Movies.History;
 using NzbDrone.Core.Download.History;
+using NzbDrone.Core.Movies.History;
 
 namespace NzbDrone.Core.Movies.Search
 {

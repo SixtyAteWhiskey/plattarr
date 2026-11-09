@@ -633,7 +633,9 @@ namespace NzbDrone.Core.Hygiene
 
                 var parentId = tracked.RemoteRelease?.Parent?.Id;
                 if (action.SearchForReplacement && kind == MediaKind.Movies && parentId > 0 &&
-                    _history.CountRecentFailedDownloads(MediaKind.Movies, parentId.Value,
+                    _history.CountRecentFailedDownloads(
+                        MediaKind.Movies,
+                        parentId.Value,
                         DateTime.UtcNow - DownloadRetryPolicy.FailureWindow) >= DownloadRetryPolicy.FailureLimit - 1)
                 {
                     action.SearchForReplacement = false;
