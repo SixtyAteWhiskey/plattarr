@@ -195,6 +195,54 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("HygieneActionsEnabled", value); }
         }
 
+        public bool ProactiveTvSearchEnabled
+        {
+            get { return GetValueBoolean("ProactiveTvSearchEnabled", false); }
+            set { SetValue("ProactiveTvSearchEnabled", value); }
+        }
+
+        public bool ProactiveMovieSearchEnabled
+        {
+            get { return GetValueBoolean("ProactiveMovieSearchEnabled", true); }
+            set { SetValue("ProactiveMovieSearchEnabled", value); }
+        }
+
+        public int ProactiveMovieSearchIntervalMinutes
+        {
+            get { return GetValueInt("ProactiveMovieSearchIntervalMinutes", 60); }
+            set { SetValue("ProactiveMovieSearchIntervalMinutes", value); }
+        }
+
+        public int ProactiveMovieActiveDownloadLimit
+        {
+            get { return GetValueInt("ProactiveMovieActiveDownloadLimit", 5); }
+            set { SetValue("ProactiveMovieActiveDownloadLimit", value); }
+        }
+
+        public int ProactiveMovieRecentGrabHours
+        {
+            get { return GetValueInt("ProactiveMovieRecentGrabHours", 24); }
+            set { SetValue("ProactiveMovieRecentGrabHours", value); }
+        }
+
+        public int ProactiveTvSearchIntervalMinutes
+        {
+            get { return GetValueInt("ProactiveTvSearchIntervalMinutes", 60); }
+            set { SetValue("ProactiveTvSearchIntervalMinutes", value); }
+        }
+
+        public int ProactiveTvActiveDownloadLimit
+        {
+            get { return GetValueInt("ProactiveTvActiveDownloadLimit", 5); }
+            set { SetValue("ProactiveTvActiveDownloadLimit", value); }
+        }
+
+        public int ProactiveTvRecentGrabHours
+        {
+            get { return GetValueInt("ProactiveTvRecentGrabHours", 24); }
+            set { SetValue("ProactiveTvRecentGrabHours", value); }
+        }
+
         public bool HygieneContentInspectionEnabled
         {
             get { return GetValueBoolean("HygieneContentInspectionEnabled", false); }

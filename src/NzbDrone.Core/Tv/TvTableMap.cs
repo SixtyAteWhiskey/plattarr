@@ -18,6 +18,7 @@ using NzbDrone.Core.Tv.Organizer;
 using NzbDrone.Core.Tv.Parser.Model;
 using NzbDrone.Core.Tv.Pending;
 using NzbDrone.Core.Tv.RootFolders;
+using NzbDrone.Core.Tv.Search;
 
 namespace NzbDrone.Core.Tv
 {
@@ -40,6 +41,8 @@ namespace NzbDrone.Core.Tv
 
         public void MapTables(TableMapper mapper)
         {
+            mapper.Entity<ProactiveTvSearchActivity>("Tv_ProactiveSearchActivity").RegisterModel();
+
             mapper.Entity<RootFolder>("Tv_RootFolders").RegisterModel()
                   .Ignore(r => r.Accessible)
                   .Ignore(r => r.IsEmpty)
