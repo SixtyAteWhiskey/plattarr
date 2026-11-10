@@ -3,7 +3,6 @@ using System.Linq;
 using NLog;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Datastore;
-using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.History;
 using NzbDrone.Core.Messaging.Commands;
@@ -95,7 +94,7 @@ namespace NzbDrone.Core.Tv.Search
 
                 // One episode search is one bounded search unit. Bulk and season search can
                 // make several provider requests and are reserved for manual commands.
-                var decisions = _search.EpisodeSearch(candidate.Episode, false, false).GetAwaiter().GetResult();
+                var decisions = _search.BoundedEpisodeSearch(candidate.Episode).GetAwaiter().GetResult();
                 var processed = _decisions.ProcessDecisions(decisions).GetAwaiter().GetResult();
                 run.GrabbedCount = processed.Grabbed.Count;
                 run.Outcome = run.GrabbedCount > 0 ? "grabbed" : "no-grab";

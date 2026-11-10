@@ -7,11 +7,11 @@ using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
 using NzbDrone.Core.Tv.History;
 using NzbDrone.Core.Tv.Parser.Model;
 using NzbDrone.Core.Tv.Search;
-using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.TvTests.SearchTests
 {
@@ -39,13 +39,16 @@ namespace NzbDrone.Core.Test.TvTests.SearchTests
                 });
             Mocker.GetMock<IEpisodeService>()
                 .Setup(x => x.EpisodesWithoutFiles(It.IsAny<PagingSpec<Episode>>(), true, It.IsAny<HashSet<int>>()))
-                .Returns(new PagingSpec<Episode> { Records = new List<Episode>
+                .Returns(new PagingSpec<Episode>
                 {
-                    new() { Id = 11, SeriesId = 1, Monitored = true },
-                    new() { Id = 12, SeriesId = 1, Monitored = true }
-                } });
+                    Records = new List<Episode>
+                    {
+                        new() { Id = 11, SeriesId = 1, Monitored = true },
+                        new() { Id = 12, SeriesId = 1, Monitored = true }
+                    }
+                });
             Mocker.GetMock<ISearchForReleases>()
-                .Setup(x => x.EpisodeSearch(It.IsAny<Episode>(), false, false))
+                .Setup(x => x.BoundedEpisodeSearch(It.IsAny<Episode>()))
                 .ReturnsAsync(new List<DownloadDecision>());
             Mocker.GetMock<IProcessDownloadDecisions>()
                 .Setup(x => x.ProcessDecisions(It.IsAny<List<DownloadDecision>>()))
@@ -58,10 +61,8 @@ namespace NzbDrone.Core.Test.TvTests.SearchTests
             Subject.Execute(new ProactiveTvSearchCommand());
 
             _runs.Should().ContainSingle().Which.Outcome.Should().Be("disabled");
-            Mocker.GetMock<IEpisodeService>().Verify(x => x.EpisodesWithoutFiles(
-                It.IsAny<PagingSpec<Episode>>(), true, It.IsAny<HashSet<int>>()), Times.Never());
-            Mocker.GetMock<ISearchForReleases>().Verify(x => x.EpisodeSearch(
-                It.IsAny<Episode>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never());
+            Mocker.GetMock<IEpisodeService>().Verify(x => x.EpisodesWithoutFiles(It.IsAny<PagingSpec<Episode>>(), true, It.IsAny<HashSet<int>>()), Times.Never());
+            Mocker.GetMock<ISearchForReleases>().Verify(x => x.BoundedEpisodeSearch(It.IsAny<Episode>()), Times.Never());
         }
 
         [Test]
@@ -71,8 +72,7 @@ namespace NzbDrone.Core.Test.TvTests.SearchTests
 
             Subject.Execute(new ProactiveTvSearchCommand());
 
-            Mocker.GetMock<ISearchForReleases>().Verify(x => x.EpisodeSearch(
-                It.IsAny<Episode>(), false, false), Times.Once());
+            Mocker.GetMock<ISearchForReleases>().Verify(x => x.BoundedEpisodeSearch(It.IsAny<Episode>()), Times.Once());
             _runs.Should().ContainSingle().Which.Outcome.Should().Be("no-grab");
             _runs[0].EpisodeId.Should().Be(11);
             _runs[0].SeriesTitle.Should().Be("Alpha");
@@ -84,17 +84,19 @@ namespace NzbDrone.Core.Test.TvTests.SearchTests
             Mocker.GetMock<IConfigService>().SetupGet(x => x.ProactiveTvSearchEnabled).Returns(true);
             Mocker.GetMock<IEpisodeService>()
                 .Setup(x => x.EpisodesWithoutFiles(It.IsAny<PagingSpec<Episode>>(), true, It.IsAny<HashSet<int>>()))
-                .Returns(new PagingSpec<Episode> { Records = new List<Episode>
+                .Returns(new PagingSpec<Episode>
                 {
-                    new() { Id = 11, SeriesId = 1, Monitored = false },
-                    new() { Id = 12, SeriesId = 1, Monitored = true, LastSearchTime = DateTime.UtcNow.AddHours(-1) }
-                } });
+                    Records = new List<Episode>
+                    {
+                        new() { Id = 11, SeriesId = 1, Monitored = false },
+                        new() { Id = 12, SeriesId = 1, Monitored = true, LastSearchTime = DateTime.UtcNow.AddHours(-1) }
+                    }
+                });
 
             Subject.Execute(new ProactiveTvSearchCommand());
 
             _runs.Should().ContainSingle().Which.Outcome.Should().Be("no-candidate");
-            Mocker.GetMock<ISearchForReleases>().Verify(x => x.EpisodeSearch(
-                It.IsAny<Episode>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never());
+            Mocker.GetMock<ISearchForReleases>().Verify(x => x.BoundedEpisodeSearch(It.IsAny<Episode>()), Times.Never());
         }
 
         [Test]
@@ -110,8 +112,7 @@ namespace NzbDrone.Core.Test.TvTests.SearchTests
             Subject.Execute(new ProactiveTvSearchCommand());
 
             _runs.Should().ContainSingle().Which.EpisodeId.Should().Be(12);
-            Mocker.GetMock<ISearchForReleases>().Verify(x => x.EpisodeSearch(
-                It.Is<Episode>(episode => episode.Id == 11), false, false), Times.Never());
+            Mocker.GetMock<ISearchForReleases>().Verify(x => x.BoundedEpisodeSearch(It.Is<Episode>(episode => episode.Id == 11)), Times.Never());
         }
 
         [Test]
@@ -131,8 +132,7 @@ namespace NzbDrone.Core.Test.TvTests.SearchTests
             Subject.Execute(new ProactiveTvSearchCommand());
 
             _runs.Should().ContainSingle().Which.Outcome.Should().Be("no-candidate");
-            Mocker.GetMock<ISearchForReleases>().Verify(x => x.EpisodeSearch(
-                It.IsAny<Episode>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never());
+            Mocker.GetMock<ISearchForReleases>().Verify(x => x.BoundedEpisodeSearch(It.IsAny<Episode>()), Times.Never());
         }
 
         [Test]
@@ -140,7 +140,7 @@ namespace NzbDrone.Core.Test.TvTests.SearchTests
         {
             Mocker.GetMock<IConfigService>().SetupGet(x => x.ProactiveTvSearchEnabled).Returns(true);
             Mocker.GetMock<ISearchForReleases>()
-                .Setup(x => x.EpisodeSearch(It.IsAny<Episode>(), false, false))
+                .Setup(x => x.BoundedEpisodeSearch(It.IsAny<Episode>()))
                 .ThrowsAsync(new InvalidOperationException("provider error"));
 
             Action run = () => Subject.Execute(new ProactiveTvSearchCommand());

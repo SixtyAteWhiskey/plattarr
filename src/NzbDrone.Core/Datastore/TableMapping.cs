@@ -111,7 +111,6 @@ namespace NzbDrone.Core.Datastore
             Mapper.Entity<CustomFilter>("CustomFilters").RegisterModel();
 
             Mapper.Entity<DownloadHistory>("DownloadHistory").RegisterModel();
-            Mapper.Entity<Tv.Search.ProactiveTvSearchActivity>("ProactiveTvSearchActivity").RegisterModel();
 
             Mapper.Entity<HygieneQueueState>("HygieneQueueStates").RegisterModel();
             Mapper.Entity<HygieneRule>("HygieneRules").RegisterModel();

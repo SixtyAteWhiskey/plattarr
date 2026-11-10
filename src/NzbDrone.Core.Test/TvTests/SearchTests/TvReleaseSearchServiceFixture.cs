@@ -718,6 +718,34 @@ namespace NzbDrone.Core.Test.TvTests.SearchTests
         }
 
         [Test]
+        public async Task bounded_episode_search_dispatches_only_one_scene_mapping()
+        {
+            WithEpisode(1, 12, 2, 3);
+            Mocker.GetMock<ISceneMappingService>()
+                .Setup(s => s.FindByTvdbId(It.IsAny<int>()))
+                .Returns(new List<SceneMapping>
+                {
+                    new SceneMapping
+                    {
+                        TvdbId = _xemSeries.TvdbId,
+                        SearchTerm = _xemSeries.Title,
+                        ParseTerm = _xemSeries.Title,
+                        FilterRegex = "(?i)-(BTN)$",
+                        SeasonNumber = 1,
+                        SceneSeasonNumber = 1,
+                        SceneOrigin = "tvdb",
+                        Type = "ServicesProvider"
+                    }
+                });
+            var criteria = WatchForSearchCriteria();
+
+            await Subject.BoundedEpisodeSearch(_xemEpisodes.First());
+
+            criteria.Should().ContainSingle();
+            criteria[0].Should().BeOfType<SingleEpisodeSearchRequest>();
+        }
+
+        [Test]
         public async Task episode_search_should_include_series_title_when_not_a_direct_title_match()
         {
             _xemSeries.Title = "Sonarr's Title";
