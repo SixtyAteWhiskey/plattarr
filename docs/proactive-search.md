@@ -30,7 +30,8 @@ and does not imply that Music or upgrades are already automated.
 
 Scheduled TV search has a separate persisted enable switch, off by default. Its
 hourly job records every run, including disabled and empty runs, in the recent
-activity list. When enabled, a run searches at most one aired missing episode.
+activity list. When enabled, a run makes one bounded search dispatch for at most
+one aired missing episode, even when an episode has several scene mappings.
 The episode and show must be monitored, the episode must be outside the active
 queue and unsearched for 24 hours, and the show must have fewer than three
 distinct failed downloads in the last seven days. The activity list records

@@ -20,6 +20,7 @@ namespace NzbDrone.Core.Tv.Search
     {
         Task<List<DownloadDecision>> EpisodeSearch(int episodeId, bool userInvokedSearch, bool interactiveSearch);
         Task<List<DownloadDecision>> EpisodeSearch(Episode episode, bool userInvokedSearch, bool interactiveSearch);
+        Task<List<DownloadDecision>> BoundedEpisodeSearch(Episode episode);
         Task<List<DownloadDecision>> SeasonSearch(int seriesId, int seasonNumber, bool missingOnly, bool monitoredOnly, bool userInvokedSearch, bool interactiveSearch);
         Task<List<DownloadDecision>> SeasonSearch(int seriesId, int seasonNumber, List<Episode> episodes, bool monitoredOnly, bool userInvokedSearch, bool interactiveSearch);
     }
@@ -93,6 +94,31 @@ namespace NzbDrone.Core.Tv.Search
             }
 
             return await SearchSingle(series, episode, false, userInvokedSearch, interactiveSearch);
+        }
+
+        public async Task<List<DownloadDecision>> BoundedEpisodeSearch(Episode episode)
+        {
+            var series = _seriesService.GetSeries(episode.SeriesId);
+
+            if (series.SeriesType == SeriesTypes.Daily)
+            {
+                if (string.IsNullOrWhiteSpace(episode.AirDate))
+                {
+                    throw new SearchFailedException("Air date is missing");
+                }
+
+                return await SearchDaily(series, episode, false, false, false);
+            }
+
+            if (series.SeriesType == SeriesTypes.Anime &&
+                (episode.SeasonNumber != 0 || episode.SceneAbsoluteEpisodeNumber != null || episode.AbsoluteEpisodeNumber != null))
+            {
+                return await SearchAnime(series, episode, false, false, false);
+            }
+
+            // Standard and special episodes can have several scene mappings. Take one
+            // so a scheduled run invokes Dispatch exactly once.
+            return await SearchSingle(series, episode, false, false, false, 1);
         }
 
         public async Task<List<DownloadDecision>> SeasonSearch(int seriesId, int seasonNumber, bool missingOnly, bool monitoredOnly, bool userInvokedSearch, bool interactiveSearch)
@@ -334,13 +360,13 @@ namespace NzbDrone.Core.Tv.Search
             }
         }
 
-        private async Task<List<DownloadDecision>> SearchSingle(Series series, Episode episode, bool monitoredOnly, bool userInvokedSearch, bool interactiveSearch)
+        private async Task<List<DownloadDecision>> SearchSingle(Series series, Episode episode, bool monitoredOnly, bool userInvokedSearch, bool interactiveSearch, int maxMappings = int.MaxValue)
         {
             var mappings = GetSceneEpisodeMappings(series, episode);
 
             var downloadDecisions = new List<DownloadDecision>();
 
-            foreach (var mapping in mappings)
+            foreach (var mapping in mappings.Take(maxMappings))
             {
                 var searchSpec = Get<SingleEpisodeSearchRequest>(series, mapping, monitoredOnly, userInvokedSearch, interactiveSearch);
                 searchSpec.SeasonNumber = mapping.SeasonNumber;

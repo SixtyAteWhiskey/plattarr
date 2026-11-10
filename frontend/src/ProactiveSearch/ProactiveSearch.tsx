@@ -233,7 +233,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
     refetch: refetchActivity,
   } = useApiQuery<TvSearchActivity[]>({
     path: '/proactive-search/tv-activity',
-    queryOptions: { enabled: isTv },
+    queryOptions: { enabled: isTv, refetchInterval: 60_000 },
   });
   const { data, isLoading, isError, refetch } = useApiQuery<
     MoviePreview | TvPreview

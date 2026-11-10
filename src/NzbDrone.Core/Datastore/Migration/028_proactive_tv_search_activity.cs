@@ -8,7 +8,7 @@ namespace NzbDrone.Core.Datastore.Migration
     {
         protected override void MainDbUpgrade()
         {
-            Create.TableForModel("ProactiveTvSearchActivity")
+            Create.TableForModel("Tv_ProactiveSearchActivity")
                 .WithColumn("StartedAt").AsDateTimeOffset()
                 .WithColumn("EndedAt").AsDateTimeOffset()
                 .WithColumn("Outcome").AsString()
