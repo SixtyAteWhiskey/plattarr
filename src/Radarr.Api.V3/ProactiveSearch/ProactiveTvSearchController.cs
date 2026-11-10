@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Download;
 using NzbDrone.Core.Tv.Search;
 using Radarr.Http;
 using Radarr.Http.REST;
@@ -17,6 +18,16 @@ namespace Radarr.Api.V3.ProactiveSearch
         public int CooldownHours { get; set; }
         public int FailureLimit { get; set; }
         public int FailureWindowDays { get; set; }
+        public int ActiveDownloadLimit { get; set; }
+        public int RecentGrabHours { get; set; }
+    }
+
+    public class ProactiveTvSearchConfigUpdateResource
+    {
+        public bool Enabled { get; set; }
+        public int? IntervalMinutes { get; set; }
+        public int? ActiveDownloadLimit { get; set; }
+        public int? RecentGrabHours { get; set; }
     }
 
     [V3ApiController("proactive-search/tv-config")]
@@ -36,14 +47,26 @@ namespace Radarr.Api.V3.ProactiveSearch
         }
 
         [HttpPut("{id:int}")]
-        public Ok<ProactiveTvSearchConfigResource> Update(int id, [FromBody] ProactiveTvSearchConfigResource resource)
+        public Ok<ProactiveTvSearchConfigResource> Update(int id, [FromBody] ProactiveTvSearchConfigUpdateResource resource)
         {
             if (id != 1 || resource == null)
             {
                 throw new BadRequestException("A TV proactive search configuration with id 1 is required.");
             }
 
+            var interval = resource.IntervalMinutes ?? _config.ProactiveTvSearchIntervalMinutes;
+            var limit = resource.ActiveDownloadLimit ?? _config.ProactiveTvActiveDownloadLimit;
+            var window = resource.RecentGrabHours ?? _config.ProactiveTvRecentGrabHours;
+
+            if (!ProactiveSearchPacing.Valid(interval, limit, window))
+            {
+                throw new BadRequestException("Interval must be 5–1440 minutes, active download limit 1–100, and recent grab window 1–168 hours.");
+            }
+
             _config.ProactiveTvSearchEnabled = resource.Enabled;
+            _config.ProactiveTvSearchIntervalMinutes = interval;
+            _config.ProactiveTvActiveDownloadLimit = limit;
+            _config.ProactiveTvRecentGrabHours = window;
             return TypedResults.Ok(ToResource());
         }
 
@@ -53,11 +76,13 @@ namespace Radarr.Api.V3.ProactiveSearch
             {
                 Id = 1,
                 Enabled = _config.ProactiveTvSearchEnabled,
-                IntervalMinutes = 60,
+                IntervalMinutes = _config.ProactiveTvSearchIntervalMinutes,
                 SearchesPerRun = 1,
                 CooldownHours = 24,
                 FailureLimit = 3,
-                FailureWindowDays = 7
+                FailureWindowDays = 7,
+                ActiveDownloadLimit = _config.ProactiveTvActiveDownloadLimit,
+                RecentGrabHours = _config.ProactiveTvRecentGrabHours
             };
         }
     }

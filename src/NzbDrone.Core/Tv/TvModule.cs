@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Jobs;
 using NzbDrone.Core.Modules;
@@ -11,7 +12,7 @@ namespace NzbDrone.Core.Tv
     // Step 1 of the TV port registers the module so its tables, categories and download client
     // settings exist. Step 3 adds the metadata services and their two scheduled commands. Nothing
     // searches or imports TV yet: those arrive with their steps.
-    public class TvModule : IMediaModule
+    public class TvModule : IMediaModule, IConfiguredSchedule
     {
         public static readonly IReadOnlyList<int> Categories = new[] { NewznabStandardCategory.TV.Id };
 
@@ -20,6 +21,14 @@ namespace NzbDrone.Core.Tv
         public string Name => "Tv";
 
         public IReadOnlyList<int> DefaultCategories => Categories;
+
+        public IReadOnlyDictionary<string, int> ConfiguredIntervals(IConfigService config)
+        {
+            return new Dictionary<string, int>
+            {
+                [typeof(ProactiveTvSearchCommand).FullName] = config.ProactiveTvSearchIntervalMinutes
+            };
+        }
 
         // Sonarr's scheduled commands are added with the services that run them. A task whose
         // command does not exist would fail on every run. Intervals are Sonarr's: the scene

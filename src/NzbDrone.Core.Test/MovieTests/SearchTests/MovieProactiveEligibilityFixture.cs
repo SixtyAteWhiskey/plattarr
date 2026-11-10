@@ -52,5 +52,32 @@ namespace NzbDrone.Core.Test.MovieTests.SearchTests
             MovieProactiveEligibility.Evaluate(new[] { movie }, Array.Empty<int>(), failures, now)
                 .Single().Reason.Should().Be("eligible");
         }
+
+        [Test]
+        public void recent_grab_excludes_only_its_movie_until_the_window_expires()
+        {
+            var now = DateTime.UtcNow;
+            var movies = new[] { 1, 2 }.Select(id => new Movie
+            {
+                Id = id,
+                Monitored = true,
+                MinimumAvailability = MovieStatusType.Announced
+            });
+            var grabs = new[]
+            {
+                new MovieHistory { ParentId = 1, Date = now.AddHours(-2) },
+                new MovieHistory { ParentId = 2, Date = now.AddHours(-25) }
+            };
+
+            var result = MovieProactiveEligibility.Evaluate(
+                movies,
+                Array.Empty<int>(),
+                Array.Empty<MovieHistory>(),
+                now,
+                grabs,
+                24);
+
+            result.Select(item => item.Reason).Should().Equal("grabbed-recently", "eligible");
+        }
     }
 }

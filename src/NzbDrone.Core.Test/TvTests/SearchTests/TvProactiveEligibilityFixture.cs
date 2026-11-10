@@ -4,6 +4,7 @@ using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Tv;
+using NzbDrone.Core.Tv.History;
 using NzbDrone.Core.Tv.Search;
 
 namespace NzbDrone.Core.Test.TvTests.SearchTests
@@ -58,6 +59,31 @@ namespace NzbDrone.Core.Test.TvTests.SearchTests
 
             result.EligibleEpisodeCount.Should().Be(1);
             result.Reasons["searched-recently"].Should().Be(1);
+        }
+
+        [Test]
+        public void recent_grab_excludes_only_the_grabbed_episode()
+        {
+            var now = DateTime.UtcNow;
+            var series = new Series { Id = 4, Monitored = true };
+            var episodes = new[]
+            {
+                new Episode { Id = 41, SeriesId = 4, Monitored = true },
+                new Episode { Id = 42, SeriesId = 4, Monitored = true }
+            };
+            var grabs = new[] { new EpisodeHistory { ItemId = 41, Date = now.AddHours(-1) } };
+
+            var result = TvProactiveSeriesEligibility.Evaluate(
+                episodes,
+                new Dictionary<int, Series> { { 4, series } },
+                Array.Empty<int>(),
+                Array.Empty<int>(),
+                now,
+                grabs,
+                24).Single();
+
+            result.EligibleEpisodeCount.Should().Be(1);
+            result.Reasons["grabbed-recently"].Should().Be(1);
         }
     }
 }

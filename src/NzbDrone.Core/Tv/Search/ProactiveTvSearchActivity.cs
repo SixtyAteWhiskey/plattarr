@@ -10,6 +10,7 @@ namespace NzbDrone.Core.Tv.Search
         public DateTime StartedAt { get; set; }
         public DateTime EndedAt { get; set; }
         public string Outcome { get; set; }
+        public string Reason { get; set; }
         public int? SeriesId { get; set; }
         public string SeriesTitle { get; set; }
         public int? EpisodeId { get; set; }

@@ -93,6 +93,7 @@ namespace NzbDrone.Core.Movies.Search
             {
                 if (!_config.ProactiveMovieSearchEnabled)
                 {
+                    run.Reason = "Scheduled Movie search is off";
                     return;
                 }
 
@@ -105,11 +106,22 @@ namespace NzbDrone.Core.Movies.Search
                 };
 
                 var movies = _movieService.MoviesWithoutFiles(pagingSpec).Records.ToList();
-                var queue = _queueService.GetQueue().Where(q => q.GetMovie() != null).Select(q => q.GetMovie().Id).ToHashSet();
+                var queueItems = _queueService.GetQueue();
+                var queue = queueItems.Where(q => q.GetMovie() != null).Select(q => q.GetMovie().Id).ToHashSet();
                 var failures = _history.Since(run.StartedAt - MovieSearchSafety.FailureWindow, MovieHistoryEventType.DownloadFailed);
-                var assessments = MovieProactiveEligibility.Evaluate(movies, queue, failures, run.StartedAt);
+                var grabs = _history.Since(run.StartedAt.AddHours(-_config.ProactiveMovieRecentGrabHours), MovieHistoryEventType.Grabbed);
+                var assessments = MovieProactiveEligibility.Evaluate(movies, queue, failures, run.StartedAt, grabs, _config.ProactiveMovieRecentGrabHours);
                 run.MissingMovies = assessments.Count;
                 run.EligibleMovies = assessments.Count(item => item.Eligible);
+                var activeDownloads = ProactiveSearchPacing.ActiveDownloadCount(queueItems);
+
+                if (activeDownloads >= _config.ProactiveMovieActiveDownloadLimit)
+                {
+                    run.Outcome = "paused";
+                    run.Reason = $"Active download limit reached ({activeDownloads}/{_config.ProactiveMovieActiveDownloadLimit})";
+                    return;
+                }
+
                 var candidate = assessments.Where(item => item.Eligible)
                     .OrderBy(item => item.Movie.LastSearchTime ?? DateTime.MinValue)
                     .ThenBy(item => item.Movie.Id)
@@ -118,6 +130,14 @@ namespace NzbDrone.Core.Movies.Search
                 if (candidate == null)
                 {
                     run.Outcome = "no-candidate";
+                    run.Reason = string.Join(", ", assessments.Where(item => !item.Eligible)
+                        .GroupBy(item => item.Reason).OrderBy(group => group.Key)
+                        .Select(group => $"{group.Key}: {group.Count()}"));
+                    if (run.Reason.Length == 0)
+                    {
+                        run.Reason = "No missing Movies";
+                    }
+
                     return;
                 }
 
