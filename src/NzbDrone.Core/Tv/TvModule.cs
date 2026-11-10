@@ -4,6 +4,7 @@ using NzbDrone.Core.Jobs;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Tv.Commands;
 using NzbDrone.Core.Tv.DataAugmentation.Scene;
+using NzbDrone.Core.Tv.Search;
 
 namespace NzbDrone.Core.Tv
 {
@@ -25,6 +26,11 @@ namespace NzbDrone.Core.Tv
         // mapping update every three hours and the series refresh every twelve.
         public IEnumerable<ScheduledTask> ScheduledTasks => new[]
         {
+            new ScheduledTask
+            {
+                Interval = 60,
+                TypeName = typeof(ProactiveTvSearchCommand).FullName
+            },
             new ScheduledTask
             {
                 Interval = 3 * 60,

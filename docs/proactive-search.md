@@ -11,8 +11,7 @@ search state.
 The preview now lives under Hygiene → Proactive search, with separate Movie and
 TV subsections. The former `/proactive-search` URL redirects to that tab. The
 TV subsection groups aired, missing episodes by show, displays candidate and
-skip reasons, and shows recent episode search times. It is a planning preview:
-there is no scheduled proactive TV job yet. Movie and TV skipped rows offer
+skip reasons, and shows recent episode search times. Movie and TV skipped rows offer
 manual searches using the existing Movie and Missing Episode commands. The TV
 action searches aired missing episodes of one show, including unmonitored
 episodes, while skipping episodes already in the queue. Fully queued items do
@@ -23,11 +22,21 @@ release was grabbed or imported. The action is disabled while its command is
 running and becomes available again when the command ends, unless the item is
 in the download queue.
 
-The active automated policy is still fixed: one missing Movie per hourly run, at least
+The Movie automated policy is still fixed: one missing Movie per hourly run, at least
 24 hours between searches of one Movie, and a pause after three distinct failed
 downloads within seven days. The existing scheduled job stays active. Manual
 searches retain their existing behavior. The page labels these limits as fixed
-and does not imply that TV, Music, or upgrades are already automated.
+and does not imply that Music or upgrades are already automated.
+
+Scheduled TV search has a separate persisted enable switch, off by default. Its
+hourly job records every run, including disabled and empty runs, in the recent
+activity list. When enabled, a run searches at most one aired missing episode.
+The episode and show must be monitored, the episode must be outside the active
+queue and unsearched for 24 hours, and the show must have fewer than three
+distinct failed downloads in the last seven days. The activity list records
+the selected show and episode, whether a release was grabbed, and failures.
+Manual show searches still override monitoring and do not use or change this
+scheduled gate. The TV rate and safety limits are fixed for this slice.
 
 ## Cleanuparr comparison and next slices
 
@@ -38,15 +47,14 @@ recent-grab window, active-download limit, minimum cycle time, quiet hours,
 and round-robin pacing provide further safety. This slice starts with
 visibility and keeps Plattarr's existing conservative Movie rate.
 
-1. Add a persisted proactive-search gate and pacing settings, with the
+1. Add configurable pacing and a separate Movie gate while preserving the
    existing hourly Movie policy as the migration default. Keep replacement
-   search behavior separate from the proactive gate.
+   search behavior separate from proactive gates.
 2. Expand the shared candidate model to Movie cutoff-unmet upgrades, TV
    season/episode search units, and Music albums. Reuse their existing search commands
    while making one provider-facing request per scheduled run. Exclude active
    queue items and recent grabs for each kind.
-3. Persist cycle and search activity state, add per-kind progress and recent
-   results to the page, then expose quiet hours and configurable limits. Test
+3. Add per-kind cycle progress, then expose quiet hours and configurable limits. Test
    that manual and replacement searches do not incorrectly advance a cycle.
 
 The current recent-search lists use `LastSearchTime` for Movies or episodes

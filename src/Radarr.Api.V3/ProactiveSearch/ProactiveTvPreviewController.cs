@@ -85,13 +85,7 @@ namespace Radarr.Api.V3.ProactiveSearch
                 .Where(remote => remote?.Episodes.Any() == true)
                 .SelectMany(remote => remote.Episodes.Select(episode => episode.Id));
             var failures = _history.Since(now - DownloadRetryPolicy.FailureWindow, EpisodeHistoryEventType.DownloadFailed);
-            var failedSeriesIds = failures.GroupBy(row => row.ParentId)
-                .Where(group => group.Where(row => row.Date >= now - DownloadRetryPolicy.FailureWindow)
-                    .Select(row => row.DownloadId ?? row.Id.ToString())
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .Take(DownloadRetryPolicy.FailureLimit)
-                    .Count() >= DownloadRetryPolicy.FailureLimit)
-                .Select(group => group.Key);
+            var failedSeriesIds = TvProactiveFailurePolicy.LimitedSeries(failures, now);
             var assessments = TvProactiveSeriesEligibility.Evaluate(episodes, seriesById, queued, failedSeriesIds, now);
             var skipped = assessments.Where(item => !item.Eligible &&
                 (string.IsNullOrWhiteSpace(title) || item.Series.Title?.Contains(title, StringComparison.OrdinalIgnoreCase) == true))
