@@ -33,6 +33,14 @@ namespace NzbDrone.Core.Configuration
         string HygieneExcludedFileNames { get; set; }
         string HygieneExcludedFileNamesSource { get; set; }
         bool HygieneExcludedFileNamesSyncEnabled { get; set; }
+        bool ProactiveTvSearchEnabled { get; set; }
+        bool ProactiveMovieSearchEnabled { get; set; }
+        int ProactiveMovieSearchIntervalMinutes { get; set; }
+        int ProactiveMovieActiveDownloadLimit { get; set; }
+        int ProactiveMovieRecentGrabHours { get; set; }
+        int ProactiveTvSearchIntervalMinutes { get; set; }
+        int ProactiveTvActiveDownloadLimit { get; set; }
+        int ProactiveTvRecentGrabHours { get; set; }
 
         bool AutoRedownloadFailed { get; set; }
         bool AutoRedownloadFailedFromInteractiveSearch { get; set; }

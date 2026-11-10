@@ -1,0 +1,126 @@
+.content {
+  max-width: 1100px;
+}
+
+.scopeHeader {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spaceSmall;
+}
+
+.scopeStatus {
+  padding: $spaceXSmall $spaceSmall;
+  border: 1px solid var(--statusBorder);
+  border-radius: 999px;
+  background-color: var(--statusBackground);
+  color: var(--statusText);
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.tabList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spaceSmall;
+
+  margin: 0 0 $spaceLarge;
+  padding: 0 0 $spaceSmall;
+  border-bottom: 1px solid var(--surfaceBorderColor);
+  list-style: none;
+}
+
+.tab {
+  padding: $spaceSmall $spaceMedium;
+  color: var(--statusText);
+  cursor: pointer;
+}
+
+.selectedTab {
+  border-bottom: 2px solid var(--primaryColor);
+  color: var(--primaryColor);
+}
+
+.tabPanel {
+  display: none;
+}
+
+.selectedPanel {
+  display: block;
+}
+
+.counts {
+  display: grid;
+  gap: $spaceSmall;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+
+  margin: 0;
+  padding-left: $spaceLarge;
+}
+
+.list {
+  margin: 0;
+  padding-left: $spaceLarge;
+}
+
+.list li {
+  padding: $spaceXSmall 0;
+}
+
+.list span {
+  margin-left: $spaceSmall;
+  color: var(--statusText);
+}
+
+.skippedItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: $spaceSmall;
+}
+
+.itemDetails {
+  display: flex;
+  flex-direction: column;
+  gap: $spaceXSmall;
+}
+
+.itemDetails span {
+  margin-left: 0;
+}
+
+.filter,
+.pager {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spaceSmall;
+}
+
+.filter input {
+  padding: $spaceSmall;
+  min-width: 220px;
+}
+
+.pacing {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: $spaceSmall;
+}
+
+.pacing label {
+  display: flex;
+  flex-direction: column;
+  gap: $spaceXSmall;
+}
+
+.pacing input {
+  padding: $spaceSmall;
+  width: 130px;
+}
+
+.pacing button {
+  padding: $spaceSmall;
+}

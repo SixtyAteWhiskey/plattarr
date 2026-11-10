@@ -22,6 +22,7 @@ using NzbDrone.Core.Movies.Organizer;
 using NzbDrone.Core.Movies.Parser.Model;
 using NzbDrone.Core.Movies.Pending;
 using NzbDrone.Core.Movies.RootFolders;
+using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Movies.Translations;
 
 namespace NzbDrone.Core.Movies
@@ -43,6 +44,8 @@ namespace NzbDrone.Core.Movies
 
         public void MapTables(TableMapper mapper)
         {
+            mapper.Entity<ProactiveMovieSearchActivity>("Movies_ProactiveSearchActivity").RegisterModel();
+
             mapper.Entity<RootFolder>("Movies_RootFolders").RegisterModel()
                   .Ignore(r => r.Accessible)
                   .Ignore(r => r.FreeSpace)

@@ -149,6 +149,40 @@ namespace NzbDrone.Core.Test.TvTests.SearchTests
         }
 
         [Test]
+        public void manual_series_missing_search_should_include_unmonitored_episodes_and_skip_queued_episodes()
+        {
+            GivenMissingEpisodes(
+                GivenEpisode(1, 5, 1),
+                GivenEpisode(2, 5, 1, monitored: false),
+                GivenEpisode(3, 5, 1, monitored: false),
+                GivenEpisode(4, 5, 2, fileId: 9),
+                GivenEpisode(5, 5, 2, airDate: DateTime.UtcNow.AddDays(3)));
+            GivenQueued(3);
+            Mocker.GetMock<IProcessDownloadDecisions>()
+                  .Setup(s => s.ProcessDecisions(_decisions))
+                  .ReturnsAsync(new ProcessedDecisions(new List<DownloadDecision> { new(new RemoteEpisode()) }, new List<DownloadDecision>(), new List<DownloadDecision>()));
+
+            var command = new MissingEpisodeSearchCommand(5) { IgnoreMonitoring = true, Trigger = CommandTrigger.Manual };
+            Subject.Execute(command);
+
+            Mocker.GetMock<ISearchForReleases>()
+                  .Verify(v => v.SeasonSearch(5, 1, It.Is<List<Episode>>(episodes => episodes.Select(e => e.Id).SequenceEqual(new[] { 1, 2 })), false, true, false), Times.Once());
+            Mocker.GetMock<ISearchForReleases>()
+                  .Verify(v => v.EpisodeSearch(It.IsAny<Episode>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never());
+            command.GrabbedCount.Should().Be(1);
+        }
+
+        [Test]
+        public void ignoring_monitoring_requires_a_manual_search_for_one_series()
+        {
+            Action allSeries = () => Subject.Execute(new MissingEpisodeSearchCommand { IgnoreMonitoring = true, Trigger = CommandTrigger.Manual });
+            Action scheduled = () => Subject.Execute(new MissingEpisodeSearchCommand(5) { IgnoreMonitoring = true, Trigger = CommandTrigger.Scheduled });
+
+            allSeries.Should().Throw<InvalidOperationException>();
+            scheduled.Should().Throw<InvalidOperationException>();
+        }
+
+        [Test]
         public void missing_search_should_skip_queued_episodes()
         {
             GivenMissingEpisodes(GivenEpisode(1, 5, 1), GivenEpisode(2, 5, 2));

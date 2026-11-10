@@ -156,6 +156,16 @@ namespace NzbDrone.Core.Jobs
 
             defaultTasks.AddRange(_modules.SelectMany(m => m.ScheduledTasks));
 
+            foreach (var interval in ConfiguredIntervals())
+            {
+                var task = defaultTasks.FirstOrDefault(item => item.TypeName == interval.Key);
+
+                if (task != null)
+                {
+                    task.Interval = SearchInterval(interval.Value);
+                }
+            }
+
             var currentTasks = _scheduledTaskRepository.All().ToList();
 
             _logger.Trace("Initializing jobs. Available: {0} Existing: {1}", defaultTasks.Count, currentTasks.Count);
@@ -202,6 +212,18 @@ namespace NzbDrone.Core.Jobs
             }
 
             return intervalDays * 60 * 24;
+        }
+
+        private static int SearchInterval(int interval)
+        {
+            return interval >= 5 && interval <= 1440 ? interval : 60;
+        }
+
+        private Dictionary<string, int> ConfiguredIntervals()
+        {
+            return _modules.OfType<IConfiguredSchedule>()
+                .SelectMany(module => module.ConfiguredIntervals(_configService))
+                .ToDictionary(item => item.Key, item => item.Value);
         }
 
         private int GetRssSyncInterval()
@@ -260,11 +282,27 @@ namespace NzbDrone.Core.Jobs
             var refreshMonitoredDownloads = _scheduledTaskRepository.GetDefinition(typeof(RefreshMonitoredDownloadsCommand));
             refreshMonitoredDownloads.Interval = GetRefreshMonitoredInterval();
 
-            _scheduledTaskRepository.UpdateMany(new List<ScheduledTask> { rss, refreshMonitoredDownloads, backup });
+            var tasks = new List<ScheduledTask> { rss, refreshMonitoredDownloads, backup };
+            foreach (var interval in ConfiguredIntervals())
+            {
+                var task = _scheduledTaskRepository.All().FirstOrDefault(item => item.TypeName == interval.Key);
+
+                if (task != null)
+                {
+                    task.Interval = SearchInterval(interval.Value);
+                    tasks.Add(task);
+                }
+            }
+
+            _scheduledTaskRepository.UpdateMany(tasks);
 
             _cache.Find(rss.TypeName).Interval = rss.Interval;
             _cache.Find(backup.TypeName).Interval = backup.Interval;
             _cache.Find(refreshMonitoredDownloads.TypeName).Interval = refreshMonitoredDownloads.Interval;
+            foreach (var task in tasks.Skip(3))
+            {
+                _cache.Find(task.TypeName).Interval = task.Interval;
+            }
         }
     }
 }

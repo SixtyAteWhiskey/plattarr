@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Jobs;
 using NzbDrone.Core.MediaFiles.Commands;
@@ -9,7 +10,7 @@ using NzbDrone.Core.Movies.Search;
 
 namespace NzbDrone.Core.Movies
 {
-    public class MoviesModule : IMediaModule
+    public class MoviesModule : IMediaModule, IConfiguredSchedule
     {
         public static readonly IReadOnlyList<int> Categories = new[] { NewznabStandardCategory.Movies.Id };
 
@@ -18,6 +19,14 @@ namespace NzbDrone.Core.Movies
         public string Name => "Movies";
 
         public IReadOnlyList<int> DefaultCategories => Categories;
+
+        public IReadOnlyDictionary<string, int> ConfiguredIntervals(IConfigService config)
+        {
+            return new Dictionary<string, int>
+            {
+                [typeof(MissingMoviesSearchCommand).FullName] = config.ProactiveMovieSearchIntervalMinutes
+            };
+        }
 
         // Radarr's intervals.
         public IEnumerable<ScheduledTask> ScheduledTasks => new[]

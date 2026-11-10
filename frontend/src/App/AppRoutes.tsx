@@ -54,6 +54,10 @@ function RedirectWithUrlBase() {
   return <Redirect to={getPathWithUrlBase('/')} />;
 }
 
+function RedirectProactiveSearch() {
+  return <Redirect to={getPathWithUrlBase('/activity/hygiene?tab=search')} />;
+}
+
 const GettingStarted = React.lazy(
   () => import('GettingStarted/GettingStarted')
 );
@@ -188,6 +192,8 @@ function AppRoutes() {
       */}
 
       <Route path="/calendar" component={CalendarRoutePage} />
+
+      <Route path="/proactive-search" component={RedirectProactiveSearch} />
 
       {/*
         Activity

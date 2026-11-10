@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using NLog;
 using NzbDrone.Common.Instrumentation.Extensions;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
@@ -21,6 +22,8 @@ namespace NzbDrone.Core.Movies.Search
         private readonly IProcessDownloadDecisions _processDownloadDecisions;
         private readonly IQueueService _queueService;
         private readonly IHistoryService _history;
+        private readonly IConfigService _config;
+        private readonly IProactiveMovieSearchActivityRepository _activity;
         private readonly Logger _logger;
 
         public MovieSearchService(IMovieService movieService,
@@ -29,6 +32,8 @@ namespace NzbDrone.Core.Movies.Search
                                    IProcessDownloadDecisions processDownloadDecisions,
                                    IQueueService queueService,
                                    IHistoryService history,
+                                   IConfigService config,
+                                   IProactiveMovieSearchActivityRepository activity,
                                    Logger logger)
         {
             _movieService = movieService;
@@ -37,6 +42,8 @@ namespace NzbDrone.Core.Movies.Search
             _processDownloadDecisions = processDownloadDecisions;
             _queueService = queueService;
             _history = history;
+            _config = config;
+            _activity = activity;
             _logger = logger;
         }
 
@@ -53,6 +60,12 @@ namespace NzbDrone.Core.Movies.Search
 
         public void Execute(MissingMoviesSearchCommand message)
         {
+            if (message.Trigger == CommandTrigger.Scheduled)
+            {
+                ExecuteScheduledMissing(message);
+                return;
+            }
+
             var pagingSpec = new PagingSpec<Movie>
             {
                 Page = 1,
@@ -65,28 +78,91 @@ namespace NzbDrone.Core.Movies.Search
 
             var movies = _movieService.MoviesWithoutFiles(pagingSpec).Records.ToList();
 
-            var queue = _queueService.GetQueue().Where(q => q.GetMovie() != null).Select(q => q.GetMovie().Id);
+            var queue = _queueService.GetQueue().Where(q => q.GetMovie() != null).Select(q => q.GetMovie().Id).ToHashSet();
             var missing = movies.Where(e => !queue.Contains(e.Id)).ToList();
 
-            if (message.Trigger == CommandTrigger.Scheduled)
-            {
-                var now = DateTime.UtcNow;
-                var failed = _history.Since(now - MovieSearchSafety.FailureWindow, MovieHistoryEventType.DownloadFailed)
-                    .GroupBy(row => row.ParentId)
-                    .Where(group => MovieSearchSafety.TooManyRecentFailures(group, now))
-                    .Select(group => group.Key)
-                    .ToHashSet();
-
-                // Bound provider requests and rotate through missing movies by last search time.
-                missing = missing.Where(movie => movie.IsAvailable() &&
-                                                 !failed.Contains(movie.Id) &&
-                                                 (!movie.LastSearchTime.HasValue || movie.LastSearchTime < now.AddDays(-1)))
-                    .OrderBy(movie => movie.LastSearchTime ?? DateTime.MinValue)
-                    .Take(1)
-                    .ToList();
-            }
-
             message.GrabbedCount = SearchForBulkMovies(missing, message.Trigger == CommandTrigger.Manual).GetAwaiter().GetResult();
+        }
+
+        private void ExecuteScheduledMissing(MissingMoviesSearchCommand message)
+        {
+            var run = new ProactiveMovieSearchActivity { StartedAt = DateTime.UtcNow, Outcome = "disabled" };
+            message.GrabbedCount = 0;
+
+            try
+            {
+                if (!_config.ProactiveMovieSearchEnabled)
+                {
+                    run.Reason = "Scheduled Movie search is off";
+                    return;
+                }
+
+                var pagingSpec = new PagingSpec<Movie>
+                {
+                    Page = 1,
+                    PageSize = 100000,
+                    SortDirection = SortDirection.Ascending,
+                    SortKey = "Id"
+                };
+
+                var movies = _movieService.MoviesWithoutFiles(pagingSpec).Records.ToList();
+                var queueItems = _queueService.GetQueue();
+                var queue = queueItems.Where(q => q.GetMovie() != null).Select(q => q.GetMovie().Id).ToHashSet();
+                var failures = _history.Since(run.StartedAt - MovieSearchSafety.FailureWindow, MovieHistoryEventType.DownloadFailed);
+                var grabs = _history.Since(run.StartedAt.AddHours(-_config.ProactiveMovieRecentGrabHours), MovieHistoryEventType.Grabbed);
+                var assessments = MovieProactiveEligibility.Evaluate(movies, queue, failures, run.StartedAt, grabs, _config.ProactiveMovieRecentGrabHours);
+                run.MissingMovies = assessments.Count;
+                run.EligibleMovies = assessments.Count(item => item.Eligible);
+                var activeDownloads = ProactiveSearchPacing.ActiveDownloadCount(queueItems);
+
+                if (activeDownloads >= _config.ProactiveMovieActiveDownloadLimit)
+                {
+                    run.Outcome = "paused";
+                    run.Reason = $"Active download limit reached ({activeDownloads}/{_config.ProactiveMovieActiveDownloadLimit})";
+                    return;
+                }
+
+                var candidate = assessments.Where(item => item.Eligible)
+                    .OrderBy(item => item.Movie.LastSearchTime ?? DateTime.MinValue)
+                    .ThenBy(item => item.Movie.Id)
+                    .FirstOrDefault()?.Movie;
+
+                if (candidate == null)
+                {
+                    run.Outcome = "no-candidate";
+                    run.Reason = string.Join(", ", assessments.Where(item => !item.Eligible)
+                        .GroupBy(item => item.Reason).OrderBy(group => group.Key)
+                        .Select(group => $"{group.Key}: {group.Count()}"));
+                    if (run.Reason.Length == 0)
+                    {
+                        run.Reason = "No missing Movies";
+                    }
+
+                    return;
+                }
+
+                run.MovieId = candidate.Id;
+                run.MovieTitle = candidate.Title;
+                run.Outcome = "searching";
+
+                var decisions = _releaseSearchService.MovieSearch(candidate.Id, false, false).GetAwaiter().GetResult();
+                var processed = _processDownloadDecisions.ProcessDecisions(decisions).GetAwaiter().GetResult();
+                run.GrabbedCount = processed.Grabbed.Count;
+                message.GrabbedCount = run.GrabbedCount;
+                run.Outcome = run.GrabbedCount > 0 ? "grabbed" : "no-grab";
+            }
+            catch (Exception ex)
+            {
+                run.Outcome = "failed";
+                run.ErrorMessage = ex.Message;
+                _logger.Error(ex, "Scheduled proactive Movie search failed");
+                throw;
+            }
+            finally
+            {
+                run.EndedAt = DateTime.UtcNow;
+                _activity.Insert(run);
+            }
         }
 
         public void Execute(CutoffUnmetMoviesSearchCommand message)

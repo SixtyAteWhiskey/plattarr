@@ -7,6 +7,7 @@ namespace NzbDrone.Core.Tv.Search
     {
         public int? SeriesId { get; set; }
         public bool Monitored { get; set; }
+        public bool IgnoreMonitoring { get; set; }
         public List<int> SeriesIds { get; set; } = [];
         public List<int> QualityProfileIds { get; set; } = [];
         public List<SeriesTypes> SeriesType { get; set; } = [];
