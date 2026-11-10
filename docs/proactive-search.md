@@ -28,6 +28,11 @@ per hourly run, at least 24 hours between searches of one Movie, and a pause
 after three distinct failed downloads within seven days. Manual searches retain
 their existing behavior when the scheduled switch is off. The page labels these limits as fixed
 and does not imply that Music or upgrades are already automated.
+Every scheduled Movie run is recorded in a durable recent-activity list, including
+disabled and no-candidate runs. Entries show the selected Movie when there is one,
+the eligible and missing counts, grabs, and a failure message if the attempt fails.
+Manual Movie searches do not add entries to this list. The eligibility preview
+remains read-only and does not add entries either.
 
 Scheduled TV search has its own persisted enable switch, off by default. Its
 hourly job records every run, including disabled and empty runs, in the recent
@@ -58,6 +63,6 @@ visibility and keeps Plattarr's existing conservative Movie rate.
 3. Add per-kind cycle progress, then expose quiet hours and configurable limits. Test
    that manual and replacement searches do not incorrectly advance a cycle.
 
-The current recent-search lists use `LastSearchTime` for Movies or episodes
-still missing a file. They are not durable activity journals and do not show
-searches for items that later acquired files.
+The recent-search-time lists still use `LastSearchTime` for Movies or episodes
+missing a file. The separate scheduled activity lists are durable journals and
+retain runs after a selected item acquires a file.

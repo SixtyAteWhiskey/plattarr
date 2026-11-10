@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -58,6 +59,23 @@ namespace Radarr.Api.V3.ProactiveSearch
                 FailureLimit = MovieSearchSafety.FailureLimit,
                 FailureWindowDays = (int)MovieSearchSafety.FailureWindow.TotalDays
             };
+        }
+    }
+
+    [V3ApiController("proactive-search/movie-activity")]
+    public class ProactiveMovieSearchActivityController : Controller
+    {
+        private readonly IProactiveMovieSearchActivityRepository _activity;
+
+        public ProactiveMovieSearchActivityController(IProactiveMovieSearchActivityRepository activity)
+        {
+            _activity = activity;
+        }
+
+        [HttpGet]
+        public Ok<List<ProactiveMovieSearchActivity>> Get()
+        {
+            return TypedResults.Ok(_activity.Recent(20));
         }
     }
 }
