@@ -167,9 +167,16 @@ namespace NzbDrone.Core.Test.MovieTests.SearchTests
             var config = new Mock<IConfigService>();
             config.SetupGet(x => x.ProactiveMovieSearchEnabled).Returns(true);
             var search = new Mock<ISearchForReleases>();
-            var service = new MovieSearchService(movieService.Object, new Mock<IMovieCutoffService>().Object,
-                search.Object, new Mock<IProcessDownloadDecisions>().Object, queue.Object, history.Object,
-                config.Object, _activity.Object, NLog.LogManager.GetCurrentClassLogger());
+            var service = new MovieSearchService(
+                movieService.Object,
+                new Mock<IMovieCutoffService>().Object,
+                search.Object,
+                new Mock<IProcessDownloadDecisions>().Object,
+                queue.Object,
+                history.Object,
+                config.Object,
+                _activity.Object,
+                NLog.LogManager.GetCurrentClassLogger());
 
             service.Execute(new MissingMoviesSearchCommand { Trigger = CommandTrigger.Scheduled });
 
@@ -198,8 +205,15 @@ namespace NzbDrone.Core.Test.MovieTests.SearchTests
             var decisions = new Mock<IProcessDownloadDecisions>();
             decisions.Setup(x => x.ProcessDecisions(It.IsAny<List<DownloadDecision>>()))
                 .ReturnsAsync(new ProcessedDecisions(new List<DownloadDecision> { new(null) }, new List<DownloadDecision>(), new List<DownloadDecision>()));
-            var service = new MovieSearchService(movieService.Object, new Mock<IMovieCutoffService>().Object,
-                search.Object, decisions.Object, queue.Object, history.Object, config.Object, _activity.Object,
+            var service = new MovieSearchService(
+                movieService.Object,
+                new Mock<IMovieCutoffService>().Object,
+                search.Object,
+                decisions.Object,
+                queue.Object,
+                history.Object,
+                config.Object,
+                _activity.Object,
                 NLog.LogManager.GetCurrentClassLogger());
 
             var command = new MissingMoviesSearchCommand { Trigger = CommandTrigger.Scheduled };
