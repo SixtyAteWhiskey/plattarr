@@ -3,6 +3,7 @@ import React, {
   FormEvent,
   MouseEvent,
   useCallback,
+  useEffect,
   useState,
 } from 'react';
 import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
@@ -15,7 +16,7 @@ import ConfirmModal from 'Components/Modal/ConfirmModal';
 import Surface from 'Components/Surface';
 import { Heading, Text } from 'Components/Typography';
 import useApiQuery from 'Helpers/Hooks/useApiQuery';
-import fetchJson, { apiRoot } from 'Utilities/Fetch/fetchJson';
+import fetchJson, { ApiError, apiRoot } from 'Utilities/Fetch/fetchJson';
 import styles from './ProactiveSearch.css';
 
 type MediaMode = 'movie' | 'tv';
@@ -78,6 +79,17 @@ interface PreviewView {
   skippedTotal: number;
 }
 
+interface SearchCommand {
+  id: number;
+  status: string;
+}
+
+interface ActiveSearch {
+  itemId: number;
+  commandId: number;
+  title: string;
+}
+
 const reasonLabels: Record<string, string> = {
   eligible: 'Eligible',
   'in-queue': 'Already in the queue',
@@ -94,14 +106,19 @@ function formatTime(value?: string) {
 function searchButtonLabel(
   isTv: boolean,
   isSubmitting: boolean,
-  isQueued: boolean
+  isRunning: boolean,
+  isInQueue: boolean
 ) {
   if (isSubmitting) {
     return 'Queuing…';
   }
 
-  if (isQueued) {
-    return 'Search queued';
+  if (isRunning) {
+    return 'Search running…';
+  }
+
+  if (isInQueue) {
+    return 'Already in queue';
   }
 
   return isTv ? 'Search missing episodes…' : 'Search now';
@@ -176,7 +193,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
   const [title, setTitle] = useState('');
   const [pendingItem, setPendingItem] = useState<PreviewItem>();
   const [submittingId, setSubmittingId] = useState<number>();
-  const [queuedIds, setQueuedIds] = useState<number[]>([]);
+  const [activeSearches, setActiveSearches] = useState<ActiveSearch[]>([]);
   const [actionError, setActionError] = useState<string>();
   const [actionNotice, setActionNotice] = useState<string>();
   const { data, isLoading, isError, refetch } = useApiQuery<
@@ -187,6 +204,78 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
     }?offset=${offset}&limit=50&title=${encodeURIComponent(title)}`,
   });
   const preview = data ? normalizePreview(mode, data) : undefined;
+
+  useEffect(() => {
+    if (!activeSearches.length) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    let checking = false;
+    const checkCommands = async () => {
+      if (checking) {
+        return;
+      }
+
+      checking = true;
+      const results = await Promise.all(
+        activeSearches.map(async (search) => {
+          try {
+            const command = await fetchJson<SearchCommand, undefined>({
+              path: `${apiRoot}/command/${search.commandId}`,
+              headers: { 'X-Api-Key': window.Radarr.apiKey },
+            });
+
+            return {
+              search,
+              finished:
+                command.status !== 'queued' && command.status !== 'started',
+              failed:
+                command.status !== 'queued' &&
+                command.status !== 'started' &&
+                command.status !== 'completed',
+            };
+          } catch (error) {
+            return {
+              search,
+              finished: error instanceof ApiError && error.statusCode === 404,
+              failed: false,
+            };
+          }
+        })
+      );
+
+      if (!cancelled) {
+        const finished = results.filter((result) => result.finished);
+
+        if (finished.length) {
+          const finishedIds = finished.map((result) => result.search.commandId);
+          setActiveSearches((searches) =>
+            searches.filter((search) => !finishedIds.includes(search.commandId))
+          );
+          refetch();
+
+          const failed = finished.find((result) => result.failed);
+
+          if (failed) {
+            setActionError(`Search failed for ${failed.search.title}.`);
+          } else {
+            setActionNotice('Search finished. You can search again.');
+          }
+        }
+      }
+
+      checking = false;
+    };
+
+    checkCommands();
+    const timer = window.setInterval(checkCommands, 2000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [activeSearches, refetch]);
 
   const handleFilter = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
@@ -222,19 +311,24 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
       setActionNotice(undefined);
 
       try {
-        await fetchJson<unknown, Record<string, unknown>>({
-          method: 'POST',
-          path: `${apiRoot}/command`,
-          headers: { 'X-Api-Key': window.Radarr.apiKey },
-          body: isTv
-            ? {
-                name: commandNames.MISSING_EPISODE_SEARCH,
-                seriesId: item.id,
-                ignoreMonitoring: true,
-              }
-            : { name: commandNames.MOVIE_SEARCH, movieIds: [item.id] },
-        });
-        setQueuedIds((ids) => [...ids, item.id]);
+        const command = await fetchJson<SearchCommand, Record<string, unknown>>(
+          {
+            method: 'POST',
+            path: `${apiRoot}/command`,
+            headers: { 'X-Api-Key': window.Radarr.apiKey },
+            body: isTv
+              ? {
+                  name: commandNames.MISSING_EPISODE_SEARCH,
+                  seriesId: item.id,
+                  ignoreMonitoring: true,
+                }
+              : { name: commandNames.MOVIE_SEARCH, movieIds: [item.id] },
+          }
+        );
+        setActiveSearches((searches) => [
+          ...searches,
+          { itemId: item.id, commandId: command.id, title: item.title },
+        ]);
         setActionNotice(`Search queued for ${item.title}.`);
         refetch();
       } catch {
@@ -443,7 +537,9 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
                         }
                         disabled={
                           submittingId !== undefined ||
-                          queuedIds.includes(item.id) ||
+                          activeSearches.some(
+                            (search) => search.itemId === item.id
+                          ) ||
                           item.reasons['in-queue'] === item.missingEpisodes
                         }
                         onClick={handleSearch}
@@ -451,7 +547,10 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
                         {searchButtonLabel(
                           isTv,
                           submittingId === item.id,
-                          queuedIds.includes(item.id)
+                          activeSearches.some(
+                            (search) => search.itemId === item.id
+                          ),
+                          item.reasons['in-queue'] === item.missingEpisodes
                         )}
                       </button>
                     </li>

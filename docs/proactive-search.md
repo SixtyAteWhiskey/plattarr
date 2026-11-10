@@ -19,7 +19,9 @@ episodes, while skipping episodes already in the queue. Fully queued items do
 not offer a duplicate search. Movie retry-limit overrides and all TV show
 searches require confirmation because a TV search may make several indexer
 requests. Accepting a command only means the search was queued, not that a
-release was grabbed or imported.
+release was grabbed or imported. The action is disabled while its command is
+running and becomes available again when the command ends, unless the item is
+in the download queue.
 
 The active automated policy is still fixed: one missing Movie per hourly run, at least
 24 hours between searches of one Movie, and a pause after three distinct failed
