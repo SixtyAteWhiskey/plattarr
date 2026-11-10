@@ -79,5 +79,52 @@ namespace NzbDrone.Core.Test.MovieTests.SearchTests
 
             result.Select(item => item.Reason).Should().Equal("grabbed-recently", "eligible");
         }
+
+        [Test]
+        public void cutoff_unmet_movies_share_gates_and_duplicate_missing_movies_are_searched_once()
+        {
+            var now = DateTime.UtcNow;
+            var missing = new Movie { Id = 1, Monitored = true, MinimumAvailability = MovieStatusType.Announced };
+            var upgrade = new Movie { Id = 2, Monitored = true, MinimumAvailability = MovieStatusType.Announced };
+            var assessments = MovieProactiveEligibility.Evaluate(
+                new[] { missing },
+                new[] { missing, upgrade },
+                Array.Empty<int>(),
+                Array.Empty<MovieHistory>(),
+                now,
+                new[] { new MovieHistory { ParentId = 2, Date = now } });
+
+            assessments.Should().HaveCount(2);
+            assessments[0].CandidateType.Should().Be("missing");
+            assessments[1].CandidateType.Should().Be("cutoff-unmet");
+            assessments[1].Reason.Should().Be("grabbed-recently");
+        }
+
+        [Test]
+        public void cutoff_unmet_movies_report_queue_failure_and_cooldown_reasons()
+        {
+            var now = DateTime.UtcNow;
+            var upgrades = Enumerable.Range(1, 4).Select(id => new Movie
+            {
+                Id = id,
+                Monitored = true,
+                MinimumAvailability = MovieStatusType.Announced,
+                LastSearchTime = id == 3 ? now.AddHours(-1) : null
+            }).ToList();
+            var failures = Enumerable.Range(1, 3).Select(id => new MovieHistory
+            {
+                ParentId = 2,
+                EventType = MovieHistoryEventType.DownloadFailed,
+                DownloadId = id.ToString(),
+                Date = now.AddHours(-id)
+            });
+
+            var assessments = MovieProactiveEligibility.Evaluate(
+                Array.Empty<Movie>(), upgrades, new[] { 1 }, failures, now);
+
+            assessments.Select(item => item.Reason).Should().Equal(
+                "in-queue", "retry-limit", "searched-recently", "eligible");
+            assessments.Should().OnlyContain(item => item.CandidateType == "cutoff-unmet");
+        }
     }
 }

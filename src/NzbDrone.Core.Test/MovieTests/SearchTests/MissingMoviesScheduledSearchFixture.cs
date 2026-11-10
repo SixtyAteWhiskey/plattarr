@@ -29,6 +29,49 @@ namespace NzbDrone.Core.Test.MovieTests.SearchTests
                 .Callback<ProactiveMovieSearchActivity>(run => _runs.Add(run));
         }
 
+        private static IMovieCutoffService EmptyCutoffService()
+        {
+            var cutoff = new Mock<IMovieCutoffService>();
+            cutoff.Setup(x => x.MoviesWhereCutoffUnmet(It.IsAny<PagingSpec<Movie>>()))
+                .Returns(new PagingSpec<Movie> { Records = new List<Movie>() });
+            return cutoff.Object;
+        }
+
+        [Test]
+        public void scheduled_search_can_select_a_cutoff_unmet_upgrade_with_one_provider_request()
+        {
+            var upgrade = new Movie { Id = 19, Title = "Upgrade", Monitored = true, MinimumAvailability = MovieStatusType.Announced };
+            var movieService = new Mock<IMovieService>();
+            movieService.Setup(x => x.MoviesWithoutFiles(It.IsAny<PagingSpec<Movie>>()))
+                .Returns(new PagingSpec<Movie> { Records = new List<Movie>() });
+            var cutoff = new Mock<IMovieCutoffService>();
+            cutoff.Setup(x => x.MoviesWhereCutoffUnmet(It.IsAny<PagingSpec<Movie>>()))
+                .Returns(new PagingSpec<Movie> { Records = new List<Movie> { upgrade } });
+            var queue = new Mock<IQueueService>();
+            queue.Setup(x => x.GetQueue()).Returns(new List<NzbDrone.Core.Queue.Queue>());
+            var history = new Mock<IHistoryService>();
+            history.Setup(x => x.Since(It.IsAny<DateTime>(), MovieHistoryEventType.DownloadFailed))
+                .Returns(new List<MovieHistory>());
+            var search = new Mock<ISearchForReleases>();
+            search.Setup(x => x.MovieSearch(19, false, false)).ReturnsAsync(new List<DownloadDecision>());
+            var decisions = new Mock<IProcessDownloadDecisions>();
+            decisions.Setup(x => x.ProcessDecisions(It.IsAny<List<DownloadDecision>>()))
+                .ReturnsAsync(new ProcessedDecisions(new List<DownloadDecision>(), new List<DownloadDecision>(), new List<DownloadDecision>()));
+            var config = new Mock<IConfigService>();
+            config.SetupGet(x => x.ProactiveMovieSearchEnabled).Returns(true);
+            config.SetupGet(x => x.ProactiveMovieActiveDownloadLimit).Returns(5);
+            config.SetupGet(x => x.ProactiveMovieRecentGrabHours).Returns(24);
+            var service = new MovieSearchService(movieService.Object, cutoff.Object, search.Object, decisions.Object,
+                queue.Object, history.Object, config.Object, _activity.Object, NLog.LogManager.GetCurrentClassLogger());
+
+            service.Execute(new MissingMoviesSearchCommand { Trigger = CommandTrigger.Scheduled });
+
+            search.Verify(x => x.MovieSearch(It.IsAny<int>(), false, false), Times.Once);
+            Assert.That(_runs[0].CandidateType, Is.EqualTo("cutoff-unmet"));
+            Assert.That(_runs[0].MissingMovies, Is.Zero);
+            Assert.That(_runs[0].CutoffUnmetMovies, Is.EqualTo(1));
+        }
+
         [Test]
         public void scheduled_search_skips_queued_recently_searched_and_repeatedly_failed_movies_and_searches_one_item()
         {
@@ -69,7 +112,7 @@ namespace NzbDrone.Core.Test.MovieTests.SearchTests
             config.SetupGet(x => x.ProactiveMovieRecentGrabHours).Returns(24);
             var service = new MovieSearchService(
                 movieService.Object,
-                new Mock<IMovieCutoffService>().Object,
+                EmptyCutoffService(),
                 search.Object,
                 decisions.Object,
                 queue.Object,
@@ -101,7 +144,7 @@ namespace NzbDrone.Core.Test.MovieTests.SearchTests
             var search = new Mock<ISearchForReleases>();
             var service = new MovieSearchService(
                 movieService.Object,
-                new Mock<IMovieCutoffService>().Object,
+                EmptyCutoffService(),
                 search.Object,
                 new Mock<IProcessDownloadDecisions>().Object,
                 new Mock<IQueueService>().Object,
@@ -145,7 +188,7 @@ namespace NzbDrone.Core.Test.MovieTests.SearchTests
                 .Returns(new List<MovieHistory>());
             var service = new MovieSearchService(
                 movieService.Object,
-                new Mock<IMovieCutoffService>().Object,
+                EmptyCutoffService(),
                 search.Object,
                 new Mock<IProcessDownloadDecisions>().Object,
                 queue.Object,
@@ -183,7 +226,7 @@ namespace NzbDrone.Core.Test.MovieTests.SearchTests
                 .ReturnsAsync(new ProcessedDecisions(new List<DownloadDecision>(), new List<DownloadDecision>(), new List<DownloadDecision>()));
             var service = new MovieSearchService(
                 movieService.Object,
-                new Mock<IMovieCutoffService>().Object,
+                EmptyCutoffService(),
                 search.Object,
                 decisions.Object,
                 queue.Object,
@@ -217,7 +260,7 @@ namespace NzbDrone.Core.Test.MovieTests.SearchTests
             var search = new Mock<ISearchForReleases>();
             var service = new MovieSearchService(
                 movieService.Object,
-                new Mock<IMovieCutoffService>().Object,
+                EmptyCutoffService(),
                 search.Object,
                 new Mock<IProcessDownloadDecisions>().Object,
                 queue.Object,
@@ -257,7 +300,7 @@ namespace NzbDrone.Core.Test.MovieTests.SearchTests
                 .ReturnsAsync(new ProcessedDecisions(new List<DownloadDecision> { new(null) }, new List<DownloadDecision>(), new List<DownloadDecision>()));
             var service = new MovieSearchService(
                 movieService.Object,
-                new Mock<IMovieCutoffService>().Object,
+                EmptyCutoffService(),
                 search.Object,
                 decisions.Object,
                 queue.Object,
