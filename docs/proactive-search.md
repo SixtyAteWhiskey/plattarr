@@ -13,10 +13,12 @@ TV subsections. The former `/proactive-search` URL redirects to that tab. The
 TV subsection groups aired, missing episodes by show, displays candidate and
 skip reasons, and shows recent episode search times. It is a planning preview:
 there is no scheduled proactive TV job yet. Movie and TV skipped rows offer
-manual searches using the existing Movie and Series commands. Fully queued
-items do not offer a duplicate search; retry-limited Movies and TV series
-searches require confirmation. Series search may query several monitored
-seasons. Accepting a command only means the search was queued, not that a
+manual searches using the existing Movie and Missing Episode commands. The TV
+action searches aired missing episodes of one show, including unmonitored
+episodes, while skipping episodes already in the queue. Fully queued items do
+not offer a duplicate search. Movie retry-limit overrides and all TV show
+searches require confirmation because a TV search may make several indexer
+requests. Accepting a command only means the search was queued, not that a
 release was grabbed or imported.
 
 The active automated policy is still fixed: one missing Movie per hourly run, at least
