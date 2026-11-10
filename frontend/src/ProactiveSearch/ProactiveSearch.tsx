@@ -58,7 +58,7 @@ interface TvPreview {
   skippedSeriesTotal: number;
 }
 
-interface TvSearchConfig {
+interface ScheduledSearchConfig {
   id: number;
   enabled: boolean;
   intervalMinutes: number;
@@ -221,11 +221,19 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
   const [savingConfig, setSavingConfig] = useState(false);
   const {
     data: tvConfig,
-    isError: configError,
-    refetch: refetchConfig,
-  } = useApiQuery<TvSearchConfig>({
+    isError: tvConfigError,
+    refetch: refetchTvConfig,
+  } = useApiQuery<ScheduledSearchConfig>({
     path: '/proactive-search/tv-config',
     queryOptions: { enabled: isTv },
+  });
+  const {
+    data: movieConfig,
+    isError: movieConfigError,
+    refetch: refetchMovieConfig,
+  } = useApiQuery<ScheduledSearchConfig>({
+    path: '/proactive-search/movie-config',
+    queryOptions: { enabled: !isTv },
   });
   const {
     data: tvActivity,
@@ -243,12 +251,25 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
     }?offset=${offset}&limit=50&title=${encodeURIComponent(title)}`,
   });
   const preview = data ? normalizePreview(mode, data) : undefined;
-  let tvToggleLabel = 'Turn on scheduled TV search';
+  const config = isTv ? tvConfig : movieConfig;
+  const configError = isTv ? tvConfigError : movieConfigError;
+  const refetchConfig = isTv ? refetchTvConfig : refetchMovieConfig;
+  const kindLabel = isTv ? 'TV' : 'Movie';
+  let scopeTone: 'neutral' | 'success' | 'warning' = 'neutral';
+  let scopeStatus = 'Loading scheduled search setting';
+  let toggleLabel = `Turn on scheduled ${kindLabel} search`;
 
   if (savingConfig) {
-    tvToggleLabel = 'Saving…';
-  } else if (tvConfig?.enabled) {
-    tvToggleLabel = 'Turn off scheduled TV search';
+    toggleLabel = 'Saving…';
+  } else if (config?.enabled) {
+    toggleLabel = `Turn off scheduled ${kindLabel} search`;
+  }
+
+  if (configError) {
+    scopeStatus = 'Scheduled search status unavailable';
+  } else if (config) {
+    scopeTone = config.enabled ? 'success' : 'warning';
+    scopeStatus = `Scheduled search ${config.enabled ? 'on' : 'off'}`;
   }
 
   useEffect(() => {
@@ -339,13 +360,13 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
   );
   const handleRefresh = useCallback(() => {
     refetch();
+    refetchConfig();
     if (isTv) {
       refetchActivity();
-      refetchConfig();
     }
   }, [isTv, refetch, refetchActivity, refetchConfig]);
-  const handleToggleTvSearch = useCallback(async () => {
-    if (!tvConfig || savingConfig) {
+  const handleToggleScheduledSearch = useCallback(async () => {
+    if (!config || savingConfig) {
       return;
     }
 
@@ -353,19 +374,22 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
     setActionError(undefined);
 
     try {
-      await fetchJson<TvSearchConfig, Pick<TvSearchConfig, 'enabled'>>({
+      await fetchJson<
+        ScheduledSearchConfig,
+        Pick<ScheduledSearchConfig, 'enabled'>
+      >({
         method: 'PUT',
-        path: `${apiRoot}/proactive-search/tv-config/1`,
+        path: `${apiRoot}/proactive-search/${isTv ? 'tv' : 'movie'}-config/1`,
         headers: { 'X-Api-Key': window.Radarr.apiKey },
-        body: { enabled: !tvConfig.enabled },
+        body: { enabled: !config.enabled },
       });
       refetchConfig();
     } catch {
-      setActionError('Unable to save scheduled TV search setting.');
+      setActionError(`Unable to save scheduled ${kindLabel} search setting.`);
     } finally {
       setSavingConfig(false);
     }
-  }, [tvConfig, savingConfig, refetchConfig]);
+  }, [config, isTv, kindLabel, savingConfig, refetchConfig]);
   const handlePrevious = useCallback(() => {
     setOffset((value) => Math.max(0, value - 50));
   }, []);
@@ -438,40 +462,47 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
 
   return (
     <Stack gap="large" className={styles.content}>
-      <Surface elevation="low" padding="large">
+      <Surface
+        elevation="low"
+        padding="large"
+        tone={scopeTone}
+        variant="tinted"
+      >
         <Stack gap="small">
-          <Heading level={3}>
-            {isTv ? 'TV search scope' : 'Current Movie search settings'}
-          </Heading>
+          <div className={styles.scopeHeader}>
+            <Heading level={3}>
+              {isTv ? 'TV search scope' : 'Movie search scope'}
+            </Heading>
+            <span className={styles.scopeStatus} role="status">
+              {scopeStatus}
+            </span>
+          </div>
           {isTv ? (
-            <>
-              <Text>
-                Scheduled TV search is {tvConfig?.enabled ? 'on' : 'off'}. Every
-                hour it may search one aired, missing, monitored episode.
-                Episodes in the queue, searched in the last 24 hours, or in a
-                show with three distinct failed downloads in seven days are
-                skipped. Manual show searches can include unmonitored episodes.
-              </Text>
-              {configError && (
-                <Alert kind="danger">
-                  Unable to load the TV search setting.
-                </Alert>
-              )}
-              <Button
-                isDisabled={!tvConfig || savingConfig || configError}
-                onPress={handleToggleTvSearch}
-              >
-                {tvToggleLabel}
-              </Button>
-            </>
+            <Text>
+              Every hour it may search one aired, missing, monitored episode.
+              Episodes in the queue, searched in the last 24 hours, or in a show
+              with three distinct failed downloads in seven days are skipped.
+              Manual show searches can include unmonitored episodes.
+            </Text>
           ) : (
             <Text>
-              One missing Movie is searched per hour. The Movie must be
+              Every hour it may search one missing Movie. The Movie must be
               monitored and available, outside the download queue, unsearched
               for 24 hours, and below the seven-day retry limit. These limits
               are currently fixed.
             </Text>
           )}
+          {configError && (
+            <Alert kind="danger">
+              Unable to load the {kindLabel} search setting.
+            </Alert>
+          )}
+          <Button
+            isDisabled={!config || savingConfig || configError}
+            onPress={handleToggleScheduledSearch}
+          >
+            {toggleLabel}
+          </Button>
         </Stack>
       </Surface>
 

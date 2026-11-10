@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using NLog;
 using NzbDrone.Common.Instrumentation.Extensions;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
@@ -21,6 +22,7 @@ namespace NzbDrone.Core.Movies.Search
         private readonly IProcessDownloadDecisions _processDownloadDecisions;
         private readonly IQueueService _queueService;
         private readonly IHistoryService _history;
+        private readonly IConfigService _config;
         private readonly Logger _logger;
 
         public MovieSearchService(IMovieService movieService,
@@ -29,6 +31,7 @@ namespace NzbDrone.Core.Movies.Search
                                    IProcessDownloadDecisions processDownloadDecisions,
                                    IQueueService queueService,
                                    IHistoryService history,
+                                   IConfigService config,
                                    Logger logger)
         {
             _movieService = movieService;
@@ -37,6 +40,7 @@ namespace NzbDrone.Core.Movies.Search
             _processDownloadDecisions = processDownloadDecisions;
             _queueService = queueService;
             _history = history;
+            _config = config;
             _logger = logger;
         }
 
@@ -53,6 +57,12 @@ namespace NzbDrone.Core.Movies.Search
 
         public void Execute(MissingMoviesSearchCommand message)
         {
+            if (message.Trigger == CommandTrigger.Scheduled && !_config.ProactiveMovieSearchEnabled)
+            {
+                message.GrabbedCount = 0;
+                return;
+            }
+
             var pagingSpec = new PagingSpec<Movie>
             {
                 Page = 1,

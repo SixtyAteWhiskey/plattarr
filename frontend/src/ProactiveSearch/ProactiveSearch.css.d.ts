@@ -7,6 +7,8 @@ interface CssExports {
   'itemDetails': string;
   'list': string;
   'pager': string;
+  'scopeHeader': string;
+  'scopeStatus': string;
   'selectedPanel': string;
   'selectedTab': string;
   'skippedItem': string;

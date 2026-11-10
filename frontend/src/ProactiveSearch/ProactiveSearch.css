@@ -2,6 +2,23 @@
   max-width: 1100px;
 }
 
+.scopeHeader {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spaceSmall;
+}
+
+.scopeStatus {
+  padding: $spaceXSmall $spaceSmall;
+  border: 1px solid var(--statusBorder);
+  border-radius: 999px;
+  background-color: var(--statusBackground);
+  color: var(--statusText);
+  white-space: nowrap;
+  font-weight: 600;
+}
+
 .tabList {
   display: flex;
   flex-wrap: wrap;

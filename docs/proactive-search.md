@@ -22,13 +22,14 @@ release was grabbed or imported. The action is disabled while its command is
 running and becomes available again when the command ends, unless the item is
 in the download queue.
 
-The Movie automated policy is still fixed: one missing Movie per hourly run, at least
-24 hours between searches of one Movie, and a pause after three distinct failed
-downloads within seven days. The existing scheduled job stays active. Manual
-searches retain their existing behavior. The page labels these limits as fixed
+Movie scheduled search now has a separate persisted enable switch, on by default
+to preserve the existing hourly job. Its policy remains fixed: one missing Movie
+per hourly run, at least 24 hours between searches of one Movie, and a pause
+after three distinct failed downloads within seven days. Manual searches retain
+their existing behavior when the scheduled switch is off. The page labels these limits as fixed
 and does not imply that Music or upgrades are already automated.
 
-Scheduled TV search has a separate persisted enable switch, off by default. Its
+Scheduled TV search has its own persisted enable switch, off by default. Its
 hourly job records every run, including disabled and empty runs, in the recent
 activity list. When enabled, a run makes one bounded search dispatch for at most
 one aired missing episode, even when an episode has several scene mappings.
@@ -48,9 +49,8 @@ recent-grab window, active-download limit, minimum cycle time, quiet hours,
 and round-robin pacing provide further safety. This slice starts with
 visibility and keeps Plattarr's existing conservative Movie rate.
 
-1. Add configurable pacing and a separate Movie gate while preserving the
-   existing hourly Movie policy as the migration default. Keep replacement
-   search behavior separate from proactive gates.
+1. Add configurable pacing while preserving the existing hourly Movie policy
+   as the default. Keep replacement search behavior separate from proactive gates.
 2. Expand the shared candidate model to Movie cutoff-unmet upgrades, TV
    season/episode search units, and Music albums. Reuse their existing search commands
    while making one provider-facing request per scheduled run. Exclude active
