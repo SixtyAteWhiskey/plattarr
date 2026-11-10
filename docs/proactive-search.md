@@ -1,10 +1,11 @@
 # Proactive Search rollout
 
 The first slice gave the existing hourly missing-Movie search a read-only
-eligibility preview. The preview and scheduled
+eligibility preview. Scheduled Movie runs now consider both Movies without a
+file and Movies whose file is below the quality profile cutoff. The preview and scheduled
 command use `MovieProactiveEligibility` for monitored, availability, queue,
 recent-search, and failed-download decisions. The page shows counts, the next
-ten candidates, search times for missing Movies, and paged skip reasons with a
+ten candidates, search times for both Movie types, and paged skip reasons with a
 title filter. Reading the preview makes no search request and changes no
 search state.
 
@@ -37,16 +38,22 @@ pauses before any provider request when the queue has reached the active limit.
 Active queue downloads are counted by distinct download ID, including queued,
 paused, and downloading items; completed and failed items do not count. A recent
 grab excludes that Movie or TV episode until its window expires, even when it
-has left the queue. These gates apply to scheduled missing-item searches only.
+has left the queue. These gates apply to scheduled missing-item and Movie
+cutoff-unmet searches only.
 Manual searches and failed-download replacement searches keep their existing
 rules. A configured interval never increases the one-search-per-run bound.
+The missing and cutoff-unmet lists share one Movie run. A Movie returned by
+both queries appears once, as missing. The candidate with the oldest search
+time is selected across both lists.
 Every scheduled Movie run is recorded in a durable recent-activity list, including
 disabled and no-candidate runs. Entries show the selected Movie when there is one,
-the eligible and missing counts, grabs, and a failure message if the attempt fails.
+the eligible, missing, and cutoff-unmet counts, the selected candidate type,
+grabs, and a failure message if the attempt fails.
 Manual Movie searches do not add entries to this list. Paused runs record the
 active limit and count; empty runs record the counts for each exclusion reason.
 The eligibility preview remains read-only and does not add entries. It shows
-the current scheduled pause reason and the recent-grab reason on affected rows.
+both candidate types, their skip reasons, the current scheduled pause reason,
+and the recent-grab reason on affected rows.
 
 Scheduled TV search records every run, including disabled and empty runs, in the recent
 activity list. When enabled, a run makes one bounded search dispatch for at most
@@ -70,13 +77,14 @@ and round-robin pacing provide further safety. Plattarr now exposes interval,
 active-download, and recent-grab controls while keeping its conservative Movie
 default.
 
-1. Expand the shared candidate model to Movie cutoff-unmet upgrades, TV
-   season/episode search units, and Music albums. Reuse their existing search commands
+1. Expand the shared candidate model to TV season/episode search units and
+   Music albums. Reuse their existing search commands
    while making one provider-facing request per scheduled run. Exclude active
    queue items and recent grabs for each kind.
 2. Add per-kind cycle progress, then expose quiet hours. Test
    that manual and replacement searches do not incorrectly advance a cycle.
 
-The recent-search-time lists still use `LastSearchTime` for Movies or episodes
-missing a file. The separate scheduled activity lists are durable journals and
+The recent-search-time lists still use `LastSearchTime` for Movies that are
+missing a file or below cutoff, and for missing episodes. The separate
+scheduled activity lists are durable journals and
 retain runs after a selected item acquires a file.

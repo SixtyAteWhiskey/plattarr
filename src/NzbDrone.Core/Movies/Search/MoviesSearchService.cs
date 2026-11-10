@@ -105,13 +105,21 @@ namespace NzbDrone.Core.Movies.Search
                     SortKey = "Id"
                 };
 
-                var movies = _movieService.MoviesWithoutFiles(pagingSpec).Records.ToList();
+                var missingMovies = _movieService.MoviesWithoutFiles(pagingSpec).Records.ToList();
+                var cutoffUnmetMovies = _movieCutoffService.MoviesWhereCutoffUnmet(new PagingSpec<Movie>
+                {
+                    Page = 1,
+                    PageSize = 100000,
+                    SortDirection = SortDirection.Ascending,
+                    SortKey = "Id"
+                }).Records.ToList();
                 var queueItems = _queueService.GetQueue();
                 var queue = queueItems.Where(q => q.GetMovie() != null).Select(q => q.GetMovie().Id).ToHashSet();
                 var failures = _history.Since(run.StartedAt - MovieSearchSafety.FailureWindow, MovieHistoryEventType.DownloadFailed);
                 var grabs = _history.Since(run.StartedAt.AddHours(-_config.ProactiveMovieRecentGrabHours), MovieHistoryEventType.Grabbed);
-                var assessments = MovieProactiveEligibility.Evaluate(movies, queue, failures, run.StartedAt, grabs, _config.ProactiveMovieRecentGrabHours);
-                run.MissingMovies = assessments.Count;
+                var assessments = MovieProactiveEligibility.Evaluate(missingMovies, cutoffUnmetMovies, queue, failures, run.StartedAt, grabs, _config.ProactiveMovieRecentGrabHours);
+                run.MissingMovies = assessments.Count(item => item.CandidateType == "missing");
+                run.CutoffUnmetMovies = assessments.Count(item => item.CandidateType == "cutoff-unmet");
                 run.EligibleMovies = assessments.Count(item => item.Eligible);
                 var activeDownloads = ProactiveSearchPacing.ActiveDownloadCount(queueItems);
 
@@ -125,7 +133,7 @@ namespace NzbDrone.Core.Movies.Search
                 var candidate = assessments.Where(item => item.Eligible)
                     .OrderBy(item => item.Movie.LastSearchTime ?? DateTime.MinValue)
                     .ThenBy(item => item.Movie.Id)
-                    .FirstOrDefault()?.Movie;
+                    .FirstOrDefault();
 
                 if (candidate == null)
                 {
@@ -135,17 +143,18 @@ namespace NzbDrone.Core.Movies.Search
                         .Select(group => $"{group.Key}: {group.Count()}"));
                     if (run.Reason.Length == 0)
                     {
-                        run.Reason = "No missing Movies";
+                        run.Reason = "No missing or cutoff-unmet Movies";
                     }
 
                     return;
                 }
 
-                run.MovieId = candidate.Id;
-                run.MovieTitle = candidate.Title;
+                run.MovieId = candidate.Movie.Id;
+                run.MovieTitle = candidate.Movie.Title;
+                run.CandidateType = candidate.CandidateType;
                 run.Outcome = "searching";
 
-                var decisions = _releaseSearchService.MovieSearch(candidate.Id, false, false).GetAwaiter().GetResult();
+                var decisions = _releaseSearchService.MovieSearch(candidate.Movie.Id, false, false).GetAwaiter().GetResult();
                 var processed = _processDownloadDecisions.ProcessDecisions(decisions).GetAwaiter().GetResult();
                 run.GrabbedCount = processed.Grabbed.Count;
                 message.GrabbedCount = run.GrabbedCount;

@@ -13,7 +13,9 @@ namespace NzbDrone.Core.Movies.Search
         public string Reason { get; set; }
         public int? MovieId { get; set; }
         public string MovieTitle { get; set; }
+        public string CandidateType { get; set; }
         public int MissingMovies { get; set; }
+        public int CutoffUnmetMovies { get; set; }
         public int EligibleMovies { get; set; }
         public int GrabbedCount { get; set; }
         public string ErrorMessage { get; set; }

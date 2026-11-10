@@ -24,6 +24,7 @@ type MediaMode = 'movie' | 'tv';
 interface MovieItem {
   movieId: number;
   title: string;
+  candidateType: string;
   lastSearchTime?: string;
   reason: string;
 }
@@ -31,6 +32,7 @@ interface MovieItem {
 interface MoviePreview {
   generatedAt: string;
   missingMovies: number;
+  cutoffUnmetMovies: number;
   reasons: Record<string, number>;
   nextMovies: MovieItem[];
   recentMovies: MovieItem[];
@@ -94,7 +96,9 @@ interface MovieSearchActivity {
   outcome: string;
   movieId?: number;
   movieTitle?: string;
+  candidateType?: string;
   missingMovies: number;
+  cutoffUnmetMovies: number;
   eligibleMovies: number;
   grabbedCount: number;
   errorMessage?: string;
@@ -104,6 +108,7 @@ interface MovieSearchActivity {
 interface PreviewItem {
   id: number;
   title: string;
+  candidateType?: string;
   lastSearchTime?: string;
   missingEpisodes: number;
   eligibleEpisodes: number;
@@ -115,6 +120,8 @@ interface PreviewView {
   total: number;
   eligible: number;
   missingEpisodes?: number;
+  missingMovies?: number;
+  cutoffUnmetMovies?: number;
   reasonCounts?: Record<string, number>;
   next: PreviewItem[];
   recent: PreviewItem[];
@@ -220,6 +227,7 @@ function normalizePreview(
   const mapItem = (item: MovieItem): PreviewItem => ({
     id: item.movieId,
     title: item.title,
+    candidateType: item.candidateType,
     lastSearchTime: item.lastSearchTime,
     missingEpisodes: 1,
     eligibleEpisodes: item.reason === 'eligible' ? 1 : 0,
@@ -228,8 +236,10 @@ function normalizePreview(
 
   return {
     generatedAt: movies.generatedAt,
-    total: movies.missingMovies,
+    total: movies.missingMovies + movies.cutoffUnmetMovies,
     eligible: movies.reasons.eligible ?? 0,
+    missingMovies: movies.missingMovies,
+    cutoffUnmetMovies: movies.cutoffUnmetMovies,
     reasonCounts: movies.reasons,
     next: movies.nextMovies.map(mapItem),
     recent: movies.recentMovies.map(mapItem),
@@ -585,9 +595,10 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
             </Text>
           ) : (
             <Text>
-              Each run may search one missing Movie. It must be monitored and
-              available, outside the queue and recent-grab window, unsearched
-              for 24 hours, and below the seven-day retry limit.
+              Each run may search one missing Movie or one Movie with a file
+              below its quality cutoff. It must be monitored and available,
+              outside the queue and recent-grab window, unsearched for 24 hours,
+              and below the seven-day retry limit.
             </Text>
           )}
           {configError && (
@@ -690,10 +701,12 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
                 {preview.total}{' '}
                 {isTv
                   ? 'TV shows with aired missing episodes'
-                  : 'missing Movies'}{' '}
+                  : 'Movie candidates'}{' '}
                 · {preview.eligible}{' '}
                 {isTv ? 'shows with eligible episodes' : 'eligible'}
-                {isTv ? ` · ${preview.missingEpisodes} missing episodes` : ''}
+                {isTv
+                  ? ` · ${preview.missingEpisodes} missing episodes`
+                  : ` · ${preview.missingMovies} missing · ${preview.cutoffUnmetMovies} cutoff unmet`}
               </Text>
               {preview.reasonCounts && (
                 <ul className={styles.counts}>
@@ -730,6 +743,9 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
                     <li key={item.id}>
                       {item.title}{' '}
                       <span>
+                        {!isTv && item.candidateType === 'cutoff-unmet'
+                          ? 'Cutoff unmet · '
+                          : ''}
                         {isTv
                           ? `${item.eligibleEpisodes} eligible episodes · `
                           : ''}
@@ -753,7 +769,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
                 Latest recorded search times among{' '}
                 {isTv
                   ? 'shows with aired missing episodes'
-                  : 'Movies still missing a file'}
+                  : 'missing or cutoff-unmet Movies'}
                 .
               </Text>
               {preview.recent.length ? (
@@ -805,7 +821,12 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
                       {run.movieId
                         ? ` · ${run.movieTitle || `Movie ${run.movieId}`}`
                         : ''}
-                      {` · ${run.eligibleMovies}/${run.missingMovies} eligible`}
+                      {run.candidateType === 'cutoff-unmet'
+                        ? ' · cutoff unmet'
+                        : ''}
+                      {` · ${run.eligibleMovies}/${
+                        run.missingMovies + run.cutoffUnmetMovies
+                      } eligible`}
                       {run.grabbedCount ? ` · ${run.grabbedCount} grabbed` : ''}
                       {run.errorMessage ? ` · ${run.errorMessage}` : ''}
                       {run.reason ? ` · ${activityReason(run.reason)}` : ''}
@@ -846,6 +867,9 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
                     <li key={item.id} className={styles.skippedItem}>
                       <div className={styles.itemDetails}>
                         <strong>{item.title}</strong>
+                        {!isTv && item.candidateType === 'cutoff-unmet' && (
+                          <span>Cutoff unmet</span>
+                        )}
                         {isTv && (
                           <span>{item.missingEpisodes} missing episodes</span>
                         )}
