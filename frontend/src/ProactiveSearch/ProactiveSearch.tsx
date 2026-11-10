@@ -58,6 +58,28 @@ interface TvPreview {
   skippedSeriesTotal: number;
 }
 
+interface TvSearchConfig {
+  id: number;
+  enabled: boolean;
+  intervalMinutes: number;
+  searchesPerRun: number;
+  cooldownHours: number;
+  failureLimit: number;
+  failureWindowDays: number;
+}
+
+interface TvSearchActivity {
+  id: number;
+  startedAt: string;
+  endedAt: string;
+  outcome: string;
+  seriesTitle?: string;
+  episodeId?: number;
+  missingEpisodes: number;
+  eligibleEpisodes: number;
+  grabbedCount: number;
+}
+
 interface PreviewItem {
   id: number;
   title: string;
@@ -196,6 +218,23 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
   const [activeSearches, setActiveSearches] = useState<ActiveSearch[]>([]);
   const [actionError, setActionError] = useState<string>();
   const [actionNotice, setActionNotice] = useState<string>();
+  const [savingConfig, setSavingConfig] = useState(false);
+  const {
+    data: tvConfig,
+    isError: configError,
+    refetch: refetchConfig,
+  } = useApiQuery<TvSearchConfig>({
+    path: '/proactive-search/tv-config',
+    queryOptions: { enabled: isTv },
+  });
+  const {
+    data: tvActivity,
+    isError: activityError,
+    refetch: refetchActivity,
+  } = useApiQuery<TvSearchActivity[]>({
+    path: '/proactive-search/tv-activity',
+    queryOptions: { enabled: isTv },
+  });
   const { data, isLoading, isError, refetch } = useApiQuery<
     MoviePreview | TvPreview
   >({
@@ -204,6 +243,13 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
     }?offset=${offset}&limit=50&title=${encodeURIComponent(title)}`,
   });
   const preview = data ? normalizePreview(mode, data) : undefined;
+  let tvToggleLabel = 'Turn on scheduled TV search';
+
+  if (savingConfig) {
+    tvToggleLabel = 'Saving…';
+  } else if (tvConfig?.enabled) {
+    tvToggleLabel = 'Turn off scheduled TV search';
+  }
 
   useEffect(() => {
     if (!activeSearches.length) {
@@ -293,7 +339,33 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
   );
   const handleRefresh = useCallback(() => {
     refetch();
-  }, [refetch]);
+    if (isTv) {
+      refetchActivity();
+      refetchConfig();
+    }
+  }, [isTv, refetch, refetchActivity, refetchConfig]);
+  const handleToggleTvSearch = useCallback(async () => {
+    if (!tvConfig || savingConfig) {
+      return;
+    }
+
+    setSavingConfig(true);
+    setActionError(undefined);
+
+    try {
+      await fetchJson<TvSearchConfig, Pick<TvSearchConfig, 'enabled'>>({
+        method: 'PUT',
+        path: `${apiRoot}/proactive-search/tv-config/1`,
+        headers: { 'X-Api-Key': window.Radarr.apiKey },
+        body: { enabled: !tvConfig.enabled },
+      });
+      refetchConfig();
+    } catch {
+      setActionError('Unable to save scheduled TV search setting.');
+    } finally {
+      setSavingConfig(false);
+    }
+  }, [tvConfig, savingConfig, refetchConfig]);
   const handlePrevious = useCallback(() => {
     setOffset((value) => Math.max(0, value - 50));
   }, []);
@@ -372,12 +444,26 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
             {isTv ? 'TV search scope' : 'Current Movie search settings'}
           </Heading>
           {isTv ? (
-            <Text>
-              TV shows below are grouped from aired episodes without files. This
-              is a read-only candidate preview; scheduled proactive TV searches
-              are not active yet. Manual search includes aired missing episodes
-              even when they are unmonitored.
-            </Text>
+            <>
+              <Text>
+                Scheduled TV search is {tvConfig?.enabled ? 'on' : 'off'}. Every
+                hour it may search one aired, missing, monitored episode.
+                Episodes in the queue, searched in the last 24 hours, or in a
+                show with three distinct failed downloads in seven days are
+                skipped. Manual show searches can include unmonitored episodes.
+              </Text>
+              {configError && (
+                <Alert kind="danger">
+                  Unable to load the TV search setting.
+                </Alert>
+              )}
+              <Button
+                isDisabled={!tvConfig || savingConfig || configError}
+                onPress={handleToggleTvSearch}
+              >
+                {tvToggleLabel}
+              </Button>
+            </>
           ) : (
             <Text>
               One missing Movie is searched per hour. The Movie must be
@@ -446,7 +532,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
               </Heading>
               <Text tone="secondary">
                 {isTv
-                  ? 'TV shows are ordered by their oldest eligible episode search time; no TV job uses this list yet.'
+                  ? 'The hourly TV job chooses the oldest eligible episode across these shows when enabled.'
                   : 'The hourly Movie job chooses the first Movie in this order.'}
               </Text>
               {preview.next.length ? (
@@ -472,7 +558,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
           <Surface elevation="low" padding="large">
             <Stack gap="small">
               <Heading level={3}>
-                Recent {isTv ? 'TV' : 'Movie'} searches
+                Recent {isTv ? 'TV' : 'Movie'} search times
               </Heading>
               <Text tone="secondary">
                 Latest recorded search times among{' '}
@@ -495,6 +581,40 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
               )}
             </Stack>
           </Surface>
+
+          {isTv && (
+            <Surface elevation="low" padding="large">
+              <Stack gap="small">
+                <Heading level={3}>Scheduled TV activity</Heading>
+                <Text tone="secondary">
+                  The latest 20 hourly runs, including runs that searched
+                  nothing.
+                </Text>
+                {activityError && (
+                  <Alert kind="danger">
+                    Unable to load TV search activity.
+                  </Alert>
+                )}
+                {tvActivity?.length ? (
+                  <ul className={styles.list}>
+                    {tvActivity.map((run) => (
+                      <li key={run.id}>
+                        {formatTime(run.startedAt)} · {run.outcome}
+                        {run.seriesTitle ? ` · ${run.seriesTitle}` : ''}
+                        {run.episodeId ? ` · episode ${run.episodeId}` : ''}
+                        {` · ${run.eligibleEpisodes}/${run.missingEpisodes} eligible`}
+                        {run.grabbedCount
+                          ? ` · ${run.grabbedCount} grabbed`
+                          : ''}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <Text>No scheduled TV runs recorded yet.</Text>
+                )}
+              </Stack>
+            </Surface>
+          )}
 
           <Surface elevation="low" padding="large">
             <Stack gap="small">

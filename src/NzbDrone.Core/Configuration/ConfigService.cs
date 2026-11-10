@@ -195,6 +195,12 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("HygieneActionsEnabled", value); }
         }
 
+        public bool ProactiveTvSearchEnabled
+        {
+            get { return GetValueBoolean("ProactiveTvSearchEnabled", false); }
+            set { SetValue("ProactiveTvSearchEnabled", value); }
+        }
+
         public bool HygieneContentInspectionEnabled
         {
             get { return GetValueBoolean("HygieneContentInspectionEnabled", false); }
