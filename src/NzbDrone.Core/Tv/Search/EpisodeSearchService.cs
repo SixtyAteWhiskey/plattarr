@@ -39,7 +39,7 @@ namespace NzbDrone.Core.Tv.Search
             _logger = logger;
         }
 
-        private async Task SearchForBulkEpisodes(List<Episode> episodes, bool monitoredOnly, bool userInvokedSearch)
+        private async Task<int> SearchForBulkEpisodes(List<Episode> episodes, bool monitoredOnly, bool userInvokedSearch)
         {
             _logger.ProgressInfo("Performing search for {0} episodes", episodes.Count);
             var downloadedCount = 0;
@@ -99,6 +99,7 @@ namespace NzbDrone.Core.Tv.Search
             }
 
             _logger.ProgressInfo("Completed search for {0} episodes. {1} reports downloaded.", episodes.Count, downloadedCount);
+            return downloadedCount;
         }
 
         private bool IsMonitored(bool episodeMonitored, bool seriesMonitored)
@@ -124,13 +125,18 @@ namespace NzbDrone.Core.Tv.Search
 
         public void Execute(MissingEpisodeSearchCommand message)
         {
+            if (message.IgnoreMonitoring && (!message.SeriesId.HasValue || message.Trigger != CommandTrigger.Manual))
+            {
+                throw new InvalidOperationException("Ignoring TV monitoring requires a manual search for one series");
+            }
+
             var monitored = message.Monitored;
             List<Episode> episodes;
 
             if (message.SeriesId.HasValue)
             {
                 episodes = _episodeService.GetEpisodeBySeries(message.SeriesId.Value)
-                                          .Where(e => e.Monitored == monitored &&
+                                          .Where(e => (message.IgnoreMonitoring || e.Monitored == monitored) &&
                                                  !e.HasFile &&
                                                  e.AirDateUtc.HasValue &&
                                                  e.AirDateUtc.Value.Before(DateTime.UtcNow))
@@ -176,7 +182,7 @@ namespace NzbDrone.Core.Tv.Search
             var queue = GetQueuedEpisodeIds();
             var missing = episodes.Where(e => !queue.Contains(e.Id)).ToList();
 
-            SearchForBulkEpisodes(missing, monitored, message.Trigger == CommandTrigger.Manual).GetAwaiter().GetResult();
+            message.GrabbedCount = SearchForBulkEpisodes(missing, monitored && !message.IgnoreMonitoring, message.Trigger == CommandTrigger.Manual).GetAwaiter().GetResult();
         }
 
         public void Execute(CutoffUnmetEpisodeSearchCommand message)
@@ -225,7 +231,7 @@ namespace NzbDrone.Core.Tv.Search
             var queue = GetQueuedEpisodeIds();
             var cutoffUnmet = episodes.Where(e => !queue.Contains(e.Id)).ToList();
 
-            SearchForBulkEpisodes(cutoffUnmet, monitored, message.Trigger == CommandTrigger.Manual).GetAwaiter().GetResult();
+            message.GrabbedCount = SearchForBulkEpisodes(cutoffUnmet, monitored, message.Trigger == CommandTrigger.Manual).GetAwaiter().GetResult();
         }
 
         private List<int> GetQueuedEpisodeIds()

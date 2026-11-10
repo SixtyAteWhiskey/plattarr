@@ -104,7 +104,7 @@ function searchButtonLabel(
     return 'Search queued';
   }
 
-  return isTv ? 'Search series…' : 'Search now';
+  return isTv ? 'Search missing episodes…' : 'Search now';
 }
 
 function reasonSummary(reasons: Record<string, number>) {
@@ -227,7 +227,11 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
           path: `${apiRoot}/command`,
           headers: { 'X-Api-Key': window.Radarr.apiKey },
           body: isTv
-            ? { name: commandNames.SERIES_SEARCH, seriesId: item.id }
+            ? {
+                name: commandNames.MISSING_EPISODE_SEARCH,
+                seriesId: item.id,
+                ignoreMonitoring: true,
+              }
             : { name: commandNames.MOVIE_SEARCH, movieIds: [item.id] },
         });
         setQueuedIds((ids) => [...ids, item.id]);
@@ -277,8 +281,8 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
             <Text>
               TV shows below are grouped from aired episodes without files. This
               is a read-only candidate preview; scheduled proactive TV searches
-              are not active yet. Manual series search can query several
-              monitored seasons.
+              are not active yet. Manual search includes aired missing episodes
+              even when they are unmonitored.
             </Text>
           ) : (
             <Text>
@@ -432,9 +436,11 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
                       <button
                         type="button"
                         data-item-id={item.id}
-                        aria-label={`Search ${item.title}${
-                          isTv ? ' series' : ''
-                        }`}
+                        aria-label={
+                          isTv
+                            ? `Search missing episodes for ${item.title}`
+                            : `Search ${item.title}`
+                        }
                         disabled={
                           submittingId !== undefined ||
                           queuedIds.includes(item.id) ||
@@ -478,10 +484,12 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
       <ConfirmModal
         isOpen={!!pendingItem}
         isSpinning={submittingId !== undefined}
-        title={isTv ? 'Search this TV series?' : 'Override the retry limit?'}
+        title={
+          isTv ? 'Search missing TV episodes?' : 'Override the retry limit?'
+        }
         message={
           isTv
-            ? `Search the monitored seasons of ${pendingItem?.title}? This may make several indexer requests and bypasses the preview skip reason.`
+            ? `Search ${pendingItem?.missingEpisodes} aired missing episodes of ${pendingItem?.title}, including unmonitored episodes? Episodes already in the queue are skipped. This may make several indexer requests.`
             : `Search ${pendingItem?.title} now? This bypasses the seven-day automatic retry limit.`
         }
         confirmLabel="Queue search"
