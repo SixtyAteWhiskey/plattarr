@@ -4,7 +4,9 @@ using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Download;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.History;
 using NzbDrone.Core.Movies.Search;
@@ -38,6 +40,8 @@ namespace Radarr.Api.V3.ProactiveSearch
         public List<ProactiveMovieItemResource> RecentMovies { get; set; }
         public List<ProactiveMovieItemResource> SkippedMovies { get; set; }
         public int SkippedMoviesTotal { get; set; }
+        public int ActiveDownloads { get; set; }
+        public string PauseReason { get; set; }
     }
 
     [V3ApiController("proactive-search/preview")]
@@ -46,12 +50,14 @@ namespace Radarr.Api.V3.ProactiveSearch
         private readonly IMovieService _movies;
         private readonly IQueueService _queue;
         private readonly IHistoryService _history;
+        private readonly IConfigService _config;
 
-        public ProactiveSearchPreviewController(IMovieService movies, IQueueService queue, IHistoryService history)
+        public ProactiveSearchPreviewController(IMovieService movies, IQueueService queue, IHistoryService history, IConfigService config)
         {
             _movies = movies;
             _queue = queue;
             _history = history;
+            _config = config;
         }
 
         [HttpGet]
@@ -67,9 +73,12 @@ namespace Radarr.Api.V3.ProactiveSearch
                 SortKey = "Id"
             };
             var movies = _movies.MoviesWithoutFiles(paging).Records;
-            var queued = _queue.GetQueue().Where(item => item.GetMovie() != null).Select(item => item.GetMovie().Id);
+            var queueItems = _queue.GetQueue();
+            var queued = queueItems.Where(item => item.GetMovie() != null).Select(item => item.GetMovie().Id);
             var failures = _history.Since(now - MovieSearchSafety.FailureWindow, MovieHistoryEventType.DownloadFailed);
-            var assessments = MovieProactiveEligibility.Evaluate(movies, queued, failures, now);
+            var grabs = _history.Since(now.AddHours(-_config.ProactiveMovieRecentGrabHours), MovieHistoryEventType.Grabbed);
+            var assessments = MovieProactiveEligibility.Evaluate(movies, queued, failures, now, grabs, _config.ProactiveMovieRecentGrabHours);
+            var activeDownloads = ProactiveSearchPacing.ActiveDownloadCount(queueItems);
             var skipped = assessments.Where(item => !item.Eligible &&
                 (string.IsNullOrWhiteSpace(title) || item.Movie.Title?.Contains(title, StringComparison.OrdinalIgnoreCase) == true))
                 .OrderBy(item => item.Movie.Title).ThenBy(item => item.Movie.Id).ToList();
@@ -77,6 +86,8 @@ namespace Radarr.Api.V3.ProactiveSearch
             return TypedResults.Ok(new ProactiveSearchPreviewResource
             {
                 GeneratedAt = now,
+                ActiveDownloads = activeDownloads,
+                PauseReason = ProactiveSearchPacing.PauseReason(_config.ProactiveMovieSearchEnabled, activeDownloads, _config.ProactiveMovieActiveDownloadLimit),
                 MissingMovies = assessments.Count,
                 Reasons = assessments.GroupBy(item => item.Reason).ToDictionary(group => group.Key, group => group.Count()),
                 NextMovies = assessments.Where(item => item.Eligible)

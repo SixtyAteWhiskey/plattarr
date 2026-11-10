@@ -7,6 +7,7 @@ using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.Queue;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
 using NzbDrone.Core.Tv.History;
@@ -24,6 +25,8 @@ namespace NzbDrone.Core.Test.TvTests.SearchTests
         public void Setup()
         {
             _runs.Clear();
+            Mocker.GetMock<IConfigService>().SetupGet(x => x.ProactiveTvActiveDownloadLimit).Returns(5);
+            Mocker.GetMock<IConfigService>().SetupGet(x => x.ProactiveTvRecentGrabHours).Returns(24);
             Mocker.GetMock<IProactiveTvSearchActivityRepository>()
                 .Setup(x => x.Insert(It.IsAny<ProactiveTvSearchActivity>()))
                 .Callback<ProactiveTvSearchActivity>(run => _runs.Add(run));
@@ -108,6 +111,38 @@ namespace NzbDrone.Core.Test.TvTests.SearchTests
                 {
                     new() { RemoteRelease = new RemoteEpisode { Episodes = new List<Episode> { new() { Id = 11 } } } }
                 });
+
+            Subject.Execute(new ProactiveTvSearchCommand());
+
+            _runs.Should().ContainSingle().Which.EpisodeId.Should().Be(12);
+            Mocker.GetMock<ISearchForReleases>().Verify(x => x.BoundedEpisodeSearch(It.Is<Episode>(episode => episode.Id == 11)), Times.Never());
+        }
+
+        [Test]
+        public void active_download_limit_pauses_the_run_and_records_why()
+        {
+            Mocker.GetMock<IConfigService>().SetupGet(x => x.ProactiveTvSearchEnabled).Returns(true);
+            Mocker.GetMock<IConfigService>().SetupGet(x => x.ProactiveTvActiveDownloadLimit).Returns(1);
+            Mocker.GetMock<NzbDrone.Core.Queue.IQueueService>().Setup(x => x.GetQueue())
+                .Returns(new List<NzbDrone.Core.Queue.Queue>
+                {
+                    new() { Id = 7, DownloadId = "other", Status = QueueStatus.Downloading }
+                });
+
+            Subject.Execute(new ProactiveTvSearchCommand());
+
+            _runs.Should().ContainSingle().Which.Outcome.Should().Be("paused");
+            _runs[0].Reason.Should().Contain("Active download limit reached (1/1)");
+            Mocker.GetMock<ISearchForReleases>().Verify(x => x.BoundedEpisodeSearch(It.IsAny<Episode>()), Times.Never());
+        }
+
+        [Test]
+        public void recent_episode_grab_is_skipped_but_the_next_episode_is_searched()
+        {
+            Mocker.GetMock<IConfigService>().SetupGet(x => x.ProactiveTvSearchEnabled).Returns(true);
+            Mocker.GetMock<IHistoryService>()
+                .Setup(x => x.Since(It.IsAny<DateTime>(), EpisodeHistoryEventType.Grabbed))
+                .Returns(new List<EpisodeHistory> { new() { ItemId = 11, Date = DateTime.UtcNow } });
 
             Subject.Execute(new ProactiveTvSearchCommand());
 

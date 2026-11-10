@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.History;
@@ -32,7 +33,11 @@ namespace NzbDrone.Api.Test.v3.ProactiveSearch
             history.Setup(x => x.Since(It.IsAny<DateTime>(), MovieHistoryEventType.DownloadFailed))
                 .Returns(new List<MovieHistory>());
 
-            var preview = new ProactiveSearchPreviewController(movieService.Object, queue.Object, history.Object)
+            var config = Mocker.GetMock<IConfigService>();
+            config.SetupGet(x => x.ProactiveMovieSearchEnabled).Returns(true);
+            config.SetupGet(x => x.ProactiveMovieActiveDownloadLimit).Returns(5);
+            config.SetupGet(x => x.ProactiveMovieRecentGrabHours).Returns(24);
+            var preview = new ProactiveSearchPreviewController(movieService.Object, queue.Object, history.Object, config.Object)
                 .Get(0, 50, null).Value;
 
             preview.MissingMovies.Should().Be(2);

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using NzbDrone.Core.Tv.History;
 
 namespace NzbDrone.Core.Tv.Search
 {
@@ -26,10 +27,15 @@ namespace NzbDrone.Core.Tv.Search
                                                                    IReadOnlyDictionary<int, Series> seriesById,
                                                                    IEnumerable<int> queuedEpisodeIds,
                                                                    IEnumerable<int> failedSeriesIds,
-                                                                   DateTime now)
+                                                                   DateTime now,
+                                                                   IEnumerable<EpisodeHistory> grabs = null,
+                                                                   int recentGrabHours = 24)
         {
             var queued = queuedEpisodeIds.ToHashSet();
             var failed = failedSeriesIds.ToHashSet();
+            var recentlyGrabbed = (grabs ?? Enumerable.Empty<EpisodeHistory>())
+                .Where(row => row.Date >= now.AddHours(-recentGrabHours))
+                .Select(row => row.ItemId).ToHashSet();
 
             return episodes.GroupBy(episode => episode.SeriesId)
                 .Where(group => seriesById.ContainsKey(group.Key))
@@ -45,6 +51,7 @@ namespace NzbDrone.Core.Tv.Search
                             Reason = !series.Monitored || !episode.Monitored ? "unmonitored" :
                                 failed.Contains(series.Id) ? "retry-limit" :
                                 queued.Contains(episode.Id) ? "in-queue" :
+                                recentlyGrabbed.Contains(episode.Id) ? "grabbed-recently" :
                                 episode.LastSearchTime.HasValue && episode.LastSearchTime >= now.AddDays(-1) ? "searched-recently" :
                                 "eligible"
                         }).ToList()

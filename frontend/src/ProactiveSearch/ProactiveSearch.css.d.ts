@@ -6,6 +6,7 @@ interface CssExports {
   'filter': string;
   'itemDetails': string;
   'list': string;
+  'pacing': string;
   'pager': string;
   'scopeHeader': string;
   'scopeStatus': string;

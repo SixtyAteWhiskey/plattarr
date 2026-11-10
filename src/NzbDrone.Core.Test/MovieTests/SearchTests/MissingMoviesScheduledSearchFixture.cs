@@ -65,6 +65,8 @@ namespace NzbDrone.Core.Test.MovieTests.SearchTests
                 .ReturnsAsync(new ProcessedDecisions(new List<DownloadDecision>(), new List<DownloadDecision>(), new List<DownloadDecision>()));
             var config = new Mock<IConfigService>();
             config.SetupGet(x => x.ProactiveMovieSearchEnabled).Returns(true);
+            config.SetupGet(x => x.ProactiveMovieActiveDownloadLimit).Returns(5);
+            config.SetupGet(x => x.ProactiveMovieRecentGrabHours).Returns(24);
             var service = new MovieSearchService(
                 movieService.Object,
                 new Mock<IMovieCutoffService>().Object,
@@ -117,6 +119,50 @@ namespace NzbDrone.Core.Test.MovieTests.SearchTests
         }
 
         [Test]
+        public void active_download_limit_pauses_movie_search_without_provider_request()
+        {
+            var movieService = new Mock<IMovieService>();
+            movieService.Setup(x => x.MoviesWithoutFiles(It.IsAny<PagingSpec<Movie>>()))
+                .Returns(new PagingSpec<Movie>
+                {
+                    Records = new List<Movie>
+                    {
+                        new() { Id = 7, Monitored = true, MinimumAvailability = MovieStatusType.Announced }
+                    }
+                });
+            var queue = new Mock<IQueueService>();
+            queue.Setup(x => x.GetQueue()).Returns(new List<NzbDrone.Core.Queue.Queue>
+            {
+                new() { Id = 8, DownloadId = "other", Status = QueueStatus.Downloading }
+            });
+            var config = new Mock<IConfigService>();
+            config.SetupGet(x => x.ProactiveMovieSearchEnabled).Returns(true);
+            config.SetupGet(x => x.ProactiveMovieActiveDownloadLimit).Returns(1);
+            config.SetupGet(x => x.ProactiveMovieRecentGrabHours).Returns(24);
+            var search = new Mock<ISearchForReleases>();
+            var history = new Mock<IHistoryService>();
+            history.Setup(x => x.Since(It.IsAny<DateTime>(), MovieHistoryEventType.DownloadFailed))
+                .Returns(new List<MovieHistory>());
+            var service = new MovieSearchService(
+                movieService.Object,
+                new Mock<IMovieCutoffService>().Object,
+                search.Object,
+                new Mock<IProcessDownloadDecisions>().Object,
+                queue.Object,
+                history.Object,
+                config.Object,
+                _activity.Object,
+                NLog.LogManager.GetCurrentClassLogger());
+
+            service.Execute(new MissingMoviesSearchCommand { Trigger = CommandTrigger.Scheduled });
+
+            Assert.That(_runs, Has.Count.EqualTo(1));
+            Assert.That(_runs[0].Outcome, Is.EqualTo("paused"));
+            Assert.That(_runs[0].Reason, Does.Contain("Active download limit reached (1/1)"));
+            search.Verify(x => x.MovieSearch(It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never);
+        }
+
+        [Test]
         public void manual_missing_search_still_runs_when_scheduled_search_is_disabled()
         {
             var movieService = new Mock<IMovieService>();
@@ -166,6 +212,8 @@ namespace NzbDrone.Core.Test.MovieTests.SearchTests
                 .Returns(new List<MovieHistory>());
             var config = new Mock<IConfigService>();
             config.SetupGet(x => x.ProactiveMovieSearchEnabled).Returns(true);
+            config.SetupGet(x => x.ProactiveMovieActiveDownloadLimit).Returns(5);
+            config.SetupGet(x => x.ProactiveMovieRecentGrabHours).Returns(24);
             var search = new Mock<ISearchForReleases>();
             var service = new MovieSearchService(
                 movieService.Object,
@@ -200,6 +248,8 @@ namespace NzbDrone.Core.Test.MovieTests.SearchTests
                 .Returns(new List<MovieHistory>());
             var config = new Mock<IConfigService>();
             config.SetupGet(x => x.ProactiveMovieSearchEnabled).Returns(true);
+            config.SetupGet(x => x.ProactiveMovieActiveDownloadLimit).Returns(5);
+            config.SetupGet(x => x.ProactiveMovieRecentGrabHours).Returns(24);
             var search = new Mock<ISearchForReleases>();
             search.Setup(x => x.MovieSearch(7, false, false)).ReturnsAsync(new List<DownloadDecision>());
             var decisions = new Mock<IProcessDownloadDecisions>();

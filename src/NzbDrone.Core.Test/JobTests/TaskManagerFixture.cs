@@ -4,6 +4,7 @@ using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Cache;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.Housekeeping;
 using NzbDrone.Core.Hygiene;
@@ -12,6 +13,7 @@ using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Movies.Commands;
+using NzbDrone.Core.Movies.Search;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.JobTests
@@ -51,6 +53,23 @@ namespace NzbDrone.Core.Test.JobTests
             refresh.Interval.Should().Be(24 * 60);
 
             _upserted.Select(t => t.TypeName).Should().OnlyHaveUniqueItems();
+        }
+
+        [Test]
+        public void should_use_configured_movie_interval_and_preserve_hourly_default()
+        {
+            Subject.Handle(new ApplicationStartedEvent());
+
+            _upserted.Single(t => t.TypeName == typeof(MissingMoviesSearchCommand).FullName)
+                .Interval.Should().Be(60);
+
+            Mocker.GetMock<IConfigService>()
+                .SetupGet(x => x.ProactiveMovieSearchIntervalMinutes).Returns(10);
+            _upserted.Clear();
+            Subject.Handle(new ApplicationStartedEvent());
+
+            _upserted.Single(t => t.TypeName == typeof(MissingMoviesSearchCommand).FullName)
+                .Interval.Should().Be(10);
         }
 
         [Test]

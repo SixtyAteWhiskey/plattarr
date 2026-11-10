@@ -36,6 +36,8 @@ interface MoviePreview {
   recentMovies: MovieItem[];
   skippedMovies: MovieItem[];
   skippedMoviesTotal: number;
+  activeDownloads: number;
+  pauseReason?: string;
 }
 
 interface TvItem {
@@ -56,6 +58,8 @@ interface TvPreview {
   recentSeries: TvItem[];
   skippedSeries: TvItem[];
   skippedSeriesTotal: number;
+  activeDownloads: number;
+  pauseReason?: string;
 }
 
 interface ScheduledSearchConfig {
@@ -66,6 +70,8 @@ interface ScheduledSearchConfig {
   cooldownHours: number;
   failureLimit: number;
   failureWindowDays: number;
+  activeDownloadLimit: number;
+  recentGrabHours: number;
 }
 
 interface TvSearchActivity {
@@ -78,6 +84,7 @@ interface TvSearchActivity {
   missingEpisodes: number;
   eligibleEpisodes: number;
   grabbedCount: number;
+  reason?: string;
 }
 
 interface MovieSearchActivity {
@@ -91,6 +98,7 @@ interface MovieSearchActivity {
   eligibleMovies: number;
   grabbedCount: number;
   errorMessage?: string;
+  reason?: string;
 }
 
 interface PreviewItem {
@@ -112,6 +120,8 @@ interface PreviewView {
   recent: PreviewItem[];
   skipped: PreviewItem[];
   skippedTotal: number;
+  activeDownloads: number;
+  pauseReason?: string;
 }
 
 interface SearchCommand {
@@ -130,6 +140,7 @@ const reasonLabels: Record<string, string> = {
   'in-queue': 'Already in the queue',
   'retry-limit': 'Three distinct failed downloads in seven days',
   'searched-recently': 'Searched in the last 24 hours',
+  'grabbed-recently': 'Grabbed within the configured window',
   unavailable: 'Not available yet',
   unmonitored: 'Not monitored',
 };
@@ -168,6 +179,14 @@ function reasonSummary(reasons: Record<string, number>) {
     .join(', ');
 }
 
+function activityReason(value?: string) {
+  return value?.replace(
+    /(^|, )([a-z-]+): (\d+)/g,
+    (_, separator, reason, count) =>
+      `${separator}${reasonLabels[reason] ?? reason}: ${count}`
+  );
+}
+
 function normalizePreview(
   mode: MediaMode,
   data: MoviePreview | TvPreview
@@ -192,6 +211,8 @@ function normalizePreview(
       recent: tv.recentSeries.map(mapItem),
       skipped: tv.skippedSeries.map(mapItem),
       skippedTotal: tv.skippedSeriesTotal,
+      activeDownloads: tv.activeDownloads,
+      pauseReason: tv.pauseReason,
     };
   }
 
@@ -214,6 +235,8 @@ function normalizePreview(
     recent: movies.recentMovies.map(mapItem),
     skipped: movies.skippedMovies.map(mapItem),
     skippedTotal: movies.skippedMoviesTotal,
+    activeDownloads: movies.activeDownloads,
+    pauseReason: movies.pauseReason,
   };
 }
 
@@ -398,22 +421,74 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
     setActionError(undefined);
 
     try {
-      await fetchJson<
-        ScheduledSearchConfig,
-        Pick<ScheduledSearchConfig, 'enabled'>
-      >({
+      await fetchJson<ScheduledSearchConfig, ScheduledSearchConfig>({
         method: 'PUT',
         path: `${apiRoot}/proactive-search/${isTv ? 'tv' : 'movie'}-config/1`,
         headers: { 'X-Api-Key': window.Radarr.apiKey },
-        body: { enabled: !config.enabled },
+        body: { ...config, enabled: !config.enabled },
       });
       refetchConfig();
+      refetch();
     } catch {
       setActionError(`Unable to save scheduled ${kindLabel} search setting.`);
     } finally {
       setSavingConfig(false);
     }
-  }, [config, isTv, kindLabel, savingConfig, refetchConfig]);
+  }, [config, isTv, kindLabel, savingConfig, refetch, refetchConfig]);
+  const handleSavePacing = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+
+      if (!config || savingConfig) {
+        return;
+      }
+
+      const values = new FormData(event.currentTarget);
+      const intervalMinutes = Number(values.get('intervalMinutes'));
+      const activeDownloadLimit = Number(values.get('activeDownloadLimit'));
+      const recentGrabHours = Number(values.get('recentGrabHours'));
+
+      if (
+        !Number.isInteger(intervalMinutes) ||
+        intervalMinutes < 5 ||
+        intervalMinutes > 1440 ||
+        !Number.isInteger(activeDownloadLimit) ||
+        activeDownloadLimit < 1 ||
+        activeDownloadLimit > 100 ||
+        !Number.isInteger(recentGrabHours) ||
+        recentGrabHours < 1 ||
+        recentGrabHours > 168
+      ) {
+        setActionError('Enter valid pacing limits.');
+        return;
+      }
+
+      setSavingConfig(true);
+      setActionError(undefined);
+
+      try {
+        await fetchJson<ScheduledSearchConfig, ScheduledSearchConfig>({
+          method: 'PUT',
+          path: `${apiRoot}/proactive-search/${isTv ? 'tv' : 'movie'}-config/1`,
+          headers: { 'X-Api-Key': window.Radarr.apiKey },
+          body: {
+            ...config,
+            intervalMinutes,
+            activeDownloadLimit,
+            recentGrabHours,
+          },
+        });
+        refetchConfig();
+        refetch();
+        setActionNotice(`Scheduled ${kindLabel} pacing saved.`);
+      } catch {
+        setActionError(`Unable to save scheduled ${kindLabel} pacing.`);
+      } finally {
+        setSavingConfig(false);
+      }
+    },
+    [config, savingConfig, isTv, kindLabel, refetch, refetchConfig]
+  );
   const handlePrevious = useCallback(() => {
     setOffset((value) => Math.max(0, value - 50));
   }, []);
@@ -503,17 +578,16 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
           </div>
           {isTv ? (
             <Text>
-              Every hour it may search one aired, missing, monitored episode.
-              Episodes in the queue, searched in the last 24 hours, or in a show
-              with three distinct failed downloads in seven days are skipped.
-              Manual show searches can include unmonitored episodes.
+              Each run may search one aired, missing, monitored episode. Queue
+              items, recent grabs, searches in the last 24 hours, and shows with
+              three distinct failed downloads in seven days are skipped. Manual
+              show searches can include unmonitored episodes.
             </Text>
           ) : (
             <Text>
-              Every hour it may search one missing Movie. The Movie must be
-              monitored and available, outside the download queue, unsearched
-              for 24 hours, and below the seven-day retry limit. These limits
-              are currently fixed.
+              Each run may search one missing Movie. It must be monitored and
+              available, outside the queue and recent-grab window, unsearched
+              for 24 hours, and below the seven-day retry limit.
             </Text>
           )}
           {configError && (
@@ -527,6 +601,55 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
           >
             {toggleLabel}
           </Button>
+          {config && (
+            <form
+              key={`${mode}-${config.intervalMinutes}-${config.activeDownloadLimit}-${config.recentGrabHours}`}
+              className={styles.pacing}
+              onSubmit={handleSavePacing}
+            >
+              <label>
+                Minutes between runs
+                <input
+                  name="intervalMinutes"
+                  type="number"
+                  min="5"
+                  max="1440"
+                  required={true}
+                  defaultValue={config.intervalMinutes}
+                />
+              </label>
+              <label>
+                Maximum active downloads
+                <input
+                  name="activeDownloadLimit"
+                  type="number"
+                  min="1"
+                  max="100"
+                  required={true}
+                  defaultValue={config.activeDownloadLimit}
+                />
+              </label>
+              <label>
+                Exclude grabs for hours
+                <input
+                  name="recentGrabHours"
+                  type="number"
+                  min="1"
+                  max="168"
+                  required={true}
+                  defaultValue={config.recentGrabHours}
+                />
+              </label>
+              <button type="submit" disabled={savingConfig}>
+                Save pacing
+              </button>
+              <Text tone="secondary">
+                One search per run. The active download limit pauses scheduled
+                searches; recent grabs exclude their Movie or episode. Manual
+                and replacement searches use their own rules.
+              </Text>
+            </form>
+          )}
         </Stack>
       </Surface>
 
@@ -552,6 +675,17 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
           <Surface elevation="low" padding="large">
             <Stack gap="small">
               <Heading level={3}>Eligibility</Heading>
+              {preview.pauseReason && (
+                <Alert kind="warning">
+                  Scheduled search paused:{' '}
+                  {preview.pauseReason === 'disabled'
+                    ? 'turned off'
+                    : `active download limit reached (${
+                        preview.activeDownloads
+                      }/${config?.activeDownloadLimit ?? '?'})`}
+                  .
+                </Alert>
+              )}
               <Text>
                 {preview.total}{' '}
                 {isTv
@@ -587,8 +721,8 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
               </Heading>
               <Text tone="secondary">
                 {isTv
-                  ? 'The hourly TV job chooses the oldest eligible episode across these shows when enabled.'
-                  : 'The hourly Movie job chooses the first Movie in this order.'}
+                  ? 'The next TV run chooses the oldest eligible episode across these shows when enabled.'
+                  : 'The next Movie run chooses the first Movie in this order.'}
               </Text>
               {preview.next.length ? (
                 <ol className={styles.list}>
@@ -641,7 +775,8 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
             <Stack gap="small">
               <Heading level={3}>Scheduled {kindLabel} activity</Heading>
               <Text tone="secondary">
-                The latest 20 hourly runs, including runs that searched nothing.
+                The latest 20 scheduled runs, including pauses and runs that
+                searched nothing.
               </Text>
               {activityError && (
                 <Alert kind="danger">
@@ -657,6 +792,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
                       {run.episodeId ? ` · episode ${run.episodeId}` : ''}
                       {` · ${run.eligibleEpisodes}/${run.missingEpisodes} eligible`}
                       {run.grabbedCount ? ` · ${run.grabbedCount} grabbed` : ''}
+                      {run.reason ? ` · ${activityReason(run.reason)}` : ''}
                     </li>
                   ))}
                 </ul>
@@ -672,6 +808,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
                       {` · ${run.eligibleMovies}/${run.missingMovies} eligible`}
                       {run.grabbedCount ? ` · ${run.grabbedCount} grabbed` : ''}
                       {run.errorMessage ? ` · ${run.errorMessage}` : ''}
+                      {run.reason ? ` · ${activityReason(run.reason)}` : ''}
                     </li>
                   ))}
                 </ul>

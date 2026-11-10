@@ -10,6 +10,7 @@ namespace NzbDrone.Core.Movies.Search
         public DateTime StartedAt { get; set; }
         public DateTime EndedAt { get; set; }
         public string Outcome { get; set; }
+        public string Reason { get; set; }
         public int? MovieId { get; set; }
         public string MovieTitle { get; set; }
         public int MissingMovies { get; set; }

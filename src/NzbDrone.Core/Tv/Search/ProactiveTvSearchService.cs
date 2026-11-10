@@ -52,6 +52,7 @@ namespace NzbDrone.Core.Tv.Search
             {
                 if (!_config.ProactiveTvSearchEnabled)
                 {
+                    run.Reason = "Scheduled TV search is off";
                     return;
                 }
 
@@ -64,15 +65,26 @@ namespace NzbDrone.Core.Tv.Search
                 };
                 var episodes = _episodes.EpisodesWithoutFiles(paging, true).Records.ToList();
                 var seriesById = _series.GetAllSeries().ToDictionary(item => item.Id);
-                var queued = _queue.GetQueue().Select(item => item.GetRemoteEpisode())
+                var queueItems = _queue.GetQueue();
+                var queued = queueItems.Select(item => item.GetRemoteEpisode())
                     .Where(remote => remote?.Episodes.Any() == true)
                     .SelectMany(remote => remote.Episodes.Select(episode => episode.Id));
                 var failures = _history.Since(run.StartedAt - DownloadRetryPolicy.FailureWindow,
                     EpisodeHistoryEventType.DownloadFailed);
                 var limited = TvProactiveFailurePolicy.LimitedSeries(failures, run.StartedAt);
-                var assessments = TvProactiveSeriesEligibility.Evaluate(episodes, seriesById, queued, limited, run.StartedAt);
+                var grabs = _history.Since(run.StartedAt.AddHours(-_config.ProactiveTvRecentGrabHours), EpisodeHistoryEventType.Grabbed);
+                var assessments = TvProactiveSeriesEligibility.Evaluate(episodes, seriesById, queued, limited, run.StartedAt, grabs, _config.ProactiveTvRecentGrabHours);
                 run.MissingEpisodes = assessments.Sum(item => item.Episodes.Count);
                 run.EligibleEpisodes = assessments.Sum(item => item.EligibleEpisodeCount);
+                var activeDownloads = ProactiveSearchPacing.ActiveDownloadCount(queueItems);
+
+                if (activeDownloads >= _config.ProactiveTvActiveDownloadLimit)
+                {
+                    run.Outcome = "paused";
+                    run.Reason = $"Active download limit reached ({activeDownloads}/{_config.ProactiveTvActiveDownloadLimit})";
+                    return;
+                }
+
                 var candidate = assessments
                     .SelectMany(item => item.Episodes.Where(episode => episode.Reason == "eligible")
                         .Select(episode => new { item.Series, episode.Episode }))
@@ -84,6 +96,15 @@ namespace NzbDrone.Core.Tv.Search
                 if (candidate == null)
                 {
                     run.Outcome = "no-candidate";
+                    run.Reason = string.Join(", ", assessments.SelectMany(item => item.Episodes)
+                        .Where(item => item.Reason != "eligible")
+                        .GroupBy(item => item.Reason).OrderBy(group => group.Key)
+                        .Select(group => $"{group.Key}: {group.Count()}"));
+                    if (run.Reason.Length == 0)
+                    {
+                        run.Reason = "No aired missing episodes";
+                    }
+
                     return;
                 }
 

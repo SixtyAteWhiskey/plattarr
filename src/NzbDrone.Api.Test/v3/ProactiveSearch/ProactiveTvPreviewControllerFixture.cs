@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Queue;
 using NzbDrone.Core.Tv;
@@ -36,12 +37,16 @@ namespace NzbDrone.Api.Test.v3.ProactiveSearch
             Mocker.GetMock<IHistoryService>()
                 .Setup(x => x.Since(It.IsAny<DateTime>(), EpisodeHistoryEventType.DownloadFailed))
                 .Returns(new List<EpisodeHistory>());
+            Mocker.GetMock<IConfigService>().SetupGet(x => x.ProactiveTvSearchEnabled).Returns(true);
+            Mocker.GetMock<IConfigService>().SetupGet(x => x.ProactiveTvActiveDownloadLimit).Returns(5);
+            Mocker.GetMock<IConfigService>().SetupGet(x => x.ProactiveTvRecentGrabHours).Returns(24);
 
             var preview = new ProactiveTvPreviewController(
                 Mocker.GetMock<IEpisodeService>().Object,
                 Mocker.GetMock<ISeriesService>().Object,
                 Mocker.GetMock<IQueueService>().Object,
-                Mocker.GetMock<IHistoryService>().Object).Get(0, 50, null).Value;
+                Mocker.GetMock<IHistoryService>().Object,
+                Mocker.GetMock<IConfigService>().Object).Get(0, 50, null).Value;
 
             preview.MissingSeries.Should().Be(2);
             preview.MissingEpisodes.Should().Be(3);
