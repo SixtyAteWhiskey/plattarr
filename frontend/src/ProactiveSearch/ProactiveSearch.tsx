@@ -80,6 +80,19 @@ interface TvSearchActivity {
   grabbedCount: number;
 }
 
+interface MovieSearchActivity {
+  id: number;
+  startedAt: string;
+  endedAt: string;
+  outcome: string;
+  movieId?: number;
+  movieTitle?: string;
+  missingMovies: number;
+  eligibleMovies: number;
+  grabbedCount: number;
+  errorMessage?: string;
+}
+
 interface PreviewItem {
   id: number;
   title: string;
@@ -237,11 +250,19 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
   });
   const {
     data: tvActivity,
-    isError: activityError,
-    refetch: refetchActivity,
+    isError: tvActivityError,
+    refetch: refetchTvActivity,
   } = useApiQuery<TvSearchActivity[]>({
     path: '/proactive-search/tv-activity',
     queryOptions: { enabled: isTv, refetchInterval: 60_000 },
+  });
+  const {
+    data: movieActivity,
+    isError: movieActivityError,
+    refetch: refetchMovieActivity,
+  } = useApiQuery<MovieSearchActivity[]>({
+    path: '/proactive-search/movie-activity',
+    queryOptions: { enabled: !isTv, refetchInterval: 60_000 },
   });
   const { data, isLoading, isError, refetch } = useApiQuery<
     MoviePreview | TvPreview
@@ -255,6 +276,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
   const configError = isTv ? tvConfigError : movieConfigError;
   const refetchConfig = isTv ? refetchTvConfig : refetchMovieConfig;
   const kindLabel = isTv ? 'TV' : 'Movie';
+  const activityError = isTv ? tvActivityError : movieActivityError;
   let scopeTone: 'neutral' | 'success' | 'warning' = 'neutral';
   let scopeStatus = 'Loading scheduled search setting';
   let toggleLabel = `Turn on scheduled ${kindLabel} search`;
@@ -362,9 +384,11 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
     refetch();
     refetchConfig();
     if (isTv) {
-      refetchActivity();
+      refetchTvActivity();
+    } else {
+      refetchMovieActivity();
     }
-  }, [isTv, refetch, refetchActivity, refetchConfig]);
+  }, [isTv, refetch, refetchConfig, refetchMovieActivity, refetchTvActivity]);
   const handleToggleScheduledSearch = useCallback(async () => {
     if (!config || savingConfig) {
       return;
@@ -613,39 +637,51 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
             </Stack>
           </Surface>
 
-          {isTv && (
-            <Surface elevation="low" padding="large">
-              <Stack gap="small">
-                <Heading level={3}>Scheduled TV activity</Heading>
-                <Text tone="secondary">
-                  The latest 20 hourly runs, including runs that searched
-                  nothing.
-                </Text>
-                {activityError && (
-                  <Alert kind="danger">
-                    Unable to load TV search activity.
-                  </Alert>
+          <Surface elevation="low" padding="large">
+            <Stack gap="small">
+              <Heading level={3}>Scheduled {kindLabel} activity</Heading>
+              <Text tone="secondary">
+                The latest 20 hourly runs, including runs that searched nothing.
+              </Text>
+              {activityError && (
+                <Alert kind="danger">
+                  Unable to load {kindLabel} search activity.
+                </Alert>
+              )}
+              {isTv && tvActivity?.length ? (
+                <ul className={styles.list}>
+                  {tvActivity.map((run) => (
+                    <li key={run.id}>
+                      {formatTime(run.startedAt)} · {run.outcome}
+                      {run.seriesTitle ? ` · ${run.seriesTitle}` : ''}
+                      {run.episodeId ? ` · episode ${run.episodeId}` : ''}
+                      {` · ${run.eligibleEpisodes}/${run.missingEpisodes} eligible`}
+                      {run.grabbedCount ? ` · ${run.grabbedCount} grabbed` : ''}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {!isTv && movieActivity?.length ? (
+                <ul className={styles.list}>
+                  {movieActivity.map((run) => (
+                    <li key={run.id}>
+                      {formatTime(run.startedAt)} · {run.outcome}
+                      {run.movieId
+                        ? ` · ${run.movieTitle || `Movie ${run.movieId}`}`
+                        : ''}
+                      {` · ${run.eligibleMovies}/${run.missingMovies} eligible`}
+                      {run.grabbedCount ? ` · ${run.grabbedCount} grabbed` : ''}
+                      {run.errorMessage ? ` · ${run.errorMessage}` : ''}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {!activityError &&
+                !(isTv ? tvActivity : movieActivity)?.length && (
+                  <Text>No scheduled {kindLabel} runs recorded yet.</Text>
                 )}
-                {tvActivity?.length ? (
-                  <ul className={styles.list}>
-                    {tvActivity.map((run) => (
-                      <li key={run.id}>
-                        {formatTime(run.startedAt)} · {run.outcome}
-                        {run.seriesTitle ? ` · ${run.seriesTitle}` : ''}
-                        {run.episodeId ? ` · episode ${run.episodeId}` : ''}
-                        {` · ${run.eligibleEpisodes}/${run.missingEpisodes} eligible`}
-                        {run.grabbedCount
-                          ? ` · ${run.grabbedCount} grabbed`
-                          : ''}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <Text>No scheduled TV runs recorded yet.</Text>
-                )}
-              </Stack>
-            </Surface>
-          )}
+            </Stack>
+          </Surface>
 
           <Surface elevation="low" padding="large">
             <Stack gap="small">

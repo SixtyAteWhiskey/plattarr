@@ -23,6 +23,7 @@ namespace NzbDrone.Core.Movies.Search
         private readonly IQueueService _queueService;
         private readonly IHistoryService _history;
         private readonly IConfigService _config;
+        private readonly IProactiveMovieSearchActivityRepository _activity;
         private readonly Logger _logger;
 
         public MovieSearchService(IMovieService movieService,
@@ -32,6 +33,7 @@ namespace NzbDrone.Core.Movies.Search
                                    IQueueService queueService,
                                    IHistoryService history,
                                    IConfigService config,
+                                   IProactiveMovieSearchActivityRepository activity,
                                    Logger logger)
         {
             _movieService = movieService;
@@ -41,6 +43,7 @@ namespace NzbDrone.Core.Movies.Search
             _queueService = queueService;
             _history = history;
             _config = config;
+            _activity = activity;
             _logger = logger;
         }
 
@@ -57,9 +60,9 @@ namespace NzbDrone.Core.Movies.Search
 
         public void Execute(MissingMoviesSearchCommand message)
         {
-            if (message.Trigger == CommandTrigger.Scheduled && !_config.ProactiveMovieSearchEnabled)
+            if (message.Trigger == CommandTrigger.Scheduled)
             {
-                message.GrabbedCount = 0;
+                ExecuteScheduledMissing(message);
                 return;
             }
 
@@ -78,22 +81,68 @@ namespace NzbDrone.Core.Movies.Search
             var queue = _queueService.GetQueue().Where(q => q.GetMovie() != null).Select(q => q.GetMovie().Id).ToHashSet();
             var missing = movies.Where(e => !queue.Contains(e.Id)).ToList();
 
-            if (message.Trigger == CommandTrigger.Scheduled)
-            {
-                var now = DateTime.UtcNow;
-                var failures = _history.Since(now - MovieSearchSafety.FailureWindow, MovieHistoryEventType.DownloadFailed);
+            message.GrabbedCount = SearchForBulkMovies(missing, message.Trigger == CommandTrigger.Manual).GetAwaiter().GetResult();
+        }
 
-                // Use the same reasons as the read-only preview, then make one provider request.
-                missing = MovieProactiveEligibility.Evaluate(movies, queue, failures, now)
-                    .Where(item => item.Eligible)
+        private void ExecuteScheduledMissing(MissingMoviesSearchCommand message)
+        {
+            var run = new ProactiveMovieSearchActivity { StartedAt = DateTime.UtcNow, Outcome = "disabled" };
+            message.GrabbedCount = 0;
+
+            try
+            {
+                if (!_config.ProactiveMovieSearchEnabled)
+                {
+                    return;
+                }
+
+                var pagingSpec = new PagingSpec<Movie>
+                {
+                    Page = 1,
+                    PageSize = 100000,
+                    SortDirection = SortDirection.Ascending,
+                    SortKey = "Id"
+                };
+
+                var movies = _movieService.MoviesWithoutFiles(pagingSpec).Records.ToList();
+                var queue = _queueService.GetQueue().Where(q => q.GetMovie() != null).Select(q => q.GetMovie().Id).ToHashSet();
+                var failures = _history.Since(run.StartedAt - MovieSearchSafety.FailureWindow, MovieHistoryEventType.DownloadFailed);
+                var assessments = MovieProactiveEligibility.Evaluate(movies, queue, failures, run.StartedAt);
+                run.MissingMovies = assessments.Count;
+                run.EligibleMovies = assessments.Count(item => item.Eligible);
+                var candidate = assessments.Where(item => item.Eligible)
                     .OrderBy(item => item.Movie.LastSearchTime ?? DateTime.MinValue)
                     .ThenBy(item => item.Movie.Id)
-                    .Take(1)
-                    .Select(item => item.Movie)
-                    .ToList();
-            }
+                    .FirstOrDefault()?.Movie;
 
-            message.GrabbedCount = SearchForBulkMovies(missing, message.Trigger == CommandTrigger.Manual).GetAwaiter().GetResult();
+                if (candidate == null)
+                {
+                    run.Outcome = "no-candidate";
+                    return;
+                }
+
+                run.MovieId = candidate.Id;
+                run.MovieTitle = candidate.Title;
+                run.Outcome = "searching";
+
+                var decisions = _releaseSearchService.MovieSearch(candidate.Id, false, false).GetAwaiter().GetResult();
+                var processed = _processDownloadDecisions.ProcessDecisions(decisions).GetAwaiter().GetResult();
+                run.GrabbedCount = processed.Grabbed.Count;
+                message.GrabbedCount = run.GrabbedCount;
+                run.Outcome = run.GrabbedCount > 0 ? "grabbed" : "no-grab";
+            }
+            catch (Exception ex)
+            {
+                run.Outcome = "failed";
+                run.ErrorMessage = ex.Message;
+                _logger.Error(ex, "Scheduled proactive Movie search failed");
+                throw;
+            }
+            finally
+            {
+                run.EndedAt = DateTime.UtcNow;
+                _activity.Insert(run);
+            }
         }
 
         public void Execute(CutoffUnmetMoviesSearchCommand message)
