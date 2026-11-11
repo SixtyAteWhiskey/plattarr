@@ -29,11 +29,11 @@
 }
 
 .allTracks {
-  background-color: color(#27c24c saturation(-25%));
+  background-color: rgb(68, 167, 91);
   color: var(--white);
 }
 
 .missingWanted {
-  background-color: color(#f05050 saturation(-20%));
+  background-color: rgb(221, 100, 100);
   color: var(--white);
 }
