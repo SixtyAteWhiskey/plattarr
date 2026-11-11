@@ -32,8 +32,7 @@ namespace Radarr.Http.ErrorManagement
             var statusCode = HttpStatusCode.InternalServerError;
             var errorModel = new ErrorModel
             {
-                Message = exception?.Message,
-                Description = exception?.ToString()
+                Message = exception?.Message
             };
 
             if (exception is ApiException apiException)

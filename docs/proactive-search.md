@@ -70,13 +70,37 @@ and round-robin pacing provide further safety. Plattarr now exposes interval,
 active-download, and recent-grab controls while keeping its conservative Movie
 default.
 
-1. Expand the shared candidate model to Movie cutoff-unmet upgrades, TV
-   season/episode search units, and Music albums. Reuse their existing search commands
-   while making one provider-facing request per scheduled run. Exclude active
-   queue items and recent grabs for each kind.
+1. Expand TV to season/episode search units while keeping one bounded
+   provider-facing dispatch per scheduled run and excluding active queue
+   items and recent grabs. Music albums and Movie cutoff-unmet upgrades are
+   covered by the separate slices below.
 2. Add per-kind cycle progress, then expose quiet hours. Test
    that manual and replacement searches do not incorrectly advance a cycle.
 
 The recent-search-time lists still use `LastSearchTime` for Movies or episodes
 missing a file. The separate scheduled activity lists are durable journals and
 retain runs after a selected item acquires a file.
+
+## Music and Movie upgrade slices
+
+Music now has a separate album preview, activity list, and scheduled search
+switch. The switch defaults off. A scheduled run searches at most one missing,
+released album whose album and artist are monitored. Albums in the queue,
+grabbed within the configured window, searched within 24 hours, or associated
+with three distinct failed downloads in seven days are skipped. The same
+eligibility calculation feeds the preview and execution. Music keeps its own
+60-minute default interval, active-download limit of five, and 24-hour
+recent-grab window. Manual album searches do not add scheduled activity.
+
+Movie quality-cutoff upgrades use another default-off switch, preview, and
+activity list. This schedule selects from Movies with an existing file below
+their quality profile cutoff, so it cannot turn the missing-Movie schedule
+into a bulk upgrade search. It reuses the Movie availability, monitoring,
+queue, recent-grab, retry-limit, and 24-hour search cooldown checks. At most
+one Movie search is dispatched per run. Its default pacing and bounds match
+the other kinds, but its interval and gates are persisted separately. Manual
+Movie searches do not add upgrade activity.
+
+Both new scheduled paths record disabled, paused, empty, no-grab, grabbed, and
+failed runs. A preview read does not dispatch a provider request. TV
+season/episode units, cycle progress, and quiet hours remain later slices.

@@ -12,6 +12,7 @@ using NzbDrone.Core.Music.Parser.Model;
 using NzbDrone.Core.Music.Pending;
 using NzbDrone.Core.Music.Profiles;
 using NzbDrone.Core.Music.RootFolders;
+using NzbDrone.Core.Music.Search;
 using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Music
@@ -117,6 +118,7 @@ namespace NzbDrone.Core.Music
             mapper.Entity<AlbumHistory>("History").RegisterModel();
             mapper.Entity<Blocklist>("Blocklist").RegisterModel();
             mapper.Entity<PendingRelease>("PendingReleases").RegisterModel();
+            mapper.Entity<ProactiveMusicSearchActivity>("Music_ProactiveSearchActivity").RegisterModel();
         }
     }
 }
