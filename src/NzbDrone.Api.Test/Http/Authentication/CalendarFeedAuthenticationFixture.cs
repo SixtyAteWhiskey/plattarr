@@ -26,11 +26,12 @@ namespace NzbDrone.Api.Test.Http.Authentication
         }
 
         [Test]
-        public async Task legacy_api_key_remains_accepted_by_calendar_during_transition()
+        public async Task legacy_api_key_is_rejected_by_calendar()
         {
-            (await AuthenticateCalendar("apikey=" + ApiKey)).Succeeded.Should().BeTrue();
+            (await AuthenticateCalendar("apikey=" + ApiKey)).Succeeded.Should().BeFalse();
             (await AuthenticateCalendar("apikey=wrong")).Succeeded.Should().BeFalse();
             (await AuthenticateCalendar("feedKey=wrong")).Succeeded.Should().BeFalse();
+            (await AuthenticateCalendar("feedKey=" + ApiKey)).Succeeded.Should().BeFalse();
         }
 
         private static async Task<AuthenticateResult> AuthenticateCalendar(string query)

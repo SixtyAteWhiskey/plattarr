@@ -25,11 +25,7 @@ namespace Radarr.Http.Authentication
         protected override Task<AuthenticateResult> HandleAuthenticateAsync()
         {
             var feedKey = Request.Query["feedKey"].ToString();
-            var legacyApiKey = Request.Query["apikey"].ToString();
-            var valid = CalendarFeedCredential.Matches(feedKey, _config.ApiKey) ||
-                        (!string.IsNullOrEmpty(legacyApiKey) && legacyApiKey == _config.ApiKey);
-
-            if (!valid)
+            if (!CalendarFeedCredential.Matches(feedKey, _config.ApiKey))
             {
                 return Task.FromResult(AuthenticateResult.NoResult());
             }
