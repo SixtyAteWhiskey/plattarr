@@ -243,6 +243,30 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("ProactiveTvRecentGrabHours", value); }
         }
 
+        public bool ProactiveMusicSearchEnabled
+        {
+            get { return GetValueBoolean("ProactiveMusicSearchEnabled", false); }
+            set { SetValue("ProactiveMusicSearchEnabled", value); }
+        }
+
+        public int ProactiveMusicSearchIntervalMinutes
+        {
+            get { return GetValueInt("ProactiveMusicSearchIntervalMinutes", 60); }
+            set { SetValue("ProactiveMusicSearchIntervalMinutes", value); }
+        }
+
+        public int ProactiveMusicActiveDownloadLimit
+        {
+            get { return GetValueInt("ProactiveMusicActiveDownloadLimit", 5); }
+            set { SetValue("ProactiveMusicActiveDownloadLimit", value); }
+        }
+
+        public int ProactiveMusicRecentGrabHours
+        {
+            get { return GetValueInt("ProactiveMusicRecentGrabHours", 24); }
+            set { SetValue("ProactiveMusicRecentGrabHours", value); }
+        }
+
         public bool HygieneContentInspectionEnabled
         {
             get { return GetValueBoolean("HygieneContentInspectionEnabled", false); }
