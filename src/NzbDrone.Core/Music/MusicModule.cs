@@ -1,16 +1,18 @@
 using System.Collections.Generic;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Jobs;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Music.Commands;
 using NzbDrone.Core.Music.MediaFiles.Commands;
+using NzbDrone.Core.Music.Search;
 
 namespace NzbDrone.Core.Music
 {
     // Step 1 of the Music port registers the module so its tables, categories and download client
     // settings exist. Step 3 adds the metadata services and their scheduled command. Nothing
     // searches or imports Music yet: those arrive with their steps.
-    public class MusicModule : IMediaModule
+    public class MusicModule : IMediaModule, IConfiguredSchedule
     {
         public static readonly IReadOnlyList<int> Categories = new[] { NewznabStandardCategory.Audio.Id };
 
@@ -20,6 +22,14 @@ namespace NzbDrone.Core.Music
 
         public IReadOnlyList<int> DefaultCategories => Categories;
 
+        public IReadOnlyDictionary<string, int> ConfiguredIntervals(IConfigService config)
+        {
+            return new Dictionary<string, int>
+            {
+                [typeof(ProactiveMusicSearchCommand).FullName] = config.ProactiveMusicSearchIntervalMinutes
+            };
+        }
+
         // Lidarr's scheduled commands are added with the services that run them. A task whose
         // command does not exist would fail on every run. The intervals are Lidarr's: the artist
         // refresh and the rescan of the root folders each run every 24 hours. Nothing else of Lidarr's
@@ -27,6 +37,11 @@ namespace NzbDrone.Core.Music
         // and RSS sync, housekeeping and the health check belong to the core.
         public IEnumerable<ScheduledTask> ScheduledTasks => new[]
         {
+            new ScheduledTask
+            {
+                Interval = 60,
+                TypeName = typeof(ProactiveMusicSearchCommand).FullName
+            },
             new ScheduledTask
             {
                 Interval = 24 * 60,

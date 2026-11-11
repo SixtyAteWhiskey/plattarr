@@ -19,7 +19,7 @@ import useApiQuery from 'Helpers/Hooks/useApiQuery';
 import fetchJson, { ApiError, apiRoot } from 'Utilities/Fetch/fetchJson';
 import styles from './ProactiveSearch.css';
 
-type MediaMode = 'movie' | 'tv';
+type MediaMode = 'movie' | 'tv' | 'music';
 
 interface MovieItem {
   movieId: number;
@@ -36,6 +36,25 @@ interface MoviePreview {
   recentMovies: MovieItem[];
   skippedMovies: MovieItem[];
   skippedMoviesTotal: number;
+  activeDownloads: number;
+  pauseReason?: string;
+}
+
+interface MusicItem {
+  albumId: number;
+  title: string;
+  lastSearchTime?: string;
+  reason: string;
+}
+
+interface MusicPreview {
+  generatedAt: string;
+  missingAlbums: number;
+  reasons: Record<string, number>;
+  nextAlbums: MusicItem[];
+  recentAlbums: MusicItem[];
+  skippedAlbums: MusicItem[];
+  skippedAlbumsTotal: number;
   activeDownloads: number;
   pauseReason?: string;
 }
@@ -98,6 +117,17 @@ interface MovieSearchActivity {
   eligibleMovies: number;
   grabbedCount: number;
   errorMessage?: string;
+  reason?: string;
+}
+
+interface MusicSearchActivity {
+  id: number;
+  startedAt: string;
+  outcome: string;
+  albumTitle?: string;
+  missingAlbums: number;
+  eligibleAlbums: number;
+  grabbedCount: number;
   reason?: string;
 }
 
@@ -189,7 +219,7 @@ function activityReason(value?: string) {
 
 function normalizePreview(
   mode: MediaMode,
-  data: MoviePreview | TvPreview
+  data: MoviePreview | TvPreview | MusicPreview
 ): PreviewView {
   if (mode === 'tv') {
     const tv = data as TvPreview;
@@ -213,6 +243,31 @@ function normalizePreview(
       skippedTotal: tv.skippedSeriesTotal,
       activeDownloads: tv.activeDownloads,
       pauseReason: tv.pauseReason,
+    };
+  }
+
+  if (mode === 'music') {
+    const music = data as MusicPreview;
+    const mapItem = (item: MusicItem): PreviewItem => ({
+      id: item.albumId,
+      title: item.title,
+      lastSearchTime: item.lastSearchTime,
+      missingEpisodes: 1,
+      eligibleEpisodes: item.reason === 'eligible' ? 1 : 0,
+      reasons: { [item.reason]: 1 },
+    });
+
+    return {
+      generatedAt: music.generatedAt,
+      total: music.missingAlbums,
+      eligible: music.reasons.eligible ?? 0,
+      reasonCounts: music.reasons,
+      next: music.nextAlbums.map(mapItem),
+      recent: music.recentAlbums.map(mapItem),
+      skipped: music.skippedAlbums.map(mapItem),
+      skippedTotal: music.skippedAlbumsTotal,
+      activeDownloads: music.activeDownloads,
+      pauseReason: music.pauseReason,
     };
   }
 
@@ -246,6 +301,7 @@ interface SearchPreviewPaneProps {
 
 function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
   const isTv = mode === 'tv';
+  const isMusic = mode === 'music';
   const [offset, setOffset] = useState(0);
   const [draftTitle, setDraftTitle] = useState('');
   const [title, setTitle] = useState('');
@@ -264,12 +320,20 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
     queryOptions: { enabled: isTv },
   });
   const {
+    data: musicConfig,
+    isError: musicConfigError,
+    refetch: refetchMusicConfig,
+  } = useApiQuery<ScheduledSearchConfig>({
+    path: '/proactive-search/music-config',
+    queryOptions: { enabled: isMusic },
+  });
+  const {
     data: movieConfig,
     isError: movieConfigError,
     refetch: refetchMovieConfig,
   } = useApiQuery<ScheduledSearchConfig>({
     path: '/proactive-search/movie-config',
-    queryOptions: { enabled: !isTv },
+    queryOptions: { enabled: mode === 'movie' },
   });
   const {
     data: tvActivity,
@@ -280,26 +344,72 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
     queryOptions: { enabled: isTv, refetchInterval: 60_000 },
   });
   const {
+    data: musicActivity,
+    isError: musicActivityError,
+    refetch: refetchMusicActivity,
+  } = useApiQuery<MusicSearchActivity[]>({
+    path: '/proactive-search/music-activity',
+    queryOptions: { enabled: isMusic, refetchInterval: 60_000 },
+  });
+  const {
     data: movieActivity,
     isError: movieActivityError,
     refetch: refetchMovieActivity,
   } = useApiQuery<MovieSearchActivity[]>({
     path: '/proactive-search/movie-activity',
-    queryOptions: { enabled: !isTv, refetchInterval: 60_000 },
+    queryOptions: { enabled: mode === 'movie', refetchInterval: 60_000 },
   });
   const { data, isLoading, isError, refetch } = useApiQuery<
-    MoviePreview | TvPreview
+    MoviePreview | TvPreview | MusicPreview
   >({
     path: `/proactive-search/${
-      isTv ? 'tv-preview' : 'preview'
+      { movie: 'preview', tv: 'tv-preview', music: 'music-preview' }[mode]
     }?offset=${offset}&limit=50&title=${encodeURIComponent(title)}`,
   });
   const preview = data ? normalizePreview(mode, data) : undefined;
-  const config = isTv ? tvConfig : movieConfig;
-  const configError = isTv ? tvConfigError : movieConfigError;
-  const refetchConfig = isTv ? refetchTvConfig : refetchMovieConfig;
-  const kindLabel = isTv ? 'TV' : 'Movie';
-  const activityError = isTv ? tvActivityError : movieActivityError;
+  const config = { movie: movieConfig, tv: tvConfig, music: musicConfig }[mode];
+  const configError = {
+    movie: movieConfigError,
+    tv: tvConfigError,
+    music: musicConfigError,
+  }[mode];
+  const refetchConfig = {
+    movie: refetchMovieConfig,
+    tv: refetchTvConfig,
+    music: refetchMusicConfig,
+  }[mode];
+  const kindLabel = { movie: 'Movie', tv: 'TV', music: 'Music' }[mode];
+  const activityError = {
+    movie: movieActivityError,
+    tv: tvActivityError,
+    music: musicActivityError,
+  }[mode];
+  const activity = {
+    movie: movieActivity,
+    tv: tvActivity,
+    music: musicActivity,
+  }[mode];
+  const itemLabel = { movie: 'Movies', tv: 'shows', music: 'albums' }[mode];
+  const countLabel = {
+    movie: 'missing Movies',
+    tv: 'TV shows with aired missing episodes',
+    music: 'missing albums',
+  }[mode];
+  const candidateHeading = {
+    movie: 'Next eligible Movies',
+    tv: 'Potential TV candidates',
+    music: 'Next eligible albums',
+  }[mode];
+  const candidateDescription = {
+    movie: 'The next Movie run chooses the first Movie in this order.',
+    tv: 'The next TV run chooses the oldest eligible episode across these shows when enabled.',
+    music: 'The next Music run chooses the first album in this order.',
+  }[mode];
+  const recentDescription = {
+    movie: 'Movies still missing a file',
+    tv: 'shows with aired missing episodes',
+    music: 'albums still missing files',
+  }[mode];
   let scopeTone: 'neutral' | 'success' | 'warning' = 'neutral';
   let scopeStatus = 'Loading scheduled search setting';
   let toggleLabel = `Turn on scheduled ${kindLabel} search`;
@@ -408,10 +518,20 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
     refetchConfig();
     if (isTv) {
       refetchTvActivity();
+    } else if (isMusic) {
+      refetchMusicActivity();
     } else {
       refetchMovieActivity();
     }
-  }, [isTv, refetch, refetchConfig, refetchMovieActivity, refetchTvActivity]);
+  }, [
+    isTv,
+    isMusic,
+    refetch,
+    refetchConfig,
+    refetchMovieActivity,
+    refetchMusicActivity,
+    refetchTvActivity,
+  ]);
   const handleToggleScheduledSearch = useCallback(async () => {
     if (!config || savingConfig) {
       return;
@@ -423,7 +543,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
     try {
       await fetchJson<ScheduledSearchConfig, ScheduledSearchConfig>({
         method: 'PUT',
-        path: `${apiRoot}/proactive-search/${isTv ? 'tv' : 'movie'}-config/1`,
+        path: `${apiRoot}/proactive-search/${mode}-config/1`,
         headers: { 'X-Api-Key': window.Radarr.apiKey },
         body: { ...config, enabled: !config.enabled },
       });
@@ -434,7 +554,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
     } finally {
       setSavingConfig(false);
     }
-  }, [config, isTv, kindLabel, savingConfig, refetch, refetchConfig]);
+  }, [config, mode, kindLabel, savingConfig, refetch, refetchConfig]);
   const handleSavePacing = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
@@ -469,7 +589,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
       try {
         await fetchJson<ScheduledSearchConfig, ScheduledSearchConfig>({
           method: 'PUT',
-          path: `${apiRoot}/proactive-search/${isTv ? 'tv' : 'movie'}-config/1`,
+          path: `${apiRoot}/proactive-search/${mode}-config/1`,
           headers: { 'X-Api-Key': window.Radarr.apiKey },
           body: {
             ...config,
@@ -487,7 +607,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
         setSavingConfig(false);
       }
     },
-    [config, savingConfig, isTv, kindLabel, refetch, refetchConfig]
+    [config, savingConfig, mode, kindLabel, refetch, refetchConfig]
   );
   const handlePrevious = useCallback(() => {
     setOffset((value) => Math.max(0, value - 50));
@@ -511,13 +631,15 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
             method: 'POST',
             path: `${apiRoot}/command`,
             headers: { 'X-Api-Key': window.Radarr.apiKey },
-            body: isTv
-              ? {
-                  name: commandNames.MISSING_EPISODE_SEARCH,
-                  seriesId: item.id,
-                  ignoreMonitoring: true,
-                }
-              : { name: commandNames.MOVIE_SEARCH, movieIds: [item.id] },
+            body: {
+              movie: { name: commandNames.MOVIE_SEARCH, movieIds: [item.id] },
+              tv: {
+                name: commandNames.MISSING_EPISODE_SEARCH,
+                seriesId: item.id,
+                ignoreMonitoring: true,
+              },
+              music: { name: commandNames.ALBUM_SEARCH, albumIds: [item.id] },
+            }[mode],
           }
         );
         setActiveSearches((searches) => [
@@ -533,7 +655,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
         setPendingItem(undefined);
       }
     },
-    [isTv, refetch]
+    [mode, refetch]
   );
 
   const handleSearch = useCallback(
@@ -569,21 +691,27 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
       >
         <Stack gap="small">
           <div className={styles.scopeHeader}>
-            <Heading level={3}>
-              {isTv ? 'TV search scope' : 'Movie search scope'}
-            </Heading>
+            <Heading level={3}>{kindLabel} search scope</Heading>
             <span className={styles.scopeStatus} role="status">
               {scopeStatus}
             </span>
           </div>
-          {isTv ? (
+          {isTv && (
             <Text>
               Each run may search one aired, missing, monitored episode. Queue
               items, recent grabs, searches in the last 24 hours, and shows with
               three distinct failed downloads in seven days are skipped. Manual
               show searches can include unmonitored episodes.
             </Text>
-          ) : (
+          )}
+          {isMusic && (
+            <Text>
+              Each run may search one missing, released, monitored album. Queue
+              items, recent grabs, searches in the last 24 hours, and albums
+              with three distinct failed downloads in seven days are skipped.
+            </Text>
+          )}
+          {mode === 'movie' && (
             <Text>
               Each run may search one missing Movie. It must be monitored and
               available, outside the queue and recent-grab window, unsearched
@@ -645,8 +773,8 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
               </button>
               <Text tone="secondary">
                 One search per run. The active download limit pauses scheduled
-                searches; recent grabs exclude their Movie or episode. Manual
-                and replacement searches use their own rules.
+                searches; recent grabs exclude their item. Manual and
+                replacement searches use their own rules.
               </Text>
             </form>
           )}
@@ -687,11 +815,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
                 </Alert>
               )}
               <Text>
-                {preview.total}{' '}
-                {isTv
-                  ? 'TV shows with aired missing episodes'
-                  : 'missing Movies'}{' '}
-                · {preview.eligible}{' '}
+                {preview.total} {countLabel} · {preview.eligible}{' '}
                 {isTv ? 'shows with eligible episodes' : 'eligible'}
                 {isTv ? ` · ${preview.missingEpisodes} missing episodes` : ''}
               </Text>
@@ -716,14 +840,8 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
 
           <Surface elevation="low" padding="large">
             <Stack gap="small">
-              <Heading level={3}>
-                {isTv ? 'Potential TV candidates' : 'Next eligible Movies'}
-              </Heading>
-              <Text tone="secondary">
-                {isTv
-                  ? 'The next TV run chooses the oldest eligible episode across these shows when enabled.'
-                  : 'The next Movie run chooses the first Movie in this order.'}
-              </Text>
+              <Heading level={3}>{candidateHeading}</Heading>
+              <Text tone="secondary">{candidateDescription}</Text>
               {preview.next.length ? (
                 <ol className={styles.list}>
                   {preview.next.map((item) => (
@@ -746,15 +864,9 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
 
           <Surface elevation="low" padding="large">
             <Stack gap="small">
-              <Heading level={3}>
-                Recent {isTv ? 'TV' : 'Movie'} search times
-              </Heading>
+              <Heading level={3}>Recent {kindLabel} search times</Heading>
               <Text tone="secondary">
-                Latest recorded search times among{' '}
-                {isTv
-                  ? 'shows with aired missing episodes'
-                  : 'Movies still missing a file'}
-                .
+                Latest recorded search times among {recentDescription}.
               </Text>
               {preview.recent.length ? (
                 <ul className={styles.list}>
@@ -797,7 +909,20 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
                   ))}
                 </ul>
               ) : null}
-              {!isTv && movieActivity?.length ? (
+              {isMusic && musicActivity?.length ? (
+                <ul className={styles.list}>
+                  {musicActivity.map((run) => (
+                    <li key={run.id}>
+                      {formatTime(run.startedAt)} · {run.outcome}
+                      {run.albumTitle ? ` · ${run.albumTitle}` : ''}
+                      {` · ${run.eligibleAlbums}/${run.missingAlbums} eligible`}
+                      {run.grabbedCount ? ` · ${run.grabbedCount} grabbed` : ''}
+                      {run.reason ? ` · ${activityReason(run.reason)}` : ''}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {mode === 'movie' && movieActivity?.length ? (
                 <ul className={styles.list}>
                   {movieActivity.map((run) => (
                     <li key={run.id}>
@@ -813,18 +938,15 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
                   ))}
                 </ul>
               ) : null}
-              {!activityError &&
-                !(isTv ? tvActivity : movieActivity)?.length && (
-                  <Text>No scheduled {kindLabel} runs recorded yet.</Text>
-                )}
+              {!activityError && !activity?.length && (
+                <Text>No scheduled {kindLabel} runs recorded yet.</Text>
+              )}
             </Stack>
           </Surface>
 
           <Surface elevation="low" padding="large">
             <Stack gap="small">
-              <Heading level={3}>
-                Skipped {isTv ? 'TV shows' : 'Movies'}
-              </Heading>
+              <Heading level={3}>Skipped {itemLabel}</Heading>
               <form className={styles.filter} onSubmit={handleFilter}>
                 <label htmlFor={`proactive-title-filter-${mode}`}>
                   Filter by title
@@ -837,7 +959,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
                 <button type="submit">Apply</button>
               </form>
               <Text>
-                {preview.skippedTotal} skipped {isTv ? 'shows' : 'Movies'}
+                {preview.skippedTotal} skipped {itemLabel}
                 {title ? ` matching “${title}”` : ''}
               </Text>
               {preview.skipped.length ? (
@@ -943,6 +1065,9 @@ function ProactiveSearch() {
           <Tab className={styles.tab} selectedClassName={styles.selectedTab}>
             TV shows
           </Tab>
+          <Tab className={styles.tab} selectedClassName={styles.selectedTab}>
+            Music
+          </Tab>
         </TabList>
         <TabPanel
           className={styles.tabPanel}
@@ -955,6 +1080,12 @@ function ProactiveSearch() {
           selectedClassName={styles.selectedPanel}
         >
           <SearchPreviewPane mode="tv" />
+        </TabPanel>
+        <TabPanel
+          className={styles.tabPanel}
+          selectedClassName={styles.selectedPanel}
+        >
+          <SearchPreviewPane mode="music" />
         </TabPanel>
       </Tabs>
     </Stack>
