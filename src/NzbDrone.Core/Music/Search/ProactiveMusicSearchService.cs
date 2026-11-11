@@ -3,7 +3,6 @@ using System.Linq;
 using NLog;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Datastore;
-using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.History;
 using NzbDrone.Core.Messaging.Commands;
@@ -68,8 +67,12 @@ namespace NzbDrone.Core.Music.Search
                     .SelectMany(remote => remote.Albums.Select(album => album.Id));
                 var failures = _history.Since(run.StartedAt - DownloadRetryPolicy.FailureWindow, AlbumHistoryEventType.DownloadFailed);
                 var grabs = _history.Since(run.StartedAt.AddHours(-_config.ProactiveMusicRecentGrabHours), AlbumHistoryEventType.Grabbed);
-                var assessments = MusicProactiveEligibility.Evaluate(albums, queued, failures, run.StartedAt,
-                    grabs, _config.ProactiveMusicRecentGrabHours);
+                var assessments = MusicProactiveEligibility.Evaluate(albums,
+                                                                      queued,
+                                                                      failures,
+                                                                      run.StartedAt,
+                                                                      grabs,
+                                                                      _config.ProactiveMusicRecentGrabHours);
                 run.MissingAlbums = assessments.Count;
                 run.EligibleAlbums = assessments.Count(item => item.Eligible);
                 var activeDownloads = ProactiveSearchPacing.ActiveDownloadCount(queueItems);
