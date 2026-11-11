@@ -45,6 +45,7 @@ namespace NzbDrone.Core.Movies
         public void MapTables(TableMapper mapper)
         {
             mapper.Entity<ProactiveMovieSearchActivity>("Movies_ProactiveSearchActivity").RegisterModel();
+            mapper.Entity<ProactiveMovieUpgradeActivity>("Movies_ProactiveUpgradeActivity").RegisterModel();
 
             mapper.Entity<RootFolder>("Movies_RootFolders").RegisterModel()
                   .Ignore(r => r.Accessible)

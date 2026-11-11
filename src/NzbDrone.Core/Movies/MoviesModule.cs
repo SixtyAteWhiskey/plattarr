@@ -24,7 +24,8 @@ namespace NzbDrone.Core.Movies
         {
             return new Dictionary<string, int>
             {
-                [typeof(MissingMoviesSearchCommand).FullName] = config.ProactiveMovieSearchIntervalMinutes
+                [typeof(MissingMoviesSearchCommand).FullName] = config.ProactiveMovieSearchIntervalMinutes,
+                [typeof(ProactiveMovieUpgradeCommand).FullName] = config.ProactiveMovieUpgradeIntervalMinutes
             };
         }
 
@@ -35,6 +36,12 @@ namespace NzbDrone.Core.Movies
             {
                 Interval = 60,
                 TypeName = typeof(MissingMoviesSearchCommand).FullName
+            },
+
+            new ScheduledTask
+            {
+                Interval = 60,
+                TypeName = typeof(ProactiveMovieUpgradeCommand).FullName
             },
 
             new ScheduledTask
