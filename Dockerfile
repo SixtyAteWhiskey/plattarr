@@ -8,7 +8,7 @@
 
 # Keep the SDK version aligned with global.json. The image workflow uses these
 # same build arguments.
-ARG DOTNET_SDK_VERSION=10.0.403
+ARG DOTNET_SDK_VERSION=10.0.404
 ARG NODE_VERSION=24
 ARG ALPINE_VERSION=3.22
 
