@@ -6,6 +6,7 @@ using NzbDrone.Core.Modules;
 using NzbDrone.Core.Music;
 using NzbDrone.Core.Music.Commands;
 using NzbDrone.Core.Music.MediaFiles.Commands;
+using NzbDrone.Core.Music.Search;
 
 namespace NzbDrone.Core.Test.MusicTests
 {
@@ -22,16 +23,16 @@ namespace NzbDrone.Core.Test.MusicTests
             module.DefaultCategories.Should().Equal(NewznabStandardCategory.Audio.Id);
         }
 
-        // A task whose command nothing executes fails on every run, so the module schedules only
-        // the commands the Music services execute: the artist refresh (step 3) and the rescan of the
-        // root folders (step 7). The intervals are Lidarr's pinned values.
         [Test]
-        public void should_schedule_the_artist_refresh_and_the_folder_rescan_every_24_hours()
+        public void should_schedule_music_search_hourly_and_maintenance_daily()
         {
             var tasks = new MusicModule().ScheduledTasks.ToList();
 
-            tasks.Select(t => t.TypeName).Should().BeEquivalentTo(typeof(RefreshArtistCommand).FullName, typeof(RescanFoldersCommand).FullName);
-            tasks.Should().OnlyContain(t => t.Interval == 24 * 60);
+            tasks.Select(t => t.TypeName).Should().BeEquivalentTo(typeof(ProactiveMusicSearchCommand).FullName,
+                                                                  typeof(RefreshArtistCommand).FullName,
+                                                                  typeof(RescanFoldersCommand).FullName);
+            tasks.Single(t => t.TypeName == typeof(ProactiveMusicSearchCommand).FullName).Interval.Should().Be(60);
+            tasks.Where(t => t.TypeName != typeof(ProactiveMusicSearchCommand).FullName).Should().OnlyContain(t => t.Interval == 24 * 60);
         }
 
         [Test]

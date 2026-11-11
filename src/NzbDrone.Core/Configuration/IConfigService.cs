@@ -41,6 +41,14 @@ namespace NzbDrone.Core.Configuration
         int ProactiveTvSearchIntervalMinutes { get; set; }
         int ProactiveTvActiveDownloadLimit { get; set; }
         int ProactiveTvRecentGrabHours { get; set; }
+        bool ProactiveMusicSearchEnabled { get; set; }
+        int ProactiveMusicSearchIntervalMinutes { get; set; }
+        int ProactiveMusicActiveDownloadLimit { get; set; }
+        int ProactiveMusicRecentGrabHours { get; set; }
+        bool ProactiveMovieUpgradeEnabled { get; set; }
+        int ProactiveMovieUpgradeIntervalMinutes { get; set; }
+        int ProactiveMovieUpgradeActiveDownloadLimit { get; set; }
+        int ProactiveMovieUpgradeRecentGrabHours { get; set; }
 
         bool AutoRedownloadFailed { get; set; }
         bool AutoRedownloadFailedFromInteractiveSearch { get; set; }

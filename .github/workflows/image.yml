@@ -25,7 +25,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 10.0.403
+          dotnet-version: 10.0.404
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -186,7 +186,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 10.0.403
+          dotnet-version: 10.0.404
 
       - name: Restore API tests
         run: dotnet restore src/NzbDrone.Api.Test/Radarr.Api.Test.csproj
@@ -211,7 +211,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 10.0.403
+          dotnet-version: 10.0.404
 
       - name: Restore core tests
         run: dotnet restore src/NzbDrone.Core.Test/Radarr.Core.Test.csproj
