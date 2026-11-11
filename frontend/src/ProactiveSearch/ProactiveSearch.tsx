@@ -19,7 +19,7 @@ import useApiQuery from 'Helpers/Hooks/useApiQuery';
 import fetchJson, { ApiError, apiRoot } from 'Utilities/Fetch/fetchJson';
 import styles from './ProactiveSearch.css';
 
-type MediaMode = 'movie' | 'tv' | 'music';
+type MediaMode = 'movie' | 'tv' | 'music' | 'upgrade';
 
 interface MovieItem {
   movieId: number;
@@ -57,6 +57,10 @@ interface MusicPreview {
   skippedAlbumsTotal: number;
   activeDownloads: number;
   pauseReason?: string;
+}
+
+interface UpgradePreview extends Omit<MoviePreview, 'missingMovies'> {
+  cutoffUnmetMovies: number;
 }
 
 interface TvItem {
@@ -127,6 +131,17 @@ interface MusicSearchActivity {
   albumTitle?: string;
   missingAlbums: number;
   eligibleAlbums: number;
+  grabbedCount: number;
+  reason?: string;
+}
+
+interface UpgradeSearchActivity {
+  id: number;
+  startedAt: string;
+  outcome: string;
+  movieTitle?: string;
+  cutoffUnmetMovies: number;
+  eligibleMovies: number;
   grabbedCount: number;
   reason?: string;
 }
@@ -219,7 +234,7 @@ function activityReason(value?: string) {
 
 function normalizePreview(
   mode: MediaMode,
-  data: MoviePreview | TvPreview | MusicPreview
+  data: MoviePreview | TvPreview | MusicPreview | UpgradePreview
 ): PreviewView {
   if (mode === 'tv') {
     const tv = data as TvPreview;
@@ -271,7 +286,7 @@ function normalizePreview(
     };
   }
 
-  const movies = data as MoviePreview;
+  const movies = data as MoviePreview | UpgradePreview;
   const mapItem = (item: MovieItem): PreviewItem => ({
     id: item.movieId,
     title: item.title,
@@ -283,7 +298,10 @@ function normalizePreview(
 
   return {
     generatedAt: movies.generatedAt,
-    total: movies.missingMovies,
+    total:
+      mode === 'upgrade'
+        ? (movies as UpgradePreview).cutoffUnmetMovies
+        : (movies as MoviePreview).missingMovies,
     eligible: movies.reasons.eligible ?? 0,
     reasonCounts: movies.reasons,
     next: movies.nextMovies.map(mapItem),
@@ -302,6 +320,7 @@ interface SearchPreviewPaneProps {
 function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
   const isTv = mode === 'tv';
   const isMusic = mode === 'music';
+  const isUpgrade = mode === 'upgrade';
   const [offset, setOffset] = useState(0);
   const [draftTitle, setDraftTitle] = useState('');
   const [title, setTitle] = useState('');
@@ -328,6 +347,14 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
     queryOptions: { enabled: isMusic },
   });
   const {
+    data: upgradeConfig,
+    isError: upgradeConfigError,
+    refetch: refetchUpgradeConfig,
+  } = useApiQuery<ScheduledSearchConfig>({
+    path: '/proactive-search/movie-upgrade-config',
+    queryOptions: { enabled: isUpgrade },
+  });
+  const {
     data: movieConfig,
     isError: movieConfigError,
     refetch: refetchMovieConfig,
@@ -352,6 +379,14 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
     queryOptions: { enabled: isMusic, refetchInterval: 60_000 },
   });
   const {
+    data: upgradeActivity,
+    isError: upgradeActivityError,
+    refetch: refetchUpgradeActivity,
+  } = useApiQuery<UpgradeSearchActivity[]>({
+    path: '/proactive-search/movie-upgrade-activity',
+    queryOptions: { enabled: isUpgrade, refetchInterval: 60_000 },
+  });
+  const {
     data: movieActivity,
     isError: movieActivityError,
     refetch: refetchMovieActivity,
@@ -360,55 +395,89 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
     queryOptions: { enabled: mode === 'movie', refetchInterval: 60_000 },
   });
   const { data, isLoading, isError, refetch } = useApiQuery<
-    MoviePreview | TvPreview | MusicPreview
+    MoviePreview | TvPreview | MusicPreview | UpgradePreview
   >({
     path: `/proactive-search/${
-      { movie: 'preview', tv: 'tv-preview', music: 'music-preview' }[mode]
+      {
+        movie: 'preview',
+        tv: 'tv-preview',
+        music: 'music-preview',
+        upgrade: 'movie-upgrade-preview',
+      }[mode]
     }?offset=${offset}&limit=50&title=${encodeURIComponent(title)}`,
   });
   const preview = data ? normalizePreview(mode, data) : undefined;
-  const config = { movie: movieConfig, tv: tvConfig, music: musicConfig }[mode];
+  const config = {
+    movie: movieConfig,
+    tv: tvConfig,
+    music: musicConfig,
+    upgrade: upgradeConfig,
+  }[mode];
   const configError = {
     movie: movieConfigError,
     tv: tvConfigError,
     music: musicConfigError,
+    upgrade: upgradeConfigError,
   }[mode];
   const refetchConfig = {
     movie: refetchMovieConfig,
     tv: refetchTvConfig,
     music: refetchMusicConfig,
+    upgrade: refetchUpgradeConfig,
   }[mode];
-  const kindLabel = { movie: 'Movie', tv: 'TV', music: 'Music' }[mode];
+  const kindLabel = {
+    movie: 'Movie',
+    tv: 'TV',
+    music: 'Music',
+    upgrade: 'Movie upgrade',
+  }[mode];
+  const configRoute = {
+    movie: 'movie',
+    tv: 'tv',
+    music: 'music',
+    upgrade: 'movie-upgrade',
+  }[mode];
   const activityError = {
     movie: movieActivityError,
     tv: tvActivityError,
     music: musicActivityError,
+    upgrade: upgradeActivityError,
   }[mode];
   const activity = {
     movie: movieActivity,
     tv: tvActivity,
     music: musicActivity,
+    upgrade: upgradeActivity,
   }[mode];
-  const itemLabel = { movie: 'Movies', tv: 'shows', music: 'albums' }[mode];
+  const itemLabel = {
+    movie: 'Movies',
+    tv: 'shows',
+    music: 'albums',
+    upgrade: 'Movies',
+  }[mode];
   const countLabel = {
     movie: 'missing Movies',
     tv: 'TV shows with aired missing episodes',
     music: 'missing albums',
+    upgrade: 'cutoff-unmet Movies',
   }[mode];
   const candidateHeading = {
     movie: 'Next eligible Movies',
     tv: 'Potential TV candidates',
     music: 'Next eligible albums',
+    upgrade: 'Next eligible upgrades',
   }[mode];
   const candidateDescription = {
     movie: 'The next Movie run chooses the first Movie in this order.',
     tv: 'The next TV run chooses the oldest eligible episode across these shows when enabled.',
     music: 'The next Music run chooses the first album in this order.',
+    upgrade: 'The next upgrade run chooses the first Movie in this order.',
   }[mode];
   const recentDescription = {
     movie: 'Movies still missing a file',
     tv: 'shows with aired missing episodes',
     music: 'albums still missing files',
+    upgrade: 'Movies whose quality cutoff is unmet',
   }[mode];
   let scopeTone: 'neutral' | 'success' | 'warning' = 'neutral';
   let scopeStatus = 'Loading scheduled search setting';
@@ -520,16 +589,20 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
       refetchTvActivity();
     } else if (isMusic) {
       refetchMusicActivity();
+    } else if (isUpgrade) {
+      refetchUpgradeActivity();
     } else {
       refetchMovieActivity();
     }
   }, [
     isTv,
     isMusic,
+    isUpgrade,
     refetch,
     refetchConfig,
     refetchMovieActivity,
     refetchMusicActivity,
+    refetchUpgradeActivity,
     refetchTvActivity,
   ]);
   const handleToggleScheduledSearch = useCallback(async () => {
@@ -543,7 +616,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
     try {
       await fetchJson<ScheduledSearchConfig, ScheduledSearchConfig>({
         method: 'PUT',
-        path: `${apiRoot}/proactive-search/${mode}-config/1`,
+        path: `${apiRoot}/proactive-search/${configRoute}-config/1`,
         headers: { 'X-Api-Key': window.Radarr.apiKey },
         body: { ...config, enabled: !config.enabled },
       });
@@ -554,7 +627,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
     } finally {
       setSavingConfig(false);
     }
-  }, [config, mode, kindLabel, savingConfig, refetch, refetchConfig]);
+  }, [config, configRoute, kindLabel, savingConfig, refetch, refetchConfig]);
   const handleSavePacing = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
@@ -589,7 +662,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
       try {
         await fetchJson<ScheduledSearchConfig, ScheduledSearchConfig>({
           method: 'PUT',
-          path: `${apiRoot}/proactive-search/${mode}-config/1`,
+          path: `${apiRoot}/proactive-search/${configRoute}-config/1`,
           headers: { 'X-Api-Key': window.Radarr.apiKey },
           body: {
             ...config,
@@ -607,7 +680,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
         setSavingConfig(false);
       }
     },
-    [config, savingConfig, mode, kindLabel, refetch, refetchConfig]
+    [config, savingConfig, configRoute, kindLabel, refetch, refetchConfig]
   );
   const handlePrevious = useCallback(() => {
     setOffset((value) => Math.max(0, value - 50));
@@ -633,6 +706,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
             headers: { 'X-Api-Key': window.Radarr.apiKey },
             body: {
               movie: { name: commandNames.MOVIE_SEARCH, movieIds: [item.id] },
+              upgrade: { name: commandNames.MOVIE_SEARCH, movieIds: [item.id] },
               tv: {
                 name: commandNames.MISSING_EPISODE_SEARCH,
                 seriesId: item.id,
@@ -716,6 +790,13 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
               Each run may search one missing Movie. It must be monitored and
               available, outside the queue and recent-grab window, unsearched
               for 24 hours, and below the seven-day retry limit.
+            </Text>
+          )}
+          {isUpgrade && (
+            <Text>
+              Each run may search one monitored Movie whose existing file is
+              below its quality cutoff. Queue items, recent grabs, searches in
+              the last 24 hours, and Movies at the retry limit are skipped.
             </Text>
           )}
           {configError && (
@@ -922,6 +1003,19 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
                   ))}
                 </ul>
               ) : null}
+              {isUpgrade && upgradeActivity?.length ? (
+                <ul className={styles.list}>
+                  {upgradeActivity.map((run) => (
+                    <li key={run.id}>
+                      {formatTime(run.startedAt)} · {run.outcome}
+                      {run.movieTitle ? ` · ${run.movieTitle}` : ''}
+                      {` · ${run.eligibleMovies}/${run.cutoffUnmetMovies} eligible`}
+                      {run.grabbedCount ? ` · ${run.grabbedCount} grabbed` : ''}
+                      {run.reason ? ` · ${activityReason(run.reason)}` : ''}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
               {mode === 'movie' && movieActivity?.length ? (
                 <ul className={styles.list}>
                   {movieActivity.map((run) => (
@@ -1068,6 +1162,9 @@ function ProactiveSearch() {
           <Tab className={styles.tab} selectedClassName={styles.selectedTab}>
             Music
           </Tab>
+          <Tab className={styles.tab} selectedClassName={styles.selectedTab}>
+            Movie upgrades
+          </Tab>
         </TabList>
         <TabPanel
           className={styles.tabPanel}
@@ -1086,6 +1183,12 @@ function ProactiveSearch() {
           selectedClassName={styles.selectedPanel}
         >
           <SearchPreviewPane mode="music" />
+        </TabPanel>
+        <TabPanel
+          className={styles.tabPanel}
+          selectedClassName={styles.selectedPanel}
+        >
+          <SearchPreviewPane mode="upgrade" />
         </TabPanel>
       </Tabs>
     </Stack>
