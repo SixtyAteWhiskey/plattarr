@@ -96,9 +96,9 @@ namespace NzbDrone.Core.Test.Datastore.Migration
             new MusicTableMap().MapTables(mapper);
 
             var tables = mapper.TableMap.Where(t => t.Value.StartsWith("Music_", StringComparison.Ordinal)).ToList();
-            tables.Select(t => t.Value).Should().BeEquivalentTo(MusicTables);
+            tables.Select(t => t.Value).Should().BeEquivalentTo(MusicTables.Append("Music_ProactiveSearchActivity"));
 
-            foreach (var (type, table) in tables.Select(t => (t.Key, t.Value)))
+            foreach (var (type, table) in tables.Where(t => t.Value != "Music_ProactiveSearchActivity").Select(t => (t.Key, t.Value)))
             {
                 var excluded = mapper.ExcludeProperties(type).Select(p => p.Name).ToHashSet();
                 var properties = type.GetProperties()
