@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Jobs;
 using NzbDrone.Core.Modules;
 using NzbDrone.Core.Music.Commands;

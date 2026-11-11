@@ -3,7 +3,6 @@ using System.Linq;
 using NLog;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Datastore;
-using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Movies.History;
@@ -65,8 +64,12 @@ namespace NzbDrone.Core.Movies.Search
                 var queued = queueItems.Where(item => item.GetMovie() != null).Select(item => item.GetMovie().Id);
                 var failures = _history.Since(run.StartedAt - MovieSearchSafety.FailureWindow, MovieHistoryEventType.DownloadFailed);
                 var grabs = _history.Since(run.StartedAt.AddHours(-_config.ProactiveMovieUpgradeRecentGrabHours), MovieHistoryEventType.Grabbed);
-                var assessments = MovieProactiveEligibility.Evaluate(movies, queued, failures, run.StartedAt,
-                    grabs, _config.ProactiveMovieUpgradeRecentGrabHours);
+                var assessments = MovieProactiveEligibility.Evaluate(movies,
+                                                                      queued,
+                                                                      failures,
+                                                                      run.StartedAt,
+                                                                      grabs,
+                                                                      _config.ProactiveMovieUpgradeRecentGrabHours);
                 run.CutoffUnmetMovies = assessments.Count;
                 run.EligibleMovies = assessments.Count(item => item.Eligible);
                 var activeDownloads = ProactiveSearchPacing.ActiveDownloadCount(queueItems);
