@@ -10,6 +10,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
         bool IsApiSupported(QBittorrentSettings settings);
         Version GetApiVersion(QBittorrentSettings settings);
         string GetVersion(QBittorrentSettings settings);
+        string GetConnectionStatus(QBittorrentSettings settings);
         QBittorrentPreferences GetConfig(QBittorrentSettings settings);
         List<QBittorrentTorrent> GetTorrents(string category, QBittorrentSettings settings);
         bool IsTorrentLoaded(string hash, QBittorrentSettings settings);

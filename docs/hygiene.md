@@ -1,5 +1,17 @@
 # Hygiene queue monitoring
 
+## Downloader connection warning
+
+System Health checks a configured qBittorrent Web API v2 client's global
+`connection_status` every five minutes and after download-client settings
+change. A `disconnected` state warns users to check the client's VPN or network
+interface and local logs. An unavailable status request has a separate warning.
+The check does not treat `firewalled` as disconnected: qBittorrent can still
+transfer without an incoming connection. Older qBittorrent Web API versions
+do not expose this signal to Plattarr. This status is an early clue about the
+download client's BitTorrent connection, not a direct Internet test, and it
+does not change Hygiene cleanup or search decisions.
+
 Hygiene is built into Plattarr and appears as a top-level page in the main
 navigation. It shows a queue assessment of tracked and pending downloads,
 persisted strikes, scoped monitoring rules, and the action journal. The preview

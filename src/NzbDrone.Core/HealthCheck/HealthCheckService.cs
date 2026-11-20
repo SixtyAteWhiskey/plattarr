@@ -22,6 +22,7 @@ namespace NzbDrone.Core.HealthCheck
     public class HealthCheckService : IHealthCheckService,
                                       IExecute<CheckHealthCommand>,
                                       IExecute<CheckIndexerStatusHealthCommand>,
+                                      IExecute<CheckDownloadClientConnectionHealthCommand>,
                                       IHandleAsync<ApplicationStartedEvent>,
                                       IHandleAsync<IEvent>
     {
@@ -30,6 +31,7 @@ namespace NzbDrone.Core.HealthCheck
         private readonly IProvideHealthCheck[] _startupHealthChecks;
         private readonly IProvideHealthCheck[] _scheduledHealthChecks;
         private readonly IProvideHealthCheck[] _indexerStatusHealthChecks;
+        private readonly IProvideHealthCheck[] _downloadClientConnectionHealthChecks;
         private readonly Dictionary<Type, IEventDrivenHealthCheck[]> _eventDrivenHealthChecks;
         private readonly IEventAggregator _eventAggregator;
         private readonly Logger _logger;
@@ -59,6 +61,7 @@ namespace NzbDrone.Core.HealthCheck
             _startupHealthChecks = _healthChecks.Where(v => v.CheckOnStartup).ToArray();
             _scheduledHealthChecks = _healthChecks.Where(v => v.CheckOnSchedule).ToArray();
             _indexerStatusHealthChecks = _healthChecks.Where(v => v is IndexerStatusCheck or IndexerLongTermStatusCheck).ToArray();
+            _downloadClientConnectionHealthChecks = _healthChecks.Where(v => v is DownloadClientConnectionCheck).ToArray();
             _eventDrivenHealthChecks = GetEventDrivenHealthChecks();
             _startupGracePeriodEndTime = runtimeInfo.StartTime + TimeSpan.FromMinutes(15);
         }
@@ -158,6 +161,19 @@ namespace NzbDrone.Core.HealthCheck
             lock (_pendingHealthChecks)
             {
                 foreach (var healthCheck in _indexerStatusHealthChecks)
+                {
+                    _pendingHealthChecks.Add(healthCheck);
+                }
+            }
+
+            ProcessHealthChecks();
+        }
+
+        public void Execute(CheckDownloadClientConnectionHealthCommand message)
+        {
+            lock (_pendingHealthChecks)
+            {
+                foreach (var healthCheck in _downloadClientConnectionHealthChecks)
                 {
                     _pendingHealthChecks.Add(healthCheck);
                 }

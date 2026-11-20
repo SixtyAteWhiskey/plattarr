@@ -75,6 +75,11 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             return response;
         }
 
+        public string GetConnectionStatus(QBittorrentSettings settings)
+        {
+            return null;
+        }
+
         public QBittorrentPreferences GetConfig(QBittorrentSettings settings)
         {
             var request = BuildRequest(settings).Resource("/query/preferences");
