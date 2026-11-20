@@ -7,6 +7,7 @@ using NUnit.Framework;
 using NzbDrone.Common.Cache;
 using NzbDrone.Common.Messaging;
 using NzbDrone.Common.TPL;
+using NzbDrone.Core.Download;
 using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.HealthCheck.Checks;
 using NzbDrone.Core.Indexers;
@@ -94,6 +95,34 @@ namespace NzbDrone.Core.Test.HealthCheck
 
             Subject.Results().Should().BeEmpty();
             _healthCheck.Executed.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_refresh_download_client_connection_health_on_short_schedule()
+        {
+            var client = new Mock<IDownloadClient>();
+            var connection = client.As<IDownloadClientConnectionStatus>();
+            var state = "disconnected";
+            connection.Setup(x => x.GetConnectionStatus()).Returns(() => state);
+            Mocker.GetMock<IProvideDownloadClient>()
+                  .Setup(x => x.GetDownloadClients(It.IsAny<bool>()))
+                  .Returns(new[] { client.Object });
+            Mocker.GetMock<ILocalizationService>()
+                  .Setup(x => x.GetLocalizedString(It.IsAny<string>()))
+                  .Returns("Connection warning");
+            var check = new DownloadClientConnectionCheck(
+                Mocker.GetMock<IProvideDownloadClient>().Object,
+                Mocker.GetMock<ILocalizationService>().Object,
+                TestLogger);
+            Mocker.SetConstant<IEnumerable<IProvideHealthCheck>>(new IProvideHealthCheck[] { _healthCheck, check });
+
+            Subject.Execute(new CheckDownloadClientConnectionHealthCommand());
+            Subject.Results().Should().ContainSingle(x => x.Reason == HealthCheckReason.DownloadClientConnectionDisconnected);
+            _healthCheck.Executed.Should().BeFalse();
+
+            state = "connected";
+            Subject.Execute(new CheckDownloadClientConnectionHealthCommand());
+            Subject.Results().Should().BeEmpty();
         }
     }
 

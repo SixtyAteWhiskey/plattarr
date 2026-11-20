@@ -80,6 +80,7 @@ namespace NzbDrone.Core.Test.JobTests
             _upserted.Should().Contain(t => t.TypeName == typeof(HousekeepingCommand).FullName);
             _upserted.Should().Contain(t => t.TypeName == typeof(HygieneBlacklistSyncCommand).FullName && t.Interval == 60);
             _upserted.Should().Contain(t => t.TypeName == typeof(CheckIndexerStatusHealthCommand).FullName && t.Interval == 5);
+            _upserted.Should().Contain(t => t.TypeName == typeof(CheckDownloadClientConnectionHealthCommand).FullName && t.Interval == 5);
         }
 
         [Test]

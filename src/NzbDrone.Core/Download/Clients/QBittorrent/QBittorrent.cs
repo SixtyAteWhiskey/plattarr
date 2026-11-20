@@ -17,7 +17,7 @@ using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Download.Clients.QBittorrent
 {
-    public class QBittorrent : TorrentClientBase<QBittorrentSettings>, IReportDownloadRemovalEvidence, IHygieneFileClient, IHygieneCategoryClient
+    public class QBittorrent : TorrentClientBase<QBittorrentSettings>, IReportDownloadRemovalEvidence, IHygieneFileClient, IHygieneCategoryClient, IDownloadClientConnectionStatus
     {
         private readonly IQBittorrentProxySelector _proxySelector;
         private readonly ICached<SeedingTimeCacheEntry> _seedingTimeCache;
@@ -47,6 +47,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
         private IQBittorrentProxy Proxy => _proxySelector.GetProxy(Settings);
         private Version ProxyApiVersion => _proxySelector.GetApiVersion(Settings);
+        public string GetConnectionStatus() => Proxy.GetConnectionStatus(Settings);
         public bool CanSkipHygieneFiles => ProxyApiVersion.Major >= 2;
         public bool CanUseHygieneAllowlist => true;
 

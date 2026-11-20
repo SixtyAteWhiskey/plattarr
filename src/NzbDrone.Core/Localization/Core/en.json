@@ -633,6 +633,8 @@
   "DownloadClientCheckNoneAvailableMessage": "No download client is available",
   "DownloadClientCheckUnableToCommunicateMessage": "Unable to communicate with {downloadClientName}. {errorMessage}",
   "DownloadClientCheckUnableToReadItemsMessage": "Plattarr could not read items from a configured download client. The client may be unavailable, its connection settings may be wrong, or its response may be invalid. Check the client and Download Clients settings, then inspect local logs for the specific error.",
+  "DownloadClientConnectionDisconnectedMessage": "qBittorrent reports that its BitTorrent connection is disconnected. Check its VPN or network interface and its logs before retrying downloads.",
+  "DownloadClientConnectionStatusUnavailableMessage": "Plattarr could not read qBittorrent's connection status. Check the download client and its local logs.",
   "DownloadClientDelugeSettingsDirectory": "Download Directory",
   "DownloadClientDelugeSettingsDirectoryCompleted": "Move When Completed Directory",
   "DownloadClientDelugeSettingsDirectoryCompletedHelpText": "Optional location to move completed downloads to, leave blank to use the default Deluge location",
