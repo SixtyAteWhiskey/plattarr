@@ -101,7 +101,9 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
             Mocker.GetMock<IHttpClient>()
                 .Setup(x => x.Execute(It.IsAny<HttpRequest>()))
                 .Callback<HttpRequest>(request => capturedRequest = request)
-                .Returns<HttpRequest>(request => new HttpResponse(request, new HttpHeader(),
+                .Returns<HttpRequest>(request => new HttpResponse(
+                    request,
+                    new HttpHeader(),
                     "{\"connection_status\":\"disconnected\",\"last_external_address_v4\":\"198.51.100.9\"}"));
 
             var proxy = new QBittorrentProxyV2(
