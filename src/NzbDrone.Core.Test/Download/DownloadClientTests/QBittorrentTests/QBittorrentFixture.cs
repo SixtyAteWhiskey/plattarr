@@ -95,6 +95,27 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
         }
 
         [Test]
+        public void connection_status_uses_global_transfer_info_without_logging_response()
+        {
+            HttpRequest capturedRequest = null;
+            Mocker.GetMock<IHttpClient>()
+                .Setup(x => x.Execute(It.IsAny<HttpRequest>()))
+                .Callback<HttpRequest>(request => capturedRequest = request)
+                .Returns<HttpRequest>(request => new HttpResponse(request, new HttpHeader(),
+                    "{\"connection_status\":\"disconnected\",\"last_external_address_v4\":\"198.51.100.9\"}"));
+
+            var proxy = new QBittorrentProxyV2(
+                Mocker.GetMock<IHttpClient>().Object,
+                Mocker.Resolve<NzbDrone.Common.Cache.CacheManager>(),
+                TestLogger);
+            var settings = new QBittorrentSettings { Host = "127.0.0.1", Port = 8080, ApiKey = "test-api-key" };
+
+            proxy.GetConnectionStatus(settings).Should().Be("disconnected");
+            capturedRequest.Url.Path.Should().Be("/api/v2/transfer/info");
+            capturedRequest.LogResponseContent.Should().BeFalse();
+        }
+
+        [Test]
         public void hygiene_file_skip_posts_only_selected_file_ids()
         {
             HttpRequest capturedRequest = null;
