@@ -86,6 +86,12 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             return response;
         }
 
+        public string GetConnectionStatus(QBittorrentSettings settings)
+        {
+            var request = BuildRequest(settings).Resource("/api/v2/transfer/info");
+            return ProcessRequest<QBittorrentTransferInfo>(request, settings, false).ConnectionStatus;
+        }
+
         public QBittorrentPreferences GetConfig(QBittorrentSettings settings)
         {
             var request = BuildRequest(settings).Resource("/api/v2/app/preferences");
@@ -384,20 +390,20 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             return requestBuilder;
         }
 
-        private TResult ProcessRequest<TResult>(HttpRequestBuilder requestBuilder, QBittorrentSettings settings)
+        private TResult ProcessRequest<TResult>(HttpRequestBuilder requestBuilder, QBittorrentSettings settings, bool logResponseContent = true)
             where TResult : new()
         {
-            var responseContent = ProcessRequest(requestBuilder, settings);
+            var responseContent = ProcessRequest(requestBuilder, settings, logResponseContent);
 
             return Json.Deserialize<TResult>(responseContent);
         }
 
-        private string ProcessRequest(HttpRequestBuilder requestBuilder, QBittorrentSettings settings)
+        private string ProcessRequest(HttpRequestBuilder requestBuilder, QBittorrentSettings settings, bool logResponseContent = true)
         {
             if (settings.ApiKey.IsNotNullOrWhiteSpace())
             {
                 var requestWithApiKey = requestBuilder.Build();
-                requestWithApiKey.LogResponseContent = true;
+                requestWithApiKey.LogResponseContent = logResponseContent;
 
                 try
                 {
@@ -423,7 +429,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             AuthenticateClient(requestBuilder, settings);
 
             var request = requestBuilder.Build();
-            request.LogResponseContent = true;
+            request.LogResponseContent = logResponseContent;
             request.SuppressHttpErrorStatusCodes = [HttpStatusCode.Forbidden];
 
             try
