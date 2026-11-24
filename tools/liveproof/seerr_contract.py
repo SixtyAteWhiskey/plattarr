@@ -95,7 +95,7 @@ def read_common_contract(api):
     tags = api.call("GET", "/tag")
     require(isinstance(tags, list), "tag response was not a list")
 
-    label = f"seerr-contract-{int(time.time())}"
+    label = f"seerr-contract-{api.server}-{time.time_ns()}"
     tag = api.call("POST", "/tag", {"label": label})
     require(tag and tag.get("id"), "tag create did not return an id")
     updated = api.call("PUT", f"/tag/{tag['id']}", {"id": tag["id"], "label": f"{label}-updated"})
