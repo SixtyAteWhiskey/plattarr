@@ -25,7 +25,7 @@ namespace NzbDrone.Core.Hygiene
         public void Observe(IEnumerable<NzbDrone.Core.Queue.Queue> queue)
         {
             var items = queue.Where(x => x.DownloadClientId > 0 && !string.IsNullOrWhiteSpace(x.DownloadId) &&
-                string.IsNullOrWhiteSpace(x.HygieneImportRescueStatus)).ToList();
+                !x.DownloadClientNetworkUnavailable && string.IsNullOrWhiteSpace(x.HygieneImportRescueStatus)).ToList();
             var assessments = _evaluator.Evaluate(items);
             var states = _states.FindByIdentities(items.Select(x => (x.DownloadClientId, x.DownloadId)))
                 .ToDictionary(x => (x.DownloadClientId, x.DownloadId));

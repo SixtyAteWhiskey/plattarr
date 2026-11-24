@@ -5,6 +5,7 @@ import styles from './MenuButton.css';
 
 export interface MenuButtonProps {
   className?: string;
+  'aria-label'?: string;
   children: React.ReactNode;
   isDisabled?: boolean;
   onPress?: () => void;

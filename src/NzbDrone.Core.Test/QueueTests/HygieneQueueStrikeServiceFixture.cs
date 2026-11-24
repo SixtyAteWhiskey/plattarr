@@ -14,6 +14,30 @@ namespace NzbDrone.Core.Test.QueueTests
     public class HygieneQueueStrikeServiceFixture
     {
         [Test]
+        public void network_outage_preserves_existing_strikes_without_observing_a_failure()
+        {
+            var states = new Mock<IHygieneQueueStateRepository>();
+            var rules = new Mock<IHygieneRuleRepository>();
+            rules.Setup(x => x.All()).Returns(new List<HygieneRule>());
+            var service = new HygieneQueueStrikeService(states.Object,
+                new HygieneRuleService(rules.Object, NLog.LogManager.GetCurrentClassLogger()),
+                new HygieneQueueEvaluator());
+
+            service.Observe(new[]
+            {
+                new QueueItem
+                {
+                    DownloadClientId = 4, DownloadId = "hash", Status = QueueStatus.Failed,
+                    DownloadClientNetworkUnavailable = true
+                }
+            });
+
+            states.Verify(x => x.FindByIdentities(It.Is<IEnumerable<(int, string)>>(ids => !ids.Any())), Times.Once);
+            states.Verify(x => x.Insert(It.IsAny<HygieneQueueState>()), Times.Never);
+            states.Verify(x => x.Update(It.IsAny<HygieneQueueState>()), Times.Never);
+        }
+
+        [Test]
         public void force_import_request_holds_existing_strikes_without_updating_state()
         {
             var states = new Mock<IHygieneQueueStateRepository>();

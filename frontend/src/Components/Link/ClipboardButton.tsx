@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import FormInputButton from 'Components/Form/FormInputButton';
 import Icon from 'Components/Icon';
 import { icons, kinds } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import { ButtonProps } from './Button';
 import styles from './ClipboardButton.css';
 
@@ -56,6 +57,7 @@ export default function ClipboardButton({
   return (
     <FormInputButton
       className={className}
+      aria-label={label ? String(label) : translate('CopyToClipboard')}
       onClick={handleClick}
       {...otherProps}
     >

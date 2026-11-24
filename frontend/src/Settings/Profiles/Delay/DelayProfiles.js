@@ -137,6 +137,7 @@ class DelayProfiles extends Component {
 
             <div className={styles.addDelayProfile}>
               <Link
+                aria-label={translate('AddDelayProfile')}
                 className={styles.addButton}
                 onPress={this.onAddDelayProfilePress}
               >

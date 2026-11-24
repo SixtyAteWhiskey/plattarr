@@ -147,6 +147,8 @@
   },
   "resolutions": {
     "@types/react": "18.3.31",
-    "@types/react-dom": "18.3.7"
+    "@types/react-dom": "18.3.7",
+    "**/@typescript-eslint/typescript-estree/minimatch": "11.0.9",
+    "rimraf/glob": "14.0.2"
   }
 }

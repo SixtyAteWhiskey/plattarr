@@ -293,6 +293,7 @@ def run(api, report, confirmed=False):
         _require(report, indexer is not None, "hygiene-recovery.newznab_schema", "generic Newznab schema available")
         indexer["name"] = "Liveproof Newznab"
         indexer["enable"] = True
+        indexer["redirect"] = False
         for field in indexer.get("fields", []):
             if field["name"] == "baseUrl":
                 field["value"] = services.base_url
@@ -348,10 +349,12 @@ def run(api, report, confirmed=False):
             "mediaKind": 1,
             "downloadClientId": created_client["id"],
             "enabled": True,
-            "strikeLimit": 1,
+            "strikeLimit": 3,
             "strikeIntervalMinutes": 1,
+            "deleteFilesOnFailure": False,
+            "searchForReplacement": True,
         })
-        _require(report, rule.get("id", 0) > 0, "hygiene-recovery.rule", "one-strike Movie/client rule created")
+        _require(report, rule.get("id", 0) > 0, "hygiene-recovery.rule", "three-strike Movie/client rule created")
 
         empty_refresh = api.run_command("RefreshMonitoredDownloads", seconds=90)
         _require(report, empty_refresh.get("status") == "completed" and not _get_actions(api),
@@ -363,6 +366,9 @@ def run(api, report, confirmed=False):
         _require(report, release is not None and release.get("approved") is True,
                  "hygiene-recovery.synthetic_release", "approved local synthetic release found")
         baseline_searches = services.state.snapshot()["searchRequests"]
+        # Own failure handling before the grab event can schedule a refresh.
+        _set_gate(api, True)
+        gate_owned = True
         api.post("/api/v3/release", release)
 
         failed_job = services.state.snapshot()["jobs"][-1]
@@ -382,20 +388,26 @@ def run(api, report, confirmed=False):
                  "hygiene-recovery.category-switch", "failed Movie grab now reports the TV client category")
 
         # The replacement search must see a different release from the same local indexer.
+        # Exercise both indexer and direct-client fetch paths without disabling
+        # the private-destination policy on either request.
+        created_indexer["redirect"] = True
+        api.put(f"/api/v3/indexer/{created_indexer['id']}", created_indexer)
         services.state.set_phase("replacement")
-        _set_gate(api, True)
-        gate_owned = True
         refreshed = api.run_command("RefreshMonitoredDownloads", seconds=90)
         _require(report, refreshed.get("status") == "completed",
-                 "hygiene-recovery.refresh", "category-switched failure action and replacement refresh completed")
+                 "hygiene-recovery.refresh", "category-switched failure refresh completed")
+        _require(report, not _get_actions(api), "hygiene-recovery.strike-delay",
+                 "no action occurs before the three-strike threshold")
 
-        deadline = time.time() + 60
+        # Observe real strike intervals; do not alter the app clock or persisted state.
+        deadline = time.monotonic() + 210
         actions = []
-        while time.time() < deadline:
+        while time.monotonic() < deadline:
             actions = _get_actions(api)
             if actions and actions[0].get("status") in ("completed", "failed", "paused"):
                 break
-            time.sleep(1)
+            time.sleep(5)
+            api.run_command("RefreshMonitoredDownloads", seconds=90)
 
         action = next((item for item in actions if item.get("downloadId") == failed_job["nzo_id"]), None)
         _require(report, action is not None and action.get("status") == "completed" and

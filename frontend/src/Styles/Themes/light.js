@@ -19,7 +19,7 @@ module.exports = {
   black,
   white,
   offWhite,
-  primaryColor: '#5d9cec',
+  primaryColor: '#2867b2',
   selectedColor: '#f9be03',
   successColor: '#27c24c',
   dangerColor: '#f05050',
@@ -56,8 +56,8 @@ module.exports = {
 
   // Links
   defaultLinkHoverColor: '#fff',
-  linkColor: '#5d9cec',
-  linkHoverColor: '#1b72e2',
+  linkColor: '#2867b2',
+  linkHoverColor: '#1f5191',
 
   // Header
   pageHeaderBackgroundColor: '#464b51',
@@ -105,10 +105,10 @@ module.exports = {
   defaultHoverBackgroundColor: '#f5f5f5',
   defaultHoverBorderColor: '#d6d6d6',
 
-  primaryBackgroundColor: '#5d9cec',
-  primaryBorderColor: '#5899eb',
-  primaryHoverBackgroundColor: '#4b91ea',
-  primaryHoverBorderColor: '#3483e7',
+  primaryBackgroundColor: '#2867b2',
+  primaryBorderColor: '#245c9f',
+  primaryHoverBackgroundColor: '#1f5191',
+  primaryHoverBorderColor: '#1b477f',
 
   successBackgroundColor: '#27c24c',
   successBorderColor: '#26be4a',

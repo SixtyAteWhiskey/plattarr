@@ -111,6 +111,7 @@ class AddNewItem extends Component {
 
             <Button
               className={styles.clearLookupButton}
+              aria-label={translate('ClearSearch')}
               onPress={this.onClearSearchPress}
             >
               <Icon

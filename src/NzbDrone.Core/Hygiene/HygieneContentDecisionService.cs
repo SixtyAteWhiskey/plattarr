@@ -113,6 +113,11 @@ namespace NzbDrone.Core.Hygiene
 
         private string ActionHold(QueueItem item, HygieneContentAssessment assessment)
         {
+            if (item.DownloadClientNetworkUnavailable)
+            {
+                return "Content actions are paused until the download client's network connection can be verified.";
+            }
+
             if (assessment.Status is not ("remove-download" or "skip-blocked-files"))
             {
                 return assessment.Status == "unsupported-allowlist" ? assessment.Explanation :

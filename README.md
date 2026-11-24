@@ -6,9 +6,15 @@ Radarr and incorporates code from Prowlarr, Sonarr, and Lidarr.
 
 **Project status:** Movies, TV, Music, the shared media workflows, and the
 Radarr/Sonarr compatibility routes used by Seerr are implemented. The
-multi-architecture container is in production use and is still undergoing
-acceptance testing. There is no stable release channel yet; the `develop` image
-is a moving build.
+multi-architecture container is in production use. See the
+[November production baseline](docs/release-2026-11-23.md) for release scope and
+verification requirements. The `develop` image is a moving build; pin the image
+revision recorded in a reviewed release for production.
+
+Hygiene includes queue recovery, content inspection, and paced searches. It does
+not yet cover all Cleanuparr features. See the
+[current capability comparison](docs/hygiene-parity-2026-11-23.md) before
+replacing an existing cleanup service.
 
 ## Run with Docker Compose
 

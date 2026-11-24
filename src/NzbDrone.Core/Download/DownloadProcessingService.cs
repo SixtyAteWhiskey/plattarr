@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using NLog;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download.TrackedDownloads;
+using NzbDrone.Core.Hygiene;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 
@@ -15,6 +17,7 @@ namespace NzbDrone.Core.Download
         private readonly IFailedDownloadService _failedDownloadService;
         private readonly ITrackedDownloadService _trackedDownloadService;
         private readonly IEventAggregator _eventAggregator;
+        private readonly IHygieneRuleService _hygieneRules;
         private readonly Logger _logger;
 
         public DownloadProcessingService(IConfigService configService,
@@ -22,6 +25,7 @@ namespace NzbDrone.Core.Download
                                          IFailedDownloadService failedDownloadService,
                                          ITrackedDownloadService trackedDownloadService,
                                          IEventAggregator eventAggregator,
+                                         IHygieneRuleService hygieneRules,
                                          Logger logger)
         {
             _configService = configService;
@@ -29,6 +33,7 @@ namespace NzbDrone.Core.Download
             _failedDownloadService = failedDownloadService;
             _trackedDownloadService = trackedDownloadService;
             _eventAggregator = eventAggregator;
+            _hygieneRules = hygieneRules;
             _logger = logger;
         }
 
@@ -47,6 +52,7 @@ namespace NzbDrone.Core.Download
         public void Execute(ProcessMonitoredDownloadsCommand message)
         {
             var enableCompletedDownloadHandling = _configService.EnableCompletedDownloadHandling;
+            var hygieneRules = _configService.HygieneActionsEnabled ? _hygieneRules.All() : new List<HygieneRule>();
             var trackedDownloads = _trackedDownloadService.GetTrackedDownloads()
                                               .Where(t => t.IsTrackable)
                                               .ToList();
@@ -63,7 +69,8 @@ namespace NzbDrone.Core.Download
                         _completedDownloadService.Import(trackedDownload);
                     }
 
-                    if (trackedDownload.State == TrackedDownloadState.FailedPending)
+                    if (trackedDownload.State == TrackedDownloadState.FailedPending &&
+                        !ShouldDeferFailure(trackedDownload, hygieneRules))
                     {
                         _failedDownloadService.ProcessFailed(trackedDownload);
                     }
@@ -78,6 +85,30 @@ namespace NzbDrone.Core.Download
             RemoveCompletedDownloads();
 
             _eventAggregator.PublishEvent(new DownloadsProcessedEvent());
+        }
+
+        private bool ShouldDeferFailure(TrackedDownload trackedDownload, IEnumerable<HygieneRule> rules)
+        {
+            if (trackedDownload.DownloadItem.DownloadClientNetworkUnavailable)
+            {
+                return true;
+            }
+
+            // A matching active Hygiene rule owns the failure threshold and its
+            // safeguards. Native failure processing must not remove the job first.
+            var item = new NzbDrone.Core.Queue.Queue
+            {
+                DownloadClientId = trackedDownload.DownloadClient,
+                Protocol = trackedDownload.Protocol,
+                RemoteRelease = trackedDownload.RemoteRelease
+            };
+
+            return HygieneRuleSafeguards.MatchForItem(
+                rules,
+                _hygieneRules,
+                "client-failed",
+                (int?)trackedDownload.Kind ?? 0,
+                item)?.Enabled == true;
         }
     }
 }

@@ -1,0 +1,47 @@
+name: Review legacy image metadata
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Inventory first; apply only after reviewing and privately backing up its metadata
+        type: choice
+        options: [inventory, apply]
+        default: inventory
+      expected_plan_sha256:
+        description: Exact plan digest from the reviewed inventory; required for apply
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  metadata:
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - name: Review or apply the metadata plan
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PLAN_MODE: ${{ inputs.mode }}
+          EXPECTED_PLAN_SHA256: ${{ inputs.expected_plan_sha256 }}
+        run: >-
+          python3 tools/registry_metadata.py "$PLAN_MODE"
+          --output "$RUNNER_TEMP/registry-metadata-plan.json"
+          --expected-plan-sha256 "$EXPECTED_PLAN_SHA256"
+      - name: Save the non-sensitive plan and result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: registry-metadata-plan
+          path: ${{ runner.temp }}/registry-metadata-plan*.json
+          if-no-files-found: ignore
+          retention-days: 14

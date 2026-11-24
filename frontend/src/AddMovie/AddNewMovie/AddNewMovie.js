@@ -110,6 +110,7 @@ class AddNewMovie extends Component {
 
             <Button
               className={styles.clearLookupButton}
+              aria-label={translate('ClearSearch')}
               onPress={this.onClearMovieLookupPress}
             >
               <Icon

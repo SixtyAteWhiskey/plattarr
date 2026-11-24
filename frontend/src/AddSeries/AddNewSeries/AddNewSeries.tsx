@@ -76,6 +76,7 @@ function AddNewSeries() {
 
           <Button
             className={styles.clearLookupButton}
+            aria-label={translate('ClearSearch')}
             onPress={handleClearSeriesLookupPress}
           >
             <Icon name={icons.REMOVE} size={20} />

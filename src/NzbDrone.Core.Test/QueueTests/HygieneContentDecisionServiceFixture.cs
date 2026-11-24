@@ -51,6 +51,18 @@ namespace NzbDrone.Core.Test.QueueTests
         }
 
         [Test]
+        public void network_outage_holds_otherwise_eligible_content_actions()
+        {
+            var item = Item(IndexerPrivacy.Public);
+            item.DownloadClientNetworkUnavailable = true;
+
+            var assessment = _service.Evaluate(new[] { item }).Should().ContainSingle().Which;
+
+            assessment.WouldAct.Should().BeFalse();
+            assessment.ActionExplanation.Should().Contain("network connection");
+        }
+
+        [Test]
         public void mixed_public_torrent_is_eligible_to_skip_one_file()
         {
             var assessment = _service.Evaluate(new[] { Item(IndexerPrivacy.Public) }).Should().ContainSingle().Which;

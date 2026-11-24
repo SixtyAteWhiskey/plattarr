@@ -65,6 +65,57 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
                   .Returns(Mocker.GetMock<IQBittorrentProxy>().Object);
         }
 
+        [TestCase("connected", false)]
+        [TestCase("firewalled", false)]
+        [TestCase("disconnected", true)]
+        [TestCase(null, false)]
+        public void hygiene_uses_one_connection_observation_for_the_client_queue(string status, bool held)
+        {
+            GivenTorrents(new List<QBittorrentTorrent>
+            {
+                new() { Hash = "FIRST", Name = _title, State = "metaDL" },
+                new() { Hash = "SECOND", Name = _title, State = "stalledDL" }
+            });
+            Mocker.GetMock<IQBittorrentProxy>()
+                .Setup(x => x.GetConnectionStatus(It.IsAny<QBittorrentSettings>())).Returns(status);
+
+            Subject.GetItems().Should().HaveCount(2).And.OnlyContain(x => x.DownloadClientNetworkUnavailable == held);
+            Mocker.GetMock<IQBittorrentProxy>()
+                .Verify(x => x.GetConnectionStatus(It.IsAny<QBittorrentSettings>()), Times.Once);
+        }
+
+        [Test]
+        public void unreadable_connection_status_holds_cleanup_without_losing_the_queue()
+        {
+            GivenTorrents(new List<QBittorrentTorrent>
+            {
+                new() { Hash = "HASH", Name = _title, State = "metaDL" }
+            });
+            Mocker.GetMock<IQBittorrentProxy>()
+                .Setup(x => x.GetConnectionStatus(It.IsAny<QBittorrentSettings>()))
+                .Throws(new DownloadClientException("Synthetic connection failure"));
+
+            Subject.GetItems().Should().ContainSingle().Which.DownloadClientNetworkUnavailable.Should().BeTrue();
+        }
+
+        [TestCase("{}")]
+        [TestCase("{\"connection_status\":\"unexpected\"}")]
+        public void modern_client_must_report_a_recognized_connection_status(string response)
+        {
+            Mocker.GetMock<IHttpClient>()
+                .Setup(x => x.Execute(It.IsAny<HttpRequest>()))
+                .Returns<HttpRequest>(request => new HttpResponse(request, new HttpHeader(), response));
+            var proxy = new QBittorrentProxyV2(
+                Mocker.GetMock<IHttpClient>().Object,
+                Mocker.Resolve<NzbDrone.Common.Cache.CacheManager>(),
+                TestLogger);
+            var settings = new QBittorrentSettings { Host = "127.0.0.1", Port = 8080, ApiKey = "test-api-key" };
+
+            Action read = () => proxy.GetConnectionStatus(settings);
+
+            read.Should().Throw<DownloadClientException>();
+        }
+
         [TestCase(false, "hashes=test-hash&deleteFiles=false")]
         [TestCase(true, "hashes=test-hash&deleteFiles=true")]
         public void remove_torrent_sends_explicit_data_retention_flag(bool removeData, string expectedBody)

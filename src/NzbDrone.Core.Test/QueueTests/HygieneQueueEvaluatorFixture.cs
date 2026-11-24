@@ -15,6 +15,20 @@ namespace NzbDrone.Core.Test.QueueTests
     {
         private readonly HygieneQueueEvaluator _evaluator = new();
 
+        [TestCase(QueueStatus.Failed)]
+        [TestCase(QueueStatus.Warning)]
+        [TestCase(QueueStatus.Downloading)]
+        public void network_outage_takes_priority_over_individual_download_failures(QueueStatus status)
+        {
+            var item = new QueueItem { Status = status, DownloadClientNetworkUnavailable = true };
+
+            var assessment = _evaluator.Evaluate(new[] { item }).Should().ContainSingle().Which;
+
+            assessment.ReasonCode.Should().Be("client-unavailable");
+            assessment.Explanation.Should().Contain("paused");
+            assessment.WouldAct.Should().BeFalse();
+        }
+
         [Test]
         public void import_blocked_is_explained_without_proposing_an_automatic_action()
         {

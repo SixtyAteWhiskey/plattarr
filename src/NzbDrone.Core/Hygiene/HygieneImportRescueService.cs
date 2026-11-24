@@ -92,7 +92,7 @@ namespace NzbDrone.Core.Hygiene
             foreach (var item in queue)
             {
                 item.HygieneImportRescueStatus = null;
-                if (item.TrackedDownloadState != TrackedDownloadState.ImportBlocked ||
+                if (item.DownloadClientNetworkUnavailable || item.TrackedDownloadState != TrackedDownloadState.ImportBlocked ||
                     item.RemoteRelease?.Kind is not (MediaKind.Movies or MediaKind.Tv) ||
                     item.DownloadClientId <= 0 || string.IsNullOrWhiteSpace(item.DownloadId))
                 {

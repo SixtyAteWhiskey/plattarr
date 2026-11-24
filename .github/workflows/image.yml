@@ -10,12 +10,45 @@ on:
 permissions:
   contents: read
 
+env:
+  BUILDX_METADATA_PROVENANCE: min
+  DOCKER_BUILD_RECORD_UPLOAD: 'false'
+
 concurrency:
   group: image-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  repository-hygiene:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out history
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Verify registry metadata safeguards
+        run: python3 -m unittest discover -s tools/tests -p test_registry_metadata.py
+
+      - name: Scan changed history for secrets
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          archive="$RUNNER_TEMP/gitleaks.tar.gz"
+          curl --fail --silent --show-error --location \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
+            --output "$archive"
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  $archive" | sha256sum --check
+          tar -xzf "$archive" -C "$RUNNER_TEMP" gitleaks
+          if [ -z "$BASE_SHA" ] || ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            BASE_SHA=$(git rev-parse HEAD^)
+          fi
+          "$RUNNER_TEMP/gitleaks" git --redact --log-opts="$BASE_SHA..HEAD"
+
   validation:
+    needs: repository-hygiene
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
@@ -88,6 +121,8 @@ jobs:
 
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: provenance-add-gha=false
 
       - name: Build completed Alpine image
         uses: docker/build-push-action@v6
@@ -238,6 +273,8 @@ jobs:
 
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: provenance-add-gha=false
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -257,15 +294,34 @@ jobs:
             type=ref,event=pr
 
       - name: Build and push
+        id: publish-image
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           target: runtime
           push: true
+          provenance: mode=min
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             PLATTARR_VERSION=10.0.0.${{ github.run_number }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Verify published provenance excludes event payloads
+        env:
+          IMAGE_DIGEST: ${{ steps.publish-image.outputs.digest }}
+        run: |
+          image_ref="ghcr.io/${GITHUB_REPOSITORY,,}@$IMAGE_DIGEST"
+          docker buildx imagetools inspect "$image_ref" --format '{{json .Provenance}}' \
+            > "$RUNNER_TEMP/published-provenance.json"
+          python3 - "$RUNNER_TEMP/published-provenance.json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          metadata = json.loads(Path(sys.argv[1]).read_text())
+          assert metadata, "Published image must retain provenance"
+          assert "github_event_payload" not in json.dumps(metadata), "Unreviewed event payload in image provenance"
+          print("Published provenance retains build evidence without the GitHub event payload")
+          PY

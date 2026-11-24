@@ -49,7 +49,10 @@ namespace NzbDrone.Common.Http.Dispatchers
         {
             var proxySettings = request.ProxySettings ?? _proxySettingsProvider.GetProxySettings(request.Url);
 
-            if (request.PublicDestinationOnly)
+            var publicOnly = request.PublicDestinationOnly &&
+                             !PublicDestinationPolicy.IsConfiguredOrigin((Uri)request.Url, request.ConfiguredOrigin);
+
+            if (publicOnly)
             {
                 await PublicDestinationPolicy.ValidateAsync((Uri)request.Url, proxySettings != null);
             }
@@ -107,7 +110,7 @@ namespace NzbDrone.Common.Http.Dispatchers
                 AddRequestHeaders(requestMessage, request.Headers);
             }
 
-            var httpClient = GetClient(proxySettings, request.PublicDestinationOnly && proxySettings == null);
+            var httpClient = GetClient(proxySettings, publicOnly && proxySettings == null);
 
             var stopwatch = Stopwatch.StartNew();
 

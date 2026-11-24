@@ -84,6 +84,7 @@ function TablePager({
               isFirstPage && styles.disabledPageButton
             )}
             isDisabled={isFirstPage}
+            aria-label={translate('FirstPage')}
             onPress={onFirstPagePress}
           >
             <Icon name={icons.PAGE_FIRST} />
@@ -95,6 +96,7 @@ function TablePager({
               isFirstPage && styles.disabledPageButton
             )}
             isDisabled={isFirstPage}
+            aria-label={translate('PreviousPage')}
             onPress={onPreviousPagePress}
           >
             <Icon name={icons.PAGE_PREVIOUS} />
@@ -129,6 +131,7 @@ function TablePager({
               isLastPage && styles.disabledPageButton
             )}
             isDisabled={isLastPage}
+            aria-label={translate('NextPage')}
             onPress={onNextPagePress}
           >
             <Icon name={icons.PAGE_NEXT} />
@@ -140,6 +143,7 @@ function TablePager({
               isLastPage && styles.disabledPageButton
             )}
             isDisabled={isLastPage}
+            aria-label={translate('LastPage')}
             onPress={onLastPagePress}
           >
             <Icon name={icons.PAGE_LAST} />

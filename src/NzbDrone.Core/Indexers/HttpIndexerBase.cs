@@ -246,6 +246,7 @@ namespace NzbDrone.Core.Indexers
             request.AllowAutoRedirect = false;
             request.MaximumResponseBytes = MaximumDownloadResponseBytes;
             request.PublicDestinationOnly = true;
+            request.ConfiguredOrigin = Uri.TryCreate(Settings.BaseUrl, UriKind.Absolute, out var origin) ? origin : null;
 
             byte[] fileData;
             long elapsedTime;

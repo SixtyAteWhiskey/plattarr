@@ -102,6 +102,19 @@ namespace NzbDrone.Core.Test.QueueTests
         }
 
         [Test]
+        public void network_outage_does_not_start_a_rescue_attempt()
+        {
+            var item = Item();
+            item.DownloadClientNetworkUnavailable = true;
+
+            _service.Process(new[] { item });
+            _service.Process(new[] { item });
+
+            _records.Should().BeEmpty();
+            _commands.Verify(x => x.Push(It.IsAny<ManualImportCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Never);
+        }
+
+        [Test]
         public void eligible_movie_requests_one_import_and_holds_strikes()
         {
             var item = Item();

@@ -92,6 +92,7 @@ function CalendarHeader() {
           <Button
             buttonGroupPosition="left"
             isDisabled={view === 'agenda'}
+            aria-label={translate('PreviousPeriod')}
             onPress={handlePreviousPress}
           >
             <Icon name={icons.PAGE_PREVIOUS} />
@@ -100,6 +101,7 @@ function CalendarHeader() {
           <Button
             buttonGroupPosition="right"
             isDisabled={view === 'agenda'}
+            aria-label={translate('NextPeriod')}
             onPress={handleNextPress}
           >
             <Icon name={icons.PAGE_NEXT} />
@@ -125,7 +127,7 @@ function CalendarHeader() {
 
           {isLargeScreen ? (
             <Menu className={styles.viewMenu} alignMenu={align.RIGHT}>
-              <MenuButton>
+              <MenuButton aria-label={translate('CalendarView')}>
                 <Icon name={icons.VIEW} size={22} />
               </MenuButton>
 

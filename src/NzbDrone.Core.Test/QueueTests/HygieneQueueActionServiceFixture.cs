@@ -28,6 +28,27 @@ namespace NzbDrone.Core.Test.QueueTests
     [TestFixture]
     public class HygieneQueueActionServiceFixture : CoreTest
     {
+        [TestCase(MediaKind.Movies)]
+        [TestCase(MediaKind.Tv)]
+        [TestCase(MediaKind.Music)]
+        public void connection_lost_after_preview_pauses_removal_and_resumes_after_recovery(MediaKind kind)
+        {
+            var context = new ActionContext(kind, true, "download-metadata");
+            context.TrackedDownload.DownloadItem.DownloadClientNetworkUnavailable = true;
+
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.Actions.Should().ContainSingle().Which.Status.Should().Be("paused");
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), It.IsAny<bool>()), Times.Never);
+            context.FailedDownloads.Verify(x => x.MarkAsFailed(It.IsAny<TrackedDownload>(), It.IsAny<bool>()), Times.Never);
+
+            context.TrackedDownload.DownloadItem.DownloadClientNetworkUnavailable = false;
+            context.Service.Process(new[] { context.QueueItem });
+
+            context.Actions.Should().ContainSingle().Which.Status.Should().Be("completed");
+            context.DownloadClient.Verify(x => x.RemoveItem(It.IsAny<DownloadClientItem>(), false), Times.Once);
+        }
+
         [Test]
         public void repeated_movie_failures_stop_automatic_replacement_but_record_the_failure()
         {

@@ -79,7 +79,7 @@ export default function Link<C extends ElementType = 'button'>({
   return (
     <Component
       type={
-        component === 'button' || component === 'input'
+        Component === 'button' || Component === 'input'
           ? type || 'button'
           : type
       }

@@ -10,7 +10,16 @@ The check does not treat `firewalled` as disconnected: qBittorrent can still
 transfer without an incoming connection. Older qBittorrent Web API versions
 do not expose this signal to Plattarr. This status is an early clue about the
 download client's BitTorrent connection, not a direct Internet test, and it
-does not change Hygiene cleanup or search decisions.
+does not change search decisions. Each qBittorrent queue refresh also reads
+the connection status once. A disconnected client, failed status request, or
+unrecognized Web API v2 status pauses Hygiene strikes, cleanup, content
+actions, and force-import rescue for that client's jobs. Existing strikes are
+preserved during the pause. A fresh client read immediately before removal
+also checks the hold, so a connection failure after the preview cannot trigger
+removal. Ordinary failed-download processing also honors this network hold.
+A verified `connected` or `firewalled` status releases the hold.
+Legacy Web API v1 does not expose this signal. The check does not prove that
+every tracker or peer is reachable.
 
 Hygiene is built into Plattarr and appears as a top-level page in the main
 navigation. It shows a queue assessment of tracked and pending downloads,
@@ -24,7 +33,7 @@ the current queue assessment, and the action journal. **Manage automation**
 opens the **Automation settings** tab, which contains the global action gate
 and the full rule editors. The tabs do not change monitoring or cleanup state.
 
-The [current Cleanuparr parity review](hygiene-parity-2026-11-05.md) records
+The [current Cleanuparr parity review](hygiene-parity-2026-11-23.md) records
 which behaviors are proven on the current checkout and which feature areas
 remain different or unimplemented.
 
@@ -49,6 +58,11 @@ automatic cleanup for download warnings** switch. Existing rules keep this
 switch off after migration, even if monitoring was already enabled. The rule,
 strike threshold, global action gate, and existing torrent
 safety checks must still allow an action before any removal occurs.
+
+When the global gate is on, an enabled `client-failed` rule owns matching
+failures. Ordinary failed-download processing waits for Hygiene's threshold
+and safeguards instead of removing the job first. With the gate off, or no
+enabled matching rule, normal failure handling retains its existing behavior.
 
 Each saved rule card shows how many current queue assessments select that
 specific rule and, when enabled, how many have reached its strike threshold.

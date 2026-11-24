@@ -12,3 +12,18 @@ _tests
 deploy
 *.md
 !README.md
+
+# Runtime state and local credentials never belong in a build context.
+.trail
+**/.env
+**/.env.*
+**/config.xml
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/*.bundle
+**/*.pem
+**/*.pfx
+**/*.key
+**/.ssh
+**/backups

@@ -29,6 +29,11 @@ namespace NzbDrone.Core.Hygiene
 
         public static string HoldReason(QueueItem item, HygieneRule rule, string reasonCode)
         {
+            if (item.DownloadClientNetworkUnavailable)
+            {
+                return "Hygiene strikes and actions are paused until the download client's network connection can be verified.";
+            }
+
             if (rule == null)
             {
                 return null;
