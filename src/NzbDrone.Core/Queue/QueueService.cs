@@ -70,6 +70,7 @@ namespace NzbDrone.Core.Queue
                 DownloadClientStalled = trackedDownload.DownloadItem.DownloadClientStalled,
                 DownloadClientDownloadingMetadata = trackedDownload.DownloadItem.DownloadClientDownloadingMetadata,
                 DownloadClientAlternateSpeedActive = trackedDownload.DownloadItem.DownloadClientAlternateSpeedActive,
+                DownloadClientNetworkUnavailable = trackedDownload.DownloadItem.DownloadClientNetworkUnavailable,
                 DownloadClientCanBeRemoved = trackedDownload.DownloadItem.CanBeRemoved,
                 TimeLeft = trackedDownload.DownloadItem.RemainingTime,
                 Status = Enum.TryParse(trackedDownload.DownloadItem.Status.ToString(), out QueueStatus outValue) ? outValue : QueueStatus.Unknown,

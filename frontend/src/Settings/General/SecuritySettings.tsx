@@ -231,6 +231,7 @@ function SecuritySettings({
 
             <FormInputButton
               key="reset"
+              aria-label={translate('ResetAPIKey')}
               kind={kinds.DANGER}
               onPress={handleResetApiKeyPress}
             >

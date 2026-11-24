@@ -9,6 +9,7 @@ import React, {
 import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
 import * as commandNames from 'Commands/commandNames';
 import Alert from 'Components/Alert';
+import inputStyles from 'Components/Form/TextInput.css';
 import { Stack } from 'Components/Layout';
 import Button from 'Components/Link/Button';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
@@ -819,6 +820,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
               <label>
                 Minutes between runs
                 <input
+                  className={inputStyles.input}
                   name="intervalMinutes"
                   type="number"
                   min="5"
@@ -830,6 +832,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
               <label>
                 Maximum active downloads
                 <input
+                  className={inputStyles.input}
                   name="activeDownloadLimit"
                   type="number"
                   min="1"
@@ -841,6 +844,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
               <label>
                 Exclude grabs for hours
                 <input
+                  className={inputStyles.input}
                   name="recentGrabHours"
                   type="number"
                   min="1"
@@ -849,9 +853,9 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
                   defaultValue={config.recentGrabHours}
                 />
               </label>
-              <button type="submit" disabled={savingConfig}>
-                Save pacing
-              </button>
+              <Button type="submit" isDisabled={savingConfig}>
+                Save schedule
+              </Button>
               <Text tone="secondary">
                 One search per run. The active download limit pauses scheduled
                 searches; recent grabs exclude their item. Manual and
@@ -1046,11 +1050,12 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
                   Filter by title
                 </label>
                 <input
+                  className={inputStyles.input}
                   id={`proactive-title-filter-${mode}`}
                   value={draftTitle}
                   onChange={handleDraftTitleChange}
                 />
-                <button type="submit">Apply</button>
+                <Button type="submit">Apply</Button>
               </form>
               <Text>
                 {preview.skippedTotal} skipped {itemLabel}
@@ -1067,7 +1072,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
                         )}
                         <span>{reasonSummary(item.reasons)}</span>
                       </div>
-                      <button
+                      <Button
                         type="button"
                         data-item-id={item.id}
                         aria-label={
@@ -1075,7 +1080,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
                             ? `Search missing episodes for ${item.title}`
                             : `Search ${item.title}`
                         }
-                        disabled={
+                        isDisabled={
                           submittingId !== undefined ||
                           activeSearches.some(
                             (search) => search.itemId === item.id
@@ -1092,7 +1097,7 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
                           ),
                           item.reasons['in-queue'] === item.missingEpisodes
                         )}
-                      </button>
+                      </Button>
                     </li>
                   ))}
                 </ul>
@@ -1100,20 +1105,20 @@ function SearchPreviewPane({ mode }: SearchPreviewPaneProps) {
                 <Text>No skipped items match this filter.</Text>
               )}
               <div className={styles.pager}>
-                <button
+                <Button
                   type="button"
-                  disabled={offset === 0}
+                  isDisabled={offset === 0}
                   onClick={handlePrevious}
                 >
                   Previous
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  disabled={offset + 50 >= preview.skippedTotal}
+                  isDisabled={offset + 50 >= preview.skippedTotal}
                   onClick={handleNext}
                 >
                   Next
-                </button>
+                </Button>
               </div>
             </Stack>
           </Surface>

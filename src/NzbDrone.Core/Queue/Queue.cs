@@ -20,6 +20,7 @@ namespace NzbDrone.Core.Queue
         public bool DownloadClientStalled { get; set; }
         public bool DownloadClientDownloadingMetadata { get; set; }
         public bool DownloadClientAlternateSpeedActive { get; set; }
+        public bool DownloadClientNetworkUnavailable { get; set; }
         public bool DownloadClientCanBeRemoved { get; set; }
         public TimeSpan? TimeLeft { get; set; }
         public DateTime? EstimatedCompletionTime { get; set; }

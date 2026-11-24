@@ -307,14 +307,8 @@ namespace NzbDrone.Core.Configuration
         {
             get
             {
-                var instanceName = _appOptions.InstanceName ?? GetValue("InstanceName", BuildInfo.AppName);
-
-                if (instanceName.Contains(BuildInfo.AppName, StringComparison.OrdinalIgnoreCase))
-                {
-                    return instanceName;
-                }
-
-                return BuildInfo.AppName;
+                var instanceName = _appOptions.InstanceName ?? GetValue("InstanceName", "Plattarr");
+                return string.IsNullOrWhiteSpace(instanceName) ? "Plattarr" : instanceName;
             }
         }
 

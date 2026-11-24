@@ -1,5 +1,5 @@
 import React, { ChangeEvent, FormEvent, useCallback, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useHistory, useLocation } from 'react-router-dom';
 import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
 import Alert from 'Components/Alert';
 import Icon, { IconName } from 'Components/Icon';
@@ -321,8 +321,20 @@ function getOutcomeEvidence(outcome: HygieneReplacementOutcome) {
 
 function Hygiene() {
   const location = useLocation();
-  const [selectedTab, setSelectedTab] = useState(() =>
-    new URLSearchParams(location.search).get('tab') === 'search' ? 2 : 0
+  const history = useHistory();
+  const tab = new URLSearchParams(location.search).get('tab');
+  const selectedTab = Math.max(
+    0,
+    ['queue', 'automation', 'search'].indexOf(tab || 'queue')
+  );
+
+  const handleTabSelect = useCallback(
+    (index: number) => {
+      const params = new URLSearchParams(location.search);
+      params.set('tab', ['queue', 'automation', 'search'][index]);
+      history.replace({ ...location, search: params.toString() });
+    },
+    [history, location]
   );
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>();
@@ -380,8 +392,8 @@ function Hygiene() {
   }, []);
 
   const handleManageRules = useCallback(() => {
-    setSelectedTab(1);
-  }, []);
+    handleTabSelect(1);
+  }, [handleTabSelect]);
 
   const handleGateChange = useCallback(
     async (event: FormEvent<HTMLInputElement>) => {
@@ -422,7 +434,7 @@ function Hygiene() {
           <Tabs
             className={styles.tabs}
             selectedIndex={selectedTab}
-            onSelect={setSelectedTab}
+            onSelect={handleTabSelect}
           >
             <TabList className={styles.tabList} aria-label="Hygiene sections">
               <Tab

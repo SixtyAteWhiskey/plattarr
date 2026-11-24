@@ -8,6 +8,7 @@ import pathlib
 import shutil
 import subprocess
 import tempfile
+from urllib.parse import urlparse
 
 from benchmark_frontend_routes import DevTools, free_port, read, ready, wait_for_static_network_idle
 
@@ -41,18 +42,25 @@ async def check_routes(chrome_url, app_url, width):
                 await devtools.command("Page.navigate", {"url": app_url + route})
                 await ready(devtools, f"location.pathname === {json.dumps(route)} && document.readyState === 'complete'")
                 await wait_for_static_network_idle(devtools, app_url)
-                await asyncio.sleep(0.3)
+                # Full navigations reload the authenticated app shell. Allow the
+                # real API rate limiter to replenish between page visits.
+                await asyncio.sleep(4.5)
                 page = await devtools.evaluate("""({
                   title: document.title,
                   text: document.body.innerText.slice(0, 150),
                   bodyWidth: document.body.scrollWidth,
                   viewportWidth: document.documentElement.clientWidth,
-                  errorPage: document.body.innerText.includes('Error Loading Page'),
+                  errorPage: /Error Loading Page|Failed to load translations|Page Not Found|Something went wrong|"message"\\s*:\\s*"Not Found"/i.test(document.body.innerText),
                   loading: document.body.innerText.includes('Loading page...')
                 })""")
                 exceptions = [event for event in devtools.events
                               if event.get("method") == "Runtime.exceptionThrown"]
-                results.append({"route": route, **page, "exceptions": len(exceptions),
+                http_errors = [
+                    {"status": response["status"], "path": urlparse(response["url"]).path}
+                    for event in devtools.events if event.get("method") == "Network.responseReceived"
+                    for response in [event["params"]["response"]] if response["status"] >= 400
+                ]
+                results.append({"route": route, **page, "exceptions": len(exceptions), "httpErrors": http_errors,
                                 "overflow": page["bodyWidth"] > page["viewportWidth"] + 1})
     finally:
         read(f"{chrome_url}/json/close/{tab['id']}")
@@ -109,7 +117,7 @@ async def main(args):
                     results.extend({"width": width, **result}
                                    for result in await check_routes(chrome_url, app_url, width))
                 print(json.dumps(results, indent=2))
-                if any(result["errorPage"] or result["loading"] or result["exceptions"] or
+                if any(result["errorPage"] or result["loading"] or result["exceptions"] or result["httpErrors"] or
                        result["overflow"] or not result["text"] for result in results):
                     raise SystemExit(1)
             finally:

@@ -58,7 +58,7 @@ namespace Radarr.Api.V3.Config
 
             SharedValidator.RuleFor(c => c.UrlBase).ValidUrlBase();
             SharedValidator.RuleFor(c => c.TrustedNetworks).ValidIpNetworks();
-            SharedValidator.RuleFor(c => c.InstanceName).ContainsRadarr().When(c => c.InstanceName.IsNotNullOrWhiteSpace());
+            SharedValidator.RuleFor(c => c.InstanceName).MaximumLength(100);
 
             SharedValidator.RuleFor(c => c.Username).NotEmpty().When(c => c.AuthenticationMethod == AuthenticationType.Forms);
             SharedValidator.RuleFor(c => c.Password).NotEmpty().When(c => c.AuthenticationMethod == AuthenticationType.Forms);

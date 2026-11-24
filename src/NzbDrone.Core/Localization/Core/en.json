@@ -2952,5 +2952,13 @@
   "YesCancel": "Yes, Cancel",
   "Yesterday": "Yesterday",
   "YesterdayAt": "Yesterday at {time}",
-  "YouCanAlsoSearch": "You can also search using TMDb ID or IMDb ID of a movie. e.g. `tmdb:71663`"
+  "YouCanAlsoSearch": "You can also search using TMDb ID or IMDb ID of a movie. e.g. `tmdb:71663`",
+  "ClearSearch": "Clear search",
+  "FirstPage": "First page",
+  "PreviousPage": "Previous page",
+  "NextPage": "Next page",
+  "LastPage": "Last page",
+  "PreviousPeriod": "Previous calendar period",
+  "NextPeriod": "Next calendar period",
+  "CalendarView": "Calendar view"
 }

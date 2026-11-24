@@ -336,6 +336,17 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             var config = Proxy.GetConfig(Settings);
             var torrents = GetMonitoredTorrents();
 
+            var networkUnavailable = false;
+            try
+            {
+                networkUnavailable = Proxy.GetConnectionStatus(Settings) == "disconnected";
+            }
+            catch (Exception)
+            {
+                networkUnavailable = true;
+                _logger.Debug("Unable to check qBittorrent connection status; holding Hygiene strikes and actions.");
+            }
+
             // If the mode cannot be checked, slow cleanup waits rather than
             // treating an intentionally throttled client as unhealthy.
             var alternativeSpeedActive = true;
@@ -366,6 +377,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
                     DownloadClientStalled = torrent.State == "stalledDL",
                     DownloadClientDownloadingMetadata = torrent.State is "metaDL" or "forcedMetaDL",
                     DownloadClientAlternateSpeedActive = alternativeSpeedActive,
+                    DownloadClientNetworkUnavailable = networkUnavailable,
                     DownloadClientInfo = DownloadClientItemClientInfo.FromDownloadClient(this, Settings.ForCategory(category).ImportedCategory.IsNotNullOrWhiteSpace()),
                     RemainingSize = (long)(torrent.Size * (1.0 - torrent.Progress)),
                     RemainingTime = GetRemainingTime(torrent),

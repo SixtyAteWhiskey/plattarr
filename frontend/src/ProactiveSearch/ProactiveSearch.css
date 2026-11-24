@@ -99,15 +99,15 @@
 }
 
 .filter input {
-  padding: $spaceSmall;
-  min-width: 220px;
+  max-width: 100%;
+  width: 260px;
 }
 
 .pacing {
   display: flex;
   align-items: end;
   flex-wrap: wrap;
-  gap: $spaceSmall;
+  gap: $spaceMedium;
 }
 
 .pacing label {
@@ -117,10 +117,5 @@
 }
 
 .pacing input {
-  padding: $spaceSmall;
-  width: 130px;
-}
-
-.pacing button {
-  padding: $spaceSmall;
+  width: 100%;
 }

@@ -64,6 +64,7 @@ namespace NzbDrone.Common.Http
         public Stream ResponseStream { get; set; }
         public long? MaximumResponseBytes { get; set; }
         public bool PublicDestinationOnly { get; set; }
+        public Uri ConfiguredOrigin { get; set; }
 
         public override string ToString()
         {

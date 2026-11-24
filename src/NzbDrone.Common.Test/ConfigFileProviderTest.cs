@@ -68,6 +68,22 @@ namespace NzbDrone.Common.Test
         }
 
         [Test]
+        public void new_instance_uses_plattarr_display_name()
+        {
+            Subject.InstanceName.Should().Be("Plattarr");
+        }
+
+        [TestCase("Plattarr")]
+        [TestCase("Family media")]
+        [TestCase("Radarr")]
+        public void configured_instance_name_is_preserved(string name)
+        {
+            _configFileContents = $"<Config><InstanceName>{name}</InstanceName></Config>";
+
+            Subject.InstanceName.Should().Be(name);
+        }
+
+        [Test]
         public void GetValue_Success()
         {
             const string key = "Port";

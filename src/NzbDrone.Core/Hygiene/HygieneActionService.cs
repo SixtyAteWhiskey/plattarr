@@ -493,6 +493,14 @@ namespace NzbDrone.Core.Hygiene
 
                 var clientItem = clientItems.FirstOrDefault(x => x.DownloadId == tracked.DownloadItem.DownloadId);
 
+                // Recheck the fresh client snapshot before any destructive request.
+                // The connection may have failed after the queue preview was built.
+                if (clientItem?.DownloadClientNetworkUnavailable == true)
+                {
+                    Pause(action);
+                    return;
+                }
+
                 if (currentAssessment != null && clientItem != null && HygieneRuleSafeguards.Ignored(
                     new QueueItem
                     {

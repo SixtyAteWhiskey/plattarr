@@ -64,6 +64,10 @@ namespace NzbDrone.Core.Hygiene
             {
                 Set(assessment, "ignored", "This download is ignored by Plattarr.", "Review it in the download client if needed.", false);
             }
+            else if (item.DownloadClientNetworkUnavailable)
+            {
+                Set(assessment, "client-unavailable", "The download client's network connection is disconnected or could not be checked. Hygiene strikes and actions are paused.", "Check the download client's VPN, network interface, and System Health. Cleanup resumes after the connection recovers.", true);
+            }
             else if (item.Status == QueueStatus.Failed || item.TrackedDownloadStatus == TrackedDownloadStatus.Error)
             {
                 Set(assessment, "client-failed", "The download client reported a failed download.", "Inspect the client error, then remove and blocklist the release if it cannot recover.", true);

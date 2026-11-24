@@ -222,8 +222,9 @@ function HygieneContent() {
           Content inspection
         </Heading>
         <Text tone="secondary">
-          Inspect qBittorrent file lists against file-name patterns. Content
-          actions require both the global Hygiene gate and a separate opt-in.
+          Inspect qBittorrent and SABnzbd file lists against file-name patterns.
+          Content actions require both the global Hygiene gate and a separate
+          opt-in.
         </Text>
 
         {configQuery.isError ? (

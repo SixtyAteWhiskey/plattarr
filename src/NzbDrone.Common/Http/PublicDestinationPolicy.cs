@@ -9,6 +9,19 @@ namespace NzbDrone.Common.Http
 {
     public static class PublicDestinationPolicy
     {
+        public static bool IsConfiguredOrigin(Uri uri, Uri configuredOrigin)
+        {
+            // An administrator-configured indexer may be on a private network.
+            // The exception follows that exact origin, never a feed-supplied host
+            // or a redirect to a different scheme, hostname, or port.
+            return uri is { IsAbsoluteUri: true } && configuredOrigin is { IsAbsoluteUri: true } &&
+                   (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) &&
+                   string.IsNullOrEmpty(uri.UserInfo) && string.IsNullOrEmpty(configuredOrigin.UserInfo) &&
+                   uri.Scheme.Equals(configuredOrigin.Scheme, StringComparison.OrdinalIgnoreCase) &&
+                   uri.IdnHost.Equals(configuredOrigin.IdnHost, StringComparison.OrdinalIgnoreCase) &&
+                   uri.Port == configuredOrigin.Port;
+        }
+
         public static async Task ValidateAsync(Uri uri, bool trustedProxy = false)
         {
             if (uri == null || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))

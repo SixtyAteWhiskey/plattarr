@@ -177,3 +177,16 @@ node_modules.nosync
 
 # Python bytecode (tools/liveproof)
 __pycache__/
+
+# Local runtime state, secrets, and private repository recovery copies.
+.env
+.env.*
+!.env.example
+*.db
+*.db-shm
+*.db-wal
+*.bundle
+*.pem
+*.pfx
+*.key
+.ssh/

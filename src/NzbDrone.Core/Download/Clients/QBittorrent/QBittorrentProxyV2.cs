@@ -89,7 +89,13 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
         public string GetConnectionStatus(QBittorrentSettings settings)
         {
             var request = BuildRequest(settings).Resource("/api/v2/transfer/info");
-            return ProcessRequest<QBittorrentTransferInfo>(request, settings, false).ConnectionStatus;
+            var status = ProcessRequest<QBittorrentTransferInfo>(request, settings, false)?.ConnectionStatus;
+            if (status is not ("connected" or "firewalled" or "disconnected"))
+            {
+                throw new DownloadClientException("qBittorrent did not report a recognized connection status.");
+            }
+
+            return status;
         }
 
         public QBittorrentPreferences GetConfig(QBittorrentSettings settings)

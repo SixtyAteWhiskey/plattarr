@@ -106,6 +106,12 @@ namespace NzbDrone.Core.Download
             return indexer != null && !(indexer.SupportsRedirect && indexer.Definition is IndexerDefinition { Redirect: true });
         }
 
+        protected static Uri GetConfiguredIndexerOrigin(IIndexer indexer)
+        {
+            var baseUrl = (indexer?.Definition?.Settings as IIndexerSettings)?.BaseUrl;
+            return Uri.TryCreate(baseUrl, UriKind.Absolute, out var origin) ? origin : null;
+        }
+
         public abstract IEnumerable<DownloadClientItem> GetItems();
 
         public virtual DownloadClientItem GetImportItem(DownloadClientItem item, DownloadClientItem previousImportAttempt)

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import Link, { LinkProps } from 'Components/Link/Link';
 import styles from './Card.css';
 
@@ -12,6 +12,7 @@ interface CardProps extends Pick<LinkProps, 'onPress'> {
 }
 
 function Card(props: CardProps) {
+  const contentId = useId();
   const {
     className = styles.card,
     overlayClassName = styles.overlay,
@@ -26,11 +27,14 @@ function Card(props: CardProps) {
       <div className={className}>
         <Link
           aria-label={ariaLabel}
+          aria-labelledby={ariaLabel ? undefined : contentId}
           className={styles.underlay}
           onPress={onPress}
         />
 
-        <div className={overlayClassName}>{children}</div>
+        <div id={contentId} className={overlayClassName}>
+          {children}
+        </div>
       </div>
     );
   }

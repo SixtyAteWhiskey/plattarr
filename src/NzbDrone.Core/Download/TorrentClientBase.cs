@@ -158,6 +158,7 @@ namespace NzbDrone.Core.Download
                 var request = new HttpRequest(torrentUrl);
                 request.MaximumResponseBytes = 32L * 1024 * 1024;
                 request.PublicDestinationOnly = true;
+                request.ConfiguredOrigin = GetConfiguredIndexerOrigin(indexer);
                 request.RateLimitKey = remoteRelease?.Release?.IndexerId.ToString();
                 request.Headers.Accept = "application/x-bittorrent";
                 request.AllowAutoRedirect = false;
