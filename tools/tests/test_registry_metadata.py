@@ -2,6 +2,8 @@ import importlib.util
 import json
 from pathlib import Path
 import unittest
+from unittest.mock import MagicMock, patch
+import urllib.error
 import urllib.request
 
 
@@ -71,6 +73,25 @@ class Registry:
 
 
 class RegistryMetadataTests(unittest.TestCase):
+    def test_transient_read_failure_is_retried(self):
+        opener = MagicMock()
+        response = MagicMock()
+        response.__enter__.return_value.read.return_value = b"{}"
+        response.__enter__.return_value.headers = {}
+        opener.open.side_effect = [urllib.error.URLError("temporary transport failure"), response]
+        with patch.object(metadata.urllib.request, "build_opener", return_value=opener), patch.object(metadata.time, "sleep"):
+            data, _ = metadata.Client.request("GET", "https://ghcr.io/example", {})
+        self.assertEqual(data, b"{}")
+        self.assertEqual(opener.open.call_count, 2)
+
+    def test_uncertain_mutation_is_never_retried(self):
+        opener = MagicMock()
+        opener.open.side_effect = urllib.error.URLError("temporary transport failure")
+        with patch.object(metadata.urllib.request, "build_opener", return_value=opener):
+            with self.assertRaises(urllib.error.URLError):
+                metadata.Client.request("DELETE", "https://api.github.com/example", {})
+        self.assertEqual(opener.open.call_count, 1)
+
     def test_registry_authorization_does_not_follow_a_blob_cdn_redirect(self):
         request = urllib.request.Request("https://ghcr.io/v2/example/plattarr/blobs/example", headers={"Authorization": "Bearer placeholder"})
         redirected = metadata.PrivateRedirectHandler().redirect_request(request, None, 302, "Found", {}, "https://cdn.example.invalid/blob")

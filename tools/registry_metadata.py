@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import re
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -95,11 +96,18 @@ class Client:
     def request(method, url, headers, body=None):
         request = urllib.request.Request(url, data=body, headers=headers, method=method)
         opener = urllib.request.build_opener(PrivateRedirectHandler())
-        with opener.open(request, timeout=30) as response:
-            data = response.read(32 * 1024 * 1024 + 1)
-            if len(data) > 32 * 1024 * 1024:
-                raise ValueError("Metadata response exceeded limit")
-            return data, response.headers
+        for attempt in range(3):
+            try:
+                with opener.open(request, timeout=30) as response:
+                    data = response.read(32 * 1024 * 1024 + 1)
+                    if len(data) > 32 * 1024 * 1024:
+                        raise ValueError("Metadata response exceeded limit")
+                    return data, response.headers
+            except urllib.error.URLError as error:
+                retryable = not isinstance(error, urllib.error.HTTPError) or error.code in {500, 502, 503, 504}
+                if method != "GET" or not retryable or attempt == 2:
+                    raise
+                time.sleep(attempt + 1)
 
     def api(self, method, path):
         data, _ = self.request(method, "https://api.github.com/" + path, {
