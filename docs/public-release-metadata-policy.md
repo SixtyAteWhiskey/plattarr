@@ -51,3 +51,21 @@ Runtime configuration, databases, key files, and private Git bundles are
 excluded from the Docker build context and local Git defaults. GitHub secret
 scanning, push protection, and Dependabot security updates supplement these
 checks; none replaces review of screenshots, fixtures, logs, or release notes.
+
+Buildx builders disable automatic GitHub event capture with
+`provenance-add-gha=false`. Published images retain minimal build provenance,
+and CI verifies that it contains no full GitHub event payload. Automatic Docker
+build-record uploads are disabled because they can retain identity and event
+metadata beyond the reviewed source tree. Historical logs, build records, and
+registry attestations need their own audit; a Git history rewrite does not
+change them.
+
+The manual **Review legacy image metadata** workflow inventories old GHCR
+attestations containing a full workflow event. Its downloadable plan contains
+only public digests, version IDs, and tags. Before applying it, privately back
+up the referenced index manifests, attestation manifests, and their JSON blobs.
+Supply the exact reviewed plan digest to apply; an inventory change stops the
+operation. The cleanup replaces affected tag indexes and removes their old
+metadata versions while retaining each runtime image descriptor and layer.
+It does not rewrite the application image contents. Historical index digests
+can therefore change even when their tagged application images do not.

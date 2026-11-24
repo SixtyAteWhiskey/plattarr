@@ -10,9 +10,13 @@ on:
 permissions:
   contents: read
 
+env:
+  BUILDX_METADATA_PROVENANCE: min
+  DOCKER_BUILD_RECORD_UPLOAD: 'false'
+
 concurrency:
   group: image-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   repository-hygiene:
@@ -23,6 +27,9 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+
+      - name: Verify registry metadata safeguards
+        run: python3 -m unittest discover -s tools/tests -p test_registry_metadata.py
 
       - name: Scan changed history for secrets
         shell: bash
@@ -114,6 +121,8 @@ jobs:
 
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: provenance-add-gha=false
 
       - name: Build completed Alpine image
         uses: docker/build-push-action@v6
@@ -264,6 +273,8 @@ jobs:
 
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: provenance-add-gha=false
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -283,15 +294,34 @@ jobs:
             type=ref,event=pr
 
       - name: Build and push
+        id: publish-image
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           target: runtime
           push: true
+          provenance: mode=min
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             PLATTARR_VERSION=10.0.0.${{ github.run_number }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Verify published provenance excludes event payloads
+        env:
+          IMAGE_DIGEST: ${{ steps.publish-image.outputs.digest }}
+        run: |
+          image_ref="ghcr.io/${GITHUB_REPOSITORY,,}@$IMAGE_DIGEST"
+          docker buildx imagetools inspect "$image_ref" --format '{{json .Provenance}}' \
+            > "$RUNNER_TEMP/published-provenance.json"
+          python3 - "$RUNNER_TEMP/published-provenance.json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          metadata = json.loads(Path(sys.argv[1]).read_text())
+          assert metadata, "Published image must retain provenance"
+          assert "github_event_payload" not in json.dumps(metadata), "Unreviewed event payload in image provenance"
+          print("Published provenance retains build evidence without the GitHub event payload")
+          PY
